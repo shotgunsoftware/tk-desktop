@@ -10,6 +10,7 @@
 
 import os
 import sys
+import syslog
 
 from PySide import QtGui
 from PySide import QtCore
@@ -23,13 +24,15 @@ class DesktopEngine(Engine):
             return
 
         # Initialize PySide app
-        QtGui.QApplication.setStyle("cleanlooks")
-        self.app = QtGui.QApplication(sys.argv)
-        css_file = os.path.join(self.disk_location, "resources", "dark.css")
-        f = open(css_file)
-        css = f.read()
-        f.close()
-        self.app.setStyleSheet(css)
+        self.app = QtGui.QApplication.instance()
+        if self.app is None:
+            QtGui.QApplication.setStyle("cleanlooks")
+            self.app = QtGui.QApplication(sys.argv)
+            css_file = os.path.join(self.disk_location, "resources", "dark.css")
+            f = open(css_file)
+            css = f.read()
+            f.close()
+            self.app.setStyleSheet(css)
 
     def post_app_init(self):
         if "SGTK_DESKTOP_ENGINE_INITIALIZED" in os.environ:
@@ -46,6 +49,7 @@ class DesktopEngine(Engine):
         fmt = "[%s] %s" % (level, msg)
         ret = args and (fmt % args) or fmt
         print ret
+        syslog.syslog(syslog.LOG_ERR, ret)
 
     def log_debug(self, msg, *args):
         self._log("DEBUG", msg, *args)
