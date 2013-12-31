@@ -1,0 +1,8 @@
+<RCC>
+  <qresource prefix="res">
+    <file>loading_512x400.png</file>
+    <file>shotgun_logo.png</file>
+    <file>gear.png</file>
+    <file>default_systray_icon.png</file>
+  </qresource>
+</RCC>
