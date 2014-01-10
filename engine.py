@@ -10,16 +10,45 @@
 
 import os
 import sys
-import syslog
+import logging
 
 from PySide import QtGui
-from PySide import QtCore
 
 from tank.platform import Engine
 
 
 class DesktopEngine(Engine):
+    def __init__(self, *args, **kwargs):
+        # initialize engine logging
+        platform_lookup = {
+            'darwin': os.path.join(os.path.expanduser("~"), "Library", "Logs", "Shotgun", "tk-desktop.log"),
+            'win32': os.path.join(os.environ.get("APPDATA", "Foo"), "Shotgun", "tk-desktop.log"),
+            'linux': None,
+        }
+
+        fname = platform_lookup.get(sys.platform)
+
+        if fname is None:
+            raise NotImplementedError("Unknown platform: %s" % sys.platform)
+
+        log_dir = os.path.dirname(fname)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        self._logger = logging.getLogger("tk-desktop")
+        handler = logging.handlers.RotatingFileHandler(fname, maxBytes=1024*1024, backupCount=5)
+        formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
+        handler.setFormatter(formatter)
+        self._logger.addHandler(handler)
+        self._logger.setLevel(logging.INFO)
+
+        # Now continue with the standard initialization
+        Engine.__init__(self, *args, **kwargs)
+
     def init_engine(self):
+        if self.get_setting("debug_logging", False):
+            self._logger.setLevel(logging.DEBUG)
+
         if "SGTK_DESKTOP_ENGINE_INITIALIZED" in os.environ:
             return
 
@@ -34,8 +63,13 @@ class DesktopEngine(Engine):
             f.close()
             self.app.setStyleSheet(css)
 
+        # update the icon
+        icon = QtGui.QIcon(":res/default_systray_icon")
+        self.app.setWindowIcon(icon)
+
     def post_app_init(self):
         if "SGTK_DESKTOP_ENGINE_INITIALIZED" in os.environ:
+            # Already initialized, just reloading engine in a new context
             return
 
         # Initialize System Tray
@@ -45,20 +79,14 @@ class DesktopEngine(Engine):
     def run(self):
         return self.app.exec_()
 
-    def _log(self, level, msg, *args):
-        fmt = "[%s] %s" % (level, msg)
-        ret = args and (fmt % args) or fmt
-        print ret
-        syslog.syslog(syslog.LOG_ERR, ret)
-
     def log_debug(self, msg, *args):
-        self._log("DEBUG", msg, *args)
+        self._logger.debug(msg, *args)
 
     def log_info(self, msg, *args):
-        self._log("INFO", msg, *args)
+        self._logger.info(msg, *args)
 
     def log_warning(self, msg, *args):
-        self._log("WARN", msg, *args)
+        self._logger.warn(msg, *args)
 
     def log_error(self, msg, *args):
-        self._log("ERROR", msg, *args)
+        self._logger.error(msg, *args)
