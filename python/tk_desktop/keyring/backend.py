@@ -8,7 +8,7 @@ import os
 import sys
 import ConfigParser
 
-from keyring.util.escape import escape as escape_for_ini
+from .util.escape import escape as escape_for_ini
 
 try:
     from abc import ABCMeta, abstractmethod
@@ -44,6 +44,11 @@ class KeyringBackend(object):
          1: recommended
         """
         return -1
+
+    @abstractmethod
+    def encrypted(self):
+        """ Return true if this keyring's storage is encrypted """
+        return False
 
     @abstractmethod
     def get_password(self, service, username):
@@ -87,6 +92,10 @@ class _ExtensionKeyring(KeyringBackend):
             return 1
         return 0
 
+    def encrypted(self):
+        """ Override the encrypted() in Keyring Backend. """
+        return False
+
     def get_password(self, service, username):
         """Override the get_password() in KeyringBackend.
         """
@@ -109,7 +118,7 @@ class OSXKeychain(_ExtensionKeyring):
     def _init_backend(self):
         """Return the handler: osx_keychain
         """
-        import osx_keychain
+        from . import osx_keychain
         return osx_keychain
 
     def _recommend(self):
@@ -117,12 +126,15 @@ class OSXKeychain(_ExtensionKeyring):
         """
         return sys.platform == 'darwin'
 
+    def encrypted(self):
+        return True
+
 class GnomeKeyring(_ExtensionKeyring):
     """Gnome Keyring"""
     def _init_backend(self):
         """Return the gnome_keyring handler.
         """
-        import gnome_keyring
+        from . import gnome_keyring
         return gnome_keyring
 
     def _recommend(self):
@@ -131,13 +143,16 @@ class GnomeKeyring(_ExtensionKeyring):
         # Gnome is running
         return os.getenv("GNOME_DESKTOP_SESSION_ID") is not None
 
+    def encrypted(self):
+        True
+
 
 class KDEKWallet(_ExtensionKeyring):
     """KDE KWallet"""
     def _init_backend(self):
         """Return the kde_kwallet handler.
         """
-        import kde_kwallet
+        from . import kde_kwallet
         return kde_kwallet
 
     def _recommend(self):
@@ -145,6 +160,9 @@ class KDEKWallet(_ExtensionKeyring):
         """
         # KDE is running
         return os.getenv("KDE_FULL_SESSION") == "true"
+
+    def encrypted(self):
+        return True
 
 class BasicFileKeyring(KeyringBackend):
     """BasicFileKeyring is a filebased implementation of keyring.
@@ -174,6 +192,10 @@ class BasicFileKeyring(KeyringBackend):
         """Decrypt the password.
         """
         pass
+
+    def encrypted(self):
+        # simple base64 encoding doesn't count
+        return False
 
     def get_password(self, service, username):
         """Read the password from the file.
@@ -347,6 +369,9 @@ class CryptedFileKeyring(BasicFileKeyring):
                                                                     _PADDING
         return AES.new(password, AES.MODE_CFB)
 
+    def encrypted(self):
+        return True
+
     def encrypt(self, password):
         """Encrypt the given password using the pycryto.
         """
@@ -366,7 +391,7 @@ class Win32CryptoKeyring(BasicFileKeyring):
         super(Win32CryptoKeyring, self).__init__()
 
         try:
-            import win32_crypto
+            from . import win32_crypto
             self.crypt_handler = win32_crypto
         except ImportError:
             self.crypt_handler = None
@@ -386,6 +411,9 @@ class Win32CryptoKeyring(BasicFileKeyring):
             return 1
         else:
             return 0
+
+    def encrypted(self):
+        return True
 
     def encrypt(self, password):
         """Encrypt the password using the CryptAPI.
@@ -418,7 +446,10 @@ class WinVaultKeyring(KeyringBackend):
             return 1
         else:
             return 0
-    
+
+    def encrypted(self):
+        return True
+
     def get_password(self, service, username):
         try:
             blob = self.win32cred.CredRead(Type=self.win32cred.CRED_TYPE_GENERIC, 
@@ -447,7 +478,7 @@ class Win32CryptoRegistry(KeyringBackend):
         super(Win32CryptoRegistry, self).__init__()
 
         try:
-            import win32_crypto
+            from . import win32_crypto
             import _winreg
             self.crypt_handler = win32_crypto
         except ImportError:
@@ -466,6 +497,9 @@ class Win32CryptoRegistry(KeyringBackend):
             return 1
         else:
             return 0
+
+    def encrypted(self):
+        return True
 
     def get_password(self, service, username):
         """Get password of the username for the service
@@ -510,14 +544,14 @@ def select_windows_backend():
     except ImportError:
         pass
     try:
-        import win32_crypto, _winreg
+        from . import win32_crypto, _winreg
         if (major, minor) >= (5, 0):
             # recommend for windows 2k+
             return 'reg'
     except ImportError:
         pass
     try:
-        import win32_crypto
+        from . import win32_crypto
         return 'file'
     except ImportError:
         pass

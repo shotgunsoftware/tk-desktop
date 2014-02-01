@@ -2,7 +2,7 @@
 import os
 import pwd
 
-from keyring.core import get_password as original_get_password
+from .core import get_password as original_get_password
 
 def get_default_user():
     """Get the username from the environment or password database.

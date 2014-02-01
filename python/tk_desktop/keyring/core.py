@@ -8,8 +8,8 @@ import ConfigParser
 import imp
 import sys
 
-from keyring import logger
-from keyring import backend
+from . import logger
+from . import backend
 
 def set_keyring(keyring):
     """Set current keyring backend.
