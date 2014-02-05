@@ -89,6 +89,9 @@
          <property name="margin">
           <number>5</number>
          </property>
+         <property name="textInteractionFlags">
+          <set>Qt::NoTextInteraction</set>
+         </property>
         </widget>
        </item>
        <item>
@@ -96,8 +99,14 @@
          <property name="font">
           <font/>
          </property>
+         <property name="mouseTracking">
+          <bool>false</bool>
+         </property>
          <property name="text">
-          <string>&lt;big&gt;Shotgun Desktop&lt;/big&gt;</string>
+          <string>&lt;big&gt;Shotgun&lt;/big&gt;</string>
+         </property>
+         <property name="textInteractionFlags">
+          <set>Qt::NoTextInteraction</set>
          </property>
         </widget>
        </item>

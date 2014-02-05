@@ -50,11 +50,14 @@ class Ui_SystemTrayWindow(object):
         self.shotgun_icon_label.setPixmap(QtGui.QPixmap(":/res/shotgun_logo.png"))
         self.shotgun_icon_label.setScaledContents(True)
         self.shotgun_icon_label.setMargin(5)
+        self.shotgun_icon_label.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.shotgun_icon_label.setObjectName("shotgun_icon_label")
         self.horizontalLayout.addWidget(self.shotgun_icon_label)
         self.shotgun_desktop_label = QtGui.QLabel(self.header_frame)
         font = QtGui.QFont()
         self.shotgun_desktop_label.setFont(font)
+        self.shotgun_desktop_label.setMouseTracking(False)
+        self.shotgun_desktop_label.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
         self.shotgun_desktop_label.setObjectName("shotgun_desktop_label")
         self.horizontalLayout.addWidget(self.shotgun_desktop_label)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
@@ -112,7 +115,7 @@ class Ui_SystemTrayWindow(object):
 
     def retranslateUi(self, SystemTrayWindow):
         SystemTrayWindow.setWindowTitle(QtGui.QApplication.translate("SystemTrayWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
-        self.shotgun_desktop_label.setText(QtGui.QApplication.translate("SystemTrayWindow", "<big>Shotgun Desktop</big>", None, QtGui.QApplication.UnicodeUTF8))
+        self.shotgun_desktop_label.setText(QtGui.QApplication.translate("SystemTrayWindow", "<big>Shotgun</big>", None, QtGui.QApplication.UnicodeUTF8))
         self.settings_button.setText(QtGui.QApplication.translate("SystemTrayWindow", "...", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
