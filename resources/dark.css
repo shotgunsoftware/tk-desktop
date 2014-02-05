@@ -9,10 +9,16 @@ QWidget
     font-size: 11px;
 }
 
-QFrame, QLineEdit, QComboBox, QSpinBox
+QFrame, QComboBox, QSpinBox
 {
     background-color: rgb(52, 52, 52);
-}     
+}
+
+QLineEdit
+{
+    background-color: rgb(70, 70, 70);
+    border: 1px solid rgb(20, 20, 20);
+}
 
 QLabel
 {
