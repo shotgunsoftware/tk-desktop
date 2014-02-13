@@ -197,7 +197,7 @@ class SystemTrayWindow(QtGui.QMainWindow):
 
     def _set_window_mask(self):
         """ set the window mask when pinned to the systray """
-        roundness = 10
+        roundness = 1
 
         # temp bitmap to store the mask
         bmp = QtGui.QBitmap(self.size())
