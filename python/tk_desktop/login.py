@@ -13,7 +13,7 @@ from PySide import QtCore
 
 from sgtk.util.shotgun import Shotgun
 
-from . import keyring
+import keyring
 
 from .ui import resources_rc
 from .ui import login as login_ui
