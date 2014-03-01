@@ -40,6 +40,7 @@ function build_res {
 echo "building user interfaces..."
 build_ui systray
 build_ui login
+build_ui thumb_widget
 
 # build resources
 echo "building resources..."

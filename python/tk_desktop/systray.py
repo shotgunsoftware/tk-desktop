@@ -10,22 +10,29 @@
 
 import os
 import sys
+import tempfile
+import subprocess
 
 from PySide import QtGui
 from PySide import QtCore
 
-import tank
-from tank.platform import constants
+import sgtk
+from sgtk.util import shotgun
+from sgtk.platform import constants
+
+import shotgun_desktop.paths
+import shotgun_desktop.login
 
 from .ui import systray
 from .ui import resources_rc
 
 from .model_project import SgProjectModel
+from .model_project import SgProjectModelProxy
 from .delegate_project import SgProjectDelegate
 from .systray_icon import ShotgunSystemTrayIcon
 
 # import the shotgun_model module from the shotgun utils framework
-shotgun_model = tank.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunModel = shotgun_model.ShotgunModel
 
 
@@ -39,14 +46,94 @@ class SystemTrayWindow(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
 
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
         # initialize member variables
         self.__state = None  # pinned or windowed
         self.__mouse_down_pos = None  # track position when dragging
         self.__mouse_down_global = None  # track global position when dragging
+        self.current_project = None
+        self.current_sub_python = None
 
         # setup the window
         self.ui = systray.Ui_SystemTrayWindow()
         self.ui.setupUi(self)
+
+        # Setup header buttons
+        button_states = [
+            (self.ui.apps_button, True),
+            (self.ui.inbox_button, False),
+            (self.ui.my_tasks_button, False),
+            (self.ui.versions_button, False),
+        ]
+        for (button, state) in button_states:
+            button.setProperty("active", state)
+            button.style().unpolish(button)
+            button.style().polish(button)
+            button.update()
+
+        connection = shotgun_desktop.login.ShotgunLogin.get_connection()
+
+        # User menu
+        ###########################
+
+        # grab user thumbnail
+        user = shotgun_desktop.login.ShotgunLogin.get_login()
+        thumbnail_url = connection.find_one('HumanUser',
+            [['id', 'is', user['id']]], ['image']).get('image')
+        if thumbnail_url is not None:
+            (_, thumbnail_file) = tempfile.mkstemp(suffix='.jpg')
+            try:
+                shotgun.download_url(connection, thumbnail_url, thumbnail_file)
+                pixmap = QtGui.QPixmap(thumbnail_file)
+                self.ui.user_button.setIcon(QtGui.QIcon(pixmap))
+            finally:
+                os.remove(thumbnail_file)
+
+        # populate user menu
+        self.user_menu = QtGui.QMenu(self)
+        self.user_menu.addAction(self.ui.actionPin_to_Menu)
+        self.user_menu.addAction(self.ui.actionKeep_on_Top)
+        self.user_menu.addAction(self.ui.actionSign_Out)
+        self.user_menu.addSeparator()
+        self.user_menu.addAction(self.ui.actionQuit)
+
+        self.ui.actionQuit.triggered.connect(QtGui.QApplication.instance().quit)
+        self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
+        self.ui.actionSign_Out.triggered.connect(self.sign_out)
+        self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
+
+        self.ui.user_button.setMenu(self.user_menu)
+
+        # Project menu
+        ###########################
+
+        status_schema = connection.schema_field_read('Project', 'sg_status')['sg_status']
+        status_values = status_schema['properties']['valid_values']['value']
+
+        self.project_menu = QtGui.QMenu(self)
+        self.project_menu.addAction(self.ui.actionAll_Projects)
+        self.project_menu.addAction(self.ui.actionFavorite_Projects)
+        self.project_menu.addAction(self.ui.actionRecent_Projects)
+        self.project_menu.addSeparator()
+
+        self.project_filter_options = QtGui.QActionGroup(self)
+        self.project_filter_options.setExclusive(False)
+
+        for value in status_values:
+            action = QtGui.QAction(value, self.project_filter_options)
+            action.setCheckable(True)
+            action.setChecked(True)
+            self.project_menu.addAction(action)
+        self.project_filter_options.triggered.connect(self.project_filter_triggered)
+
+        self.project_sort_options = QtGui.QActionGroup(self)
+        self.project_sort_options.addAction(self.ui.actionAll_Projects)
+        self.project_sort_options.addAction(self.ui.actionFavorite_Projects)
+        self.project_sort_options.addAction(self.ui.actionRecent_Projects)
+
+        self.project_sort_options.triggered.connect(self.project_sort_triggered)
+        self.ui.project_button.setMenu(self.project_menu)
 
         # create the system tray icon
         self.systray = ShotgunSystemTrayIcon(self)
@@ -55,32 +142,245 @@ class SystemTrayWindow(QtGui.QMainWindow):
         # initialize state
         self.state = self.STATE_PINNED
 
-        # load up the gear menu
-        self._setup_config_menu()
-
         # load and initialize cached projects
-        self._project_model = SgProjectModel(self.ui.projects)
-        self.ui.projects.setModel(self._project_model)
+        self._project_model = SgProjectModel(self, self.ui.projects)
+        self._project_proxy = SgProjectModelProxy(self)
+
+        # START HERE: hook up sorting/filtering GUI
+        self._project_proxy.sort_fields = [
+            ('last_accessed_by_current_user', SgProjectModelProxy.DESCENDING),
+            ('name', SgProjectModelProxy.ASCENDING),
+        ]
+
+        self._project_proxy.setSourceModel(self._project_model)
+        self._project_proxy.setDynamicSortFilter(True)
+        self._project_proxy.sort(0)
+        self.ui.projects.setModel(self._project_proxy)
+
+        # load and initialize cached recent projects
+        self._recent_project_proxy = SgProjectModelProxy(self)
+        self._recent_project_proxy.limit = 3
+        self._recent_project_proxy.sort_fields = [
+            ('last_accessed_by_current_user', SgProjectModelProxy.DESCENDING),
+            ('name', SgProjectModelProxy.ASCENDING),
+        ]
+        self._recent_project_proxy.setSourceModel(self._project_model)
+        self._recent_project_proxy.setDynamicSortFilter(True)
+        self._recent_project_proxy.sort(0)
+        self.ui.recent_projects.setModel(self._recent_project_proxy)
 
         # tell our project view to use a custom delegate to produce widgets
-        self._project_delegate = SgProjectDelegate(self.ui.projects)
+        self._project_delegate = \
+            SgProjectDelegate(self.ui.projects, QtCore.QSize(120, 130))
         self.ui.projects.setItemDelegate(self._project_delegate)
+
+        self._recent_project_delegate = \
+            SgProjectDelegate(self.ui.recent_projects, QtCore.QSize(100, 100))
+        self.ui.recent_projects.setItemDelegate(self._recent_project_delegate)
 
         # handle project selection change
         self._project_selection_model = self.ui.projects.selectionModel()
         self._project_selection_model.selectionChanged.connect(self._on_project_selection)
 
+        self.ui.all_projects_button.clicked.connect(self._on_all_projects_clicked)
+        self.ui.actionProject_Filesystem_Folder.triggered.connect(self.on_project_filesystem_folder_triggered)
+
+        # setup project search
+        self._search_x_icon = QtGui.QIcon(":res/x.png")
+        self._search_magnifier_icon = QtGui.QIcon(":res/search.png")
+        self.ui.search_text.hide()
+        self.ui.search_magnifier.hide()
+        self.ui.search_button.setIcon(self._search_magnifier_icon)
+        self.ui.search_frame.setProperty("collapsed", True)
+        self.ui.search_frame.style().unpolish(self.ui.search_frame)
+        self.ui.search_frame.style().polish(self.ui.search_frame)
+        self.ui.search_frame.update()
+        self.ui.search_button.clicked.connect(self.search_button_clicked)
+
+        # recent projects shelf
+        self.ui.project_arrow.clicked.connect(self.toggle_recent_projects_shelf)
+        self.ui.project_icon.clicked.connect(self.toggle_recent_projects_shelf)
+        self.ui.project_name.clicked.connect(self.toggle_recent_projects_shelf)
+
+        # geo = self.ui.recents_shelf.geometry()
+        # self.project_shelf_show_geo = geo
+        # self.project_shelf_hide_geo = QtCore.QRect(0, -geo.height(), geo.width(), geo.height())
+
+        # print "SHOW GEO: %s" % self.project_shelf_show_geo
+        # print "HIDE GEO: %s" % self.project_shelf_hide_geo
+        # self.project_shelf_stowed = False
+
+        self.project_carat_up = QtGui.QIcon(":res/up_carat.png")
+        self.project_carat_down = QtGui.QIcon(":res/down_carat.png")
+
+        self.toggle_recent_projects_shelf()
+
         # hook up handler for when the systray is clicked
         self.systray.clicked.connect(self.systray_clicked)
+        self.ui.shotgun_button.clicked.connect(self.shotgun_button_clicked)
+        self.ui.shotgun_arrow.clicked.connect(self.shotgun_button_clicked)
 
     ########################################################################################
-    # Event handlers
+    # Event handlers and slots
+    def search_button_clicked(self):
+        if self.ui.search_frame.property("collapsed"):
+            # expand
+            self.ui.project_button.hide()
+            self.ui.search_text.show()
+            self.ui.search_magnifier.show()
+            self.ui.search_button.setIcon(self._search_x_icon)
+            self.ui.search_frame.setProperty("collapsed", False)
+        else:
+            # collapse
+            self.ui.search_text.hide()
+            self.ui.search_magnifier.hide()
+
+            # Force update to keep from seeing the button flash
+            QtGui.QApplication.processEvents()
+
+            self.ui.project_button.show()
+            self.ui.search_button.setIcon(self._search_magnifier_icon)
+            self.ui.search_frame.setProperty("collapsed", True)
+
+        self.ui.search_frame.style().unpolish(self.ui.search_frame)
+        self.ui.search_frame.style().polish(self.ui.search_frame)
+        self.ui.search_frame.update()
+
+
+    def toggle_recent_projects_shelf(self):
+        # pos = self.ui.recents_shelf.pos()
+        # offset = self.ui.recents_shelf.height()
+        # if self.project_shelf_stowed:
+        #     self.ui.project_arrow.setIcon(self.project_carat_down)
+        # else:
+        #     offset = -offset
+        #     self.ui.project_arrow.setIcon(self.project_carat_up)
+
+        # anim = QtCore.QPropertyAnimation(self.ui.recents_shelf, "pos", self)
+        # anim.setDuration(300)
+        # anim.setStartValue(pos)
+        # anim.setEndValue(QtCore.QPoint(pos.x(), pos.y()+offset))
+        # anim.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
+
+        # print "START: %s" % anim.startValue()
+        # print "END: %s" % anim.endValue()
+
+        # # run the animation
+        # anim.start()
+        # self.project_shelf_stowed = not self.project_shelf_stowed
+
+        # return
+
+        if self.ui.recents_shelf.isHidden():
+            self.ui.recents_shelf.show()
+            self.ui.project_arrow.setIcon(self.project_carat_up)
+
+            self.ui.recents_shelf.adjustSize()
+            QtGui.QApplication.processEvents()
+        else:
+            self.ui.recents_shelf.hide()
+            self.ui.project_arrow.setIcon(self.project_carat_down)
+
+        # start = self.ui.recents_shelf.geometry()
+        # if self.project_shelf_stowed:
+        #     # opening shelf
+        #     self.ui.project_arrow.setIcon(self.project_carat_down)
+        #     end = self.project_shelf_show_geo
+        # else:
+        #     # closing shelf
+        #     self.ui.project_arrow.setIcon(self.project_carat_up)
+        #     end = self.project_shelf_hide_geo
+        #     self.ui.project_page.layout().setEnabled(False)
+
+        # print "START: %s" % start
+        # print "END: %s" % end
+
+        # anim = QtCore.QPropertyAnimation(self.ui.recents_shelf, "geometry", self)
+        # anim.setDuration(500)
+        # anim.setStartValue(start)
+        # anim.setEndValue(end)
+        # anim.setEasingCurve(QtCore.QEasingCurve.InOutQuad)
+
+        # def post_animation():
+        #     self.project_shelf_stowed = not self.project_shelf_stowed
+        #     self.ui.project_page.layout().setEnabled(True)
+
+
+        # anim.finished.connect(post_animation)
+
+        # # run the animation
+        # anim.start()
+
+    def on_project_filesystem_folder_triggered(self):
+        engine = sgtk.platform.current_engine()
+        engine.proxy.open_project_locations()
+
+    def project_sort_triggered(self, action):
+        button_label = " ".join(action.text().split(" ")[0:-1])
+        self.ui.project_button.setText(button_label)
+
+    def project_filter_triggered(self, action):
+        print "ACTION: %s" % action.text()
+        print "GROUP: %s" % action.parent()
+
+    def toggle_pinned(self):
+        if self.state == self.STATE_PINNED:
+            self._undock_from_menu()
+        elif self.state == self.STATE_WINDOWED:
+            self._pin_to_menu()
+
+    def _undock_from_menu(self):
+        self.state = self.STATE_WINDOWED
+
+    def _pin_to_menu(self):
+        # figure out start and end positions for the window
+        systray_geo = self.systray.geometry()
+        final = QtCore.QRect(systray_geo.center().x(), systray_geo.bottom(), 5, 5)
+        start = self.geometry()
+
+        # setup the animation to shrink the window to the systray
+        # parent the anim to self to keep it from being garbage collected
+        anim = QtCore.QPropertyAnimation(self, "geometry", self)
+        anim.setDuration(300)
+        anim.setStartValue(start)
+        anim.setEndValue(final)
+        anim.setEasingCurve(QtCore.QEasingCurve.InQuad)
+
+        # when the anim is finished, call the post handler
+        def post_close_animation():
+            self.hide()
+            self.setGeometry(start)
+            self.state = self.STATE_PINNED
+
+        anim.finished.connect(post_close_animation)
+
+        # run the animation
+        anim.start()
+
+    def sign_out(self):
+        raise NotImplementedError()
+
+    def toggle_keep_on_top(self):
+        flags = self.windowFlags()
+        visible = self.isVisible()
+
+        if flags & QtCore.Qt.WindowStaysOnTopHint:
+            self.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
+            self.ui.actionKeep_on_Top.setChecked(False)
+        else:
+            self.setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
+            self.ui.actionKeep_on_Top.setChecked(True)
+
+        if visible:
+            self.show()
+
     def mousePressEvent(self, event):
         """ Handle mouse press to track the start of a drag from the pinned window header """
-        if self.state == self.STATE_PINNED and self.ui.header_frame.underMouse():
+        drag_elements = [self.ui.header, self.ui.footer]
+        if any([elem.underMouse() for elem in drag_elements]):
             # only trigger on left click
             if event.buttons() == QtCore.Qt.LeftButton:
-                # clicked on the header while pinned, track position for possible drag
+                # clicked on a drag element, track position for possible drag
                 self.__mouse_down_pos = event.pos()
                 self.__mouse_down_global = QtGui.QCursor.pos()
 
@@ -118,42 +418,16 @@ class SystemTrayWindow(QtGui.QMainWindow):
 
     def closeEvent(self, event):
         """ Take over the close event to simply hide the window and repin """
-        # figure out start and end positions for the window
-        systray_geo = self.systray.geometry()
-        final = QtCore.QRect(systray_geo.center().x(), systray_geo.bottom(), 5, 5)
-        start = self.geometry()
-
-        # setup the animation to shrink the window to the systray
-        # parent the anim to self to keep it from being garbage collected
-        anim = QtCore.QPropertyAnimation(self, "geometry", self)
-        anim.setDuration(300)
-        anim.setStartValue(start)
-        anim.setEndValue(final)
-        anim.setEasingCurve(QtCore.QEasingCurve.InQuad)
-
-        # when the anim is finished, call the post handler
-        closure = lambda: self._postCloseAnimation(start)
-        anim.finished.connect(closure)
-
-        # run the animation
-        anim.start()
-
-        # propagate the event
+        self._pin_to_menu()
         event.ignore()
-
-    def _postCloseAnimation(self, original):
-        """ After the animation is finished hide the window, reset it size, and pin it """
-        self.hide()
-        self.setGeometry(original)
-        self.state = self.STATE_PINNED
 
     ########################################################################################
     # Pinning
-    def _getState(self):
+    def _get_state(self):
         """ return the current state of the window """
         return self.__state
 
-    def _setState(self, value):
+    def _set_state(self, value):
         """ set the current state of the window """
         # if state isn't changing do not do anything
         if self.__state == value:
@@ -162,43 +436,21 @@ class SystemTrayWindow(QtGui.QMainWindow):
         # update tracker variable
         self.__state = value
 
-        # if we are visible, we will need to reshow and position after changing flags
-        shown = self.isVisible()
-        if shown:
-            pos = self.pos()
-
         if self.__state == self.STATE_PINNED:
-            # update the mask and get rid of the window decorations
-            self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
             self._set_window_mask()
-
-            # reset visibility after setting flags
-            if shown:
-                self.__move_to_systray()
-                self.show()
+            self.ui.actionPin_to_Menu.setText("Undock from Menu")
+            self.__move_to_systray()
         elif self.__state == self.STATE_WINDOWED:
-            # clear the mask and decorate the window
-            self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.FramelessWindowHint)
-            self._clear_window_mask()
-
-            # reset visibility after setting flags
-            if shown:
-                self.show()
-                self.move(pos)
+            self._set_window_mask()
+            self.ui.actionPin_to_Menu.setText("Pin to Menu")
         else:
             raise ValueError("Unknown value for state: %s" % value)
 
     # create a property from the getter/setter
-    state = property(_getState, _setState)
-
-    def _clear_window_mask(self):
-        """ reset the window mask """
-        self.clearMask()
+    state = property(_get_state, _set_state)
 
     def _set_window_mask(self):
         """ set the window mask when pinned to the systray """
-        roundness = 1
-
         # temp bitmap to store the mask
         bmp = QtGui.QBitmap(self.size())
 
@@ -207,22 +459,23 @@ class SystemTrayWindow(QtGui.QMainWindow):
         self.painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
         self.painter.setRenderHint(QtGui.QPainter.HighQualityAntialiasing, True)
 
-        # mask out from the margin of the border_layout via a rounded rectangle
+        # mask out from the top margin of the border_layout
         rect = self.rect()
-        (left, top, right, bottom) = self.ui.border_layout.getContentsMargins()
+        (_, top, _, _) = self.ui.border_layout.getContentsMargins()
         self.painter.fillRect(rect, QtCore.Qt.white)
         self.painter.setBrush(QtGui.QColor(0, 0, 0))
-        mask = rect.adjusted(left, top, -right, -bottom)
-        self.painter.drawRoundedRect(mask, roundness, roundness)
+        mask = rect.adjusted(0, top, 0, 0)
+        self.painter.drawRect(mask)
 
-        # add back in the anchor triangle
-        (x, y, w, h) = rect.getRect()
-        midpoint = x + w/2.0
-        points = []
-        points.append(QtCore.QPoint(midpoint, y))
-        points.append(QtCore.QPoint(midpoint-top, y+top))
-        points.append(QtCore.QPoint(midpoint+top, y+top))
-        self.painter.drawPolygon(points)
+        if self.state == self.STATE_PINNED:
+            # add back in the anchor triangle
+            (x, y, w, h) = rect.getRect()
+            midpoint = x + w/2.0
+            points = []
+            points.append(QtCore.QPoint(midpoint, y))
+            points.append(QtCore.QPoint(midpoint-top, y+top))
+            points.append(QtCore.QPoint(midpoint+top, y+top))
+            self.painter.drawPolygon(points)
 
         # need to end the painter to make sure that its resources get
         # garbage collected before the bitmap to avoid a crash
@@ -231,38 +484,40 @@ class SystemTrayWindow(QtGui.QMainWindow):
         # finally set the window mask to the bitmap
         self.setMask(bmp)
 
-    def _setup_config_menu(self):
-        """ create the gear menu """
-        app = QtGui.QApplication.instance()
-
-        # quit action to exit the app
-        self._quit_action = QtGui.QAction("&Quit", self)
-        self._quit_action.triggered.connect(app.quit)
-
-        # create the menu itself
-        self._config_menu = QtGui.QMenu(self)
-        self._config_menu.addAction(self._quit_action)
-
-        # update the settings button with the menu
-        self.ui.settings_button.setMenu(self._config_menu)
-
-        # clear the down arrow from the button
-        self.ui.settings_button.setStyleSheet("QToolButton::menu-indicator { image: none; }")
-
     ########################################################################################
     # project view
+    def get_app_widget(self, namespace=None):
+        return self.ui.app_guis
+
+    def _on_all_projects_clicked(self):
+        self.slide_view(self.ui.project_browser_page, 'left')
+        self.current_sub_python.terminate()
+
+        self.current_project = None
+        self.current_sub_python = None
+
+        # clear the project specific guis
+        app_widget = self.get_app_widget()
+        app_widget.setUpdatesEnabled(False)
+        app_gui = app_widget.layout().takeAt(0)
+        while app_gui is not None:
+            app_gui.widget().hide()
+            app_widget.layout().removeItem(app_gui)
+            app_gui = app_widget.layout().takeAt(0)
+        app_widget.layout().invalidate()
+        app_widget.setUpdatesEnabled(True)
+
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
-
-        self.ui.tabs.clear()
 
         if len(selected_indexes) == 0:
             return
 
-        item = selected_indexes[0].model().itemFromIndex(selected_indexes[0])
+        # pull the Shotgun information for the project corresponding to this item
+        proxy_model = selected_indexes[0].model()
+        source_index = proxy_model.mapToSource(selected_indexes[0])
+        item = source_index.model().itemFromIndex(source_index)
         sg_data = item.data(ShotgunModel.SG_DATA_ROLE)
-
-        engine = tank.platform.current_engine()
 
         platform_fields = {
             'darwin': 'mac_path',
@@ -280,29 +535,148 @@ class SystemTrayWindow(QtGui.QMainWindow):
         ]
 
         fields = [path_field, 'users']
-        pipeline_configuration = engine.shotgun.find_one(
+
+        engine = sgtk.platform.current_engine()
+        connection = engine.shotgun
+        pipeline_configuration = connection.find_one(
             'PipelineConfiguration',
             filters,
             fields=fields,
         )
 
+        # If the Project has not been setup for Toolkit, use the apps registered
+        # with the site pipeline configuration
         if pipeline_configuration is None:
-            self.log_info("Selected project with no pipeline configuration: %s (%d)" % (sg_data['name'], sg_data['id']))
-            return
+            config_path = shotgun_desktop.paths.get_default_site_config_root(connection)
+        else:
+            config_path = pipeline_configuration[path_field]
 
-        tank.platform.current_engine().destroy()
+        # Now find out the appropriate python to launch
+        current_platform = {
+            'darwin': 'Darwin',
+            'linux': 'Linux',
+            'win32': 'Windows,'
+        }[sys.platform]
 
-        os.environ['SGTK_DESKTOP_ENGINE_INITIALIZED'] = "1"
-        new_tk = tank.sgtk_from_path(pipeline_configuration[path_field])
-        new_ctx = new_tk.context_from_entity(sg_data['type'], sg_data['id'])
-        new_engine = tank.platform.start_engine('tk-desktop', new_tk, new_ctx)
+        current_config_path = config_path
+        while True:
+            # First see if we have a local configuration for which interpreter
+            interpreter_config_file = os.path.join(
+                current_config_path, 'config', 'core', 'interpreter_%s.cfg' % current_platform)
 
-        for (cmd_name, cmd_details) in new_engine.commands.items():
-            if cmd_details['properties'].get('type') != 'system_tray':
-                continue
+            if os.path.exists(interpreter_config_file):
+                # Found the file that says where the interpreter is
+                with open(interpreter_config_file, "r") as f:
+                    path_to_python = f.read().strip()
+                    core_root = current_config_path
 
-            widget = cmd_details["callback"](cmd_details["properties"], self.ui.tabs)
-            self.ui.tabs.addTab(widget, cmd_name)
+                if not os.path.exists(path_to_python):
+                    raise RuntimeError("Cannot find interpreter %s defined in "
+                        "config file %s!" % (path_to_python, interpreter_config_file))
+
+                # found it
+                break
+
+            # look for a parent config to see if it has an interpreter
+            parent_config_file = os.path.join(
+                current_config_path, 'install', 'core', 'core_%s.cfg' % current_platform)
+
+            if not os.path.exists(parent_config_file):
+                raise RuntimeError("invalid configuration, no local interpreter or parent config")
+
+            # Read the path to the parent configuration
+            with open(parent_config_file, "r") as f:
+                current_config_path = f.read().strip()
+
+        (_, temp_bootstrap) = tempfile.mkstemp(suffix=".py")
+        bootstrap_file = open(temp_bootstrap, "w")
+        try:
+            core_python = os.path.join(core_root, "install", "core", "python")
+            server_pipe = engine.msg_server.pipe
+            server_auth = engine.msg_server.authkey
+
+            lines = [
+                "import os",
+                "import sys",
+                "sys.path.append('%s')" % core_python,
+                "import sgtk",
+                "tk = sgtk.sgtk_from_path('%s')" % config_path,
+                "tk._desktop_data = {",
+                "  'proxy_pipe': '%s'," % server_pipe,
+                "  'proxy_auth': '%s'," % server_auth,
+                "}",
+                "ctx = tk.context_from_entity('Project', %d)" % sg_data['id'],
+                "engine = sgtk.platform.start_engine('tk-desktop', tk, ctx)",
+                "server_pipe = engine.msg_server.pipe",
+                "server_auth = engine.msg_server.authkey",
+                "engine.register_app_proxy(server_pipe, server_auth)",
+                "sys.exit(engine.msg_server.wait())",
+            ]
+            bootstrap_file.write("\n".join(lines))
+            bootstrap_file.close()
+
+            self.current_project = sg_data
+            self.current_sub_python = subprocess.Popen([path_to_python, temp_bootstrap])
+        finally:
+            # clean up the bootstrap after a one second delay
+            def remove_bootstrap():
+                os.remove(temp_bootstrap)
+            QtCore.QTimer.singleShot(1000, remove_bootstrap)
+
+        # update the project icon
+        self.ui.project_icon.setIcon(item.icon())
+        self.ui.project_name.setText(item.data(SgProjectModel.DISPLAY_NAME_ROLE))
+
+        self.project_menu = QtGui.QMenu(self)
+        self.project_menu.addAction(self.ui.actionProject_Filesystem_Folder)
+        self.ui.project_menu.setMenu(self.project_menu)
+
+        # Slide in the project specific view
+        self.slide_view(self.ui.project_page, 'right')
+
+    def slide_view(self, new_page, from_direction='right'):
+        offsetx = self.ui.stack.frameRect().width()
+        offsety = self.ui.stack.frameRect().height()
+        current_page = self.ui.stack.currentWidget()
+
+        new_page.setGeometry(0, 0, offsetx, offsety)
+
+        if from_direction == 'left':
+            offsetx = -offsetx
+
+        curr_pos = new_page.pos()
+        new_page.move(curr_pos.x()+offsetx, curr_pos.y())
+        new_page.show()
+        new_page.raise_()
+
+        anim_old = QtCore.QPropertyAnimation(current_page, "pos", self)
+        anim_old.setDuration(500)
+        anim_old.setStartValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
+        anim_old.setEndValue(QtCore.QPoint(curr_pos.x()-offsetx, curr_pos.y()))
+        anim_old.setEasingCurve(QtCore.QEasingCurve.OutBack)
+
+        anim_new = QtCore.QPropertyAnimation(new_page, "pos", self)
+        anim_new.setDuration(500)
+        anim_new.setStartValue(QtCore.QPoint(curr_pos.x()+offsetx, curr_pos.y()))
+        anim_new.setEndValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
+        anim_new.setEasingCurve(QtCore.QEasingCurve.OutBack)
+
+        anim_group = QtCore.QParallelAnimationGroup(self)
+        anim_group.addAnimation(anim_old)
+        anim_group.addAnimation(anim_new)
+
+        def slide_finished():
+            self.ui.stack.setCurrentWidget(new_page)
+        anim_group.finished.connect(slide_finished)
+        anim_group.start()
+
+    def shotgun_button_clicked(self):
+        connection = shotgun_desktop.login.ShotgunLogin.get_connection()
+        url = connection.base_url
+        if self.current_project is not None:
+            url = "%s/detail/Project/%d" % (url, self.current_project['id'])
+
+        QtGui.QDesktopServices.openUrl(url)
 
     ########################################################################################
     # system tray
@@ -319,6 +693,7 @@ class SystemTrayWindow(QtGui.QMainWindow):
             if self.state == self.STATE_PINNED:
                 # make sure the window is positioned correctly if pinned
                 self.__move_to_systray()
+
             self.show()
             self.raise_()
         else:
