@@ -11,7 +11,7 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_ThumbWidget(object):
     def setupUi(self, ThumbWidget):
         ThumbWidget.setObjectName("ThumbWidget")
-        ThumbWidget.resize(514, 474)
+        ThumbWidget.resize(522, 474)
         self.verticalLayout_2 = QtGui.QVBoxLayout(ThumbWidget)
         self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
@@ -24,7 +24,7 @@ class Ui_ThumbWidget(object):
         self.widget_frame.setObjectName("widget_frame")
         self.verticalLayout = QtGui.QVBoxLayout(self.widget_frame)
         self.verticalLayout.setSpacing(10)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setContentsMargins(5, 5, 5, 5)
         self.verticalLayout.setObjectName("verticalLayout")
         self.thumbnail = QtGui.QLabel(self.widget_frame)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)

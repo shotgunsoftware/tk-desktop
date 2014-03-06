@@ -26,13 +26,22 @@ class ThumbWidget(QtGui.QWidget):
 
     def set_thumbnail(self, pixmap):
         """ Set a thumbnail given the current pixmap. """
-        width = self.ui.thumbnail.width()
-        height = self.ui.thumbnail.height()
-        preserved_aspect = pixmap.scaled(width, height,
+
+        # resize to a fixed size preserving aspect ratio
+        preserved_aspect = pixmap.scaled(120, 90,
                 QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
         self.ui.thumbnail.setPixmap(preserved_aspect)
 
     def set_text(self, label):
-        """Populate three lines of text in the widget """
+        """Populate the line of text in the widget """
         self.ui.label.setText(label)
         self.setToolTip(label)
+
+    def set_selected(self, selected):
+        """Adjust the style sheet to indicate selection or not"""
+        if selected:
+            # set the background color
+            self.ui.widget_frame.setStyleSheet(
+                """#widget_frame {background-color: rgb(65, 65, 65);}""")
+        else:
+            self.ui.widget_frame.setStyleSheet("")

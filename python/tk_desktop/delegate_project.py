@@ -24,6 +24,7 @@ class SgProjectDelegate(shotgun_view.WidgetDelegate):
     def __init__(self, view, size):
         shotgun_view.WidgetDelegate.__init__(self, view)
         self._size = size
+        self.__current_selected_widget = None
 
     def _create_widget(self, parent):
         """ Widget factory as required by base class """
@@ -38,9 +39,27 @@ class SgProjectDelegate(shotgun_view.WidgetDelegate):
         thumb = icon.pixmap(512)
         widget.set_thumbnail(thumb)
         widget.set_text(model_index.data(SgProjectModel.DISPLAY_NAME_ROLE))
+        widget.set_selected(False)
 
     def _on_before_selection(self, widget, model_index, style_options):
-        pass
+        """
+        Called by the base class before the associated widget should
+        be selected.
+        """
+        if self.__current_selected_widget is not None:
+            try:
+                # only one selection at a time
+                self.__current_selected_widget.set_selected(False)
+            except RuntimeError:
+                # the current selected widget may be deleted from
+                # underneath us
+                pass
+
+        # rendering of a selected widget is the same
+        self._on_before_paint(widget, model_index, style_options)
+
+        widget.set_selected(True)
+        self.__current_selected_widget = widget
 
     def sizeHint(self, style_options, model_index):
         return self._size

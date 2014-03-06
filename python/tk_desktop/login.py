@@ -13,8 +13,6 @@ from PySide import QtCore
 
 from sgtk.util.shotgun import Shotgun
 
-import keyring
-
 from .ui import resources_rc
 from .ui import login as login_ui
 
@@ -133,6 +131,8 @@ class ShotgunLogin(QtGui.QDialog):
     @classmethod
     def __get_saved_values(cls):
         """ return a tuple of all the stored values """
+        import keyring
+
         # load up the values stored via qsettings
         settings = QtCore.QSettings(cls.SETTINGS_ORGANIZATION, cls.SETTINGS_APPLICATION)
 
@@ -158,6 +158,8 @@ class ShotgunLogin(QtGui.QDialog):
     @classmethod
     def __clear_saved_values(cls):
         """ clear any saved values """
+        import keyring
+
         # grab values needed to clear keyring
         settings = QtCore.QSettings(cls.SETTINGS_ORGANIZATION, cls.SETTINGS_APPLICATION)
         settings.beginGroup("loginInfo")
@@ -175,6 +177,7 @@ class ShotgunLogin(QtGui.QDialog):
     @classmethod
     def __save_values(cls, site, script, key, login, password):
         """ save the given values securely """
+        import keyring
 
         # make sure the keyring supports encryption
         kr = keyring.get_keyring()

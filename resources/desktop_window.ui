@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SystemTrayWindow</class>
- <widget class="QMainWindow" name="SystemTrayWindow">
+ <class>DesktopWindow</class>
+ <widget class="QMainWindow" name="DesktopWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -454,6 +454,9 @@
           </property>
           <property name="showDropIndicator" stdset="0">
            <bool>false</bool>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SingleSelection</enum>
           </property>
           <property name="movement">
            <enum>QListView::Static</enum>

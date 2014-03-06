@@ -8,5 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from .rpc import RPCProxy
+from .rpc import RPCServerThread
+
 from .login import ShotgunLogin
-from .systray import SystemTrayWindow
+from .desktop_window import DesktopWindow
