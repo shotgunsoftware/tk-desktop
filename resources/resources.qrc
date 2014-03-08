@@ -1,5 +1,6 @@
 <RCC>
   <qresource prefix="res">
+    <file>right_arrow.png</file>
     <file>ellipses.png</file>
     <file>search.png</file>
     <file>squares.png</file>

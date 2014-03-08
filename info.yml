@@ -11,6 +11,40 @@ configuration:
         default_value: false
         description: Controls whether debug messages should be emitted to the logger
 
+    default_group:
+        type: str
+        default_value: Studio
+        description: "Controls the name of the default command grouping for any
+                     commands that do not match any of the values in the groups
+                     setting."
+
+    groups:
+        type: list
+        description: "A list of dictionaries that define what commands get puti
+                     in which groups.  Each dictionary entry needs to have the
+                     following keys: name - the name of the group, matches - a
+                     list of strings for what commands to add to the group.
+
+                     As commands are added to the engine, each match from the
+                     group's matches list will be treated as a case insensitive
+                     glob style match against the command's display name.  If
+                     there is a match then the command will be added to the
+                     group.  For example '*Maya*' will match against any command
+                     that contains the string 'maya' in the display name,
+                     regardless of case.
+
+                     It is possible for a command to show up in multiple groups
+                     if it has matches against multiple groups."
+        values:
+            type: dict
+            items:
+                name: { type: str }
+                matches:
+                    type: list
+                    allows_empty: False
+                    values: { type: str }
+        allows_empty: True
+        default_value: []
 
 # the Shotgun fields that this engine needs in order to operate correctly
 requires_shotgun_fields:

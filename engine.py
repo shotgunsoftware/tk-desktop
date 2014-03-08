@@ -11,6 +11,7 @@
 import os
 import sys
 import logging
+import fnmatch
 import logging.handlers
 
 from PySide import QtGui
@@ -39,6 +40,9 @@ class DesktopEngine(Engine):
 
         self.proxy = None
         self.msg_server = None
+
+        self.__first_group_shown = None
+        self.__group_headers_visible = False
 
         self.__callback_map = {}  # mapping from (namespace, name) to callbacks
         self.__app_gui_groups = {}
@@ -76,19 +80,27 @@ class DesktopEngine(Engine):
             # startup our server to receive gui calls
             self.start_app_server()
 
+            # get the list of configured groups
+            groups = [g['name'] for g in self.get_setting('groups', [])]
+            default_group = self.get_setting('default_group', [])
+
+            # add the default group in if it isn't already in the list.
+            # it goes at the beginning by default
+            if not default_group in groups:
+                groups.insert(0, default_group)
+
             # and register our side of the pipe as the current app proxy
-            self.proxy.create_app_proxy(self.msg_server.pipe, self.msg_server.authkey)
+            self.proxy.create_app_proxy(self.msg_server.pipe, self.msg_server.authkey, groups)
 
     def start_app_server(self):
         """ Start up the app side rpc server """
-        tk_desktop = self.import_module("tk_desktop")
-
         if self.msg_server is not None:
             self.msg_server.close()
 
-        self.msg_server = tk_desktop.RPCServerThread(self)
+        self.msg_server = self.tk_desktop.RPCServerThread(self)
         self.msg_server.register_function(self.trigger_callback, 'trigger_callback')
         self.msg_server.register_function(self.open_project_locations, 'open_project_locations')
+
         self.msg_server.start()
 
     def start_gui_server(self):
@@ -142,18 +154,19 @@ class DesktopEngine(Engine):
     ############################################################################
     # App proxy side methods
 
-    def register_app_proxy(self, pipe, authkey):
-        self.proxy.create_app_proxy(pipe, authkey)
-
-    def create_app_proxy(self, pipe, authkey):
+    def create_app_proxy(self, pipe, authkey, groups):
         self.proxy = self.tk_desktop.RPCProxy(pipe, authkey)
+        self._create_group_guis(groups)
 
     def destroy_app_proxy(self):
         self.desktop_window.clear_app_uis()
 
     def register_command(self, name, callback, properties):
         self.__callback_map[('__commands', name)] = callback
-        self.proxy.trigger_register_command(name, properties)
+
+        # evaluate groups on the app proxy side
+        groups = self._get_groups(name, properties)
+        self.proxy.trigger_register_command(name, properties, groups)
 
     def register_callback(self, namespace, command, callback):
         self.__callback_map[(namespace, command)] = callback
@@ -179,6 +192,9 @@ class DesktopEngine(Engine):
         """
         self.proxy.trigger_gui(namespace)
 
+    ############################################################################
+    # GUI side methods
+
     def trigger_gui(self, namespace):
         """ GUI side handler for building a custom GUI. """
         callback = self.__callback_map.get(namespace)
@@ -187,16 +203,12 @@ class DesktopEngine(Engine):
             parent = self.desktop_window.get_app_widget(namespace)
             callback(parent)
 
-    ############################################################################
-    # GUI side methods
-
-    def trigger_register_command(self, name, properties):
+    def trigger_register_command(self, name, properties, groups):
         """ GUI side handler for the add_command call. """
         self.log_debug("register_command(%s, %s)", name, properties)
 
         command_type = properties.get('type')
         command_icon = properties.get('icon')
-        command_title = properties.get('title')
 
         icon = None
         if command_icon is not None:
@@ -205,9 +217,7 @@ class DesktopEngine(Engine):
             else:
                 self.log_error("Icon for command '%s' not found: '%s'" % (name, command_icon))
 
-        title = name
-        if command_title is not None:
-            title = command_title
+        title = self._get_display_name(name, properties)
 
         if command_type == 'context_menu':
             # Add the command to the project menu
@@ -223,30 +233,44 @@ class DesktopEngine(Engine):
             menu.addAction(action)
         else:
             # Default is to add an icon/label for the command
-            parent = self.desktop_window.get_app_widget('__commands')
-            buttons = self._gui_group_for_app(name, properties, parent)
-            layout = buttons.layout()
+            for group in groups:
+                # Only show group headers when there are more than one group
+                if self.__first_group_shown is None:
+                    self.__first_group_shown = group
+                elif not self.__group_headers_visible and self.__first_group_shown != group:
+                    # more than one group being shown, turn on headers
+                    for group_widget in self.__app_gui_groups.values():
+                        group_frame = group_widget.parent()
+                        expand_button = group_frame.layout().itemAt(0).widget()
+                        expand_button.show()
+                    self.__group_headers_visible = True
 
-            if icon is None:
-                button = QtGui.QPushButton(title)
-            else:
-                button = QtGui.QPushButton(icon, title)
+                buttons = self._gui_group_for_app(group)
+                buttons.show()
 
-            button.setIconSize(QtCore.QSize(42, 42))
-            button.setFlat(True)
-            button.setStyleSheet("""
-                text-align: left;
-                font-size: 14px;
-                background-color: transparent;
-                border: none;
-            """)
+                if icon is None:
+                    button = QtGui.QPushButton(title)
+                else:
+                    button = QtGui.QPushButton(icon, title)
 
-            def button_clicked():
-                self.button_app_triggered(name, properties)
-            button.clicked.connect(button_clicked)
+                button.setIconSize(QtCore.QSize(42, 42))
+                button.setFlat(True)
+                button.setStyleSheet("""
+                    text-align: left;
+                    font-size: 14px;
+                    background-color: transparent;
+                    border: none;
+                """)
 
-            (row, column) = divmod(layout.count(), 2)
-            layout.addWidget(button, row, column)
+                def button_clicked():
+                    self.button_app_triggered(name, properties)
+                button.clicked.connect(button_clicked)
+
+                # find out where the button goes
+                # based off of current widget count
+                layout = buttons.layout()
+                (row, column) = divmod(layout.count(), 2)
+                layout.addWidget(button, row, column)
 
     def context_menu_app_triggered(self, name, properties):
         """ App triggered from the project specific menu. """
@@ -280,26 +304,84 @@ class DesktopEngine(Engine):
     def clear_app_groups(self):
         self.__app_gui_groups = {}
 
-    def _gui_group_for_app(self, name, properties, parent):
+    def _get_display_name(self, name, properties):
+        return properties.get('title', name)
+
+    def _get_groups(self, name, properties):
+        display_name = self._get_display_name(name, properties)
+
+        default_group = self.get_setting('default_group', 'Studio')
+        groups = self.get_setting('groups', [])
+
+        matches = []
+        for group in groups:
+            for match in group['matches']:
+                if fnmatch.fnmatch(display_name, match):
+                    matches.append(group['name'])
+                    break
+
+        if not matches:
+            matches = [default_group]
+
+        self.log_debug("'%s' goes in groups: %s" % (display_name, matches))
+        return matches
+
+    def _create_group_guis(self, groups):
+        parent = self.desktop_window.get_app_widget('__commands')
+
+        for group in groups:
+            group_box = QtGui.QFrame(parent)
+            group_box.setStyleSheet("""
+                border: 1px solid gray;
+                border-top: none;
+                border-left: none;
+                border-right: none;
+                """)
+
+            # add button to expand collapse widget
+            expand_button = QtGui.QPushButton(self.desktop_window.down_arrow, group)
+            expand_button.setFlat(True)
+            expand_button.setStyleSheet("""
+                    text-align: left;
+                    font-size: 14px;
+                    background-color: transparent;
+                    border: none;
+                """)
+            expand_button.hide()
+
+            # the container for the app widgets
+            app_widget = QtGui.QWidget(group_box)
+
+            group_layout = QtGui.QVBoxLayout()
+            group_layout.addWidget(expand_button)
+            group_layout.addWidget(app_widget)
+            group_box.setLayout(group_layout)
+
+            app_layout = QtGui.QGridLayout()
+            app_widget.setLayout(app_layout)
+
+            index = parent.layout().count() - 1
+            parent.layout().insertWidget(index, group_box)
+
+            def toggle_group():
+                if app_widget.isHidden():
+                    app_widget.show()
+                    expand_button.setIcon(self.desktop_window.down_arrow)
+                else:
+                    app_widget.hide()
+                    expand_button.setIcon(self.desktop_window.right_arrow)
+            expand_button.clicked.connect(toggle_group)
+            app_widget.hide()
+
+            self.__app_gui_groups[group] = app_widget
+
+    def _gui_group_for_app(self, group):
         """
         Return the parent widget for each grouping of apps.
 
         Construct the widget for each group as it is needed.
         """
-        group = "Studio"
-
-        if group in self.__app_gui_groups:
-            return self.__app_gui_groups[group]
-
-        widget = QtGui.QWidget(parent)
-        layout = QtGui.QGridLayout()
-        widget.setLayout(layout)
-
-        index = parent.layout().count() - 1
-        parent.layout().insertWidget(index, widget)
-
-        self.__app_gui_groups[group] = widget
-        return widget
+        return self.__app_gui_groups[group]
 
     def run(self):
         """
@@ -325,8 +407,7 @@ class DesktopEngine(Engine):
         self.app.setWindowIcon(icon)
 
         # initialize System Tray
-        tk_desktop = self.import_module("tk_desktop")
-        self.desktop_window = tk_desktop.DesktopWindow()
+        self.desktop_window = self.tk_desktop.DesktopWindow()
 
         # and run the app
         return self.app.exec_()

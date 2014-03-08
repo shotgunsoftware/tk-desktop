@@ -199,6 +199,8 @@ class DesktopWindow(SystrayWindow):
 
         self.project_carat_up = QtGui.QIcon(":res/up_carat.png")
         self.project_carat_down = QtGui.QIcon(":res/down_carat.png")
+        self.down_arrow = QtGui.QIcon(":res/down_arrow.png")
+        self.right_arrow = QtGui.QIcon(":res/right_arrow.png")
 
         self.toggle_recent_projects_shelf()
 
@@ -206,6 +208,10 @@ class DesktopWindow(SystrayWindow):
 
         self.ui.shotgun_button.clicked.connect(self.shotgun_button_clicked)
         self.ui.shotgun_arrow.clicked.connect(self.shotgun_button_clicked)
+
+    def __del__(self):
+        SystrayWindow.__del__(self)
+        self.current_sub_python.terminate()
 
     ########################################################################################
     # Event handlers and slots
@@ -293,6 +299,9 @@ class DesktopWindow(SystrayWindow):
         return self.project_menu
 
     def _on_all_projects_clicked(self):
+        self._project_selection_model.clear()
+        self._recent_project_selection_model.clear()
+
         self.slide_view(self.ui.project_browser_page, 'left')
         self.clear_app_uis()
 
