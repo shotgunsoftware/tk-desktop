@@ -368,7 +368,7 @@ class DesktopWindow(SystrayWindow):
 
         # now select on the recent projects view if it is in view
         index = self._recent_project_proxy.mapFromSource(source_index)
-        if index is not None:
+        if index is not None and index.isValid():
             # let the selection in the recent projects drive creation of
             # the app proxy
             self._recent_project_selection_model.select(

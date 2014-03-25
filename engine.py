@@ -8,10 +8,12 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import re
 import os
 import sys
 import logging
 import fnmatch
+import datetime
 import logging.handlers
 
 from PySide import QtGui
@@ -22,6 +24,9 @@ from tank.errors import TankEngineInitError
 
 
 class DesktopEngine(Engine):
+
+    APP_LAUNCH_EVENT_TYPE = "Toolkit_Desktop_AppLaunch"
+
     def __init__(self, tk, *args, **kwargs):
         """ Constructor """
         # Need to init logging before init_engine to satisfy logging from framework setup
@@ -89,8 +94,17 @@ class DesktopEngine(Engine):
             if not default_group in groups:
                 groups.insert(0, default_group)
 
+            # always add in recents
+            groups.insert(0, "Recent")
+
             # and register our side of the pipe as the current app proxy
             self.proxy.create_app_proxy(self.msg_server.pipe, self.msg_server.authkey, groups)
+
+    def post_app_init(self):
+        """ Called after all the apps have been initialized """
+        if self.has_gui_proxy:
+            # need to let the gui proxy know that all apps have been initialized
+            self.proxy.finish_app_initialization()
 
     def start_app_server(self):
         """ Start up the app side rpc server """
@@ -113,6 +127,7 @@ class DesktopEngine(Engine):
         self.msg_server.register_function(self.create_app_proxy, 'create_app_proxy')
         self.msg_server.register_function(self.destroy_app_proxy, 'destroy_app_proxy')
         self.msg_server.register_function(self.trigger_register_command, 'trigger_register_command')
+        self.msg_server.register_function(self.trigger_finish_app_initialization, 'finish_app_initialization')
         self.msg_server.register_function(self.trigger_gui, 'trigger_gui')
 
         self.msg_server.start()
@@ -203,6 +218,55 @@ class DesktopEngine(Engine):
             parent = self.desktop_window.get_app_widget(namespace)
             callback(parent)
 
+    def trigger_finish_app_initialization(self):
+        """ GUI side handler called after app initialization is finished. """
+
+        # now that all apps are registered populate recent apps
+        recents = sorted(
+            self._recents,
+            key=lambda key: self._recents[key]['timestamp'],
+            reverse=True
+        )
+        recent_widget = self._gui_group_for_app('Recent')
+
+        recents_list = QtGui.QListWidget()
+        recents_list.setViewMode(recents_list.IconMode)
+        recents_list.setWrapping(True)
+        recents_list.setUniformItemSizes(True)
+        recents_list.setWordWrap(True)
+        recents_list.setIconSize(QtCore.QSize(50, 50))
+        recents_list.setSelectionMode(recents_list.NoSelection)
+        recents_list.setStyleSheet("""
+            background-color: transparent;
+            border: none;
+            font-size: 12px;
+        """)
+
+        for (i, recent) in enumerate(recents):
+            icon = self._recents[recent]['icon']
+            title = self._recents[recent]['title']
+            properties = self._recents[recent]['properties']
+
+            if icon is None:
+                item = QtGui.QListWidgetItem(title, recents_list)
+            else:
+                item = QtGui.QListWidgetItem(icon, title, recents_list)
+
+            item.setData(QtCore.Qt.UserRole, recent)
+            item.setData(QtCore.Qt.UserRole + 1, properties)
+
+        def item_clicked(index):
+            item = recents_list.itemFromIndex(index)
+            name = item.data(QtCore.Qt.UserRole)
+            properties = item.data(QtCore.Qt.UserRole + 1)
+            self.button_app_triggered(name, properties)
+
+        recents_list.clicked.connect(item_clicked)
+
+        recents_list.setMaximumHeight(recents_list.sizeHintForRow(0))
+        recent_widget.layout().addWidget(recents_list, 0, 0)
+        recent_widget.show()
+
     def trigger_register_command(self, name, properties, groups):
         """ GUI side handler for the add_command call. """
         self.log_debug("register_command(%s, %s)", name, properties)
@@ -233,6 +297,15 @@ class DesktopEngine(Engine):
             menu.addAction(action)
         else:
             # Default is to add an icon/label for the command
+
+            # let the recents group know this app has been registered
+            if name in self._recents:
+                self._recents[name]['registered'] = True
+                self._recents[name]['title'] = title
+                self._recents[name]['icon'] = icon
+                self._recents[name]['properties'] = properties
+
+            # put it in all its groups
             for group in groups:
                 # Only show group headers when there are more than one group
                 if self.__first_group_shown is None:
@@ -282,6 +355,29 @@ class DesktopEngine(Engine):
 
     def button_app_triggered(self, name, properties):
         """ Button clicked from a registered command. """
+        import shotgun_desktop.login
+
+        if self.desktop_window.current_project is not None:
+            # Create an event log entry to track app launches
+            login = shotgun_desktop.login.ShotgunLogin.get_login()
+            data = {
+                # recents is populated by grouping on description, so it needs
+                # to be the same for each event created for a given name, but
+                # different for different names
+                #
+                # this is parsed when populating the recents menu
+                "description": "App '%s' launched from tk-desktop-engine" % name,
+                "event_type": self.APP_LAUNCH_EVENT_TYPE,
+                "project": self.desktop_window.current_project,
+                "meta": {"name": name},
+                "user": login,
+            }
+
+            self.log_debug("Registering app launch event: %s" % data)
+
+            # use toolkit connection to get ApiUser permissions for event creation
+            self.shotgun.create("EventLogEntry", data)
+
         self.proxy.trigger_callback('__commands', name, __proxy_expected_return=False)
 
     def app_proxy_startup_error(self, error):
@@ -339,7 +435,7 @@ class DesktopEngine(Engine):
                 """)
 
             # add button to expand collapse widget
-            expand_button = QtGui.QPushButton(self.desktop_window.down_arrow, group)
+            expand_button = QtGui.QPushButton(self.desktop_window.down_arrow, group.upper())
             expand_button.setFlat(True)
             expand_button.setStyleSheet("""
                     text-align: left;
@@ -363,17 +459,56 @@ class DesktopEngine(Engine):
             index = parent.layout().count() - 1
             parent.layout().insertWidget(index, group_box)
 
-            def toggle_group():
-                if app_widget.isHidden():
-                    app_widget.show()
-                    expand_button.setIcon(self.desktop_window.down_arrow)
-                else:
-                    app_widget.hide()
-                    expand_button.setIcon(self.desktop_window.right_arrow)
-            expand_button.clicked.connect(toggle_group)
+            def toggle_group_gen(app_widget, expand_button):
+                def toggle_group():
+                    if app_widget.isHidden():
+                        app_widget.show()
+                        expand_button.setIcon(self.desktop_window.down_arrow)
+                    else:
+                        app_widget.hide()
+                        expand_button.setIcon(self.desktop_window.right_arrow)
+                return toggle_group
+            expand_button.clicked.connect(toggle_group_gen(app_widget, expand_button))
             app_widget.hide()
 
             self.__app_gui_groups[group] = app_widget
+
+        # and fill in the most recent app launches
+        self.__populate_recent_group()
+
+    def __populate_recent_group(self):
+        import shotgun_desktop.login
+
+        login = shotgun_desktop.login.ShotgunLogin.get_login()
+
+        filters = [
+            ['user', 'is', login],
+            ['project', 'is', self.desktop_window.current_project],
+            ['event_type', 'is', self.APP_LAUNCH_EVENT_TYPE],
+        ]
+
+        summary = self.shotgun.summarize(
+            entity_type='EventLogEntry',
+            filters=filters,
+            summary_fields=[{'field': 'created_at', 'type': 'latest'}],
+            grouping=[{'field': 'description', 'type': 'exact', 'direction': 'desc'}],
+        )
+
+        self._recents = {}
+        for group in summary["groups"]:
+            description = group["group_name"]
+            text_stamp = group["summaries"]["created_at"]
+            time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
+            match = re.search("'(?P<name>.+)'", description)
+            if match is not None:
+                name = match.group("name")
+
+                # if multiple description parsings end up with the same nmae
+                # use the most recent one
+                existing_info = self._recents.setdefault(name,
+                    {'timestamp': time_stamp, 'registered': False})
+                if existing_info['timestamp'] < time_stamp:
+                    self._recents[name]['timestamp'] = time_stamp
 
     def _gui_group_for_app(self, group):
         """
