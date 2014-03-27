@@ -293,7 +293,7 @@ class DesktopWindow(SystrayWindow):
     ########################################################################################
     # project view
     def get_app_widget(self, namespace=None):
-        return self.ui.app_guis
+        return self.ui.project_commands
 
     def get_app_menu(self):
         return self.project_menu
@@ -315,24 +315,8 @@ class DesktopWindow(SystrayWindow):
 
         self.current_project = None
 
-        # clear the project specific guis
-        app_widget = self.get_app_widget()
-        app_widget.setUpdatesEnabled(False)
-
-        # empty the layout
-        app_gui = app_widget.layout().takeAt(0)
-        while app_gui is not None:
-            widget = app_gui.widget()
-            if widget is not None:
-                widget.hide()
-            app_widget.layout().removeItem(app_gui)
-            app_gui = app_widget.layout().takeAt(0)
-
-        # add the stretch back in
-        self.ui.app_guis.layout().addStretch()
-
-        app_widget.layout().invalidate()
-        app_widget.setUpdatesEnabled(True)
+        # empty the project commands
+        self.ui.project_commands.clear()
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)
@@ -369,8 +353,7 @@ class DesktopWindow(SystrayWindow):
         # now select on the recent projects view if it is in view
         index = self._recent_project_proxy.mapFromSource(source_index)
         if index is not None and index.isValid():
-            # let the selection in the recent projects drive creation of
-            # the app proxy
+            # let the selection in the recent projects drive creation of the app proxy
             self._recent_project_selection_model.select(
                 index, self._recent_project_selection_model.Select)
         else:
@@ -398,8 +381,6 @@ class DesktopWindow(SystrayWindow):
         self.__launch_app_proxy_for_project(project)
 
     def __launch_app_proxy_for_project(self, project):
-        import shotgun_desktop.paths
-
         self.clear_app_uis()
 
         self.__set_project_just_accessed(project)

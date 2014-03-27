@@ -20,7 +20,7 @@ configuration:
 
     groups:
         type: list
-        description: "A list of dictionaries that define what commands get puti
+        description: "A list of dictionaries that define what commands get put
                      in which groups.  Each dictionary entry needs to have the
                      following keys: name - the name of the group, matches - a
                      list of strings for what commands to add to the group.
@@ -45,6 +45,48 @@ configuration:
                     values: { type: str }
         allows_empty: True
         default_value: []
+
+    collapse_rules:
+        type: list
+        description: "A list of dictionaries that define how to collapse multile
+                     commands into a single button in the GUI. Each dictionary
+                     needs to have the following keys: match - a string that will
+                     match against the display name of a registered command,
+                     button_label - what the text label of the resulting button
+                     should be, menu_label - what the text label of the item in
+                     the button's menu should be.
+
+                     As commands are added to the engine, their display name will
+                     be compared to each match in turn. The match string can
+                     contain '$' style variables, which will be matched against
+                     any single word in the dislay name of the command. Those
+                     '$' variables are available for use in the button_label and
+                     the menu_label.
+
+                     For example a match of 'Launch $APP $VERSION' will match
+                     any display name made up of 'Launch' followed by two words.
+                     If the display name is 'Launch Maya 2014' then this would
+                     match, and the value of '$APP' would be 'Maya' and the value
+                     of '$VERSION' would be '2014'.
+
+                     If menu_label is the special string 'None' then the button
+                     name will be translated per the value of button_label, but
+                     no menu entry will be added for the commands.  If multiple
+                     commands collapse down to a button in this way, only the
+                     first one will be registered.
+
+                     If a display name does not match any collapse rule, then it
+                     will show up as a button without any menu. The first matching
+                     rule will determine the button and menu labels."
+        values:
+            type: dict
+            items:
+                match: { type: str }
+                button_label: { type: str }
+                menu_label: { type: str }
+        allows_empty: True
+        default_value: []
+
 
 # the Shotgun fields that this engine needs in order to operate correctly
 requires_shotgun_fields:
