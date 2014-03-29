@@ -238,6 +238,8 @@ class SgProjectModel(ShotgunModel):
     DISPLAY_NAME_ROLE = QtCore.Qt.UserRole + 101
     LAST_ACCESSED_ROLE = QtCore.Qt.UserRole + 102
 
+    thumbnail_updated = QtCore.Signal(QtGui.QStandardItem)
+
     def __init__(self, parent, overlay_parent_widget):
         """ Constructor """
         import shotgun_desktop.login
@@ -345,3 +347,6 @@ class SgProjectModel(ShotgunModel):
         # first load as a pixmap to avoid the icon delayed loading
         thumb = QtGui.QPixmap(path)
         item.setIcon(thumb)
+
+        # signal anybody listening for thumbnail updates
+        self.thumbnail_updated.emit(item)

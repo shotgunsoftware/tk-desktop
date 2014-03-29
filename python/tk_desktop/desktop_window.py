@@ -35,6 +35,10 @@ ShotgunModel = shotgun_model.ShotgunModel
 
 class DesktopWindow(SystrayWindow):
     """ Dockable window for the Shotgun system tray """
+
+    ORGANIZATION = "Shotgun Software"
+    APPLICATION = "tk-desktop"
+
     def __init__(self, parent=None):
         SystrayWindow.__init__(self, parent)
         import shotgun_desktop.login
@@ -52,9 +56,6 @@ class DesktopWindow(SystrayWindow):
         self.set_window_anchor_height(anchor_height)
         self.set_drag_widgets([self.ui.header, self.ui.footer])
         self.systray_state_changed.connect(self.handle_systray_state_changed)
-
-        # start off pinned
-        self.state = self.STATE_PINNED
 
         # Setup header buttons
         button_states = [
@@ -95,7 +96,7 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionQuit)
 
-        self.ui.actionQuit.triggered.connect(QtGui.QApplication.instance().quit)
+        self.ui.actionQuit.triggered.connect(self.handle_quit_action)
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
@@ -131,6 +132,7 @@ class DesktopWindow(SystrayWindow):
 
         self.project_sort_options.triggered.connect(self.project_sort_triggered)
         self.ui.project_button.setMenu(self.project_menu)
+        self.ui.project_button.hide()
 
         # load and initialize cached projects
         self._project_model = SgProjectModel(self, self.ui.projects)
@@ -209,17 +211,68 @@ class DesktopWindow(SystrayWindow):
         self.ui.shotgun_button.clicked.connect(self.shotgun_button_clicked)
         self.ui.shotgun_arrow.clicked.connect(self.shotgun_button_clicked)
 
+        self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
+
+        self._load_settings()
+
+    def _load_settings(self):
+        engine = sgtk.platform.current_engine()
+        connection = engine.shotgun
+        site = connection.base_url
+
+        settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
+
+        # site specific settings
+        settings.beginGroup(site)
+        self.__set_project_from_id(settings.value("project_id", 0))
+        self.move(settings.value("pos", QtCore.QPoint(200, 200)))
+        settings.endGroup()
+
+        # Force update so the project selection happens if the window is shown by default
+        QtGui.QApplication.processEvents()
+
+        # settings that apply across any instance (after site specific, so pinned can reset pos)
+        self.state = settings.value("systray_state", self.STATE_PINNED)
+        self.set_on_top(settings.value("on_top", False))
+
+    def _save_setting(self, key, value, site_specific):
+        engine = sgtk.platform.current_engine()
+        connection = engine.shotgun
+        site = connection.base_url
+
+        settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
+
+        if site_specific:
+            settings.beginGroup(site)
+
+        settings.setValue(key, value)
+        settings.sync()
+
     def __del__(self):
         SystrayWindow.__del__(self)
         self.current_sub_python.terminate()
 
     ########################################################################################
     # Event handlers and slots
+    def handle_project_thumbnail_updated(self, item):
+        project = item.data(ShotgunModel.SG_DATA_ROLE)
+        if self.current_project is None or project["id"] != self.current_project["id"]:
+            # nothing needs updating
+            return
+
+        self.ui.project_icon.setIcon(item.icon())
+
     def handle_systray_state_changed(self, state):
         if state == self.STATE_PINNED:
             self.ui.actionPin_to_Menu.setText("Undock from Menu")
         elif state == self.STATE_WINDOWED:
             self.ui.actionPin_to_Menu.setText("Pin to Menu")
+        self._save_setting("systray_state", state, site_specific=False)
+
+    def handle_quit_action(self):
+        self._save_setting("pos", self.pos(), site_specific=True)
+        self.close()
+        QtGui.QApplication.instance().quit
 
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):
@@ -270,25 +323,32 @@ class DesktopWindow(SystrayWindow):
         self.ui.project_button.setText(button_label)
 
     def project_filter_triggered(self, action):
-        print "ACTION: %s" % action.text()
-        print "GROUP: %s" % action.parent()
+        raise NotImplementedError("ACTION: %s, GROUP %s" % (action.text(), action.parent()))
 
     def sign_out(self):
         raise NotImplementedError()
 
-    def toggle_keep_on_top(self):
+    def is_on_top(self):
+        return (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
+
+    def set_on_top(self, value):
         flags = self.windowFlags()
         visible = self.isVisible()
 
-        if flags & QtCore.Qt.WindowStaysOnTopHint:
-            self.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
-            self.ui.actionKeep_on_Top.setChecked(False)
-        else:
+        if value:
             self.setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
-            self.ui.actionKeep_on_Top.setChecked(True)
+        else:
+            self.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
+
+        self.ui.actionKeep_on_Top.setChecked(value)
+        self._save_setting("on_top", value, site_specific=False)
 
         if visible:
             self.show()
+
+    def toggle_keep_on_top(self):
+        on_top = self.is_on_top()
+        self.set_on_top(not on_top)
 
     ########################################################################################
     # project view
@@ -302,8 +362,12 @@ class DesktopWindow(SystrayWindow):
         self._project_selection_model.clear()
         self._recent_project_selection_model.clear()
 
-        self.slide_view(self.ui.project_browser_page, 'left')
+        self.slide_view(self.ui.project_browser_page, "left")
         self.clear_app_uis()
+
+        # remember that we are back at the browser
+        self.current_project = None
+        self._save_setting("project_id", 0, site_specific=True)
 
     def clear_app_uis(self):
         engine = sgtk.platform.current_engine()
@@ -312,8 +376,6 @@ class DesktopWindow(SystrayWindow):
         if self.current_sub_python is not None:
             self.current_sub_python.terminate()
             self.current_sub_python = None
-
-        self.current_project = None
 
         # empty the project commands
         self.ui.project_commands.clear()
@@ -337,29 +399,54 @@ class DesktopWindow(SystrayWindow):
         if len(selected_indexes) == 0:
             return
 
-        # slide in the project specific view
-        self.slide_view(self.ui.project_page, 'right')
-        self._project_selection_model.clear()
-
         proxy_model = selected_indexes[0].model()
         source_index = proxy_model.mapToSource(selected_indexes[0])
         item = source_index.model().itemFromIndex(source_index)
-        project = item.data(ShotgunModel.SG_DATA_ROLE)
+        self.__set_project_from_item(item)
+
+    def __set_project_from_id(self, project_id):
+        if id == 0:
+            return
+
+        # find the project in the model
+        model = self._project_selection_model.model()
+        for i in xrange(model.rowCount()):
+            index = model.index(i, 0)
+
+            if hasattr(model, 'mapToSource'):
+                # if we are a proxy model, translate to source
+                source_index = model.mapToSource(index)
+                item = source_index.model().itemFromIndex(source_index)
+            else:
+                item = model.itemFromIndex(index)
+
+            project = item.data(ShotgunModel.SG_DATA_ROLE)
+            if project["id"] == project_id:
+                # select it in the model
+                self._project_selection_model.select(
+                    index, self._project_selection_model.SelectCurrent)
+                break
+
+    def __set_project_from_item(self, item):
+        self.current_project = item.data(ShotgunModel.SG_DATA_ROLE)
+        self._save_setting("project_id", self.current_project["id"], site_specific=True)
+
+        # slide in the project specific view
+        self.slide_view(self.ui.project_page, "right")
+        self._project_selection_model.clear()
 
         # update the project icon
         self.ui.project_icon.setIcon(item.icon())
         self.ui.project_name.setText(item.data(SgProjectModel.DISPLAY_NAME_ROLE))
 
-        # now select on the recent projects view if it is in view
-        index = self._recent_project_proxy.mapFromSource(source_index)
-        if index is not None and index.isValid():
-            # let the selection in the recent projects drive creation of the app proxy
-            self._recent_project_selection_model.select(
-                index, self._recent_project_selection_model.Select)
-        else:
-            self._recent_project_selection_model.clear()
-            # launch the app proxy
-            self.__launch_app_proxy_for_project(project)
+        # clear any selection in the recent projects
+        self._recent_project_selection_model.clear()
+
+        # launch the app proxy
+        self.__launch_app_proxy_for_project(self.current_project)
+
+        # and remember this project
+        self._save_setting("project_id", self.current_project["id"], site_specific=True)
 
     def _on_recent_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()

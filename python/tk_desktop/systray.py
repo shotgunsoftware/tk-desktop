@@ -88,6 +88,8 @@ class SystrayWindow(QtGui.QMainWindow):
             self.__move_to_systray()
         elif self.__state == self.STATE_WINDOWED:
             self._set_window_mask()
+            self.show()
+            self.raise_()
         else:
             raise ValueError("Unknown value for state: %s" % value)
 
@@ -168,11 +170,6 @@ class SystrayWindow(QtGui.QMainWindow):
             self.move(self.mapToParent(event.pos() - self.__mouse_down_pos))
 
         # propagate event
-        event.ignore()
-
-    def closeEvent(self, event):
-        """ Take over the close event to simply hide the window and repin """
-        self._pin_to_menu()
         event.ignore()
 
     def __move_to_systray(self):
