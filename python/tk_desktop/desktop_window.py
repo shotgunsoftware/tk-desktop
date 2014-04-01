@@ -326,7 +326,14 @@ class DesktopWindow(SystrayWindow):
         raise NotImplementedError("ACTION: %s, GROUP %s" % (action.text(), action.parent()))
 
     def sign_out(self):
-        raise NotImplementedError()
+        import shotgun_desktop.login
+        shotgun_desktop.login.ShotgunLogin.logout()
+        self.hide()
+        login = shotgun_desktop.login.ShotgunLogin.get_login()
+        if login is not None:
+            self.show()
+        else:
+            self.close()
 
     def is_on_top(self):
         return (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
