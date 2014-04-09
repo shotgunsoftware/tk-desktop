@@ -15,6 +15,7 @@ import datetime
 from PySide import QtGui
 from PySide import QtCore
 
+from .login import ShotgunLogin
 from .command_group_widget import GroupWidget
 from .command_group_widget import CommandGroupWidget
 
@@ -41,9 +42,9 @@ class ProjectCommandsWidget(QtGui.QFrame):
         self.__recent_group = None
         self.__recent_layout = None
 
-        self.layout = QtGui.QVBoxLayout()
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(self.layout)
+        layout = QtGui.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
 
         self.setStyleSheet("""
             background-color: transparent;
@@ -79,7 +80,7 @@ class ProjectCommandsWidget(QtGui.QFrame):
             group_widget.finalize()
 
             # leave stretch at the end
-            self.layout.insertWidget(self.layout.count()-1, group_widget)
+            self.layout().insertWidget(self.layout().count()-1, group_widget)
 
     def __initialize_recents(self):
         """
@@ -93,8 +94,7 @@ class ProjectCommandsWidget(QtGui.QFrame):
         self.__recents = {}
 
         # need to know what login to find events for
-        import shotgun_desktop.login
-        login = shotgun_desktop.login.ShotgunLogin.get_login()
+        login = ShotgunLogin.get_login()
 
         # pull down matching invents for the current project for the current user
         filters = [
@@ -203,28 +203,28 @@ class ProjectCommandsWidget(QtGui.QFrame):
         self.setUpdatesEnabled(False)
 
         # remove every item from the layout
-        item = self.layout.takeAt(0)
+        item = self.layout().takeAt(0)
         while item is not None:
             widget = item.widget()
             if widget is not None:
                 # hide the widget so everything looks good until cleanup
                 widget.hide()
-            self.layout.removeItem(item)
-            item = self.layout.takeAt(0)
+            self.layout().removeItem(item)
+            item = self.layout().takeAt(0)
 
         # add the Recent group
         self.__recent_group = GroupWidget("Recent", self)
-        self.layout.addWidget(self.__recent_group)
+        self.layout().addWidget(self.__recent_group)
 
         self.__recent_layout = QtGui.QVBoxLayout()
         self.__recent_layout.setContentsMargins(0, 0, 0, 0)
         self.__recent_group.widget.setLayout(self.__recent_layout)
 
         # add the stretch back in
-        self.layout.addStretch()
+        self.layout().addStretch()
 
         # and get updates going again
-        self.layout.invalidate()
+        self.layout().invalidate()
         self.setUpdatesEnabled(True)
 
         # reset internal state
@@ -258,13 +258,11 @@ class ProjectCommandsWidget(QtGui.QFrame):
             group_widget.add_command(command_name, button_name, menu_name, icon)
 
     def __handle_command_triggered(self, group_name, command_name):
-        import shotgun_desktop.login
-
         # Create an event log entry to track app launches
         engine = sgtk.platform.current_engine()
         connection = engine.shotgun
 
-        login = shotgun_desktop.login.ShotgunLogin.get_login()
+        login = ShotgunLogin.get_login()
         data = {
             # recent is populated by grouping on description, so it needs
             # to be the same for each event created for a given name, but

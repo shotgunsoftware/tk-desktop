@@ -23,6 +23,7 @@ from sgtk.platform import constants
 from .ui import resources_rc
 from .ui import desktop_window
 
+from .login import ShotgunLogin
 from .systray import SystrayWindow
 from .model_project import SgProjectModel
 from .model_project import SgProjectModelProxy
@@ -41,11 +42,9 @@ class DesktopWindow(SystrayWindow):
 
     def __init__(self, parent=None):
         SystrayWindow.__init__(self, parent)
-        import shotgun_desktop.login
 
         # initialize member variables
         self.current_project = None
-        self.current_sub_python = None
 
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
@@ -68,15 +67,11 @@ class DesktopWindow(SystrayWindow):
             button.setProperty("active", state)
             button.style().unpolish(button)
             button.style().polish(button)
-            button.update()
-
-        connection = shotgun_desktop.login.ShotgunLogin.get_connection()
+        connection = ShotgunLogin.get_connection()
 
         # User menu
         ###########################
-
-        # grab user thumbnail
-        user = shotgun_desktop.login.ShotgunLogin.get_login()
+        user = ShotgunLogin.get_login()
         thumbnail_url = connection.find_one('HumanUser',
             [['id', 'is', user['id']]], ['image']).get('image')
         if thumbnail_url is not None:
@@ -248,10 +243,6 @@ class DesktopWindow(SystrayWindow):
         settings.setValue(key, value)
         settings.sync()
 
-    def __del__(self):
-        SystrayWindow.__del__(self)
-        self.current_sub_python.terminate()
-
     ########################################################################################
     # Event handlers and slots
     def handle_project_thumbnail_updated(self, item):
@@ -270,9 +261,14 @@ class DesktopWindow(SystrayWindow):
         self._save_setting("systray_state", state, site_specific=False)
 
     def handle_quit_action(self):
+        # disconnect from the current proxy
+        engine = sgtk.platform.current_engine()
+        engine.disconnect_app_proxy()
+
         self._save_setting("pos", self.pos(), site_specific=True)
+
         self.close()
-        QtGui.QApplication.instance().quit
+        QtGui.QApplication.instance().quit()
 
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):
@@ -326,10 +322,12 @@ class DesktopWindow(SystrayWindow):
         raise NotImplementedError("ACTION: %s, GROUP %s" % (action.text(), action.parent()))
 
     def sign_out(self):
-        import shotgun_desktop.login
-        shotgun_desktop.login.ShotgunLogin.logout()
+        ShotgunLogin.logout()
         self.hide()
-        login = shotgun_desktop.login.ShotgunLogin.get_login()
+
+        # shot the login dialog again
+        login = ShotgunLogin.get_login()
+
         if login is not None:
             self.show()
         else:
@@ -379,10 +377,6 @@ class DesktopWindow(SystrayWindow):
     def clear_app_uis(self):
         engine = sgtk.platform.current_engine()
         engine.clear_app_groups()
-
-        if self.current_sub_python is not None:
-            self.current_sub_python.terminate()
-            self.current_sub_python = None
 
         # empty the project commands
         self.ui.project_commands.clear()
@@ -475,8 +469,15 @@ class DesktopWindow(SystrayWindow):
         self.__launch_app_proxy_for_project(project)
 
     def __launch_app_proxy_for_project(self, project):
+        engine = sgtk.platform.current_engine()
+
+        # disconnect from the current proxy
+        engine.disconnect_app_proxy()
+
+        # clear the current gui
         self.clear_app_uis()
 
+        # trigger an update to the model to track this project access
         self.__set_project_just_accessed(project)
         QtGui.QApplication.instance().processEvents()
 
@@ -497,7 +498,6 @@ class DesktopWindow(SystrayWindow):
 
         fields = [path_field, 'users']
 
-        engine = sgtk.platform.current_engine()
         connection = engine.shotgun
         pipeline_configuration = connection.find_one(
             'PipelineConfiguration',
@@ -578,6 +578,7 @@ class DesktopWindow(SystrayWindow):
                 "    ctx = tk.context_from_entity('Project', %d)" % project['id'],
                 "    engine = sgtk.platform.start_engine('tk-desktop', tk, ctx)",
                 "    app = QtGui.QApplication(sys.argv)",
+                "    app.setQuitOnLastWindowClosed(False)",
                 "    app.exec_()",
                 "except Exception, e:",
                 "    import cPickle as pickle",
@@ -591,7 +592,8 @@ class DesktopWindow(SystrayWindow):
 
             self.current_project = project
             engine.log_info("--- launching python subprocess")
-            self.current_sub_python = subprocess.Popen([path_to_python, temp_bootstrap])
+            engine.log_debug(" ---- %s %s" % (path_to_python, temp_bootstrap))
+            subprocess.Popen([path_to_python, temp_bootstrap])
         finally:
             # clean up the bootstrap after a one second delay
             def remove_bootstrap():
@@ -635,9 +637,7 @@ class DesktopWindow(SystrayWindow):
         anim_group.start()
 
     def shotgun_button_clicked(self):
-        import shotgun_desktop.login
-
-        connection = shotgun_desktop.login.ShotgunLogin.get_connection()
+        connection = ShotgunLogin.get_connection()
         url = connection.base_url
         if self.current_project is not None:
             url = "%s/detail/Project/%d" % (url, self.current_project['id'])

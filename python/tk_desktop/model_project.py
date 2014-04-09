@@ -16,6 +16,8 @@ from PySide import QtCore
 
 import tank
 
+from .login import ShotgunLogin
+
 shotgun_model = tank.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 ShotgunModel = shotgun_model.ShotgunModel
 
@@ -242,15 +244,13 @@ class SgProjectModel(ShotgunModel):
 
     def __init__(self, parent, overlay_parent_widget):
         """ Constructor """
-        import shotgun_desktop.login
-
         # Temporary workaround until toolkit connects to shotgun
         # using a user login.
         #
         # Get a local cache of project data using a connection linked
         # to the current login.  This will provide fields like last
         # accessed and current user favorite.
-        connection = shotgun_desktop.login.ShotgunLogin.get_connection()
+        connection = ShotgunLogin.get_connection()
 
         fields = [
             "code",
@@ -264,7 +264,7 @@ class SgProjectModel(ShotgunModel):
 
         # End of workaround
 
-        ShotgunModel.__init__(self, parent, overlay_parent_widget, download_thumbs=True)
+        ShotgunModel.__init__(self, parent, download_thumbs=True)
 
         # load up the thumbnail to use when there is none set in Shotgun
         self._missing_thumbnail_project = QtGui.QPixmap(":/res/missing_thumbnail_project.png")
@@ -297,9 +297,8 @@ class SgProjectModel(ShotgunModel):
 
     def update_project_accessed_time(self, project):
         """Set the last accessed time for the given project."""
-        import shotgun_desktop.login
-        login = shotgun_desktop.login.ShotgunLogin.get_login()
-        connection = shotgun_desktop.login.ShotgunLogin.get_connection()
+        login = ShotgunLogin.get_login()
+        connection = ShotgunLogin.get_connection()
 
         page = connection.find_one(
             'Page',

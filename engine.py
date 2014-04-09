@@ -150,6 +150,7 @@ class DesktopEngine(Engine):
 
         self.msg_server = self.tk_desktop.RPCServerThread(self)
         self.msg_server.register_function(self.trigger_callback, 'trigger_callback')
+        self.msg_server.register_function(self.trigger_disconnect, 'signal_disconnect')
         self.msg_server.register_function(self.open_project_locations, 'open_project_locations')
 
         self.msg_server.start()
@@ -179,7 +180,7 @@ class DesktopEngine(Engine):
         # if we have a gui proxy alert it to the destruction
         if self.has_gui_proxy:
             self.proxy.destroy_app_proxy()
-            self.proxy.__close_connection()
+            self.proxy.close()
 
         # and close down our server thread
         self.msg_server.close()
@@ -205,11 +206,15 @@ class DesktopEngine(Engine):
             if exit_code != 0:
                 self.log_error("Failed to launch '%s'!" % cmd)
 
-    ############################################################################
-    # App proxy side methods
-
     def create_app_proxy(self, pipe, authkey):
         self.proxy = self.tk_desktop.RPCProxy(pipe, authkey)
+
+    def disconnect_app_proxy(self):
+        """ Disconnect from the app proxy. """
+        if self.proxy is not None:
+            self.proxy.signal_disconnect()
+            self.proxy.close()
+            self.proxy = None
 
     def set_groups(self, groups):
         project = self.desktop_window.current_project
@@ -219,7 +224,13 @@ class DesktopEngine(Engine):
         self.__collapse_rules = collapse_rules
 
     def destroy_app_proxy(self):
-        pass
+        """ App proxy has been destroyed, clean up state. """
+        self.desktop_window.clear_app_uis()
+        self.proxy.close()
+        self.proxy = None
+
+    ############################################################################
+    # App proxy side methods
 
     def register_command(self, name, callback, properties):
         self.__callback_map[('__commands', name)] = callback
@@ -238,6 +249,18 @@ class DesktopEngine(Engine):
     def trigger_callback(self, namespace, command, *args, **kwargs):
         callback = self.__callback_map.get((namespace, command))
         callback(*args, **kwargs)
+
+    def trigger_disconnect(self):
+        app = QtGui.QApplication.instance()
+
+        top_level_windows = app.topLevelWidgets()
+        if top_level_windows:
+            self.log_debug("Disconnected with open windows, "
+                "setting quit on last window closed.")
+            app.setQuitOnLastWindowClosed(True)
+        else:
+            self.log_debug("Quitting on disconnect")
+            app.quit()
 
     def register_gui(self, namespace, callback):
         """
@@ -332,16 +355,13 @@ class DesktopEngine(Engine):
         """ Handle an error starting up the engine for the app proxy. """
         parent = self.desktop_window.get_app_widget("___error")
         if isinstance(error, TankEngineInitError):
-            label = QtGui.QLabel(
-                "<big>Error starting engine</big>"
-                "<br/><br/>%s" % error.message)
+            label = QtGui.QLabel("Error starting engine\n\n%s" % error.message)
         else:
-            label = QtGui.QLabel(
-                "<big>Unknown Error</big>"
-                "<br/><br/>%s - %s" % (type(error), error.message))
+            label = QtGui.QLabel("Unknown Error\n\n%s" % error.message)
 
         label.setWordWrap(True)
         label.setMargin(15)
+        print parent
         index = parent.layout().count() - 1
         parent.layout().insertWidget(index, label)
 

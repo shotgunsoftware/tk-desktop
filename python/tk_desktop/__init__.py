@@ -11,5 +11,4 @@
 from .rpc import RPCProxy
 from .rpc import RPCServerThread
 
-from .login import ShotgunLogin
 from .desktop_window import DesktopWindow

@@ -11,9 +11,8 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 # The path to where the PySide binaries are installed
-PYTHON_BASE="/Applications/Shotgun/Shotgun.app/Contents"
-PYTHON_DIR="${PYTHON_BASE}/Python/bin"
-PYTHON_LIB="${PYTHON_BASE}/Frameworks/Python.framework/Versions/2.7/lib/python2.7"
+PYTHON_BASE="/Applications/Shotgun/Python"
+PYTHON_LIB="${PYTHON_BASE}/lib/python2.7"
 
 # The path to output all built .py files to:
 UI_PYTHON_PATH=../python/tk_desktop/ui
@@ -29,11 +28,11 @@ function build_qt {
 }
 
 function build_ui {
-    build_qt "${PYTHON_DIR}/python ${PYTHON_DIR}/pyside-uic --from-imports" "$1.ui" "$1"
+    build_qt "${PYTHON_BASE}/bin/python ${PYTHON_BASE}/bin/pyside-uic --from-imports" "$1.ui" "$1"
 }
 
 function build_res {
-    build_qt "${PYTHON_DIR}/pyside-rcc" "$1.qrc" "$1_rc"
+    build_qt "${PYTHON_BASE}/bin/pyside-rcc" "$1.qrc" "$1_rc"
 }
 
 # build UI's:
