@@ -101,4 +101,4 @@ requires_shotgun_version:
 requires_core_version: "v0.13.0"
 
 frameworks:
-    - {"name": "tk-framework-shotgunutils", "version": "v0.1.2"}
+    - {"name": "tk-framework-shotgunutils", "version": "v0.x.x"}
