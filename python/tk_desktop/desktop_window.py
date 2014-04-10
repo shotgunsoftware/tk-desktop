@@ -90,6 +90,7 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionQuit)
+        QtGui.QApplication.instance().aboutToQuit.connect(self.handle_quit_action)
 
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
