@@ -140,6 +140,20 @@ class DesktopEngine(Engine):
     def post_app_init(self):
         """ Called after all the apps have been initialized """
         if self.has_gui_proxy:
+            # send the commands over to the proxy
+            for name, command_info in self.commands.iteritems():
+                self.__callback_map[('__commands', name)] = command_info["callback"]
+
+                # pull out needed values since this needs to be pickleable
+                gui_properties = {}
+                for prop in ["type", "icon", "title", "description"]:
+                    if prop in command_info["properties"]:
+                        gui_properties[prop] = command_info["properties"][prop]
+
+                # evaluate groups on the app proxy side
+                groups = self._get_groups(name, gui_properties)
+                self.proxy.trigger_register_command(name, gui_properties, groups)
+
             # need to let the gui proxy know that all apps have been initialized
             self.proxy.finish_app_initialization()
 
@@ -231,16 +245,6 @@ class DesktopEngine(Engine):
 
     ############################################################################
     # App proxy side methods
-
-    def register_command(self, name, callback, properties):
-        self.__callback_map[('__commands', name)] = callback
-
-        # evaluate groups on the app proxy side
-        groups = self._get_groups(name, properties)
-        self.proxy.trigger_register_command(name, properties, groups)
-
-    def register_callback(self, namespace, command, callback):
-        self.__callback_map[(namespace, command)] = callback
 
     def call_callback(self, namespace, command, *args, **kwargs):
         self.log_debug("calling callback %s::%s(%s, %s)" % (namespace, command, args, kwargs))
