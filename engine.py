@@ -226,7 +226,7 @@ class DesktopEngine(Engine):
     def disconnect_app_proxy(self):
         """ Disconnect from the app proxy. """
         if self.proxy is not None:
-            self.proxy.signal_disconnect()
+            self.proxy.signal_disconnect(__proxy_expected_return=False)
             self.proxy.close()
             self.proxy = None
 
@@ -355,17 +355,23 @@ class DesktopEngine(Engine):
         """ Button clicked from a registered command. """
         self.proxy.trigger_callback('__commands', name, __proxy_expected_return=False)
 
-    def app_proxy_startup_error(self, error):
+    def app_proxy_startup_error(self, error, tb):
         """ Handle an error starting up the engine for the app proxy. """
         parent = self.desktop_window.get_app_widget("___error")
         if isinstance(error, TankEngineInitError):
-            label = QtGui.QLabel("Error starting engine\n\n%s" % error.message)
+            message = "Error starting engine\n\n%s" % error.message
         else:
-            label = QtGui.QLabel("Unknown Error\n\n%s" % error.message)
+            message = "Unknown Error\n\n%s" % error.message
 
+        # add the traceback if debug is true
+        if self.get_setting("debug_logging", False):
+            message += "\n\n%s" % tb
+
+        self.log_error(message)
+
+        label = QtGui.QLabel(message)
         label.setWordWrap(True)
         label.setMargin(15)
-        print parent
         index = parent.layout().count() - 1
         parent.layout().insertWidget(index, label)
 

@@ -81,7 +81,10 @@ class DesktopWindow(SystrayWindow):
                 pixmap = QtGui.QPixmap(thumbnail_file)
                 self.ui.user_button.setIcon(QtGui.QIcon(pixmap))
             finally:
-                os.remove(thumbnail_file)
+                try:
+                    os.remove(thumbnail_file)
+                except Exception:
+                    pass
 
         # populate user menu
         self.user_menu = QtGui.QMenu(self)
@@ -343,11 +346,12 @@ class DesktopWindow(SystrayWindow):
 
         if value:
             self.setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
+            self.ui.actionKeep_on_Top.setChecked(True)
+            self._save_setting("on_top", True, site_specific=False)
         else:
             self.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
-
-        self.ui.actionKeep_on_Top.setChecked(value)
-        self._save_setting("on_top", value, site_specific=False)
+            self.ui.actionKeep_on_Top.setChecked(False)
+            self._save_setting("on_top", False, site_specific=False)
 
         if visible:
             self.show()
@@ -470,88 +474,98 @@ class DesktopWindow(SystrayWindow):
         self.__launch_app_proxy_for_project(project)
 
     def __launch_app_proxy_for_project(self, project):
-        engine = sgtk.platform.current_engine()
+        try:
+            engine = sgtk.platform.current_engine()
 
-        # disconnect from the current proxy
-        engine.disconnect_app_proxy()
+            # disconnect from the current proxy
+            engine.disconnect_app_proxy()
 
-        # clear the current gui
-        self.clear_app_uis()
+            # clear the current gui
+            self.clear_app_uis()
 
-        # trigger an update to the model to track this project access
-        self.__set_project_just_accessed(project)
-        QtGui.QApplication.instance().processEvents()
+            # trigger an update to the model to track this project access
+            self.__set_project_just_accessed(project)
+            QtGui.QApplication.instance().processEvents()
 
-        platform_fields = {
-            'darwin': 'mac_path',
-            'linux': 'linux_path',
-            'win32': 'windows_path',
-        }
-        path_field = platform_fields.get(sys.platform)
+            platform_fields = {
+                'darwin': 'mac_path',
+                'linux': 'linux_path',
+                'win32': 'windows_path',
+            }
+            path_field = platform_fields.get(sys.platform)
 
-        if path_field is None:
-            raise SystemError("Unsupported platform: %s" % sys.platform)
+            if path_field is None:
+                raise SystemError("Unsupported platform: %s" % sys.platform)
 
-        filters = [
-            ["code", "is", constants.PRIMARY_PIPELINE_CONFIG_NAME],
-            ["project", "is", project],
-        ]
+            filters = [
+                ["code", "is", constants.PRIMARY_PIPELINE_CONFIG_NAME],
+                ["project", "is", project],
+            ]
 
-        fields = [path_field, 'users']
+            fields = [path_field, 'users']
 
-        connection = engine.shotgun
-        pipeline_configuration = connection.find_one(
-            'PipelineConfiguration',
-            filters,
-            fields=fields,
-        )
+            connection = engine.shotgun
+            pipeline_configuration = connection.find_one(
+                'PipelineConfiguration',
+                filters,
+                fields=fields,
+            )
 
-        if pipeline_configuration is None:
-            # If the Project has not been setup for Toolkit
-            # call it an error until we implement the setup
-            # project
-            error = RuntimeError("No pipeline configuration found")
-            engine.app_proxy_startup_error(error)
+            if pipeline_configuration is None:
+                # If the Project has not been setup for Toolkit
+                # call it an error until we implement the setup
+                # project
+                error = RuntimeError("No pipeline configuration found")
+                engine.app_proxy_startup_error(error)
+                return
+            else:
+                config_path = pipeline_configuration[path_field]
+
+            # Now find out the appropriate python to launch
+            current_platform = {
+                'darwin': 'Darwin',
+                'linux': 'Linux',
+                'win32': 'Windows',
+            }[sys.platform]
+
+            current_config_path = config_path
+            while True:
+                # First see if we have a local configuration for which interpreter
+                interpreter_config_file = os.path.join(
+                    current_config_path, 'config', 'core', 'interpreter_%s.cfg' % current_platform)
+
+                if os.path.exists(interpreter_config_file):
+                    # Found the file that says where the interpreter is
+                    with open(interpreter_config_file, "r") as f:
+                        path_to_python = f.read().strip()
+                        core_root = current_config_path
+
+                    if not os.path.exists(path_to_python):
+                        raise RuntimeError("Cannot find interpreter %s defined in "
+                            "config file %s!" % (path_to_python, interpreter_config_file))
+
+                    # found it
+                    break
+
+                # look for a parent config to see if it has an interpreter
+                parent_config_file = os.path.join(
+                    current_config_path, 'install', 'core', 'core_%s.cfg' % current_platform)
+
+                if not os.path.exists(parent_config_file):
+                    raise RuntimeError("invalid configuration, no parent or interpreter found at '%s'" % current_config_path)
+
+                # Read the path to the parent configuration
+                with open(parent_config_file, "r") as f:
+                    current_config_path = f.read().strip()
+        except Exception, error:
+            parent = self.get_app_widget("___error")
+            label = QtGui.QLabel("Error setting up engine environment\n\n%s" % error.message)
+
+            label.setWordWrap(True)
+            label.setMargin(15)
+            index = parent.layout().count() - 1
+            parent.layout().insertWidget(index, label)
             return
-        else:
-            config_path = pipeline_configuration[path_field]
-
-        # Now find out the appropriate python to launch
-        current_platform = {
-            'darwin': 'Darwin',
-            'linux': 'Linux',
-            'win32': 'Windows,'
-        }[sys.platform]
-
-        current_config_path = config_path
-        while True:
-            # First see if we have a local configuration for which interpreter
-            interpreter_config_file = os.path.join(
-                current_config_path, 'config', 'core', 'interpreter_%s.cfg' % current_platform)
-
-            if os.path.exists(interpreter_config_file):
-                # Found the file that says where the interpreter is
-                with open(interpreter_config_file, "r") as f:
-                    path_to_python = f.read().strip()
-                    core_root = current_config_path
-
-                if not os.path.exists(path_to_python):
-                    raise RuntimeError("Cannot find interpreter %s defined in "
-                        "config file %s!" % (path_to_python, interpreter_config_file))
-
-                # found it
-                break
-
-            # look for a parent config to see if it has an interpreter
-            parent_config_file = os.path.join(
-                current_config_path, 'install', 'core', 'core_%s.cfg' % current_platform)
-
-            if not os.path.exists(parent_config_file):
-                raise RuntimeError("invalid configuration, no local interpreter or parent config")
-
-            # Read the path to the parent configuration
-            with open(parent_config_file, "r") as f:
-                current_config_path = f.read().strip()
 
         (_, temp_bootstrap) = tempfile.mkstemp(suffix=".py")
         bootstrap_file = open(temp_bootstrap, "w")
@@ -566,14 +580,15 @@ class DesktopWindow(SystrayWindow):
             lines = [
                 "import os",
                 "import sys",
-                "from PySide import QtGui",
+                "import traceback",
                 "sys.path.append('%s')" % core_python,
-                "import sgtk",
-                "sgtk.util.append_path_to_env_var('PYTHONPATH', '%s')" % core_python,
                 "try:",
+                "    from PySide import QtGui",
+                "    import sgtk",
+                "    sgtk.util.append_path_to_env_var('PYTHONPATH', '%s')" % core_python,
                 "    tk = sgtk.sgtk_from_path('%s')" % config_path,
                 "    tk._desktop_data = {",
-                "      'proxy_pipe': '%s'," % server_pipe,
+                "      'proxy_pipe': r'%s'," % server_pipe,
                 "      'proxy_auth': '%s'," % server_auth,
                 "    }",
                 "    ctx = tk.context_from_entity('Project', %d)" % project['id'],
@@ -584,8 +599,14 @@ class DesktopWindow(SystrayWindow):
                 "except Exception, e:",
                 "    import cPickle as pickle",
                 "    from multiprocessing.connection import Client",
-                "    connection = Client(address='%s', family='AF_UNIX', authkey='%s')" % (server_pipe, server_auth),
-                "    connection.send(pickle.dumps(('engine_startup_error', [e], {})))",
+                "    if sys.platform == 'win32':",
+                "        family = 'AF_PIPE'",
+                "    else:",
+                "        family = 'AF_UNIX'",
+                "    connection = Client(address=r'%s', family=family, authkey='%s')" % (server_pipe, server_auth),
+                "    connection.send(pickle.dumps(('engine_startup_error',",
+                "                  [e, traceback.format_exc()],",
+                "                  {'__proxy_expected_return': False})))",
                 "    connection.close()",
             ]
             bootstrap_file.write("\n".join(lines))
@@ -598,7 +619,10 @@ class DesktopWindow(SystrayWindow):
         finally:
             # clean up the bootstrap after a one second delay
             def remove_bootstrap():
-                os.remove(temp_bootstrap)
+                try:
+                    os.remove(temp_bootstrap)
+                except Exception:
+                    pass
             QtCore.QTimer.singleShot(1000, remove_bootstrap)
 
     def slide_view(self, new_page, from_direction='right'):

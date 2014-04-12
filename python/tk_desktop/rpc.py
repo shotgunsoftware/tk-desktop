@@ -9,9 +9,11 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
+import sys
 import uuid
 import select
 import logging
+import traceback
 import cPickle as pickle
 import multiprocessing.connection
 
@@ -51,8 +53,12 @@ class RPCServerThread(QtCore.QThread):
         self.authkey = str(uuid.uuid1())  # generate a random key for authentication
 
         # setup the server pipe
+        if sys.platform == "win32":
+            family = "AF_PIPE"
+        else:
+            family = "AF_UNIX"
         self.server = multiprocessing.connection.Listener(
-            address=None, family='AF_UNIX', authkey=self.authkey)
+            address=None, family=family, authkey=self.authkey)
 
         # grab the name of the pipe
         self.pipe = self.server.address
@@ -79,8 +85,22 @@ class RPCServerThread(QtCore.QThread):
         self._logger.debug("listening on '%s'", self.pipe)
         while True:
             # test to see if there is a connection waiting on the pipe
-            (rd, _, _) = select.select([self.server._listener._socket], [], [], 2)
-            if not rd:
+            if sys.platform == "win32":
+                # need to use win32 api for windows
+                mpc_win32 = multiprocessing.connection.win32
+                try:
+                    mpc_win32.WaitNamedPipe(self.server.address, 2000)
+                    ready = True
+                except WindowsError, e:
+                    if e.args[0] not in (mpc_win32.ERROR_SEM_TIMEOUT, mpc_win32.ERROR_PIPE_BUSY):
+                        raise
+                    ready = False
+            else:
+                # can use select on osx and linux
+                (rd, _, _) = select.select([self.server._listener._socket], [], [], 2)
+                ready = (len(rd) > 0)
+
+            if not ready:
                 # nothing ready, see if we need to stop the server, if not keep waiting
                 if self._stop:
                     break
@@ -99,7 +119,8 @@ class RPCServerThread(QtCore.QThread):
                         continue
 
                     # data coming over the connection is a tuple of (name, args, kwargs)
-                    (func_name, args, kwargs) = pickle.loads(connection.recv())
+                    pickle_string = connection.recv()
+                    (func_name, args, kwargs) = pickle.loads(pickle_string)
 
                     # special case where we do not call a registered method and break
                     # out of the listen loop
@@ -132,11 +153,13 @@ class RPCServerThread(QtCore.QThread):
                         # if the client expects the results, send them along
                         if expected_return:
                             self._logger.debug("got result '%s'" % result)
-                            connection.send(pickle.dumps(result))
+                            pickle_string = pickle.dumps(result)
+                            connection.send(pickle_string)
                     except Exception as e:
                         # if any of the above fails send the exception back to the client
+                        self._logger.error("got exception '%s'" % e)
+                        self._logger.debug("   traceback:\n%s" % traceback.format_exc())
                         if expected_return:
-                            self._logger.error("got exception '%s'" % e)
                             connection.send(pickle.dumps(e))
             except (EOFError, IOError):
                 # let these errors just keep serving new connections
@@ -160,8 +183,13 @@ class RPCProxy(object):
         self._logger = logging.getLogger('tk-desktop.rpc')
 
         # connect to the server via the pipe using authkey for authentication
+        if sys.platform == "win32":
+            family = "AF_PIPE"
+        else:
+            family = "AF_UNIX"
+        self._logger.debug("connecting to to %s", pipe)
         self._connection = multiprocessing.connection.Client(
-            address=pipe, family='AF_UNIX', authkey=authkey)
+            address=pipe, family=family, authkey=authkey)
         self._logger.debug("connected to %s", pipe)
 
     def __getattr__(self, name):
