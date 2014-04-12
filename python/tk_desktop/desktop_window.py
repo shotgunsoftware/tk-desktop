@@ -131,6 +131,8 @@ class DesktopWindow(SystrayWindow):
 
         self.project_sort_options.triggered.connect(self.project_sort_triggered)
         self.ui.project_button.setMenu(self.project_menu)
+
+        # do not show the project menu for the time being
         self.ui.project_button.hide()
 
         # load and initialize cached projects
@@ -277,7 +279,8 @@ class DesktopWindow(SystrayWindow):
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):
             # expand
-            self.ui.project_button.hide()
+            # do not show the project menu for the time being
+            # self.ui.project_button.hide()
             self.ui.search_text.show()
             self.ui.search_magnifier.show()
             self.ui.search_button.setIcon(self._search_x_icon)
@@ -292,7 +295,8 @@ class DesktopWindow(SystrayWindow):
             QtGui.QApplication.processEvents()
 
             self.ui.search_text.setText('')
-            self.ui.project_button.show()
+            # do not show the project menu for the time being
+            # self.ui.project_button.show()
             self.ui.search_button.setIcon(self._search_magnifier_icon)
             self.ui.search_frame.setProperty("collapsed", True)
 
