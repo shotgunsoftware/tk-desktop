@@ -142,7 +142,9 @@ QScrollBar::add-line:horizontal
 
 #header QPushButton[enabled="false"]
 {
-    color: rgb(50, 50, 50);
+    /* Set to the same as the background for now */
+    /* color: rgb(50, 50, 50); */
+    color: rgb(30, 30, 30);
 }
 
 #header QPushButton[active="true"]
@@ -308,4 +310,9 @@ QScrollBar::add-line:horizontal
 {
     subcontrol-origin: padding;
     subcontrol-position: center right;
+}
+
+#shotgun_frame:hover
+{
+    background-color: rgb(50, 50, 50);
 }
