@@ -259,7 +259,13 @@ class SgProjectModel(ShotgunModel):
             "last_accessed_by_current_user",
             "name",
         ]
-        projects = connection.find('Project', [], fields=fields)
+
+        filters = [
+            ["name", "is_not", "Template Project"],
+            ["archived", "is_not", True],
+        ]
+
+        projects = connection.find('Project', filters, fields=fields)
         self._project_map = dict([(p['id'], p) for p in projects])
 
         # End of workaround
@@ -282,7 +288,7 @@ class SgProjectModel(ShotgunModel):
         ShotgunModel._load_data(
             self,
             entity_type='Project',
-            filters=[],
+            filters=filters,
             hierarchy=["name"],
             fields=interesting_fields,
             order=[],
