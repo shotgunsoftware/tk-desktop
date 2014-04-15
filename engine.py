@@ -298,8 +298,9 @@ class DesktopEngine(Engine):
         """ GUI side handler for the add_command call. """
         self.log_debug("register_command(%s, %s)", name, properties)
 
-        command_type = properties.get('type')
-        command_icon = properties.get('icon')
+        command_type = properties.get("type")
+        command_icon = properties.get("icon")
+        command_tooltip = properties.get("description")
 
         icon = None
         if command_icon is not None:
@@ -316,6 +317,8 @@ class DesktopEngine(Engine):
             action = QtGui.QAction(self.desktop_window)
             if icon is not None:
                 action.setIcon(icon)
+            if command_tooltip is not None:
+                action.setToolTip(command_tooltip)
             action.setText(title)
 
             def action_triggered():
@@ -341,7 +344,8 @@ class DesktopEngine(Engine):
                     button_name = string.Template(collapse_rule['button_label']).safe_substitute(match)
                     break
 
-            self.desktop_window.ui.project_commands.add_command(name, button_name, menu_name, icon, groups)
+            self.desktop_window.ui.project_commands.add_command(name, button_name,
+                menu_name, icon, command_tooltip, groups)
 
     def context_menu_app_triggered(self, name, properties):
         """ App triggered from the project specific menu. """

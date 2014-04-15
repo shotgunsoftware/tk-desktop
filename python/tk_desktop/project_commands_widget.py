@@ -170,10 +170,11 @@ class ProjectCommandsWidget(QtGui.QFrame):
         """)
 
         for (i, recent) in enumerate(recents):
-            icon = self.__recents[recent].get('icon')
-            menu_name = self.__recents[recent]['menu_name']
-            button_name = self.__recents[recent]['button_name']
-            command_name = self.__recents[recent]['command_name']
+            icon = self.__recents[recent].get("icon")
+            menu_name = self.__recents[recent]["menu_name"]
+            button_name = self.__recents[recent]["button_name"]
+            command_name = self.__recents[recent]["command_name"]
+            tooltip = self.__recents[recent]["tooltip"]
 
             if menu_name is None:
                 title = button_name
@@ -184,6 +185,9 @@ class ProjectCommandsWidget(QtGui.QFrame):
                 item = QtGui.QListWidgetItem(title, recents_list)
             else:
                 item = QtGui.QListWidgetItem(icon, title, recents_list)
+
+            if tooltip is not None:
+                item.setToolTip(tooltip)
 
             item.setData(QtCore.Qt.UserRole, command_name)
 
@@ -231,15 +235,16 @@ class ProjectCommandsWidget(QtGui.QFrame):
         self.__groups_map = {}
         self.__groups_list = []
 
-    def add_command(self, command_name, button_name, menu_name, icon, groups):
+    def add_command(self, command_name, button_name, menu_name, icon, tooltip, groups):
         # command will show up in the recent group
         if command_name in self.__recents:
             self.__recents[command_name].update({
-                'icon': icon,
-                'registered': True,
-                'menu_name': menu_name,
-                'button_name': button_name,
-                'command_name': command_name,
+                "icon": icon,
+                "registered": True,
+                "menu_name": menu_name,
+                "button_name": button_name,
+                "command_name": command_name,
+                "tooltip": tooltip,
             })
 
         # add command to each group it has requested
@@ -255,7 +260,7 @@ class ProjectCommandsWidget(QtGui.QFrame):
                     lambda command_name: self.__handle_command_triggered(group_name, command_name))
 
             # and add the command
-            group_widget.add_command(command_name, button_name, menu_name, icon)
+            group_widget.add_command(command_name, button_name, menu_name, icon, tooltip)
 
     def __handle_command_triggered(self, group_name, command_name):
         # Create an event log entry to track app launches

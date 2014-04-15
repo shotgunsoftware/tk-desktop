@@ -28,11 +28,20 @@ class GroupWidget(QtGui.QFrame):
 
         # Set default styling
         self.setStyleSheet("""
-            border: 1px solid gray;
-            border-top: none;
-            border-left: none;
-            border-right: none;
-            background-color: transparent;
+            QWidget {
+                border: 1px solid gray;
+                border-top: none;
+                border-left: none;
+                border-right: none;
+                background-color: transparent;
+            }
+
+            QToolTip {
+                color: black;
+                padding: 2px;
+                border: solid 1px black;
+                background-color: rgb(255, 255, 210);
+            }
         """)
 
         # Add button to expand collapse widget
@@ -102,7 +111,7 @@ class CommandGroupWidget(GroupWidget):
             for column in xrange(columns, self.APP_COLUMN_COUNT):
                 self.app_layout.addWidget(QtGui.QWidget(), 0, column)
 
-    def add_command(self, command_name, button_title, menu_title, icon=None):
+    def add_command(self, command_name, button_title, menu_title, icon=None, tooltip=None):
         button = self.buttons.get(button_title)
 
         if button is None:
@@ -112,10 +121,12 @@ class CommandGroupWidget(GroupWidget):
             button.setSizePolicy(QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding)
             if icon is not None:
                 button.setIcon(icon)
+            if tooltip is not None:
+                button.setToolTip(tooltip)
+
             self.buttons[button_title] = button
 
             button.setIconSize(QtCore.QSize(42, 42))
-            # button.setFlat(True)
             button.setStyleSheet("""
                 QToolButton {
                     text-align: left;
@@ -161,4 +172,6 @@ class CommandGroupWidget(GroupWidget):
                 button.update()
 
             action = menu.addAction(menu_title)
+            if tooltip is not None:
+                action.setToolTip(tooltip)
             action.triggered.connect(lambda: self.command_triggered.emit(command_name))
