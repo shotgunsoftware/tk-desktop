@@ -8,8 +8,15 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from __future__ import absolute_import
+
+import sys
+import logging
+
 from PySide import QtGui
 from PySide import QtCore
+
+from .ui import resources_rc
 
 from .systray_icon import ShotgunSystemTrayIcon
 
@@ -18,27 +25,39 @@ class SystrayWindow(QtGui.QMainWindow):
     """
     Generic system tray window.
 
-    A Qt main window that pins to a system tray icon and can be dragg
+    A Qt main window that pins to a system tray icon and can be dragged
     """
     # constants to track what state the window is in
-    STATE_PINNED = 0x0001
-    STATE_WINDOWED = 0x0002
+    STATE_PINNED = 0
+    STATE_WINDOWED = 1
+
+    DOCK_TOP = 0
+    DOCK_LEFT = 1
+    DOCK_RIGHT = 2
+    DOCK_BOTTOM = 3
 
     # signal that is emitted when the system tray state changes
     systray_state_changed = QtCore.Signal(int)
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
+        self.__logger = logging.getLogger("tk-desktop.systray")
+
+        if sys.platform == "darwin":
+            self.setAttribute(QtCore.Qt.WA_MacNoShadow)
 
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
         self.__state = None  # pinned or windowed
+        self.__content_layout = None  # layout whose margin will be set to contain the anchor
         self.__mouse_down_pos = None  # track position when dragging
         self.__mouse_down_global = None  # track global position when dragging
 
-        # height of the portion of the window that will be masked out into
-        # an arrow when pinned
-        self.__window_anchor_height = 0
+        # setup the anchor
+        self.__bottom_anchor = QtGui.QPixmap(":/res/anchor_arrow.png")
+        self.__top_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(1, 0, 0, -1, 0, 0))
+        self.__right_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(0, 1, 1, 0, 0, 0))
+        self.__left_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(0, 1, -1, 0, 0, 0))
 
         # radius for rounded corners
         self.__corner_radius = 5
@@ -60,21 +79,23 @@ class SystrayWindow(QtGui.QMainWindow):
         """ Set the list of widgets that can be dragged to move the window """
         self.__drag_widgets = widgets[:]
 
-    def set_window_anchor_height(self, value):
-        """ set the height of the anchor arrow to draw when pinned """
-        self.__window_anchor_height = value
-
     def set_corner_radius(self, value):
         """ set the radius to use for rounding the window corners """
         self.__corner_radius = value
 
+    def set_content_layout(self, value):
+        """ set the layout to use to provide a margin for the anchor """
+        self.__content_layout = value
+
     # Change pin state
     ###########################
-    def _get_state(self):
+    @property
+    def state(self):
         """ return the current state of the window """
         return self.__state
 
-    def _set_state(self, value):
+    @state.setter
+    def state(self, value):
         """ set the current state of the window """
         # if state isn't changing do not do anything
         if self.__state == value:
@@ -94,9 +115,6 @@ class SystrayWindow(QtGui.QMainWindow):
             raise ValueError("Unknown value for state: %s" % value)
 
         self.systray_state_changed.emit(self.__state)
-
-    # create a property from the getter/setter
-    state = property(_get_state, _set_state)
 
     def toggle_pinned(self):
         if self.state == self.STATE_PINNED:
@@ -175,8 +193,24 @@ class SystrayWindow(QtGui.QMainWindow):
     def __move_to_systray(self):
         """ update the window position to be centered under the system tray icon """
         geo = self.systray.geometry()
-        x = geo.x() + (geo.width() - self.rect().width()) / 2.0
-        self.move(x, geo.y() + geo.height())
+        side = self._guess_toolbar_side()
+
+        if side == self.DOCK_TOP:
+            x = geo.x() + (geo.width() - self.rect().width()) / 2.0
+            pos = QtCore.QPoint(x, geo.y() + geo.height())
+        elif side == self.DOCK_LEFT:
+            y = geo.y() + (geo.height() - self.rect().height()) / 2.0
+            pos = QtCore.QPoint(geo.x() + geo.width(), y)
+        elif side == self.DOCK_RIGHT:
+            y = geo.y() + (geo.height() - self.rect().height()) / 2.0
+            pos = QtCore.QPoint(geo.x() - self.rect().width(), y)
+        elif side == self.DOCK_BOTTOM:
+            x = geo.x() + (geo.width() - self.rect().width()) / 2.0
+            pos = QtCore.QPoint(x, geo.y() - self.rect().height())
+        else:
+            raise ValueError("Unknown value for side: %s" % side)
+
+        self.move(pos)
 
     def systray_clicked(self):
         """ handler for single click on the system tray """
@@ -189,10 +223,60 @@ class SystrayWindow(QtGui.QMainWindow):
             self.show()
             self.raise_()
         else:
+            self.fade_hide()
+
+    def showEvent(self, event):
+        self.activateWindow()
+        self.setWindowOpacity(0)
+        fade_anim = QtCore.QPropertyAnimation(self, "windowOpacity", self)
+        fade_anim.setDuration(150)
+        fade_anim.setStartValue(0.0)
+        fade_anim.setEndValue(1.0)
+        fade_anim.start()
+
+    def fade_hide(self):
+        self.setWindowOpacity(1.0)
+        fade_anim = QtCore.QPropertyAnimation(self, "windowOpacity", self)
+        fade_anim.setDuration(150)
+        fade_anim.setStartValue(1.0)
+        fade_anim.setEndValue(0.0)
+
+        def post_hide_animation():
             self.hide()
+
+        fade_anim.finished.connect(post_hide_animation)
+        fade_anim.start()
 
     # Update the window mask
     ############################
+    def _guess_toolbar_side(self):
+        """ guess which side of the screen the toolbar is on """
+        pos = self.systray.geometry().center()
+        desktop = QtGui.QApplication.instance().desktop()
+        screen_geometry = desktop.screenGeometry(pos)
+
+        # Get dist from each edge of the screen
+        top_dist = pos.y() - screen_geometry.top()
+        bottom_dist = screen_geometry.bottom() - pos.y()
+        left_dist = pos.x() - screen_geometry.left()
+        right_dist = screen_geometry.right() - pos.x()
+
+        # Get minimum distance from horizontal and vertical screen edges.
+        # This determines the orientation of the menu.
+        v_dist = min(map(abs, (top_dist, bottom_dist)))
+        h_dist = min(map(abs, (left_dist, right_dist)))
+
+        # Return the nearest edge
+        if h_dist < v_dist:
+            if right_dist < left_dist:
+                return self.DOCK_RIGHT
+            else:
+                return self.DOCK_LEFT
+        else:
+            if top_dist < bottom_dist:
+                return self.DOCK_TOP
+            else:
+                return self.DOCK_BOTTOM
 
     def _set_window_mask(self):
         """ set the window mask when pinned to the systray """
@@ -204,22 +288,65 @@ class SystrayWindow(QtGui.QMainWindow):
         self.painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
         self.painter.setRenderHint(QtGui.QPainter.HighQualityAntialiasing, True)
 
+        # figure out what side to draw the anchor on
+        side = self._guess_toolbar_side()
+
         # mask out from the top margin of the border_layout
         rect = self.rect()
-        top = self.__window_anchor_height
+
+        # make sure there is room to draw the anchor
+        anchor_height = self.__bottom_anchor.height()
+        if self.__content_layout is not None:
+            if side == self.DOCK_TOP:
+                mask = rect.adjusted(0, anchor_height, 0, 0)
+                self.__content_layout.setContentsMargins(0, anchor_height, 0, 0)
+            elif side == self.DOCK_LEFT:
+                mask = rect.adjusted(anchor_height, 0, 0, 0)
+                self.__content_layout.setContentsMargins(anchor_height, 0, 0, 0)
+            elif side == self.DOCK_RIGHT:
+                mask = rect.adjusted(0, 0, -anchor_height, 0)
+                self.__content_layout.setContentsMargins(0, 0, -anchor_height, 0)
+            elif side == self.DOCK_BOTTOM:
+                mask = rect.adjusted(0, 0, 0, -anchor_height)
+                self.__content_layout.setContentsMargins(0, 0, 0, anchor_height)
+            else:
+                raise ValueError("Unknown value for side: %s" % side)
+
         self.painter.fillRect(rect, QtCore.Qt.white)
         self.painter.setBrush(QtCore.Qt.black)
-        mask = rect.adjusted(0, top, 0, 0)
         self.painter.drawRoundedRect(mask, self.__corner_radius, self.__corner_radius)
 
         if self.state == self.STATE_PINNED:
             # add back in the anchor triangle
-            (x, y, w, h) = rect.getRect()
-            midpoint = x + w/2.0
             points = []
-            points.append(QtCore.QPoint(midpoint, y))
-            points.append(QtCore.QPoint(midpoint-top, y+top))
-            points.append(QtCore.QPoint(midpoint+top, y+top))
+            mask_center = mask.center()
+            if side == self.DOCK_TOP:
+                anchor_pixmap = self.__top_anchor
+                anchor_center = anchor_pixmap.rect().center()
+                points.append(QtCore.QPoint(mask_center.x(), rect.top()))
+                points.append(QtCore.QPoint(mask_center.x() - anchor_center.x(), mask.top()))
+                points.append(QtCore.QPoint(mask_center.x() + anchor_center.x(), mask.top()))
+            elif side == self.DOCK_LEFT:
+                anchor_pixmap = self.__left_anchor
+                anchor_center = anchor_pixmap.rect().center()
+                points.append(QtCore.QPoint(rect.left(), mask_center.y()))
+                points.append(QtCore.QPoint(mask.left(), mask_center.y() - anchor_center.y()))
+                points.append(QtCore.QPoint(mask.left(), mask_center.y() + anchor_center.y()))
+            elif side == self.DOCK_RIGHT:
+                anchor_pixmap = self.__right_anchor
+                anchor_center = anchor_pixmap.rect().center()
+                points.append(QtCore.QPoint(mask.right(), mask_center.y() + anchor_center.y()))
+                points.append(QtCore.QPoint(mask.right(), mask_center.y() - anchor_center.y()))
+                points.append(QtCore.QPoint(rect.right(), mask_center.y()))
+            elif side == self.DOCK_BOTTOM:
+                anchor_pixmap = self.__bottom_anchor
+                anchor_center = anchor_pixmap.rect().center()
+                points.append(QtCore.QPoint(mask_center.x() - anchor_center.x(), mask.bottom()))
+                points.append(QtCore.QPoint(mask_center.x() + anchor_center.x(), mask.bottom()))
+                points.append(QtCore.QPoint(mask_center.x(), rect.bottom()))
+            else:
+                raise ValueError("Unknown value for side: %s" % side)
+
             self.painter.drawPolygon(points)
 
         # need to end the painter to make sure that its resources get

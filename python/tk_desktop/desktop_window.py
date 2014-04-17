@@ -51,9 +51,9 @@ class DesktopWindow(SystrayWindow):
         self.ui.setupUi(self)
 
         # setup systray behavior
-        (_, anchor_height, _, _) = self.ui.border_layout.getContentsMargins()
-        self.set_window_anchor_height(anchor_height)
+        self.set_content_layout(self.ui.border_layout)
         self.set_drag_widgets([self.ui.header, self.ui.footer])
+
         self.systray_state_changed.connect(self.handle_systray_state_changed)
 
         # Setup header buttons
@@ -67,6 +67,9 @@ class DesktopWindow(SystrayWindow):
             button.setProperty("active", state)
             button.style().unpolish(button)
             button.style().polish(button)
+            if not state:
+                # do not show disabled interfaces
+                button.hide()
         connection = ShotgunLogin.get_connection()
 
         # User menu
