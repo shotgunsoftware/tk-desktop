@@ -206,7 +206,7 @@ class SystrayWindow(QtGui.QMainWindow):
             pos = QtCore.QPoint(geo.x() - self.rect().width(), y)
         elif side == self.DOCK_BOTTOM:
             x = geo.x() + (geo.width() - self.rect().width()) / 2.0
-            pos = QtCore.QPoint(x, geo.y() - self.rect().height())
+            pos = QtCore.QPoint(x, geo.y() - self.rect().height() - geo.height())
         else:
             raise ValueError("Unknown value for side: %s" % side)
 

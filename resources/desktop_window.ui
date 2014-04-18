@@ -6,13 +6,13 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>450</width>
+    <width>460</width>
     <height>780</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
-    <width>450</width>
+    <width>460</width>
     <height>780</height>
    </size>
   </property>
@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>System Tray</string>
+   <string>Shotgun</string>
   </property>
   <property name="windowIcon">
    <iconset resource="resources.qrc">
@@ -399,7 +399,7 @@
           </property>
           <property name="maximumSize">
            <size>
-            <width>450</width>
+            <width>460</width>
             <height>16777215</height>
            </size>
           </property>

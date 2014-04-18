@@ -228,7 +228,10 @@ class DesktopWindow(SystrayWindow):
 
         # site specific settings
         settings.beginGroup(site)
-        self.__set_project_from_id(settings.value("project_id", 0))
+        try:
+            self.__set_project_from_id(settings.value("project_id", 0))
+        except Exception:
+            pass
         self.move(settings.value("pos", QtCore.QPoint(200, 200)))
         settings.endGroup()
 
@@ -236,7 +239,11 @@ class DesktopWindow(SystrayWindow):
         QtGui.QApplication.processEvents()
 
         # settings that apply across any instance (after site specific, so pinned can reset pos)
-        self.state = settings.value("systray_state", self.STATE_PINNED)
+        try:
+            self.state = settings.value("systray_state", self.STATE_PINNED)
+        except Exception:
+            self.state = self.STATE_PINNED
+
         self.set_on_top(settings.value("on_top", False))
 
     def _save_setting(self, key, value, site_specific):
@@ -600,7 +607,9 @@ class DesktopWindow(SystrayWindow):
                 "    }",
                 "    ctx = tk.context_from_entity('Project', %d)" % project['id'],
                 "    engine = sgtk.platform.start_engine('tk-desktop', tk, ctx)",
+                "    QtGui.QApplication.setStyle('cleanlooks')",
                 "    app = QtGui.QApplication(sys.argv)",
+                "    app.setStyleSheet(engine._get_standard_qt_stylesheet())",
                 "    app.setQuitOnLastWindowClosed(False)",
                 "    app.exec_()",
                 "except Exception, e:",
@@ -622,7 +631,14 @@ class DesktopWindow(SystrayWindow):
             self.current_project = project
             engine.log_info("--- launching python subprocess")
             engine.log_debug(" ---- %s %s" % (path_to_python, temp_bootstrap))
-            subprocess.Popen([path_to_python, temp_bootstrap])
+
+            if sys.platform == "win32":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+                subprocess.Popen([path_to_python, temp_bootstrap], startupinfo=startupinfo)
+            else:
+                subprocess.Popen([path_to_python, temp_bootstrap])
         finally:
             # clean up the bootstrap after a one second delay
             def remove_bootstrap():

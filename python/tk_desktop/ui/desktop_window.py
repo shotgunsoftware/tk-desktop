@@ -11,8 +11,8 @@ from tank.platform.qt import QtCore, QtGui
 class Ui_DesktopWindow(object):
     def setupUi(self, DesktopWindow):
         DesktopWindow.setObjectName("DesktopWindow")
-        DesktopWindow.resize(450, 780)
-        DesktopWindow.setMinimumSize(QtCore.QSize(450, 780))
+        DesktopWindow.resize(460, 780)
+        DesktopWindow.setMinimumSize(QtCore.QSize(460, 780))
         DesktopWindow.setMaximumSize(QtCore.QSize(450, 780))
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/res/default_systray_icon.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -168,7 +168,7 @@ class Ui_DesktopWindow(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.projects.sizePolicy().hasHeightForWidth())
         self.projects.setSizePolicy(sizePolicy)
-        self.projects.setMaximumSize(QtCore.QSize(450, 16777215))
+        self.projects.setMaximumSize(QtCore.QSize(460, 16777215))
         self.projects.setMouseTracking(True)
         self.projects.setFrameShape(QtGui.QFrame.NoFrame)
         self.projects.setFrameShadow(QtGui.QFrame.Plain)
@@ -393,7 +393,7 @@ class Ui_DesktopWindow(object):
         QtCore.QMetaObject.connectSlotsByName(DesktopWindow)
 
     def retranslateUi(self, DesktopWindow):
-        DesktopWindow.setWindowTitle(QtGui.QApplication.translate("DesktopWindow", "System Tray", None, QtGui.QApplication.UnicodeUTF8))
+        DesktopWindow.setWindowTitle(QtGui.QApplication.translate("DesktopWindow", "Shotgun", None, QtGui.QApplication.UnicodeUTF8))
         self.apps_button.setText(QtGui.QApplication.translate("DesktopWindow", "Apps", None, QtGui.QApplication.UnicodeUTF8))
         self.inbox_button.setText(QtGui.QApplication.translate("DesktopWindow", "Inbox", None, QtGui.QApplication.UnicodeUTF8))
         self.my_tasks_button.setText(QtGui.QApplication.translate("DesktopWindow", "My Tasks", None, QtGui.QApplication.UnicodeUTF8))
