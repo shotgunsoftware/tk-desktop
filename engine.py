@@ -14,6 +14,7 @@ import sys
 import string
 import logging
 import fnmatch
+import traceback
 import collections
 import logging.handlers
 
@@ -252,7 +253,11 @@ class DesktopEngine(Engine):
 
     def trigger_callback(self, namespace, command, *args, **kwargs):
         callback = self.__callback_map.get((namespace, command))
-        callback(*args, **kwargs)
+        try:
+            callback(*args, **kwargs)
+        except Exception:
+            self.log_error("Error calling %s::%s(%s, %s):\n%s" % (
+                namespace, command, args, kwargs, traceback.format_exc()))
 
     def trigger_disconnect(self):
         app = QtGui.QApplication.instance()
@@ -460,7 +465,7 @@ class DesktopEngine(Engine):
         # setup default logger, used in the new default exception hook
         self._logger = logging.getLogger("tk-desktop")
         self._handler = logging.handlers.RotatingFileHandler(fname, maxBytes=1024*1024, backupCount=5)
-        formatter = logging.Formatter('%(asctime)s %(process)d [%(levelname)s] %(name)s - %(message)s')
+        formatter = logging.Formatter('%(asctime)s %(process) 5d [%(levelname) -7s] %(name)s - %(message)s')
         self._handler.setFormatter(formatter)
         self._logger.addHandler(self._handler)
 
