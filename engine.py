@@ -234,6 +234,7 @@ class DesktopEngine(Engine):
     def set_groups(self, groups):
         project = self.desktop_window.current_project
         self.desktop_window.ui.project_commands.set_project(project, groups)
+        self.desktop_window.project_overlay.hide()
 
     def set_collapse_rules(self, collapse_rules):
         self.__collapse_rules = collapse_rules
@@ -383,6 +384,7 @@ class DesktopEngine(Engine):
         label.setMargin(15)
         index = parent.layout().count() - 1
         parent.layout().insertWidget(index, label)
+        self.desktop_window.project_overlay.hide()
 
     def clear_app_groups(self):
         pass
@@ -412,6 +414,7 @@ class DesktopEngine(Engine):
     def _create_group_guis(self, groups):
         project = self.desktop_window.current_project
         self.desktop_window.ui.project_commands.set_project(project, groups)
+        self.desktop_window.project_overlay.hide()
 
     def run(self):
         """

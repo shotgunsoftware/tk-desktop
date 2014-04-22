@@ -67,6 +67,7 @@ class ProjectCommandsWidget(QtGui.QFrame):
         """
         # fill out the recent widget
         self.__populate_recents()
+        self.__recent_group.setVisible(True)
 
         # add the groups that have had commands registered in the correct order
         for group_name in self.__groups_list:
@@ -218,6 +219,7 @@ class ProjectCommandsWidget(QtGui.QFrame):
 
         # add the Recent group
         self.__recent_group = GroupWidget("Recent", self)
+        self.__recent_group.setVisible(False)
         self.layout().addWidget(self.__recent_group)
 
         self.__recent_layout = QtGui.QVBoxLayout()

@@ -31,6 +31,7 @@ from .delegate_project import SgProjectDelegate
 
 # import the shotgun_model module from the shotgun utils framework
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+overlay_widget = sgtk.platform.import_framework("tk-framework-shotgunutils", "overlay_widget")
 ShotgunModel = shotgun_model.ShotgunModel
 
 
@@ -49,6 +50,7 @@ class DesktopWindow(SystrayWindow):
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
+        self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
 
         # setup systray behavior
         self.set_content_layout(self.ui.border_layout)
@@ -490,12 +492,14 @@ class DesktopWindow(SystrayWindow):
     def __launch_app_proxy_for_project(self, project):
         try:
             engine = sgtk.platform.current_engine()
+            engine.log_debug("launch app proxy: %s" % project)
 
             # disconnect from the current proxy
             engine.disconnect_app_proxy()
 
             # clear the current gui
             self.clear_app_uis()
+            self.project_overlay.start_spin()
 
             # trigger an update to the model to track this project access
             self.__set_project_just_accessed(project)
