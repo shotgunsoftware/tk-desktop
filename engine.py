@@ -416,7 +416,7 @@ class DesktopEngine(Engine):
         self.desktop_window.ui.project_commands.set_project(project, groups)
         self.desktop_window.project_overlay.hide()
 
-    def run(self):
+    def run(self, splash=None):
         """
         Run the engine.
 
@@ -439,9 +439,15 @@ class DesktopEngine(Engine):
         icon = QtGui.QIcon(":res/default_systray_icon")
         self.app.setWindowIcon(icon)
 
+        splash.showMessage("Building UI")
+
         # initialize System Tray
         self.desktop_window = self.tk_desktop.DesktopWindow()
         self.desktop_window.ui.project_commands.command_triggered.connect(self.__handle_button_command_triggered)
+
+        # hide the splash if it exists
+        if splash is not None:
+            splash.finish(self.desktop_window)
 
         # and run the app
         return self.app.exec_()
