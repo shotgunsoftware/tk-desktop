@@ -25,9 +25,15 @@ from .ui import desktop_window
 
 from .login import ShotgunLogin
 from .systray import SystrayWindow
+from .preferences import Preferences
 from .model_project import SgProjectModel
 from .model_project import SgProjectModelProxy
 from .delegate_project import SgProjectDelegate
+
+try:
+    from .extensions import osutils
+except Exception:
+    osutils = None
 
 # import the shotgun_model module from the shotgun utils framework
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
@@ -46,6 +52,7 @@ class DesktopWindow(SystrayWindow):
 
         # initialize member variables
         self.current_project = None
+        self.__activation_hotkey = None
 
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
@@ -97,48 +104,17 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addSeparator()
+        self.user_menu.addAction(self.ui.actionPreferences)
         self.user_menu.addAction(self.ui.actionQuit)
         QtGui.QApplication.instance().aboutToQuit.connect(self.handle_quit_action)
 
-        self.ui.actionQuit.triggered.connect(self.handle_quit_action)
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
-        self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
+        self.ui.actionSign_Out.triggered.connect(self.sign_out)
+        self.ui.actionQuit.triggered.connect(self.handle_quit_action)
+        self.ui.actionPreferences.triggered.connect(self.handle_preferences_action)
 
         self.ui.user_button.setMenu(self.user_menu)
-
-        # Project menu
-        ###########################
-
-        status_schema = connection.schema_field_read('Project', 'sg_status')['sg_status']
-        status_values = status_schema['properties']['valid_values']['value']
-
-        self.project_menu = QtGui.QMenu(self)
-        self.project_menu.addAction(self.ui.actionAll_Projects)
-        self.project_menu.addAction(self.ui.actionFavorite_Projects)
-        self.project_menu.addAction(self.ui.actionRecent_Projects)
-        self.project_menu.addSeparator()
-
-        self.project_filter_options = QtGui.QActionGroup(self)
-        self.project_filter_options.setExclusive(False)
-
-        for value in status_values:
-            action = QtGui.QAction(value, self.project_filter_options)
-            action.setCheckable(True)
-            action.setChecked(True)
-            self.project_menu.addAction(action)
-        self.project_filter_options.triggered.connect(self.project_filter_triggered)
-
-        self.project_sort_options = QtGui.QActionGroup(self)
-        self.project_sort_options.addAction(self.ui.actionAll_Projects)
-        self.project_sort_options.addAction(self.ui.actionFavorite_Projects)
-        self.project_sort_options.addAction(self.ui.actionRecent_Projects)
-
-        self.project_sort_options.triggered.connect(self.project_sort_triggered)
-        self.ui.project_button.setMenu(self.project_menu)
-
-        # do not show the project menu for the time being
-        self.ui.project_button.hide()
 
         # load and initialize cached projects
         self._project_model = SgProjectModel(self, self.ui.projects)
@@ -248,6 +224,12 @@ class DesktopWindow(SystrayWindow):
 
         self.set_on_top(settings.value("on_top", False))
 
+        # restore hotkey
+        (key, native_modifiers, native_key) = settings.value("activation_hotkey", (None, None, None))
+        if key:
+            shortcut = QtGui.QKeySequence(key)
+            self.set_activation_hotkey(shortcut, native_modifiers, native_key)
+
     def _save_setting(self, key, value, site_specific):
         engine = sgtk.platform.current_engine()
         connection = engine.shotgun
@@ -287,6 +269,60 @@ class DesktopWindow(SystrayWindow):
 
         self.close()
         QtGui.QApplication.instance().quit()
+
+    def handle_hotkey_triggered(self):
+        if osutils is None:
+            return
+        osutils.activate_application()
+
+    def set_activation_hotkey(self, shortcut, native_modifiers, native_key):
+        if osutils is None:
+            return
+
+        if shortcut.isEmpty():
+            self._save_setting("activation_hotkey", ('', '', ''), False)
+            if self.__activation_hotkey is not None:
+                osutils.unregister_global_hotkey(self.__activation_hotkey)
+                self.__activation_hotkey = None
+        else:
+            if self.__activation_hotkey is not None:
+                osutils.unregister_global_hotkey(self.__activation_hotkey)
+            self.__activation_hotkey = osutils.register_global_hotkey(native_modifiers, native_key, self.handle_hotkey_triggered)
+            self._save_setting("activation_hotkey", (shortcut[0], native_modifiers, native_key), False)
+
+    def handle_auto_start_changed(self, state):
+        if osutils is None:
+            return
+
+        if state == QtCore.Qt.Checked:
+            osutils.set_launch_at_login(True)
+        if state == QtCore.Qt.Unchecked:
+            osutils.set_launch_at_login(False)
+
+    def handle_preferences_action(self):
+        # create the dialog
+        prefs = Preferences()
+
+        # setup current prefs
+        settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
+        (key, native_modifiers, native_key) = settings.value("activation_hotkey", (None, None, None))
+        if key:
+            shortcut = QtGui.QKeySequence(key)
+            prefs.ui.hotkey.key_sequence = shortcut
+
+        if osutils is not None:
+            start_on_login = osutils.get_launch_at_login()
+            if start_on_login:
+                prefs.ui.auto_start_checkbox.setCheckState(QtCore.Qt.Checked)
+            else:
+                prefs.ui.auto_start_checkbox.setCheckState(QtCore.Qt.Unchecked)
+
+        # handle changes
+        prefs.ui.hotkey.key_sequence_changed.connect(self.set_activation_hotkey)
+        prefs.ui.auto_start_checkbox.stateChanged.connect(self.handle_auto_start_changed)
+
+        # and run it
+        prefs.exec_()
 
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):

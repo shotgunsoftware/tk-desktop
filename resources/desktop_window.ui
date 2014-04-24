@@ -286,16 +286,6 @@
             </spacer>
            </item>
            <item>
-            <widget class="QPushButton" name="project_button">
-             <property name="text">
-              <string>Recent</string>
-             </property>
-             <property name="flat">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
             <widget class="QFrame" name="search_frame">
              <property name="toolTip">
               <string>Filter Projects</string>
@@ -917,33 +907,17 @@
     <string>Keep on Top</string>
    </property>
   </action>
-  <action name="actionAll_Projects">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>All Projects</string>
-   </property>
-  </action>
-  <action name="actionFavorite_Projects">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Favorite Projects</string>
-   </property>
-  </action>
-  <action name="actionRecent_Projects">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Recent Projects</string>
-   </property>
-  </action>
   <action name="actionProject_Filesystem_Folder">
    <property name="text">
     <string>Project Filesystem Folder</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+,</string>
    </property>
   </action>
  </widget>
