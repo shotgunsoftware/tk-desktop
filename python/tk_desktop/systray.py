@@ -235,8 +235,6 @@ class SystrayWindow(QtGui.QMainWindow):
         active = self.isActiveWindow() or (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
         hidden = self.isHidden()
 
-        print "ACTIVE HIDDEN STATE: %s, %s, %s" % (active, hidden, self.state)
-
         if hidden:
             # hidden, show and bring to the top
             self.show()
@@ -246,7 +244,7 @@ class SystrayWindow(QtGui.QMainWindow):
                 osutils.make_app_foreground()
         elif active:
             # shown and topmost, hide
-            self.fade_hide()
+            self.hide()
             if osutils is not None:
                 osutils.make_app_background()
         else:
@@ -256,32 +254,10 @@ class SystrayWindow(QtGui.QMainWindow):
             if osutils is not None:
                 osutils.activate_application()
 
-    def showEvent(self, event):
-        self.activateWindow()
-        self.setWindowOpacity(0)
-        fade_anim = QtCore.QPropertyAnimation(self, "windowOpacity", self)
-        fade_anim.setDuration(150)
-        fade_anim.setStartValue(0.0)
-        fade_anim.setEndValue(1.0)
-        fade_anim.start()
-
-    def fade_hide(self):
-        self.setWindowOpacity(1.0)
-        fade_anim = QtCore.QPropertyAnimation(self, "windowOpacity", self)
-        fade_anim.setDuration(150)
-        fade_anim.setStartValue(1.0)
-        fade_anim.setEndValue(0.0)
-
-        def post_hide_animation():
-            self.hide()
-
-        fade_anim.finished.connect(post_hide_animation)
-        fade_anim.start()
-
     def event(self, event):
         if event.type() == QtCore.QEvent.WindowDeactivate:
             if self.state == self.STATE_PINNED:
-                self.fade_hide()
+                self.hide()
                 if osutils is not None:
                     osutils.make_app_background()
 
