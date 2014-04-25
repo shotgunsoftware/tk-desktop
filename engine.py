@@ -227,9 +227,13 @@ class DesktopEngine(Engine):
     def disconnect_app_proxy(self):
         """ Disconnect from the app proxy. """
         if self.proxy is not None:
-            self.proxy.signal_disconnect(__proxy_expected_return=False)
-            self.proxy.close()
-            self.proxy = None
+            try:
+                self.proxy.signal_disconnect(__proxy_expected_return=False)
+                self.proxy.close()
+            except Exception, e:
+                self.log_warning("Error disconnecting from proxy: %s", e)
+            finally:
+                self.proxy = None
 
     def set_groups(self, groups):
         project = self.desktop_window.current_project

@@ -20,6 +20,11 @@ from .ui import resources_rc
 
 from .systray_icon import ShotgunSystemTrayIcon
 
+try:
+    from .extensions import osutils
+except Exception:
+    osutils = None
+
 
 class SystrayWindow(QtGui.QMainWindow):
     """
@@ -109,8 +114,11 @@ class SystrayWindow(QtGui.QMainWindow):
             self.__move_to_systray()
         elif self.__state == self.STATE_WINDOWED:
             self._set_window_mask()
-            self.show()
-            self.raise_()
+            if osutils is None:
+                self.show()
+                self.raise_()
+            else:
+                osutils.make_app_foreground()
         else:
             raise ValueError("Unknown value for state: %s" % value)
 
@@ -124,7 +132,11 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def _pin_to_menu(self):
         # figure out start and end positions for the window
+        self.systray.show()
+        QtGui.QApplication.instance().processEvents()
         systray_geo = self.systray.geometry()
+
+        self.__logger.debug("systray_geo: %s" % systray_geo)
         final = QtCore.QRect(systray_geo.center().x(), systray_geo.bottom(), 5, 5)
         start = self.geometry()
 
@@ -193,6 +205,8 @@ class SystrayWindow(QtGui.QMainWindow):
     def __move_to_systray(self):
         """ update the window position to be centered under the system tray icon """
         geo = self.systray.geometry()
+        self.__logger.debug("__move_to_systray: systray_geo: %s" % geo)
+
         side = self._guess_toolbar_side()
 
         if side == self.DOCK_TOP:
@@ -214,16 +228,33 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def systray_clicked(self):
         """ handler for single click on the system tray """
-        # toggle visibility when clicked
-        if self.isHidden():
-            if self.state == self.STATE_PINNED:
-                # make sure the window is positioned correctly if pinned
-                self.__move_to_systray()
+        self.toggle_activate()
 
+    def toggle_activate(self):
+        # toggle visibility when clicked
+        active = self.isActiveWindow() or (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
+        hidden = self.isHidden()
+
+        print "ACTIVE HIDDEN STATE: %s, %s, %s" % (active, hidden, self.state)
+
+        if hidden:
+            # hidden, show and bring to the top
             self.show()
             self.raise_()
-        else:
+            self.activateWindow()
+            if osutils is not None:
+                osutils.make_app_foreground()
+        elif active:
+            # shown and topmost, hide
             self.fade_hide()
+            if osutils is not None:
+                osutils.make_app_background()
+        else:
+            # shown and not topmost, just bring to the top
+            self.raise_()
+            self.activateWindow()
+            if osutils is not None:
+                osutils.activate_application()
 
     def showEvent(self, event):
         self.activateWindow()
@@ -246,6 +277,15 @@ class SystrayWindow(QtGui.QMainWindow):
 
         fade_anim.finished.connect(post_hide_animation)
         fade_anim.start()
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.WindowDeactivate:
+            if self.state == self.STATE_PINNED:
+                self.fade_hide()
+                if osutils is not None:
+                    osutils.make_app_background()
+
+        return QtGui.QMainWindow.event(self, event)
 
     # Update the window mask
     ############################

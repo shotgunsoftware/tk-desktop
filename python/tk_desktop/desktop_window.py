@@ -271,9 +271,7 @@ class DesktopWindow(SystrayWindow):
         QtGui.QApplication.instance().quit()
 
     def handle_hotkey_triggered(self):
-        if osutils is None:
-            return
-        osutils.activate_application()
+        self.toggle_activate()
 
     def set_activation_hotkey(self, shortcut, native_modifiers, native_key):
         if osutils is None:
