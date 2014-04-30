@@ -64,6 +64,7 @@ class DesktopWindow(SystrayWindow):
         self.set_drag_widgets([self.ui.header, self.ui.footer])
 
         self.systray_state_changed.connect(self.handle_systray_state_changed)
+        QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
         # Setup header buttons
         button_states = [
