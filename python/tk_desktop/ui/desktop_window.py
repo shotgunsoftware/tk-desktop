@@ -400,7 +400,7 @@ class Ui_DesktopWindow(object):
         self.actionPreferences.setObjectName("actionPreferences")
 
         self.retranslateUi(DesktopWindow)
-        self.stack.setCurrentIndex(1)
+        self.stack.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(DesktopWindow)
 
     def retranslateUi(self, DesktopWindow):

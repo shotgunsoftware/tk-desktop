@@ -193,7 +193,9 @@ class DesktopWindow(SystrayWindow):
         self.clear_app_uis()
 
         self.ui.shotgun_button.clicked.connect(self.shotgun_button_clicked)
+        self.ui.shotgun_button.setToolTip("Open in Shotgun\n%s" % connection.base_url)
         self.ui.shotgun_arrow.clicked.connect(self.shotgun_button_clicked)
+        self.ui.shotgun_arrow.setToolTip("Open in Shotgun\n%s" % connection.base_url)
 
         self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
 
@@ -233,17 +235,27 @@ class DesktopWindow(SystrayWindow):
             self.set_activation_hotkey(shortcut, native_modifiers, native_key)
 
     def _save_setting(self, key, value, site_specific):
-        engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
-        site = connection.base_url
-
         settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
 
         if site_specific:
+            engine = sgtk.platform.current_engine()
+            connection = engine.shotgun
+            site = connection.base_url
             settings.beginGroup(site)
 
         settings.setValue(key, value)
         settings.sync()
+
+    def _load_setting(self, key, default_value, site_specific):
+        settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
+
+        if site_specific:
+            engine = sgtk.platform.current_engine()
+            connection = engine.shotgun
+            site = connection.base_url
+            settings.beginGroup(site)
+
+        return settings.value(key, default_value)
 
     ########################################################################################
     # Event handlers and slots
@@ -499,7 +511,6 @@ class DesktopWindow(SystrayWindow):
                 action.setChecked(True)
                 self.ui.configuration_name.setText(pc["code"])
 
-
     def __set_project_just_accessed(self, project):
         # This isn't doable via the API yet
         pass
@@ -586,8 +597,6 @@ class DesktopWindow(SystrayWindow):
         pc_id = action.property("project_configuration_id")
 
         if pc_id is not None:
-            if pc_id == 0:
-                pc_id = None
             self.__launch_app_proxy_for_project(self.current_project, pc_id)
 
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
@@ -629,25 +638,45 @@ class DesktopWindow(SystrayWindow):
                 fields=fields,
             )
 
+            setting = "pipeline_configuration_for_project_%d" % project["id"]
+            if pipeline_configuration_id is None:
+                # Load up last accessed project if it hasn't been specified
+                pipeline_configuration_id = self._load_setting(setting, 0, site_specific=True)
+            else:
+                # Save pipeline_configuration_id as last accessed
+                self._save_setting(setting, pipeline_configuration_id, site_specific=True)
+
             # Find the matching pipeline configuration to launch against
             pipeline_configuration = None
+            primary_pipeline_configuration = None
             for pc in pipeline_configurations:
-                if pipeline_configuration_id is None and pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+                if pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+                    primary_pipeline_configuration = pc
+                    if pipeline_configuration_id == 0:
+                        pipeline_configuration = pc
+
+                    if pipeline_configuration is not None:
+                        break
+
+                if pipeline_configuration_id != 0 and pc["id"] == pipeline_configuration_id:
                     pipeline_configuration = pc
-                    break
-                if pipeline_configuration_id is not None and pc["id"] == pipeline_configuration_id:
-                    pipeline_configuration = pc
-                    break;
+                    if primary_pipeline_configuration is not None:
+                        break
 
             if pipeline_configuration is None:
-                # If the Project has not been setup for Toolkit
-                # call it an error until we implement the setup
-                # project
-                error = RuntimeError("No pipeline configuration found")
-                engine.app_proxy_startup_error(error)
-                return
-            else:
-                config_path = pipeline_configuration[path_field]
+                if primary_pipeline_configuration is None:
+                    # If the Project has not been setup for Toolkit
+                    # call it an error until we implement the setup
+                    # project
+                    error = RuntimeError("No pipeline configuration found")
+                    engine.app_proxy_startup_error(error)
+                    return
+                else:
+                    engine.log_warning("Pipeline configuration id %d not found, "
+                        "falling back to primary." % pipeline_configuration_id)
+                    pipeline_configuration = primary_pipeline_configuration
+
+            config_path = pipeline_configuration[path_field]
 
             # Now find out the appropriate python to launch
             current_platform = {
