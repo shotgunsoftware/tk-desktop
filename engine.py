@@ -323,7 +323,6 @@ class DesktopEngine(Engine):
 
         if command_type == 'context_menu':
             # Add the command to the project menu
-            menu = self.desktop_window.get_app_menu()
             action = QtGui.QAction(self.desktop_window)
             if icon is not None:
                 action.setIcon(icon)
@@ -334,7 +333,7 @@ class DesktopEngine(Engine):
             def action_triggered():
                 self.context_menu_app_triggered(name, properties)
             action.triggered.connect(action_triggered)
-            menu.addAction(action)
+            self.desktop_window.add_to_project_menu(action)
         else:
             # Default is to add an icon/label for the command
 

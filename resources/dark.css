@@ -324,6 +324,28 @@ QScrollBar::add-line:horizontal
     subcontrol-position: center center;
 }
 
+QLabel#project_menu_configuration_label
+{
+    padding: 10px 0px 0px 10px;
+    color: white;
+}
+
+#configuration_frame
+{
+    background-color: rgb(67, 131, 168);
+    padding: 10px;
+}
+
+#configuration_name
+{
+    color: white;
+}
+
+#configuration_label
+{
+    font-size: 10px;
+}
+
 #projects
 {
     background-color: rgb(43, 46, 48);

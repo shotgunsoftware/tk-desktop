@@ -53,6 +53,7 @@ class DesktopWindow(SystrayWindow):
         # initialize member variables
         self.current_project = None
         self.__activation_hotkey = None
+        self.__pipeline_configuration_separator = None
 
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
@@ -416,8 +417,8 @@ class DesktopWindow(SystrayWindow):
     def get_app_widget(self, namespace=None):
         return self.ui.project_commands
 
-    def get_app_menu(self):
-        return self.project_menu
+    def add_to_project_menu(self, action):
+        self.project_menu.insertAction(self.__pipeline_configuration_separator, action)
 
     def _on_all_projects_clicked(self):
         self._project_selection_model.clear()
@@ -439,8 +440,65 @@ class DesktopWindow(SystrayWindow):
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)
+        self.project_menu.triggered.connect(self._on_project_menu_triggered)
         self.project_menu.addAction(self.ui.actionProject_Filesystem_Folder)
         self.ui.project_menu.setMenu(self.project_menu)
+        self.__pipeline_configuration_separator = None
+
+    def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
+        user = ShotgunLogin.get_login()
+
+        primary_pc = None
+        extra_pcs = []
+        for pc in pipeline_configurations:
+            # track primary separate
+            if pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+                primary_pc = pc
+                continue
+
+            # add shared pcs
+            if not pc["users"]:
+                extra_pcs.append(pc)
+                continue
+
+            # add pcs for this user
+            for u in pc["users"]:
+                if user["id"] == u["id"]:
+                    extra_pcs.append(pc)
+                    continue
+
+        self.ui.configuration_frame.hide()
+
+        if not extra_pcs:
+            # only one configuration choice
+            return
+
+        # Show configuration frame, add a separator, the primary config and then the rest
+        self.__pipeline_configuration_separator = self.project_menu.addSeparator()
+
+        label = QtGui.QLabel("CONFIGURATION")
+        label.setObjectName("project_menu_configuration_label")
+        action = QtGui.QWidgetAction(self)
+        action.setDefaultWidget(label)
+        self.project_menu.addAction(action)
+
+        action = self.project_menu.addAction(primary_pc["code"])
+        action.setCheckable(True)
+        action.setProperty("project_configuration_id", 0)
+        if selected["id"] == primary_pc["id"]:
+            action.setChecked(True)
+            self.ui.configuration_name.setText(primary_pc["code"])
+
+        extra_pcs.sort(key=lambda pc: pc["code"])
+        for pc in extra_pcs:
+            action = self.project_menu.addAction(pc["code"])
+            action.setCheckable(True)
+            action.setProperty("project_configuration_id", pc["id"])
+            if selected["id"] == pc["id"]:
+                self.ui.configuration_frame.show()
+                action.setChecked(True)
+                self.ui.configuration_name.setText(pc["code"])
+
 
     def __set_project_just_accessed(self, project):
         # This isn't doable via the API yet
@@ -524,7 +582,15 @@ class DesktopWindow(SystrayWindow):
         project = item.data(ShotgunModel.SG_DATA_ROLE)
         self.__launch_app_proxy_for_project(project)
 
-    def __launch_app_proxy_for_project(self, project):
+    def _on_project_menu_triggered(self, action):
+        pc_id = action.property("project_configuration_id")
+
+        if pc_id is not None:
+            if pc_id == 0:
+                pc_id = None
+            self.__launch_app_proxy_for_project(self.current_project, pc_id)
+
+    def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
             engine.log_debug("launch app proxy: %s" % project)
@@ -551,18 +617,27 @@ class DesktopWindow(SystrayWindow):
                 raise SystemError("Unsupported platform: %s" % sys.platform)
 
             filters = [
-                ["code", "is", constants.PRIMARY_PIPELINE_CONFIG_NAME],
                 ["project", "is", project],
             ]
 
-            fields = [path_field, 'users']
+            fields = [path_field, "users", "code"]
 
             connection = engine.shotgun
-            pipeline_configuration = connection.find_one(
+            pipeline_configurations = connection.find(
                 'PipelineConfiguration',
                 filters,
                 fields=fields,
             )
+
+            # Find the matching pipeline configuration to launch against
+            pipeline_configuration = None
+            for pc in pipeline_configurations:
+                if pipeline_configuration_id is None and pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+                    pipeline_configuration = pc
+                    break
+                if pipeline_configuration_id is not None and pc["id"] == pipeline_configuration_id:
+                    pipeline_configuration = pc
+                    break;
 
             if pipeline_configuration is None:
                 # If the Project has not been setup for Toolkit
@@ -619,6 +694,9 @@ class DesktopWindow(SystrayWindow):
             index = parent.layout().count() - 1
             parent.layout().insertWidget(index, label)
             return
+
+        # going to launch the configuration, update the project menu if needed
+        self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration)
 
         (_, temp_bootstrap) = tempfile.mkstemp(suffix=".py")
         bootstrap_file = open(temp_bootstrap, "w")
