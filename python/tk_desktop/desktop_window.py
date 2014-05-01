@@ -26,9 +26,13 @@ from .ui import desktop_window
 from .login import ShotgunLogin
 from .systray import SystrayWindow
 from .preferences import Preferences
-from .model_project import SgProjectModel
-from .model_project import SgProjectModelProxy
-from .delegate_project import SgProjectDelegate
+from .project_model import SgProjectModel
+from .project_model import SgProjectModelProxy
+from .project_delegate import SgProjectDelegate
+
+from .project_commands_model import ProjectCommandModel
+from .project_commands_model import ProjectCommandProxyModel
+from .project_commands_widget import ProjectCommandDelegate
 
 try:
     from .extensions import osutils
@@ -86,10 +90,12 @@ class DesktopWindow(SystrayWindow):
         # User menu
         ###########################
         user = ShotgunLogin.get_login()
-        thumbnail_url = connection.find_one('HumanUser',
-            [['id', 'is', user['id']]], ['image']).get('image')
+        thumbnail_url = connection.find_one(
+            "HumanUser",
+            [["id", "is", user["id"]]], ["image"],
+        ).get("image")
         if thumbnail_url is not None:
-            (_, thumbnail_file) = tempfile.mkstemp(suffix='.jpg')
+            (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
             try:
                 shotgun.download_url(connection, thumbnail_url, thumbnail_file)
                 pixmap = QtGui.QPixmap(thumbnail_file)
@@ -118,16 +124,25 @@ class DesktopWindow(SystrayWindow):
 
         self.ui.user_button.setMenu(self.user_menu)
 
+        # Initialize the model to track project commands
+        self._project_command_model = ProjectCommandModel(self)
+        self._project_command_proxy = ProjectCommandProxyModel(self)
+        self._project_command_proxy.setSourceModel(self._project_command_model)
+        self._project_command_proxy.setDynamicSortFilter(True)
+        self._project_command_proxy.sort(0)
+        self.ui.project_commands.setModel(self._project_command_proxy)
+
+        engine = sgtk.platform.current_engine()
+        self._project_command_delegate = ProjectCommandDelegate(self.ui.project_commands)
+        self.ui.project_commands.setItemDelegate(self._project_command_delegate)
+
+        self._project_command_model.command_triggered.connect(engine._handle_button_command_triggered)
+
         # load and initialize cached projects
         self._project_model = SgProjectModel(self, self.ui.projects)
         self._project_proxy = SgProjectModelProxy(self)
 
         # hook up sorting/filtering GUI
-        self._project_proxy.sort_fields = [
-            ('last_accessed_by_current_user', SgProjectModelProxy.DESCENDING),
-            ('name', SgProjectModelProxy.ASCENDING),
-        ]
-
         self._project_proxy.setSourceModel(self._project_model)
         self._project_proxy.setDynamicSortFilter(True)
         self._project_proxy.sort(0)
@@ -136,10 +151,6 @@ class DesktopWindow(SystrayWindow):
         # load and initialize cached recent projects
         self._recent_project_proxy = SgProjectModelProxy(self)
         self._recent_project_proxy.limit = 3
-        self._recent_project_proxy.sort_fields = [
-            ('last_accessed_by_current_user', SgProjectModelProxy.DESCENDING),
-            ('name', SgProjectModelProxy.ASCENDING),
-        ]
         self._recent_project_proxy.setSourceModel(self._project_model)
         self._recent_project_proxy.setDynamicSortFilter(True)
         self._recent_project_proxy.sort(0)
@@ -292,14 +303,15 @@ class DesktopWindow(SystrayWindow):
             return
 
         if shortcut.isEmpty():
-            self._save_setting("activation_hotkey", ('', '', ''), False)
+            self._save_setting("activation_hotkey", ("", "", ""), False)
             if self.__activation_hotkey is not None:
                 osutils.unregister_global_hotkey(self.__activation_hotkey)
                 self.__activation_hotkey = None
         else:
             if self.__activation_hotkey is not None:
                 osutils.unregister_global_hotkey(self.__activation_hotkey)
-            self.__activation_hotkey = osutils.register_global_hotkey(native_modifiers, native_key, self.handle_hotkey_triggered)
+            self.__activation_hotkey = osutils.register_global_hotkey(
+                native_modifiers, native_key, self.handle_hotkey_triggered)
             self._save_setting("activation_hotkey", (shortcut[0], native_modifiers, native_key), False)
 
     def handle_auto_start_changed(self, state):
@@ -354,7 +366,7 @@ class DesktopWindow(SystrayWindow):
             # Force update to keep from seeing the button flash
             QtGui.QApplication.processEvents()
 
-            self.ui.search_text.setText('')
+            self.ui.search_text.setText("")
             # do not show the project menu for the time being
             # self.ui.project_button.show()
             self.ui.search_button.setIcon(self._search_magnifier_icon)
@@ -448,7 +460,7 @@ class DesktopWindow(SystrayWindow):
         engine.clear_app_groups()
 
         # empty the project commands
-        self.ui.project_commands.clear()
+        self._project_command_model.clear()
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)
@@ -512,12 +524,11 @@ class DesktopWindow(SystrayWindow):
                 self.ui.configuration_name.setText(pc["code"])
 
     def __set_project_just_accessed(self, project):
-        # This isn't doable via the API yet
-        pass
-
-        # self._project_model.update_project_accessed_time(project)
-        # self._project_proxy.invalidate()
-        # self._recent_project_proxy.invalidate()
+        self._project_selection_model.clear()
+        self._recent_project_selection_model.clear()
+        self._project_model.update_project_accessed_time(project)
+        self._project_proxy.sort(0)
+        self._recent_project_proxy.sort(0)
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
@@ -539,7 +550,7 @@ class DesktopWindow(SystrayWindow):
         for i in xrange(model.rowCount()):
             index = model.index(i, 0)
 
-            if hasattr(model, 'mapToSource'):
+            if hasattr(model, "mapToSource"):
                 # if we are a proxy model, translate to source
                 source_index = model.mapToSource(index)
                 item = source_index.model().itemFromIndex(source_index)
@@ -616,9 +627,9 @@ class DesktopWindow(SystrayWindow):
             QtGui.QApplication.instance().processEvents()
 
             platform_fields = {
-                'darwin': 'mac_path',
-                'linux': 'linux_path',
-                'win32': 'windows_path',
+                "darwin": "mac_path",
+                "linux": "linux_path",
+                "win32": "windows_path",
             }
             path_field = platform_fields.get(sys.platform)
 
@@ -633,7 +644,7 @@ class DesktopWindow(SystrayWindow):
 
             connection = engine.shotgun
             pipeline_configurations = connection.find(
-                'PipelineConfiguration',
+                "PipelineConfiguration",
                 filters,
                 fields=fields,
             )
@@ -672,7 +683,8 @@ class DesktopWindow(SystrayWindow):
                     engine.app_proxy_startup_error(error)
                     return
                 else:
-                    engine.log_warning("Pipeline configuration id %d not found, "
+                    engine.log_warning(
+                        "Pipeline configuration id %d not found, "
                         "falling back to primary." % pipeline_configuration_id)
                     pipeline_configuration = primary_pipeline_configuration
 
@@ -680,16 +692,16 @@ class DesktopWindow(SystrayWindow):
 
             # Now find out the appropriate python to launch
             current_platform = {
-                'darwin': 'Darwin',
-                'linux': 'Linux',
-                'win32': 'Windows',
+                "darwin": "Darwin",
+                "linux": "Linux",
+                "win32": "Windows",
             }[sys.platform]
 
             current_config_path = config_path
             while True:
                 # First see if we have a local configuration for which interpreter
                 interpreter_config_file = os.path.join(
-                    current_config_path, 'config', 'core', 'interpreter_%s.cfg' % current_platform)
+                    current_config_path, "config", "core", "interpreter_%s.cfg" % current_platform)
 
                 if os.path.exists(interpreter_config_file):
                     # Found the file that says where the interpreter is
@@ -698,7 +710,8 @@ class DesktopWindow(SystrayWindow):
                         core_root = current_config_path
 
                     if not os.path.exists(path_to_python):
-                        raise RuntimeError("Cannot find interpreter %s defined in "
+                        raise RuntimeError(
+                            "Cannot find interpreter %s defined in "
                             "config file %s!" % (path_to_python, interpreter_config_file))
 
                     # found it
@@ -706,10 +719,12 @@ class DesktopWindow(SystrayWindow):
 
                 # look for a parent config to see if it has an interpreter
                 parent_config_file = os.path.join(
-                    current_config_path, 'install', 'core', 'core_%s.cfg' % current_platform)
+                    current_config_path, "install", "core", "core_%s.cfg" % current_platform)
 
                 if not os.path.exists(parent_config_file):
-                    raise RuntimeError("invalid configuration, no parent or interpreter found at '%s'" % current_config_path)
+                    raise RuntimeError(
+                        "invalid configuration, no parent or interpreter "
+                        "found at '%s'" % current_config_path)
 
                 # Read the path to the parent configuration
                 with open(parent_config_file, "r") as f:
@@ -794,14 +809,14 @@ class DesktopWindow(SystrayWindow):
                     pass
             QtCore.QTimer.singleShot(1000, remove_bootstrap)
 
-    def slide_view(self, new_page, from_direction='right'):
+    def slide_view(self, new_page, from_direction="right"):
         offsetx = self.ui.stack.frameRect().width()
         offsety = self.ui.stack.frameRect().height()
         current_page = self.ui.stack.currentWidget()
 
         new_page.setGeometry(0, 0, offsetx, offsety)
 
-        if from_direction == 'left':
+        if from_direction == "left":
             offsetx = -offsetx
 
         curr_pos = new_page.pos()
@@ -834,6 +849,6 @@ class DesktopWindow(SystrayWindow):
         connection = ShotgunLogin.get_connection()
         url = connection.base_url
         if self.current_project is not None:
-            url = "%s/detail/Project/%d" % (url, self.current_project['id'])
+            url = "%s/detail/Project/%d" % (url, self.current_project["id"])
 
         QtGui.QDesktopServices.openUrl(url)

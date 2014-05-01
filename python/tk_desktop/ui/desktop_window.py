@@ -6,7 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from tank.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtCore, QtGui
 
 class Ui_DesktopWindow(object):
     def setupUi(self, DesktopWindow):
@@ -176,7 +176,7 @@ class Ui_DesktopWindow(object):
         self.projects.setMovement(QtGui.QListView.Static)
         self.projects.setFlow(QtGui.QListView.LeftToRight)
         self.projects.setProperty("isWrapping", True)
-        self.projects.setResizeMode(QtGui.QListView.Fixed)
+        self.projects.setResizeMode(QtGui.QListView.Adjust)
         self.projects.setLayoutMode(QtGui.QListView.SinglePass)
         self.projects.setSpacing(16)
         self.projects.setViewMode(QtGui.QListView.IconMode)
@@ -319,13 +319,25 @@ class Ui_DesktopWindow(object):
         self.horizontalLayout_8.setStretch(1, 1)
         self.horizontalLayout_8.setStretch(2, 1)
         self.verticalLayout_2.addWidget(self.configuration_frame)
-        self.project_commands = ProjectCommandsWidget(self.project_page)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.MinimumExpanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.project_commands.sizePolicy().hasHeightForWidth())
-        self.project_commands.setSizePolicy(sizePolicy)
-        self.project_commands.setStyleSheet("")
+        self.project_commands = GroupingListView(self.project_page)
+        self.project_commands.setMouseTracking(True)
+        self.project_commands.setFrameShape(QtGui.QFrame.NoFrame)
+        self.project_commands.setFrameShadow(QtGui.QFrame.Plain)
+        self.project_commands.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.project_commands.setEditTriggers(QtGui.QAbstractItemView.AllEditTriggers)
+        self.project_commands.setProperty("showDropIndicator", False)
+        self.project_commands.setDragDropMode(QtGui.QAbstractItemView.NoDragDrop)
+        self.project_commands.setTextElideMode(QtCore.Qt.ElideMiddle)
+        self.project_commands.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
+        self.project_commands.setMovement(QtGui.QListView.Static)
+        self.project_commands.setFlow(QtGui.QListView.LeftToRight)
+        self.project_commands.setProperty("isWrapping", True)
+        self.project_commands.setResizeMode(QtGui.QListView.Adjust)
+        self.project_commands.setLayoutMode(QtGui.QListView.Batched)
+        self.project_commands.setSpacing(0)
+        self.project_commands.setViewMode(QtGui.QListView.IconMode)
+        self.project_commands.setWordWrap(True)
+        self.project_commands.setSelectionRectVisible(False)
         self.project_commands.setObjectName("project_commands")
         self.verticalLayout_2.addWidget(self.project_commands)
         self.stack.addWidget(self.project_page)
@@ -432,5 +444,5 @@ class Ui_DesktopWindow(object):
         self.actionPreferences.setText(QtGui.QApplication.translate("DesktopWindow", "Preferences...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionPreferences.setShortcut(QtGui.QApplication.translate("DesktopWindow", "Ctrl+,", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..project_commands_widget import ProjectCommandsWidget
+from ..grouping_list_view import GroupingListView
 from . import resources_rc

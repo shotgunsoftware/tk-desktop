@@ -68,7 +68,7 @@ QComboBox
     border-radius: 5;
 }
 
-QComboBox:hover, QPushButton:hover, QLineEdit:focus, QToolButton:hover
+QComboBox:hover, QPushButton:hover, QLineEdit:focus
 {
     border: 1px solid QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #ffa02f, stop: 1 #d7801a);
 }

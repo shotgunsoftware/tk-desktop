@@ -19,7 +19,7 @@ import multiprocessing.connection
 
 from PySide import QtCore
 
-logger = logging.getLogger('tk-desktop.rpc')
+logger = logging.getLogger("tk-desktop.rpc")
 logger.setLevel(logging.DEBUG)
 
 
@@ -41,11 +41,11 @@ class RPCServerThread(QtCore.QThread):
     """
     def __init__(self, engine, parent=None):
         QtCore.QThread.__init__(self, parent)
-        self._logger = logging.getLogger('tk-desktop.rpc')
+        self._logger = logging.getLogger("tk-desktop.rpc")
 
         # registry for methods to call for names that come via the connection
         self._functions = {
-            'list_functions': self.list_functions,
+            "list_functions": self.list_functions,
         }
 
         self._stop = False  # used to shut down the thread cleanly
@@ -134,10 +134,10 @@ class RPCServerThread(QtCore.QThread):
 
                     # figure out if the client is expecting a response
                     expected_return = True
-                    if '__proxy_expected_return' in kwargs:
-                        expected_return = kwargs['__proxy_expected_return']
+                    if "__proxy_expected_return" in kwargs:
+                        expected_return = kwargs["__proxy_expected_return"]
                         # make sure to clean out the kwarg so it doesn't pass to the function
-                        del kwargs['__proxy_expected_return']
+                        del kwargs["__proxy_expected_return"]
 
                     try:
                         if not func_name in self._functions:
@@ -180,7 +180,7 @@ class RPCProxy(object):
     whose results are returned as the return value of the method.
     """
     def __init__(self, pipe, authkey):
-        self._logger = logging.getLogger('tk-desktop.rpc')
+        self._logger = logging.getLogger("tk-desktop.rpc")
 
         # connect to the server via the pipe using authkey for authentication
         if sys.platform == "win32":
@@ -197,8 +197,8 @@ class RPCProxy(object):
         def do_rpc(*args, **kwargs):
             # figure out if we expect a return value
             expected_return = True
-            if '__proxy_expected_return' in kwargs:
-                expected_return = kwargs['__proxy_expected_return']
+            if "__proxy_expected_return" in kwargs:
+                expected_return = kwargs["__proxy_expected_return"]
 
             # send the call through with args and kwargs
             self._connection.send(pickle.dumps((name, args, kwargs)))

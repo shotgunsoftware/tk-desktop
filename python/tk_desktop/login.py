@@ -64,7 +64,7 @@ class ShotgunLogin(QtGui.QDialog):
         None if it fails.
         """
         # first check in memory cache
-        result = getattr(cls, '_%s__login' % cls.__name__, None)
+        result = getattr(cls, "_%s__login" % cls.__name__, None)
         if result:
             return result
 
@@ -94,7 +94,7 @@ class ShotgunLogin(QtGui.QDialog):
         it fails.
         """
         # first check in memory cache
-        result = getattr(cls, '_%s__connection' % cls.__name__, None)
+        result = getattr(cls, "_%s__connection" % cls.__name__, None)
         if result:
             return result
 
@@ -221,7 +221,7 @@ class ShotgunLogin(QtGui.QDialog):
         try:
             # connect and force an exchange so the authentication is validated
             connection = Shotgun(site, login=login, password=password)
-            connection.find_one('HumanUser', [])
+            connection.find_one("HumanUser", [])
         except Exception, e:
             raise ShotgunLoginError("Could not connect to server", str(e))
 
@@ -309,9 +309,9 @@ class ShotgunLogin(QtGui.QDialog):
         (site, login, password) = self.__get_saved_values()
 
         # populate the ui
-        self.ui.site.setText(site or '')
-        self.ui.login.setText(login or '')
-        self.ui.password.setText(password or '')
+        self.ui.site.setText(site or "")
+        self.ui.login.setText(login or "")
+        self.ui.password.setText(password or "")
 
     def save_settings(self):
         """ Save the values from the dialog """

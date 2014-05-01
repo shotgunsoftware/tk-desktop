@@ -6,7 +6,7 @@
 #
 # WARNING! All changes made in this file will be lost!
 
-from tank.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtCore, QtGui
 
 class Ui_LoginDialog(object):
     def setupUi(self, LoginDialog):

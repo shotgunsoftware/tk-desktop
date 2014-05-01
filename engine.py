@@ -20,8 +20,8 @@ import logging.handlers
 
 from PySide import QtGui
 
-from tank.platform import Engine
-from tank.errors import TankEngineInitError
+from sgtk.platform import Engine
+from sgtk.errors import TankEngineInitError
 
 
 class KeyedDefaultDict(collections.defaultdict):
@@ -100,8 +100,8 @@ class DesktopEngine(Engine):
         # HACK ALERT: See if we can move this part of engine initialization
         # above the call to init_engine in core
         #
-        # try to pull in QT classes and assign to tank.platform.qt.XYZ
-        from tank.platform import qt
+        # try to pull in QT classes and assign to sgtk.platform.qt.XYZ
+        from sgtk.platform import qt
         base_def = self._define_qt_base()
         qt.QtCore = base_def.get("qt_core")
         qt.QtGui = base_def.get("qt_gui")
@@ -143,7 +143,7 @@ class DesktopEngine(Engine):
         if self.has_gui_proxy:
             # send the commands over to the proxy
             for name, command_info in self.commands.iteritems():
-                self.__callback_map[('__commands', name)] = command_info["callback"]
+                self.__callback_map[("__commands", name)] = command_info["callback"]
 
                 # pull out needed values since this needs to be pickleable
                 gui_properties = {}
@@ -164,9 +164,9 @@ class DesktopEngine(Engine):
             self.msg_server.close()
 
         self.msg_server = self.tk_desktop.RPCServerThread(self)
-        self.msg_server.register_function(self.trigger_callback, 'trigger_callback')
-        self.msg_server.register_function(self.trigger_disconnect, 'signal_disconnect')
-        self.msg_server.register_function(self.open_project_locations, 'open_project_locations')
+        self.msg_server.register_function(self.trigger_callback, "trigger_callback")
+        self.msg_server.register_function(self.trigger_disconnect, "signal_disconnect")
+        self.msg_server.register_function(self.open_project_locations, "open_project_locations")
 
         self.msg_server.start()
 
@@ -176,14 +176,14 @@ class DesktopEngine(Engine):
             self.msg_server.close()
 
         self.msg_server = self.tk_desktop.RPCServerThread(self)
-        self.msg_server.register_function(self.app_proxy_startup_error, 'engine_startup_error')
-        self.msg_server.register_function(self.create_app_proxy, 'create_app_proxy')
-        self.msg_server.register_function(self.set_groups, 'set_groups')
-        self.msg_server.register_function(self.set_collapse_rules, 'set_collapse_rules')
-        self.msg_server.register_function(self.destroy_app_proxy, 'destroy_app_proxy')
-        self.msg_server.register_function(self.trigger_register_command, 'trigger_register_command')
-        self.msg_server.register_function(self.trigger_finish_app_initialization, 'finish_app_initialization')
-        self.msg_server.register_function(self.trigger_gui, 'trigger_gui')
+        self.msg_server.register_function(self.app_proxy_startup_error, "engine_startup_error")
+        self.msg_server.register_function(self.create_app_proxy, "create_app_proxy")
+        self.msg_server.register_function(self.set_groups, "set_groups")
+        self.msg_server.register_function(self.set_collapse_rules, "set_collapse_rules")
+        self.msg_server.register_function(self.destroy_app_proxy, "destroy_app_proxy")
+        self.msg_server.register_function(self.trigger_register_command, "trigger_register_command")
+        self.msg_server.register_function(self.trigger_finish_app_initialization, "finish_app_initialization")
+        self.msg_server.register_function(self.trigger_gui, "trigger_gui")
 
         self.msg_server.start()
 
@@ -237,7 +237,7 @@ class DesktopEngine(Engine):
 
     def set_groups(self, groups):
         project = self.desktop_window.current_project
-        self.desktop_window.ui.project_commands.set_project(project, groups)
+        self.desktop_window._project_command_model.set_project(project, groups)
         self.desktop_window.project_overlay.hide()
 
     def set_collapse_rules(self, collapse_rules):
@@ -302,7 +302,7 @@ class DesktopEngine(Engine):
 
     def trigger_finish_app_initialization(self):
         """ GUI side handler called after app initialization is finished. """
-        self.desktop_window.ui.project_commands.finalize()
+        # self.desktop_window.ui.project_commands.finalize()
 
     def trigger_register_command(self, name, properties, groups):
         """ GUI side handler for the add_command call. """
@@ -321,7 +321,7 @@ class DesktopEngine(Engine):
 
         title = self._get_display_name(name, properties)
 
-        if command_type == 'context_menu':
+        if command_type == "context_menu":
             # Add the command to the project menu
             action = QtGui.QAction(self.desktop_window)
             if icon is not None:
@@ -343,18 +343,18 @@ class DesktopEngine(Engine):
             menu_name = None
             button_name = title
             for collapse_rule in self.__collapse_rules:
-                template = DisplayNameTemplate(collapse_rule['match'])
+                template = DisplayNameTemplate(collapse_rule["match"])
                 match = template.match(title)
                 if match is not None:
-                    if collapse_rule['menu_label'] == 'None':
+                    if collapse_rule["menu_label"] == "None":
                         menu_name = None
                     else:
-                        menu_name = string.Template(collapse_rule['menu_label']).safe_substitute(match)
-                    button_name = string.Template(collapse_rule['button_label']).safe_substitute(match)
+                        menu_name = string.Template(collapse_rule["menu_label"]).safe_substitute(match)
+                    button_name = string.Template(collapse_rule["button_label"]).safe_substitute(match)
                     break
 
-            self.desktop_window.ui.project_commands.add_command(name, button_name,
-                menu_name, icon, command_tooltip, groups)
+            self.desktop_window._project_command_model.add_command(
+                name, button_name, menu_name, icon, command_tooltip, groups)
 
     def context_menu_app_triggered(self, name, properties):
         """ App triggered from the project specific menu. """
@@ -362,11 +362,11 @@ class DesktopEngine(Engine):
         # Especially for the engine restart command, the connection
         # itself gets reset and so there isn't a channel to get a
         # response back.
-        self.proxy.trigger_callback('__commands', name, __proxy_expected_return=False)
+        self.proxy.trigger_callback("__commands", name, __proxy_expected_return=False)
 
-    def __handle_button_command_triggered(self, group, name):
+    def _handle_button_command_triggered(self, group, name):
         """ Button clicked from a registered command. """
-        self.proxy.trigger_callback('__commands', name, __proxy_expected_return=False)
+        self.proxy.trigger_callback("__commands", name, __proxy_expected_return=False)
 
     def app_proxy_startup_error(self, error, tb):
         """ Handle an error starting up the engine for the app proxy. """
@@ -381,31 +381,25 @@ class DesktopEngine(Engine):
             message += "\n\n%s" % tb
 
         self.log_error(message)
-
-        label = QtGui.QLabel(message)
-        label.setWordWrap(True)
-        label.setMargin(15)
-        index = parent.layout().count() - 1
-        parent.layout().insertWidget(index, label)
-        self.desktop_window.project_overlay.hide()
+        self.desktop_window.project_overlay.show_error_message(message)
 
     def clear_app_groups(self):
         pass
 
     def _get_display_name(self, name, properties):
-        return properties.get('title', name)
+        return properties.get("title", name)
 
     def _get_groups(self, name, properties):
         display_name = self._get_display_name(name, properties)
 
-        default_group = self.get_setting('default_group', 'Studio')
-        groups = self.get_setting('groups', [])
+        default_group = self.get_setting("default_group", "Studio")
+        groups = self.get_setting("groups", [])
 
         matches = []
         for group in groups:
-            for match in group['matches']:
+            for match in group["matches"]:
                 if fnmatch.fnmatch(display_name.lower(), match.lower()):
-                    matches.append(group['name'])
+                    matches.append(group["name"])
                     break
 
         if not matches:
@@ -416,7 +410,7 @@ class DesktopEngine(Engine):
 
     def _create_group_guis(self, groups):
         project = self.desktop_window.current_project
-        self.desktop_window.ui.project_commands.set_project(project, groups)
+        self.desktop_window._project_command_model.set_project(project, groups)
         self.desktop_window.project_overlay.hide()
 
     def run(self, splash=None):
@@ -446,7 +440,6 @@ class DesktopEngine(Engine):
 
         # initialize System Tray
         self.desktop_window = self.tk_desktop.DesktopWindow()
-        self.desktop_window.ui.project_commands.command_triggered.connect(self.__handle_button_command_triggered)
 
         # hide the splash if it exists
         if splash is not None:
@@ -461,9 +454,9 @@ class DesktopEngine(Engine):
     def _initialize_logging(self):
         # platform specific locations for the log file
         platform_lookup = {
-            'darwin': os.path.join(os.path.expanduser("~"), "Library", "Logs", "Shotgun", "tk-desktop.log"),
-            'win32': os.path.join(os.environ.get("APPDATA", "APPDATA_NOT_SET"), "Shotgun", "tk-desktop.log"),
-            'linux': None,
+            "darwin": os.path.join(os.path.expanduser("~"), "Library", "Logs", "Shotgun", "tk-desktop.log"),
+            "win32": os.path.join(os.environ.get("APPDATA", "APPDATA_NOT_SET"), "Shotgun", "tk-desktop.log"),
+            "linux": None,
         }
         fname = platform_lookup.get(sys.platform)
         if fname is None:
@@ -477,7 +470,7 @@ class DesktopEngine(Engine):
         # setup default logger, used in the new default exception hook
         self._logger = logging.getLogger("tk-desktop")
         self._handler = logging.handlers.RotatingFileHandler(fname, maxBytes=1024*1024, backupCount=5)
-        formatter = logging.Formatter('%(asctime)s %(process) 5d [%(levelname) -7s] %(name)s - %(message)s')
+        formatter = logging.Formatter("%(asctime)s %(process) 5d [%(levelname) -7s] %(name)s - %(message)s")
         self._handler.setFormatter(formatter)
         self._logger.addHandler(self._handler)
 

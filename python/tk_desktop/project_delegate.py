@@ -10,14 +10,14 @@
 
 from PySide import QtCore
 
-import tank
+import sgtk
 
 from .thumb_widget import ThumbWidget
-from .model_project import SgProjectModel
+from .project_model import SgProjectModel
 
 
-shotgun_view = tank.platform.import_framework("tk-framework-shotgunutils", "shotgun_view")
-shotgun_model = tank.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+shotgun_view = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_view")
+shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
 
 class SgProjectDelegate(shotgun_view.WidgetDelegate):

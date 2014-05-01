@@ -8,285 +8,283 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import re
 import sgtk
-import datetime
 
 from PySide import QtGui
 from PySide import QtCore
 
-from .login import ShotgunLogin
-from .command_group_widget import GroupWidget
-from .command_group_widget import CommandGroupWidget
+from .ui import resources_rc
+
+from .project_commands_model import ProjectCommandModel
+
+shotgun_view = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_view")
+
+TOOLBUTTON_STYLE = """
+QToolButton {
+    text-align: left;
+    font-size: 16px;
+    margin-left: 10px;
+    margin-right: 10px;
+    padding: 6px;
+    border: 1px solid transparent;
+    background-color: transparent;
+}
+
+QToolButton::menu-arrow {
+    image:none;
+}
+
+QToolButton::menu-button  {
+    border: none;
+    width: 30px;
+}
+"""
+
+TOOLBUTTON_HOVER_STYLE = """
+QToolButton {
+    text-align: left;
+    font-size: 16px;
+    margin-left: 10px;
+    margin-right: 10px;
+    padding: 6px;
+    border: 1px solid transparent;
+    background-color: rgb(32, 32, 32);
+}
+
+QToolButton:pressed {
+    border: 1px solid orange;
+}
+
+QToolButton::menu-button  {
+    border: none;
+    width: 30px;
+}
+"""
+
+PUSHBUTTON_STYLE = """
+QPushButton {
+    background-color: transparent;
+    border-width: 1px;
+    border-color: transparent;
+    border-style: solid;
+}
+
+QLabel {
+    font-size: 12px;
+}
+"""
+
+PUSHBUTTON_HOVER_STYLE = """
+QPushButton {
+    background-color: rgb(32, 32, 32);
+    border-width: 1px;
+    border-color: transparent;
+    border-style: solid;
+}
+
+QPushButton:pressed {
+    border: 1px solid orange;
+}
+
+QLabel {
+    font-size: 12px;
+}
+"""
 
 
-class ProjectCommandsWidget(QtGui.QFrame):
-    """
-    Class that registers commands into collapsible groups and keeps track
-    of app launches via events in Shotgun.  Those events are used to
-    populate a recent group where buttons are created to make launching
-    recently used commands easy.
-    """
-    APP_LAUNCH_EVENT_TYPE = "Toolkit_Desktop_AppLaunch"
+class AbstractCommandDelegate(shotgun_view.WidgetDelegate):
+    def __init__(self, view):
+        shotgun_view.WidgetDelegate.__init__(self, view)
+        self.__view = view
+        view.entered.connect(self._handle_entered)
 
-    # signal emitted when a command is triggered
-    # arguments are the group and the command_name of the triggered command
-    command_triggered = QtCore.Signal(str, str)
+    def _handle_entered(self, index):
+        if index is None:
+            self.__view.selectionModel().clear()
+        else:
+            self.__view.selectionModel().setCurrentIndex(
+                index,
+                QtGui.QItemSelectionModel.SelectCurrent)
 
-    def __init__(self, parent=None):
-        QtGui.QFrame.__init__(self, parent)
+    def _create_widget(self, parent):
+        w = self._create_button(parent)
+        w.setVisible(False)
+        w.clicked.connect(self._handle_clicked)
+        return w
 
-        self.__project = None
-        self.__groups_map = {}
-        self.__groups_list = []
-        self.__recent_group = None
-        self.__recent_layout = None
+    def _on_before_paint(self, widget, model_index, style_options, selected=False):
+        (source_index, item, model) = self._source_for_index(model_index)
+        self._configure_widget(widget, item)
+        stylesheet = self._stylesheet_for_options(style_options, selected)
+        if stylesheet is not None:
+            widget.setStyleSheet(stylesheet)
+            widget.style().unpolish(widget)
+            widget.style().polish(widget)
+            widget.update()
 
-        layout = QtGui.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
+    def _on_before_selection(self, widget, model_index, style_options):
+        self._on_before_paint(widget, model_index, style_options, selected=True)
 
-        self.setStyleSheet("""
-            background-color: transparent;
-            border: none;
-        """)
+    def _configure_widget(self, widget, item):
+        raise NotImplementedError("abstract method called")
 
-    def set_project(self, project, groups):
-        """ Reset the widget to register commands for the given project """
-        self.clear()
-        self.__project = project
-        self.__groups_list = groups
-        self.__initialize_recents()
+    def _stylesheet_for_options(self, style_options, selected):
+        raise NotImplementedError("abstract method called")
 
-    def finalize(self):
-        """
-        Must be called once all the commands have been registered.
+    def _source_for_index(self, model_index):
+        # get the original model item for the index
+        model = model_index.model()
+        source_index = model_index
+        while hasattr(model, "sourceModel"):
+            source_index = model.mapToSource(source_index)
+            model = model.sourceModel()
+        item = model.itemFromIndex(source_index)
+        return (source_index, item, model)
 
-        Takes care of any setup that depends on the apps that have been
-        registered, such as which commands to show in the recents area.
-        """
-        # fill out the recent widget
-        self.__populate_recents()
-        self.__recent_group.setVisible(True)
+    def _handle_clicked(self, action=None):
+        # figure out current index
+        index = self.__view.selectionModel().currentIndex()
+        (_, item, model) = self._source_for_index(index)
 
-        # add the groups that have had commands registered in the correct order
-        for group_name in self.__groups_list:
-            group_widget = self.__groups_map.get(group_name)
+        # need to clear the selection to avoid artifacts upon editor closing
+        self.__view.selectionModel().clear()
 
-            if group_widget is None:
-                # Did not get a command registered for that group
-                continue
+        if action is None:
+            model._handle_command_triggered(item)
+        else:
+            model._handle_command_triggered(
+                item,
+                command_name=action.data()["command"],
+                button_name=action.data()["button"],
+                menu_name=action.text(),
+                icon=action.icon(),
+                tooltip=action.toolTip(),
+            )
 
-            # let each group know that all commands have been registered
-            group_widget.finalize()
+        self.__view.model().sort(0)
 
-            # leave stretch at the end
-            self.layout().insertWidget(self.layout().count()-1, group_widget)
 
-    def __initialize_recents(self):
-        """
-        Pull down the information from Shotgun for what the recent command
-        launches have been.  Needed to track which ones are still registered.
-        """
+class RecentCommandDelegate(AbstractCommandDelegate):
+    ICON_SIZE = QtCore.QSize(60, 60)
+    MARGIN = 10
+    TEXT_HEIGHT = 50
 
-        # dictionary to keep track of the commands launched with recency information
-        # each command name keeps track of a timestamp of when it was last launched
-        # and a boolean saying whether the corresponding command has been registered
-        self.__recents = {}
+    def _create_button(self, parent):
+        button = QtGui.QPushButton(parent)
+        button.setFlat(True)
+        button.setLayout(QtGui.QVBoxLayout())
 
-        # need to know what login to find events for
-        login = ShotgunLogin.get_login()
+        icon_label = QtGui.QLabel(button)
+        icon_label.setFixedSize(self.ICON_SIZE)
+        icon_label.setAlignment(QtCore.Qt.AlignHCenter)
+        icon_label.setScaledContents(True)
+        button.layout().addWidget(icon_label)
 
-        # pull down matching invents for the current project for the current user
-        filters = [
-            ['user', 'is', login],
-            ['project', 'is', self.__project],
-            ['event_type', 'is', self.APP_LAUNCH_EVENT_TYPE],
-        ]
+        text_label = QtGui.QLabel(parent)
+        text_label.setWordWrap(True)
+        text_label.setScaledContents(True)
+        text_label.setAlignment(QtCore.Qt.AlignHCenter)
+        button.layout().addWidget(text_label)
 
-        # execute the Shotgun summarize command
-        # get one group per description with a summary of the latest created_at
-        connection = sgtk.platform.current_engine().shotgun
-        summary = connection.summarize(
-            entity_type='EventLogEntry',
-            filters=filters,
-            summary_fields=[{'field': 'created_at', 'type': 'latest'}],
-            grouping=[{'field': 'description', 'type': 'exact', 'direction': 'desc'}],
-        )
+        return button
 
-        # parse the results
-        for group in summary["groups"]:
-            # convert the text representation of created_at to a datetime
-            text_stamp = group["summaries"]["created_at"]
-            time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
+    def _configure_widget(self, widget, item):
+        text_label = widget.layout().itemAt(1).widget()
+        button_name = item.data(ProjectCommandModel.BUTTON_NAME_ROLE)
+        menu_name = item.data(ProjectCommandModel.MENU_NAME_ROLE)
+        if menu_name is None:
+            text_label.setText(button_name)
+        else:
+            text_label.setText("%s\n%s" % (button_name, menu_name))
 
-            # pull the command name from the description
-            description = group["group_name"]
-            match = re.search("'(?P<name>.+)'", description)
-            if match is not None:
-                name = match.group("name")
+        icon_label = widget.layout().itemAt(0).widget()
+        icon = item.data(QtCore.Qt.DecorationRole)
+        if icon is None:
+            icon_label.setPixmap(QtGui.QIcon().pixmap(self.ICON_SIZE))
+        else:
+            icon_label.setPixmap(icon.pixmap(self.ICON_SIZE))
 
-                # if multiple descriptions end up with the same name use the most recent one
-                existing_info = self.__recents.setdefault(name,
-                    {'timestamp': time_stamp, 'registered': False})
-                if existing_info['timestamp'] < time_stamp:
-                    self.__recents[name]['timestamp'] = time_stamp
+        widget.setToolTip(item.toolTip())
 
-    def __populate_recents(self):
-        """
-        Populate the recents area with the commands that have been registered in
-        the order of most to least recent.
-        """
-        # get a list of all the registered command names in the the correct order
-        recents = sorted(
-            [r for r in self.__recents if self.__recents[r]['registered']],
-            key=lambda key: self.__recents[key]["timestamp"],
-            reverse=True
-        )
+    def _stylesheet_for_options(self, style_options, selected):
+        if selected:
+            return PUSHBUTTON_HOVER_STYLE
+        return PUSHBUTTON_STYLE
 
-        # initialize the recents list
-        recents_list = QtGui.QListWidget()
-        recents_list.setViewMode(recents_list.IconMode)
-        recents_list.setWrapping(True)
-        recents_list.setUniformItemSizes(True)
-        recents_list.setWordWrap(True)
-        recents_list.setIconSize(QtCore.QSize(50, 50))
-        recents_list.setSelectionMode(recents_list.NoSelection)
-        recents_list.setStyleSheet("""
-            QListWidget {
-                background-color: transparent;
-                border: none;
-                font-size: 12px;
-            }
+    def sizeHint(self, style_options, model_index):
+        return QtCore.QSize(
+            self.ICON_SIZE.width() + 2*self.MARGIN,
+            self.ICON_SIZE.height() + self.TEXT_HEIGHT)
 
-            QListWidget::item {
-                border: none;
-                padding: 5px;
-                height: 80px;
-            }
 
-            QListWidget::item:hover {
-                background-color: rgb(32, 32, 32);
-            }
-        """)
+class ProjectCommandDelegate(AbstractCommandDelegate):
+    ICON_SIZE = QtCore.QSize(56, 56)
 
-        for (i, recent) in enumerate(recents):
-            icon = self.__recents[recent].get("icon")
-            menu_name = self.__recents[recent]["menu_name"]
-            button_name = self.__recents[recent]["button_name"]
-            command_name = self.__recents[recent]["command_name"]
-            tooltip = self.__recents[recent]["tooltip"]
+    def __init__(self, view):
+        AbstractCommandDelegate.__init__(self, view)
+        self.__view = view
 
-            if menu_name is None:
-                title = button_name
-            else:
-                title = "%s %s" % (button_name, menu_name)
+        # register a different delegate for the Recent group
+        view.set_group_delegate(
+            ProjectCommandModel.RECENT_GROUP_NAME,
+            RecentCommandDelegate(view))
 
-            if icon is None:
-                item = QtGui.QListWidgetItem(title, recents_list)
-            else:
-                item = QtGui.QListWidgetItem(icon, title, recents_list)
+    def _create_button(self, parent):
+        widget = QtGui.QToolButton(parent)
+        widget.setSizePolicy(
+            QtGui.QSizePolicy.MinimumExpanding,
+            QtGui.QSizePolicy.MinimumExpanding)
+        return widget
 
-            if tooltip is not None:
-                item.setToolTip(tooltip)
+    def _configure_widget(self, widget, item):
+        # update button text
+        widget.setText(item.data(ProjectCommandModel.BUTTON_NAME_ROLE))
 
-            item.setData(QtCore.Qt.UserRole, command_name)
+        # update button icon
+        icon = item.data(QtCore.Qt.DecorationRole)
+        widget.setToolTip(item.toolTip())
+        if icon is None:
+            widget.setIcon(QtGui.QIcon())
+        else:
+            widget.setIcon(icon)
 
-        def item_clicked(index):
-            item = recents_list.itemFromIndex(index)
-            command_name = item.data(QtCore.Qt.UserRole)
-            self.command_triggered.emit("Recent", command_name)
+        widget.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        widget.setIconSize(self.ICON_SIZE)
 
-        recents_list.clicked.connect(item_clicked)
+        # update button menu
+        i = 0
+        menu = None
+        while True:
+            child = item.child(i, 0)
+            i += 1
+            if child is None:
+                break
 
-        recents_list.setMaximumHeight(recents_list.sizeHintForRow(0))
-        self.__recent_layout.addWidget(recents_list, 0)
-
-    def clear(self):
-        """ remove all the groups from the widget """
-        # no updates while we clear
-        self.setUpdatesEnabled(False)
-
-        # remove every item from the layout
-        item = self.layout().takeAt(0)
-        while item is not None:
-            widget = item.widget()
-            if widget is not None:
-                # hide the widget so everything looks good until cleanup
-                widget.hide()
-            self.layout().removeItem(item)
-            item = self.layout().takeAt(0)
-
-        # add the Recent group
-        self.__recent_group = GroupWidget("Recent", self)
-        self.__recent_group.setVisible(False)
-        self.layout().addWidget(self.__recent_group)
-
-        self.__recent_layout = QtGui.QVBoxLayout()
-        self.__recent_layout.setContentsMargins(0, 0, 0, 0)
-        self.__recent_group.widget.setLayout(self.__recent_layout)
-
-        # add the stretch back in
-        self.layout().addStretch()
-
-        # and get updates going again
-        self.layout().invalidate()
-        self.setUpdatesEnabled(True)
-
-        # reset internal state
-        self.__groups_map = {}
-        self.__groups_list = []
-
-    def add_command(self, command_name, button_name, menu_name, icon, tooltip, groups):
-        # command will show up in the recent group
-        if command_name in self.__recents:
-            self.__recents[command_name].update({
-                "icon": icon,
-                "registered": True,
-                "menu_name": menu_name,
-                "button_name": button_name,
-                "command_name": command_name,
-                "tooltip": tooltip,
+            if menu is None:
+                menu = QtGui.QMenu()
+            action = menu.addAction(child.data(ProjectCommandModel.MENU_NAME_ROLE))
+            action.setData({
+                "command": child.data(ProjectCommandModel.COMMAND_ROLE),
+                "button": child.data(ProjectCommandModel.BUTTON_NAME_ROLE),
             })
+            action.setToolTip(child.toolTip())
+            action.setIconVisibleInMenu(False)
 
-        # add command to each group it has requested
-        for group_name in groups:
-            group_widget = self.__groups_map.get(group_name)
-            if group_widget is None:
-                # create the group widget if it doesn't exist
-                group_widget = CommandGroupWidget(group_name, self)
-                self.__groups_map[group_name] = group_widget
+            icon = child.data(QtCore.Qt.DecorationRole)
+            if icon is not None:
+                action.setIcon(icon)
+        widget.setMenu(menu)
 
-                # listen for commands triggered
-                group_widget.command_triggered.connect(
-                    lambda command_name: self.__handle_command_triggered(group_name, command_name))
+        if menu is None:
+            widget.setPopupMode(widget.DelayedPopup)
+        else:
+            widget.setPopupMode(widget.MenuButtonPopup)
+            menu.triggered.connect(self._handle_clicked)
 
-            # and add the command
-            group_widget.add_command(command_name, button_name, menu_name, icon, tooltip)
+    def _stylesheet_for_options(self, style_options, selected):
+        if selected:
+            return TOOLBUTTON_HOVER_STYLE
+        return TOOLBUTTON_STYLE
 
-    def __handle_command_triggered(self, group_name, command_name):
-        # Create an event log entry to track app launches
-        engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
-
-        login = ShotgunLogin.get_login()
-        data = {
-            # recent is populated by grouping on description, so it needs
-            # to be the same for each event created for a given name, but
-            # different for different names
-            #
-            # this is parsed when populating the recents menu
-            "description": "App '%s' launched from tk-desktop-engine" % command_name,
-            "event_type": self.APP_LAUNCH_EVENT_TYPE,
-            "project": self.__project,
-            "meta": {"name": command_name, "group": group_name},
-            "user": login,
-        }
-
-        engine.log_debug("Registering app launch event: %s" % data)
-
-        # use toolkit connection to get ApiUser permissions for event creation
-        connection.create("EventLogEntry", data)
-
-        # and notify that the command was triggered
-        self.command_triggered.emit(group_name, command_name)
+    def sizeHint(self, style_options, model_index):
+        return QtCore.QSize((self.__view.width() / 2) - 8, self.ICON_SIZE.height() + 6)
