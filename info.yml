@@ -87,6 +87,21 @@ configuration:
         allows_empty: True
         default_value: []
 
+    hook_launch_python:
+        type: hook
+        default_value: launch_python
+        description: "This hook is responsible for launching the python interpreter
+                     for a specific project.  The first argument to the hook is
+                     'project_python', the path to the python interpreter to be
+                     launched.  The next argument to the hook is 'pickle_data_path'
+                     which is a full path to a python pickle that contains the
+                     info needed to initialize the project's tk-desktop engine
+                     and talk back to the desktop GUI.  The third argument is
+                     the path to a utilities python module.  This module should
+                     be loaded in the new interpreter and used to start up the
+                     engine."
+
+
 
 # the Shotgun fields that this engine needs in order to operate correctly
 requires_shotgun_fields:

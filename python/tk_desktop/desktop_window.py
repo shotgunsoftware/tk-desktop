@@ -12,6 +12,7 @@ import os
 import sys
 import tempfile
 import subprocess
+import cPickle as pickle
 
 from PySide import QtGui
 from PySide import QtCore
@@ -727,72 +728,38 @@ class DesktopWindow(SystrayWindow):
         # going to launch the configuration, update the project menu if needed
         self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration)
 
-        (_, temp_bootstrap) = tempfile.mkstemp(suffix=".py")
-        bootstrap_file = open(temp_bootstrap, "w")
-        try:
-            core_python = os.path.join(core_root, "install", "core", "python")
+        core_python = os.path.join(core_root, "install", "core", "python")
 
-            # startup server pipe to listen
-            engine.start_gui_server()
-            server_pipe = engine.msg_server.pipe
-            server_auth = engine.msg_server.authkey
+        # startup server pipe to listen
+        engine.start_gui_server()
+        server_pipe = engine.msg_server.pipe
+        server_auth = engine.msg_server.authkey
 
-            lines = [
-                "import os",
-                "import sys",
-                "import traceback",
-                "sys.path.append('%s')" % core_python,
-                "try:",
-                "    from PySide import QtGui",
-                "    import sgtk",
-                "    sgtk.util.append_path_to_env_var('PYTHONPATH', '%s')" % core_python,
-                "    tk = sgtk.sgtk_from_path('%s')" % config_path,
-                "    tk._desktop_data = {",
-                "      'proxy_pipe': r'%s'," % server_pipe,
-                "      'proxy_auth': '%s'," % server_auth,
-                "    }",
-                "    ctx = tk.context_from_entity('Project', %d)" % project['id'],
-                "    engine = sgtk.platform.start_engine('tk-desktop', tk, ctx)",
-                "    QtGui.QApplication.setStyle('cleanlooks')",
-                "    app = QtGui.QApplication(sys.argv)",
-                "    app.setStyleSheet(engine._get_standard_qt_stylesheet())",
-                "    app.setQuitOnLastWindowClosed(False)",
-                "    app.exec_()",
-                "except Exception, e:",
-                "    import cPickle as pickle",
-                "    from multiprocessing.connection import Client",
-                "    if sys.platform == 'win32':",
-                "        family = 'AF_PIPE'",
-                "    else:",
-                "        family = 'AF_UNIX'",
-                "    connection = Client(address=r'%s', family=family, authkey='%s')" % (server_pipe, server_auth),
-                "    connection.send(pickle.dumps(('engine_startup_error',",
-                "                  [e, traceback.format_exc()],",
-                "                  {'__proxy_expected_return': False})))",
-                "    connection.close()",
-            ]
-            bootstrap_file.write("\n".join(lines))
-            bootstrap_file.close()
+        # pickle up the info needed to bootstrap the project python
+        desktop_data = {
+            "core_python_path": core_python,
+            "config_path": config_path,
+            "project": project,
+            "proxy_data": {
+                "proxy_pipe": server_pipe,
+                "proxy_auth": server_auth,
+            },
+        }
+        (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
+        pickle.dump(desktop_data, open(pickle_data_file, "wb"))
 
-            self.current_project = project
-            engine.log_info("--- launching python subprocess")
-            engine.log_debug(" ---- %s %s" % (path_to_python, temp_bootstrap))
+        # get the path to the utilities module
+        utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
 
-            if sys.platform == "win32":
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                startupinfo.wShowWindow = subprocess.SW_HIDE
-                subprocess.Popen([path_to_python, temp_bootstrap], startupinfo=startupinfo)
-            else:
-                subprocess.Popen([path_to_python, temp_bootstrap])
-        finally:
-            # clean up the bootstrap after a one second delay
-            def remove_bootstrap():
-                try:
-                    os.remove(temp_bootstrap)
-                except Exception:
-                    pass
-            QtCore.QTimer.singleShot(1000, remove_bootstrap)
+        engine.log_info("--- launching python subprocess (%s)" % path_to_python)
+        engine.execute_hook(
+            "hook_launch_python",
+            project_python=path_to_python,
+            pickle_data_path=pickle_data_file,
+            utilities_module_path=utilities_module_path,
+        )
+
+        self.current_project = project
 
     def slide_view(self, new_page, from_direction='right'):
         offsetx = self.ui.stack.frameRect().width()
