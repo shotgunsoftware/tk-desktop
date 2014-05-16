@@ -17,9 +17,15 @@ import cPickle as pickle
 
 def main():
     # parse command line arguments
+    #
+    # The arguments for this bootstrap are put together in the launch_python hook.
     opts = parse_args()
 
     # load the utilities module
+    #
+    # The path to the utilities module is passed on from the launch_python hook
+    # and the methods from the utility module should be used to start the
+    # desktop engine and run the Qt event loop for the engine.
     utilities = None
     try:
         sys.path.append(os.path.dirname(opts.utilities))
@@ -27,20 +33,34 @@ def main():
         utilities = __import__(module_name)
 
         # load up the pickle file with the data payload
+        #
+        # The pickle file comes from the app launching this instance of the
+        # desktop engine.  It contains the information needed to connect
+        # back to that app and let it serve as the GUI proxy for the engine.
         data = pickle.load(open(opts.data, "rb"))
 
         # launch the engine
+        #
+        # Use the methods from the utility module (passing in the data from the
+        # data pickle) to start the engine and the Qt event loop.
         engine = utilities.start_engine(data)
         utilities.start_app(engine)
     except Exception:
         if utilities is not None:
             # send the error back to the GUI proxy
+            #
+            # Use the utilities module to send the error message back to the app
+            # acting as the GUI proxy for this engine.
             utilities.handle_error(data)
+
+        # Reraise the error
         raise
 
 
 def parse_args():
     # parse and verify args
+    #
+    # See the launch_python hook for details of what these arguments are.
     parser = optparse.OptionParser()
     parser.add_option('-d', '--data', help='pickle file with startup data')
     parser.add_option('-u', '--utilities',

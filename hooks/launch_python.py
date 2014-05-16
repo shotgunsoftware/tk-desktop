@@ -24,6 +24,10 @@ class LaunchPython(Hook):
         """
         Launch the python process that will start the project specific tk-desktop
         engine and communicate back to the gui proxy.
+
+        :param project_python: (str) The path to the python executable to run
+        :param pickle_data_path: (str) The path to the data needed to start the engine
+        :param utilities_module_path: (str) The path to a utilities module can start the engine
         """
         # get the path to the python_bootstrap.py file in this directory
         bootstrap = self.path_to_bootstrap()
@@ -41,4 +45,10 @@ class LaunchPython(Hook):
         subprocess.Popen(args, startupinfo=startupinfo)
 
     def path_to_bootstrap(self):
-        return os.path.join(os.path.dirname(os.path.realpath(__file__)), "python_bootstrap.py")
+        """
+        Return the path to the default bootstrap
+
+        See bootstrap.py for an example of how to properly start the desktop engine
+        in the python subprocess.
+        """
+        return os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "bootstrap.py")
