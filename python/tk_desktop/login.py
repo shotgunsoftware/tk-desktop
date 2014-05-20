@@ -10,12 +10,17 @@
 
 from __future__ import absolute_import
 
+import uuid
 import logging
 
 from PySide import QtGui
 from PySide import QtCore
 
-from .. import keyring
+gnomekeyring = False
+try:
+    import gnomekeyring
+except ImportError:
+    from .. import keyring
 
 # package shotgun_api3 until toolkit upgrades to a version that
 # allows for user based logins
@@ -36,7 +41,6 @@ class ShotgunLogin(QtGui.QDialog):
     # Constants that control where the settings are saved
     SETTINGS_APPLICATION = "Shotgun Desktop"
     SETTINGS_ORGANIZATION = "Shotgun Software"
-    KEYRING_ROOT = "com.shotgunsoftware.desktop"
 
     # Logging
     __logger = logging.getLogger("tk-desktop.login")
@@ -170,7 +174,7 @@ class ShotgunLogin(QtGui.QDialog):
 
         # load up the values stored securely in the os specific keyring
         if login:
-            password = keyring.get_password("%s.login" % cls.KEYRING_ROOT, login)
+            password = keyring_get_password("%s.login" % KEYRING_ROOT, login)
         else:
             password = None
 
@@ -189,14 +193,14 @@ class ShotgunLogin(QtGui.QDialog):
         settings.endGroup()
 
         # remove settings stored in the os specific keyring
-        keyring.delete_password("%s.login" % cls.KEYRING_ROOT, login)
+        keyring_delete_password("%s.login" % KEYRING_ROOT, login)
 
     @classmethod
     def __save_values(cls, site, login, password):
         """ save the given values securely """
 
         # make sure the keyring supports encryption
-        kr = keyring.get_keyring()
+        kr = keyring_get_keyring()
         if not kr.encrypted():
             raise ShotgunLoginError("keyring does not support encryption")
 
@@ -208,7 +212,7 @@ class ShotgunLogin(QtGui.QDialog):
         settings.endGroup()
 
         # save these settings securely in the os specific keyring
-        keyring.set_password("%s.login" % cls.KEYRING_ROOT, login, password)
+        keyring_set_password("%s.login" % KEYRING_ROOT, login, password)
 
     @classmethod
     def __check_values(cls, site, login, password):
@@ -321,3 +325,100 @@ class ShotgunLogin(QtGui.QDialog):
         password = self.ui.password.text()
 
         self.__save_values(site, login, password)
+
+################################################################################
+# Gnome Keyring Implementation
+
+
+def _gnomekeyring_get_password(kerying, login):
+    item, _ = __gnomekeyring_get_item(login)
+    if item is None:
+        return None
+    return item.get_secret()
+
+
+def _gnomekeyring_set_password(keyring, login, password):
+    __gnomekeyring_get_item(login, create=True)
+    login_key = __gnomekeyring_key_for_login(login)
+    gnomekeyring.item_create_sync(
+        "Login", gnomekeyring.ITEM_GENERIC_SECRET,
+        login_key, {}, password, True)
+
+
+def _gnomekeyring_delete_password(keyring, login):
+    _, item_id = __gnomekeyring_get_item(login)
+    if item_id is not None:
+        gnomekeyring.item_delete_sync("Login", item_id)
+
+
+def _gnomekeyring_get_keyring():
+    return GnomeKeyring()
+
+
+# Fake class since gnome keyring is always encrypted
+class GnomeKeyring(object):
+    def encrypted(self):
+        return True
+
+
+def __gnomekeyring_get_keychain_password():
+    password, ok = QtGui.QInputDialog.getText(
+        None,
+        "Keychain Password",
+        "Enter a password to protect your login info:",
+        QtGui.QLineEdit.Password
+    )
+
+    if ok:
+        return password
+    return None
+
+
+def __gnomekeyring_key_for_login(login):
+    return "%s@www.shotgunsoftware.com" % login
+
+
+def __gnomekeyring_get_item(login, create=False):
+    login_key = __gnomekeyring_key_for_login(login)
+
+    try:
+        item_keys = gnomekeyring.list_item_ids_sync("Login")
+    except gnomekeyring.NoSuchKeyringError:
+        if create:
+            password = __gnomekeyring_get_keychain_password()
+            if password is not None:
+                gnomekeyring.create_sync("Login", password)
+                item_keys = []
+        return None, None
+
+    for key in item_keys:
+        item_info = gnomekeyring.item_get_info_sync("Login", key)
+        if item_info.get_display_name() == login_key:
+            return item_info, key
+
+    if not create:
+        return None, None
+
+    item_key = gnomekeyring.item_create_sync(
+        "Login",
+        gnomekeyring.ITEM_GENERIC_SECRET,
+        login_key,
+        {},
+        str(uuid.uuid4()),
+        True
+    )
+    item = gnomekeyring.item_get_info_sync("Login", item_key)
+    return item, item_key
+
+if gnomekeyring and gnomekeyring.is_available():
+    KEYRING_ROOT = "Login"
+    keyring_get_password = _gnomekeyring_get_password
+    keyring_set_password = _gnomekeyring_set_password
+    keyring_delete_password = _gnomekeyring_delete_password
+    keyring_get_keyring = _gnomekeyring_get_keyring
+else:
+    KEYRING_ROOT = "com.shotgunsoftware.desktop"
+    keyring_get_password = keyring.get_password
+    keyring_set_password = keyring.set_password
+    keyring_delete_password = keyring.delete_password
+    keyring_get_keyring = keyring.get_keyring

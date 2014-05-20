@@ -208,7 +208,7 @@ class DesktopEngine(Engine):
             system = sys.platform
 
             # run the app
-            if system == "linux2":
+            if system.startswith("linux"):
                 cmd = 'xdg-open "%s"' % disk_location
             elif system == "darwin":
                 cmd = 'open "%s"' % disk_location
@@ -453,13 +453,13 @@ class DesktopEngine(Engine):
 
     def _initialize_logging(self):
         # platform specific locations for the log file
-        platform_lookup = {
-            "darwin": os.path.join(os.path.expanduser("~"), "Library", "Logs", "Shotgun", "tk-desktop.log"),
-            "win32": os.path.join(os.environ.get("APPDATA", "APPDATA_NOT_SET"), "Shotgun", "tk-desktop.log"),
-            "linux": None,
-        }
-        fname = platform_lookup.get(sys.platform)
-        if fname is None:
+        if sys.platform == "darwin":
+            fname = os.path.join(os.path.expanduser("~"), "Library", "Logs", "Shotgun", "tk-desktop.log")
+        elif sys.platform == "win32":
+            fname = os.path.join(os.environ.get("APPDATA", "APPDATA_NOT_SET"), "Shotgun", "tk-desktop.log")
+        elif sys.platform.startswith("linux"):
+            fname = os.path.join(os.path.expanduser("~"), ".shotgun", "tk-desktop.log")
+        else:
             raise NotImplementedError("Unknown platform: %s" % sys.platform)
 
         # create the directory for the log file

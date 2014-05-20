@@ -173,6 +173,7 @@ class Ui_DesktopWindow(object):
         self.projects.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.projects.setProperty("showDropIndicator", False)
         self.projects.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.projects.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
         self.projects.setMovement(QtGui.QListView.Static)
         self.projects.setFlow(QtGui.QListView.LeftToRight)
         self.projects.setProperty("isWrapping", True)

@@ -11,7 +11,7 @@
 import os
 import sys
 import tempfile
-import subprocess
+import traceback
 import cPickle as pickle
 
 from PySide import QtGui
@@ -627,14 +627,13 @@ class DesktopWindow(SystrayWindow):
             self.__set_project_just_accessed(project)
             QtGui.QApplication.instance().processEvents()
 
-            platform_fields = {
-                "darwin": "mac_path",
-                "linux": "linux_path",
-                "win32": "windows_path",
-            }
-            path_field = platform_fields.get(sys.platform)
-
-            if path_field is None:
+            if sys.platform == "darwin":
+                path_field = "mac_path"
+            elif sys.platform == "win32":
+                path_field = "windows_path"
+            elif sys.platform.startswith("linux"):
+                path_field = "linux_path"
+            else:
                 raise SystemError("Unsupported platform: %s" % sys.platform)
 
             filters = [
@@ -692,11 +691,14 @@ class DesktopWindow(SystrayWindow):
             config_path = pipeline_configuration[path_field]
 
             # Now find out the appropriate python to launch
-            current_platform = {
-                "darwin": "Darwin",
-                "linux": "Linux",
-                "win32": "Windows",
-            }[sys.platform]
+            if sys.platform == "darwin":
+                current_platform = "Darwin"
+            elif sys.platform == "win32":
+                current_platform = "Windows"
+            elif sys.platform.startswith("linux"):
+                current_platform = "Linux"
+            else:
+                raise RuntimeError("unknown platform: %s" % sys.platform)
 
             current_config_path = config_path
             while True:
@@ -731,13 +733,13 @@ class DesktopWindow(SystrayWindow):
                 with open(parent_config_file, "r") as f:
                     current_config_path = f.read().strip()
         except Exception, error:
-            parent = self.get_app_widget("___error")
-            label = QtGui.QLabel("Error setting up engine environment\n\n%s" % error.message)
+            message = "Error setting up engine environment\n\n%s" % error.message
 
-            label.setWordWrap(True)
-            label.setMargin(15)
-            index = parent.layout().count() - 1
-            parent.layout().insertWidget(index, label)
+            # add the traceback if debug is true
+            if engine.get_setting("debug_logging", False):
+                message += "\n\n%s" % traceback.format_exc()
+
+            self.project_overlay.show_error_message(message)
             return
 
         # going to launch the configuration, update the project menu if needed
