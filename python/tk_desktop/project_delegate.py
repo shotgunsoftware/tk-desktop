@@ -17,7 +17,6 @@ from .project_model import SgProjectModel
 
 
 shotgun_view = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_view")
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
 
 class SgProjectDelegate(shotgun_view.WidgetDelegate):
