@@ -8,6 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import os
 import sys
 import traceback
 import cPickle as pickle
@@ -37,6 +38,13 @@ def start_app(engine):
     app = QtGui.QApplication([])
     app.setStyleSheet(engine._get_standard_qt_stylesheet())
     app.setQuitOnLastWindowClosed(False)
+
+    # set default icon
+    python_icon = os.path.realpath(os.path.join(
+        os.path.dirname(__file__),
+        "..", "..", "resources", "python_icon.png"))
+    app.setWindowIcon(QtGui.QIcon(python_icon))
+
     app.exec_()
 
 
