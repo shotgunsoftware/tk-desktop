@@ -23,7 +23,7 @@ logger = logging.getLogger("tk-desktop.preferences")
 try:
     from .extensions import osutils
 except ImportError, e:
-    logger.warning("Failed to import _osutils, disabling some features.")
+    logger.warning("Failed to import osutils, disabling some features.")
     osutils = None
 
 

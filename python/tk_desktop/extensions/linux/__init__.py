@@ -8,5 +8,9 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+# import Qt to force the proper dependencies of osutils
+import PySide.QtGui
+import PySide.QtCore
+
 from . import osutils
 
