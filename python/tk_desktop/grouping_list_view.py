@@ -18,7 +18,7 @@ from .ui import resources_rc
 
 from grouping_model import GroupingModel
 
-shotgun_view = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_view")
+shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
 
 
 class DefaultGroupingHeader(QtGui.QPushButton):

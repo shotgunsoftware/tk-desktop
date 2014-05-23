@@ -16,7 +16,7 @@ from .thumb_widget import ThumbWidget
 from .project_model import SgProjectModel
 
 
-shotgun_view = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_view")
+shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
 
 
 class SgProjectDelegate(shotgun_view.WidgetDelegate):

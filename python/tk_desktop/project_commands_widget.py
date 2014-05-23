@@ -17,7 +17,7 @@ from .ui import resources_rc
 
 from .project_commands_model import ProjectCommandModel
 
-shotgun_view = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_view")
+shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
 
 TOOLBUTTON_STYLE = """
 QToolButton {

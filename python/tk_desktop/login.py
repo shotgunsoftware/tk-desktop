@@ -36,7 +36,13 @@ class ShotgunLoginError(Exception):
 
 
 class ShotgunLogin(QtGui.QDialog):
-    """ Manage authenticating a Shotgun login """
+    """
+    Manage authenticating a Shotgun login
+
+    Note: This does not use the toolkit settings framework since the settings
+    stored by the login window need to be accessed during the bootstrap of
+    the Shotgun desktop application.
+    """
 
     # Constants that control where the settings are saved
     SETTINGS_APPLICATION = "Shotgun Desktop"

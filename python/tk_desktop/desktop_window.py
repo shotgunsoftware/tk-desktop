@@ -40,9 +40,11 @@ try:
 except Exception:
     osutils = None
 
-# import the shotgun_model module from the shotgun utils framework
+# import our frameworks
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-overlay_widget = sgtk.platform.import_framework("tk-framework-shotgunutils", "overlay_widget")
+overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
+settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
+
 ShotgunModel = shotgun_model.ShotgunModel
 
 
@@ -59,6 +61,7 @@ class DesktopWindow(SystrayWindow):
         self.current_project = None
         self.__activation_hotkey = None
         self.__pipeline_configuration_separator = None
+        self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
 
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
@@ -214,60 +217,47 @@ class DesktopWindow(SystrayWindow):
         self._load_settings()
 
     def _load_settings(self):
-        engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
-        site = connection.base_url
+        project_id = self._settings_manager.retrieve("project_id", 0, self._settings_manager.SCOPE_SITE)
+        pos = self._settings_manager.retrieve("pos", QtCore.QPoint(200, 200), self._settings_manager.SCOPE_SITE)
 
-        settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
-
-        # site specific settings
-        settings.beginGroup(site)
-        try:
-            self.__set_project_from_id(settings.value("project_id", 0))
-        except Exception:
-            pass
-        self.move(settings.value("pos", QtCore.QPoint(200, 200)))
-        settings.endGroup()
+        self.__set_project_from_id(project_id)
+        self.move(pos)
 
         # Force update so the project selection happens if the window is shown by default
         QtGui.QApplication.processEvents()
 
         # settings that apply across any instance (after site specific, so pinned can reset pos)
         try:
-            self.state = settings.value("systray_state", self.STATE_PINNED)
+            self.state = self._settings_manager.retrieve("systray_state", self.STATE_PINNED)
         except Exception:
             self.state = self.STATE_PINNED
 
-        self.set_on_top(settings.value("on_top", False))
+        self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
         # restore hotkey
-        (key, native_modifiers, native_key) = settings.value("activation_hotkey", (None, None, None))
+        (key, native_modifiers, native_key) = \
+            self._settings_manager.retrieve(
+                "activation_hotkey",
+                (None, None, None),
+                self._settings_manager.SCOPE_SITE)
+
         if key:
             shortcut = QtGui.QKeySequence(key)
             self.set_activation_hotkey(shortcut, native_modifiers, native_key)
 
     def _save_setting(self, key, value, site_specific):
-        settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
-
         if site_specific:
-            engine = sgtk.platform.current_engine()
-            connection = engine.shotgun
-            site = connection.base_url
-            settings.beginGroup(site)
-
-        settings.setValue(key, value)
-        settings.sync()
+            self._settings_manager.store(key, value, self._settings_manager.SCOPE_SITE)
+        else:
+            self._settings_manager.store(key, value)
 
     def _load_setting(self, key, default_value, site_specific):
-        settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
-
         if site_specific:
-            engine = sgtk.platform.current_engine()
-            connection = engine.shotgun
-            site = connection.base_url
-            settings.beginGroup(site)
+            ret = self._settings_manager.retrieve(key, default_value, self._settings_manager.SCOPE_SITE)
+        else:
+            ret = self._settings_manager.retrieve(key, default_value)
 
-        return settings.value(key, default_value)
+        return ret
 
     ########################################################################################
     # Event handlers and slots
@@ -304,7 +294,7 @@ class DesktopWindow(SystrayWindow):
             return
 
         if shortcut.isEmpty():
-            self._save_setting("activation_hotkey", ("", "", ""), False)
+            self._save_setting("activation_hotkey", ("", "", ""), site_specific=True)
             if self.__activation_hotkey is not None:
                 osutils.unregister_global_hotkey(self.__activation_hotkey)
                 self.__activation_hotkey = None
@@ -313,7 +303,10 @@ class DesktopWindow(SystrayWindow):
                 osutils.unregister_global_hotkey(self.__activation_hotkey)
             self.__activation_hotkey = osutils.register_global_hotkey(
                 native_modifiers, native_key, self.handle_hotkey_triggered)
-            self._save_setting("activation_hotkey", (shortcut[0], native_modifiers, native_key), False)
+            self._save_setting(
+                "activation_hotkey",
+                (shortcut[0], native_modifiers, native_key),
+                site_specific=True)
 
     def handle_auto_start_changed(self, state):
         if osutils is None:
@@ -329,8 +322,11 @@ class DesktopWindow(SystrayWindow):
         prefs = Preferences()
 
         # setup current prefs
-        settings = QtCore.QSettings(self.ORGANIZATION, self.APPLICATION)
-        (key, native_modifiers, native_key) = settings.value("activation_hotkey", (None, None, None))
+        (key, native_modifiers, native_key) = \
+            self._settings_manager.retrieve(
+                "activation_hotkey",
+                (None, None, None),
+                self._settings_manager.SCOPE_SITE)
         if key:
             shortcut = QtGui.QKeySequence(key)
             prefs.ui.hotkey.key_sequence = shortcut
