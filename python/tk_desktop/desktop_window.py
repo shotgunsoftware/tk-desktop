@@ -104,6 +104,9 @@ class DesktopWindow(SystrayWindow):
                 shotgun.download_url(connection, thumbnail_url, thumbnail_file)
                 pixmap = QtGui.QPixmap(thumbnail_file)
                 self.ui.user_button.setIcon(QtGui.QIcon(pixmap))
+            except Exception:
+                # if it fails for any reason, that's alright
+                pass
             finally:
                 try:
                     os.remove(thumbnail_file)
