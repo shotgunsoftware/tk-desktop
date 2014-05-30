@@ -77,6 +77,11 @@ class SystrayWindow(QtGui.QMainWindow):
         # hook up handler for when the systray is clicked
         self.systray.clicked.connect(self.systray_clicked)
 
+        # hidden until shown
+        if osutils is not None:
+            osutils.make_app_background()
+
+
     # Customize behavior
     ###########################
 
@@ -114,8 +119,8 @@ class SystrayWindow(QtGui.QMainWindow):
             self.__move_to_systray()
         elif self.__state == self.STATE_WINDOWED:
             self._set_window_mask()
+            self.show()
             if osutils is None:
-                self.show()
                 self.raise_()
             else:
                 osutils.make_app_foreground()
