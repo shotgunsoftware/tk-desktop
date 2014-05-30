@@ -131,7 +131,7 @@ class ShotgunLogin(QtGui.QDialog):
         """
         cls.__login = None
         cls.__connection = None
-        cls.__clear_saved_values()
+        cls.__clear_password()
 
     ##########################################################################################
     # private class methods
@@ -187,19 +187,26 @@ class ShotgunLogin(QtGui.QDialog):
         return (site, login, password)
 
     @classmethod
-    def __clear_saved_values(cls):
-        """ clear any saved values """
-        # grab values needed to clear keyring
+    def __clear_password(cls):
+        """ clear password value """
+        # remove settings stored in the os specific keyring
         settings = QtCore.QSettings(cls.SETTINGS_ORGANIZATION, cls.SETTINGS_APPLICATION)
         settings.beginGroup("loginInfo")
         login = settings.value("login", None)
+        settings.endGroup()
+        keyring_delete_password("%s.login" % KEYRING_ROOT, login)
+
+    @classmethod
+    def __clear_saved_values(cls):
+        """ clear any saved values """
+        settings = QtCore.QSettings(cls.SETTINGS_ORGANIZATION, cls.SETTINGS_APPLICATION)
 
         # remove settings stored via QSettings
+        settings.beginGroup("loginInfo")
         settings.remove("")
         settings.endGroup()
 
-        # remove settings stored in the os specific keyring
-        keyring_delete_password("%s.login" % KEYRING_ROOT, login)
+        cls.__clear_password()
 
     @classmethod
     def __save_values(cls, site, login, password):

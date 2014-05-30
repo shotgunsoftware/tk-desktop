@@ -91,11 +91,13 @@ class DesktopEngine(Engine):
         # see if we are running with a gui proxy
         self.has_gui = True
         self.has_gui_proxy = False
+        self.disconnected = True
         bootstrap_data = getattr(self.sgtk, "_desktop_data", None)
         if bootstrap_data is not None:
             if "proxy_pipe" in bootstrap_data and "proxy_auth" in bootstrap_data:
                 self.has_gui = False
                 self.has_gui_proxy = True
+                self.disconnected = False
 
         # HACK ALERT: See if we can move this part of engine initialization
         # above the call to init_engine in core
@@ -266,11 +268,11 @@ class DesktopEngine(Engine):
 
     def trigger_disconnect(self):
         app = QtGui.QApplication.instance()
+        self.disconnected = True
 
         top_level_windows = app.topLevelWidgets()
         if top_level_windows:
-            self.log_debug("Disconnected with open windows, "
-                "setting quit on last window closed.")
+            self.log_debug("Disconnected with open windows, setting quit on last window closed.")
             app.setQuitOnLastWindowClosed(True)
         else:
             self.log_debug("Quitting on disconnect")
@@ -343,9 +345,11 @@ class DesktopEngine(Engine):
             menu_name = None
             button_name = title
             for collapse_rule in self.__collapse_rules:
+
                 template = DisplayNameTemplate(collapse_rule["match"])
                 match = template.match(title)
                 if match is not None:
+                    self.log_debug("matching %s against %s" % (title, collapse_rule["match"]))
                     if collapse_rule["menu_label"] == "None":
                         menu_name = None
                     else:

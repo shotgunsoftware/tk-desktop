@@ -38,6 +38,7 @@ def start_app(engine):
     app = QtGui.QApplication([])
     app.setStyleSheet(engine._get_standard_qt_stylesheet())
     app.setQuitOnLastWindowClosed(False)
+    app.setApplicationName("%s Python" % engine.context.project["name"])
 
     # set default icon
     python_icon = os.path.realpath(os.path.join(
@@ -45,7 +46,12 @@ def start_app(engine):
         "..", "..", "resources", "python_icon.png"))
     app.setWindowIcon(QtGui.QIcon(python_icon))
 
-    app.exec_()
+    while True:
+        # loop until we are signaled to close, in case an app accidentally quits the app
+        app.exec_()
+        if engine.disconnected:
+            # we have been signaled to quit rather than waiting for more commands
+            break
 
 
 def handle_error(data):
