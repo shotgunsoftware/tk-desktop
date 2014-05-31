@@ -12,8 +12,7 @@ from __future__ import absolute_import
 
 import logging
 
-from PySide import QtGui
-from PySide import QtCore
+from tank.platform.qt import QtCore, QtGui
 
 
 from .ui import preferences

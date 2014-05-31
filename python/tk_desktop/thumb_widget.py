@@ -8,8 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from PySide import QtGui
-from PySide import QtCore
+from tank.platform.qt import QtCore, QtGui
 
 from .ui import thumb_widget
 
@@ -26,10 +25,8 @@ class ThumbWidget(QtGui.QWidget):
 
     def set_thumbnail(self, pixmap):
         """ Set a thumbnail given the current pixmap. """
-
         # resize to a fixed size preserving aspect ratio
-        preserved_aspect = pixmap.scaled(120, 90,
-                QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+        preserved_aspect = pixmap.scaled(120, 90, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
         self.ui.thumbnail.setPixmap(preserved_aspect)
 
     def set_text(self, label):

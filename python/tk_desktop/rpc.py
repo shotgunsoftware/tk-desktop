@@ -17,7 +17,7 @@ import traceback
 import cPickle as pickle
 import multiprocessing.connection
 
-from PySide import QtCore
+from tank.platform.qt import QtCore
 
 logger = logging.getLogger("tk-desktop.rpc")
 logger.setLevel(logging.DEBUG)
@@ -140,7 +140,7 @@ class RPCServerThread(QtCore.QThread):
                         del kwargs["__proxy_expected_return"]
 
                     try:
-                        if not func_name in self._functions:
+                        if func_name not in self._functions:
                             self._logger.error("unknown function call: '%s'" % func_name)
                             raise ValueError("unknown function call: '%s'" % func_name)
 

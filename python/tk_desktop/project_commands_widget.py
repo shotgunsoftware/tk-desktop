@@ -10,8 +10,7 @@
 
 import sgtk
 
-from PySide import QtGui
-from PySide import QtCore
+from tank.platform.qt import QtCore, QtGui
 
 from .ui import resources_rc
 

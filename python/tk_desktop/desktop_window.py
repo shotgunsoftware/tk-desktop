@@ -14,8 +14,7 @@ import tempfile
 import traceback
 import cPickle as pickle
 
-from PySide import QtGui
-from PySide import QtCore
+from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.util import shotgun

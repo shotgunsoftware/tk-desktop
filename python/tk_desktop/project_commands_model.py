@@ -11,8 +11,7 @@
 import re
 import datetime
 
-from PySide import QtGui
-from PySide import QtCore
+from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 

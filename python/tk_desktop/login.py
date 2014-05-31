@@ -13,8 +13,7 @@ from __future__ import absolute_import
 import uuid
 import logging
 
-from PySide import QtGui
-from PySide import QtCore
+from tank.platform.qt import QtCore, QtGui
 
 gnomekeyring = False
 try:

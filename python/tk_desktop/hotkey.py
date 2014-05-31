@@ -10,8 +10,7 @@
 
 import unicodedata
 
-from PySide import QtGui
-from PySide import QtCore
+from tank.platform.qt import QtCore, QtGui
 
 
 class HotKeyEditor(QtGui.QLineEdit):

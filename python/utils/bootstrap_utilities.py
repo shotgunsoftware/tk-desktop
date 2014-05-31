@@ -32,7 +32,7 @@ def start_engine(data):
 
 def start_app(engine):
     """ Run the QApplication for the given tk-desktop engine """
-    from PySide import QtGui
+    from tank.platform.qt import QtGui
 
     QtGui.QApplication.setStyle("cleanlooks")
     app = QtGui.QApplication([])
