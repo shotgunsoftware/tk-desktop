@@ -24,6 +24,9 @@ def start_engine(data):
     import sgtk
     sgtk.util.append_path_to_env_var("PYTHONPATH", data["core_python_path"])
 
+    # make sure we don't inherit the GUI's pipeline configuration
+    os.environ["TANK_CURRENT_PC"] = data["config_path"]
+
     tk = sgtk.sgtk_from_path(data["config_path"])
     tk._desktop_data = data["proxy_data"]
     ctx = tk.context_from_entity("Project", data["project"]["id"])
