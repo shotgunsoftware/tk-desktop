@@ -676,8 +676,10 @@ class DesktopWindow(SystrayWindow):
                     # If the Project has not been setup for Toolkit
                     # call it an error until we implement the setup
                     # project
-                    error = RuntimeError("No pipeline configuration found")
-                    engine.app_proxy_startup_error(error)
+                    self.project_overlay.show_error_message(
+                        "No pipeline configuration found.\n\n"
+                        "Have you run setup_project for this Project?"
+                    )
                     return
                 else:
                     engine.log_warning(

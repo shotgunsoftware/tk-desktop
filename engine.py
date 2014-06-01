@@ -375,7 +375,7 @@ class DesktopEngine(Engine):
         """ Button clicked from a registered command. """
         self.proxy.trigger_callback("__commands", name, __proxy_expected_return=False)
 
-    def app_proxy_startup_error(self, error, tb):
+    def app_proxy_startup_error(self, error, tb=None):
         """ Handle an error starting up the engine for the app proxy. """
         if isinstance(error, TankEngineInitError):
             message = "Error starting engine\n\n%s" % error.message
@@ -383,7 +383,7 @@ class DesktopEngine(Engine):
             message = "Unknown Error\n\n%s" % error.message
 
         # add the traceback if debug is true
-        if self.get_setting("debug_logging", False):
+        if self.get_setting("debug_logging", False) and tb is not None:
             message += "\n\n%s" % tb
 
         self.log_error(message)
