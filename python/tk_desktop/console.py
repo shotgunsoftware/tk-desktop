@@ -78,6 +78,7 @@ class Console(QtGui.QDialog):
         self.__clear_action.triggered.connect(self.clear)
 
         self.__logs = QtGui.QPlainTextEdit()
+        self.__logs.setFocusPolicy(QtCore.Qt.NoFocus)
 
         layout = QtGui.QHBoxLayout()
         layout.addWidget(self.__logs)

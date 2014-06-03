@@ -44,7 +44,8 @@ def main():
         # Use the methods from the utility module (passing in the data from the
         # data pickle) to start the engine and the Qt event loop.
         engine = utilities.start_engine(data)
-        utilities.start_app(engine)
+        result = utilities.start_app(engine)
+        os._exit(result)
     except Exception:
         if utilities is not None:
             # send the error back to the GUI proxy

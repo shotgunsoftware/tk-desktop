@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
+import os
 import sys
 import uuid
 import select
@@ -18,10 +19,12 @@ import traceback
 import cPickle as pickle
 import multiprocessing.connection
 
-from tank.platform.qt import QtCore
-
 logger = logging.getLogger("tk-desktop.rpc")
-logger.setLevel(logging.WARNING)
+
+if "TK_DESKTOP_RPC_DEBUG" in os.environ:
+    logger.setLevel(logging.DEBUG)
+else:
+    logger.setLevel(logging.INFO)
 
 
 class RPCServerThread(threading.Thread):
@@ -32,14 +35,11 @@ class RPCServerThread(threading.Thread):
     pickled tuples in the form (name, list, dictionary) where name
     is a lookup against functions registered with the server and
     list/dictionary are treated as args/kwargs for the function call.
-
-    The special method '__close_connection' will trigger the server
-    to close the current connection and start accepting new ones.
-
-    The special kwarg '__proxy_expected_return' that defaults to True
-    can be used to keep the server from sending the return value of the
-    method call back to the client side.
     """
+
+    # timeout in seconds to wait for a request
+    LISTEN_TIMEOUT = 2
+
     def __init__(self, engine):
         threading.Thread.__init__(self)
         self._logger = logging.getLogger("tk-desktop.rpc")
@@ -64,6 +64,9 @@ class RPCServerThread(threading.Thread):
         # grab the name of the pipe
         self.pipe = self.server.address
 
+    def is_closed(self):
+        return self._stop
+
     def list_functions(self):
         """
         Default method that returns the list of functions registered with the server.
@@ -83,14 +86,14 @@ class RPCServerThread(threading.Thread):
         Run the thread, accepting connections and then listening on them until
         they are closed.  Each message is a call into the function table.
         """
-        self._logger.debug("listening on '%s'", self.pipe)
+        self._logger.debug("server listening on '%s'", self.pipe)
         while True:
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
                 # need to use win32 api for windows
                 mpc_win32 = multiprocessing.connection.win32
                 try:
-                    mpc_win32.WaitNamedPipe(self.server.address, 2000)
+                    mpc_win32.WaitNamedPipe(self.server.address, self.LISTEN_TIMEOUT*1000)
                     ready = True
                 except WindowsError, e:
                     if e.args[0] not in (mpc_win32.ERROR_SEM_TIMEOUT, mpc_win32.ERROR_PIPE_BUSY):
@@ -98,7 +101,7 @@ class RPCServerThread(threading.Thread):
                     ready = False
             else:
                 # can use select on osx and linux
-                (rd, _, _) = select.select([self.server._listener._socket], [], [], 2)
+                (rd, _, _) = select.select([self.server._listener._socket], [], [], self.LISTEN_TIMEOUT)
                 ready = (len(rd) > 0)
 
             if not ready:
@@ -109,36 +112,19 @@ class RPCServerThread(threading.Thread):
 
             # connection waiting to be read, accept it
             connection = self.server.accept()
-            self._logger.debug("accepted connection")
+            self._logger.debug("server accepted connection")
             try:
                 while True:
                     # test to see if there is data waiting on the connection
-                    if not connection.poll(2):
+                    if not connection.poll(self.LISTEN_TIMEOUT):
                         # no data waiting, see if we need to stop the server, if not keep waiting
                         if self._stop:
                             break
                         continue
 
                     # data coming over the connection is a tuple of (name, args, kwargs)
-                    pickle_string = connection.recv()
-                    (func_name, args, kwargs) = pickle.loads(pickle_string)
-
-                    # special case where we do not call a registered method and break
-                    # out of the listen loop
-                    if func_name == "__close_connection":
-                        self._logger.debug("closing connection")
-                        connection.send(pickle.dumps(None))
-                        connection.close()
-                        break
-
-                    self._logger.debug("calling '%s(%s, %s)'" % (func_name, args, kwargs))
-
-                    # figure out if the client is expecting a response
-                    expected_return = True
-                    if "__proxy_expected_return" in kwargs:
-                        expected_return = kwargs["__proxy_expected_return"]
-                        # make sure to clean out the kwarg so it doesn't pass to the function
-                        del kwargs["__proxy_expected_return"]
+                    (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
+                    self._logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
 
                     try:
                         if func_name not in self._functions:
@@ -152,24 +138,27 @@ class RPCServerThread(threading.Thread):
                         result = self.engine.execute_in_main_thread(func, *args, **kwargs)
 
                         # if the client expects the results, send them along
-                        if expected_return:
-                            self._logger.debug("got result '%s'" % result)
-                            pickle_string = pickle.dumps(result)
-                            connection.send(pickle_string)
+                        self._logger.debug("server got result '%s'" % result)
+
+                        if respond:
+                            connection.send(pickle.dumps(result))
                     except Exception as e:
                         # if any of the above fails send the exception back to the client
                         self._logger.error("got exception '%s'" % e)
                         self._logger.debug("   traceback:\n%s" % traceback.format_exc())
-                        if expected_return:
+                        if respond:
                             connection.send(pickle.dumps(e))
             except (EOFError, IOError):
-                # let these errors just keep serving new connections
+                # let these errors go
+                # just keep serving new connections
                 pass
-
-        self._logger.info("server closing")
+            finally:
+                self._logger.debug("server closing")
+                connection.close()
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
+        self._logger.debug("server setting flag to stop")
         self._stop = True
 
 
@@ -180,42 +169,63 @@ class RPCProxy(object):
     Return attributes on the object as methods that will result in an RPC call
     whose results are returned as the return value of the method.
     """
+    # timeout in seconds to wait for a response
+    LISTEN_TIMEOUT = 2
+
     def __init__(self, pipe, authkey):
         self._logger = logging.getLogger("tk-desktop.rpc")
+        self._closed = False
 
         # connect to the server via the pipe using authkey for authentication
         if sys.platform == "win32":
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
-        self._logger.debug("connecting to to %s", pipe)
+        self._logger.debug("client connecting to to %s", pipe)
         self._connection = multiprocessing.connection.Client(
             address=pipe, family=family, authkey=authkey)
-        self._logger.debug("connected to %s", pipe)
+        self._logger.debug("client connected to %s", pipe)
 
-    def __getattr__(self, name):
-        # all attributes are methods that result in an rpc call
-        def do_rpc(*args, **kwargs):
-            # figure out if we expect a return value
-            expected_return = True
-            if "__proxy_expected_return" in kwargs:
-                expected_return = kwargs["__proxy_expected_return"]
+    def call_no_response(self, name, *args, **kwargs):
+        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
+        if self._closed:
+            raise EOFError("closed " + msg)
+        # send the call through with args and kwargs
+        self._logger.debug(msg)
+        self._connection.send(pickle.dumps((False, name, args, kwargs)))
 
-            # send the call through with args and kwargs
-            self._connection.send(pickle.dumps((name, args, kwargs)))
+    def call(self, name, *args, **kwargs):
+        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
+        if self._closed:
+            raise EOFError("closed " + msg)
+        # send the call through with args and kwargs
+        self._logger.debug(msg)
+        self._connection.send(pickle.dumps((True, name, args, kwargs)))
 
-            # if we expect a response read it
-            if expected_return:
-                result = pickle.loads(self._connection.recv())
+        # wait until there is a result, pause to check if we have been closed
+        while True:
+            if self._connection.poll(self.LISTEN_TIMEOUT):
+                # have a response waiting, grab it
+                break
+            else:
+                # no response waiting, see if we need to stop the client
+                if self._closed:
+                    raise EOFError("client closed while waiting for a response")
+                continue
+        # read the result
+        result = pickle.loads(self._connection.recv())
+        self._logger.debug("client got result '%s'" % result)
+        # if an exception was returned raise it on the client side
+        if isinstance(result, Exception):
+            raise result
+        # return the result as our own
+        return result
 
-                # if an exception was returned raise it on the client side
-                if isinstance(result, Exception):
-                    raise result
-
-                # return the result as our own
-                return result
-        return do_rpc
+    def is_closed(self):
+        return self._closed
 
     def close(self):
         # close down the client connection
+        self._logger.debug("closing connection")
         self._connection.close()
+        self._closed = True

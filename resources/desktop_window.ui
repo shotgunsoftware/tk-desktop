@@ -7,19 +7,13 @@
     <x>0</x>
     <y>0</y>
     <width>460</width>
-    <height>780</height>
+    <height>749</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>460</width>
-    <height>780</height>
-   </size>
-  </property>
-  <property name="maximumSize">
-   <size>
-    <width>450</width>
-    <height>780</height>
+    <height>400</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -29,11 +23,11 @@
    <iconset resource="resources.qrc">
     <normaloff>:/res/default_systray_icon.png</normaloff>:/res/default_systray_icon.png</iconset>
   </property>
-  <property name="styleSheet">
-   <string notr="true"/>
-  </property>
   <property name="dockNestingEnabled">
    <bool>false</bool>
+  </property>
+  <property name="unifiedTitleAndToolBarOnMac">
+   <bool>true</bool>
   </property>
   <widget class="QWidget" name="center">
    <property name="sizePolicy">
@@ -90,6 +84,9 @@
          <property name="mouseTracking">
           <bool>true</bool>
          </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="text">
           <string>Apps</string>
          </property>
@@ -117,6 +114,9 @@
          </property>
          <property name="mouseTracking">
           <bool>true</bool>
+         </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
          </property>
          <property name="text">
           <string>Inbox</string>
@@ -146,6 +146,9 @@
          <property name="mouseTracking">
           <bool>true</bool>
          </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="text">
           <string>My Tasks</string>
          </property>
@@ -173,6 +176,9 @@
          </property>
          <property name="mouseTracking">
           <bool>true</bool>
+         </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
          </property>
          <property name="text">
           <string>Versions</string>
@@ -225,9 +231,6 @@
             <height>60</height>
            </size>
           </property>
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="frameShape">
            <enum>QFrame::NoFrame</enum>
           </property>
@@ -258,14 +261,19 @@
            </property>
            <item>
             <widget class="QLabel" name="subheader_label">
-             <property name="font">
-              <font/>
-             </property>
              <property name="mouseTracking">
               <bool>true</bool>
              </property>
+             <property name="focusPolicy">
+              <enum>Qt::WheelFocus</enum>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QLabel{
+font-size: 20px;
+}</string>
+             </property>
              <property name="text">
-              <string>&lt;big&gt;PROJECTS&lt;/big&gt;</string>
+              <string>PROJECTS</string>
              </property>
              <property name="textInteractionFlags">
               <set>Qt::NoTextInteraction</set>
@@ -352,6 +360,9 @@
                   <height>17</height>
                  </size>
                 </property>
+                <property name="focusPolicy">
+                 <enum>Qt::NoFocus</enum>
+                </property>
                 <property name="toolTip">
                  <string>Filter Projects</string>
                 </property>
@@ -382,16 +393,10 @@
         <item>
          <widget class="QListView" name="projects">
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+           <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
             <horstretch>0</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>460</width>
-            <height>16777215</height>
-           </size>
           </property>
           <property name="mouseTracking">
            <bool>true</bool>
@@ -407,6 +412,9 @@
           </property>
           <property name="horizontalScrollBarPolicy">
            <enum>Qt::ScrollBarAsNeeded</enum>
+          </property>
+          <property name="autoScroll">
+           <bool>false</bool>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::NoEditTriggers</set>
@@ -506,6 +514,9 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
              <property name="frameShape">
               <enum>QFrame::NoFrame</enum>
              </property>
@@ -558,6 +569,9 @@
            </item>
            <item>
             <widget class="QPushButton" name="all_projects_button">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
              <property name="toolTip">
               <string>Back to Projects</string>
              </property>
@@ -596,9 +610,6 @@
             <height>60</height>
            </size>
           </property>
-          <property name="styleSheet">
-           <string notr="true"/>
-          </property>
           <property name="frameShape">
            <enum>QFrame::NoFrame</enum>
           </property>
@@ -615,18 +626,46 @@
            <property name="spacing">
             <number>0</number>
            </property>
-           <property name="leftMargin">
-            <number>20</number>
-           </property>
-           <property name="topMargin">
+           <property name="margin">
             <number>0</number>
            </property>
-           <property name="rightMargin">
-            <number>20</number>
-           </property>
-           <property name="bottomMargin">
-            <number>0</number>
-           </property>
+           <item>
+            <widget class="QPushButton" name="spacer_button_1">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>10</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>10</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="baseSize">
+              <size>
+               <width>10</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="flat">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QPushButton" name="project_arrow">
              <property name="maximumSize">
@@ -634,6 +673,9 @@
                <width>30</width>
                <height>62</height>
               </size>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
               <string/>
@@ -654,12 +696,40 @@
             </widget>
            </item>
            <item>
+            <widget class="QPushButton" name="spacer_button_2">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="flat">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QPushButton" name="project_icon">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="maximumSize">
               <size>
                <width>42</width>
                <height>62</height>
               </size>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
               <string/>
@@ -682,10 +752,18 @@
            <item>
             <widget class="QPushButton" name="project_name">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+              <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">QPushButton {
+font-size: 20px;
+}</string>
              </property>
              <property name="text">
               <string>Project</string>
@@ -696,18 +774,75 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="project_menu">
+            <widget class="QPushButton" name="spacer_button_3">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="text">
+              <string/>
+             </property>
+             <property name="flat">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="project_menu">
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
+             </property>
+             <property name="toolTip">
+              <string>Project Menu</string>
+             </property>
+             <property name="icon">
+              <iconset resource="resources.qrc">
+               <normaloff>:/res/down_arrow.png</normaloff>:/res/down_arrow.png</iconset>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>20</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="popupMode">
+              <enum>QToolButton::InstantPopup</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="spacer_button_4">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>10</width>
+               <height>0</height>
+              </size>
+             </property>
              <property name="maximumSize">
               <size>
-               <width>35</width>
-               <height>35</height>
+               <width>10</width>
+               <height>16777215</height>
               </size>
+             </property>
+             <property name="baseSize">
+              <size>
+               <width>10</width>
+               <height>0</height>
+              </size>
+             </property>
+             <property name="focusPolicy">
+              <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
               <string/>
@@ -784,6 +919,9 @@
           </property>
           <property name="horizontalScrollBarPolicy">
            <enum>Qt::ScrollBarAlwaysOff</enum>
+          </property>
+          <property name="autoScroll">
+           <bool>false</bool>
           </property>
           <property name="editTriggers">
            <set>QAbstractItemView::AllEditTriggers</set>
@@ -886,6 +1024,9 @@
               <height>16</height>
              </size>
             </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
             <property name="toolTip">
              <string>Open in Shotgun</string>
             </property>
@@ -921,6 +1062,9 @@
               <height>20</height>
              </size>
             </property>
+            <property name="focusPolicy">
+             <enum>Qt::NoFocus</enum>
+            </property>
             <property name="toolTip">
              <string>Open in Shotgun</string>
             </property>
@@ -954,6 +1098,9 @@
        </item>
        <item>
         <widget class="QPushButton" name="user_button">
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="text">
           <string/>
          </property>
@@ -1035,6 +1182,19 @@
    <header>..grouping_list_view.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>projects</tabstop>
+  <tabstop>shotgun_button</tabstop>
+  <tabstop>shotgun_arrow</tabstop>
+  <tabstop>user_button</tabstop>
+  <tabstop>search_button</tabstop>
+  <tabstop>search_text</tabstop>
+  <tabstop>project_icon</tabstop>
+  <tabstop>project_name</tabstop>
+  <tabstop>project_commands</tabstop>
+  <tabstop>all_projects_button</tabstop>
+  <tabstop>recent_projects</tabstop>
+ </tabstops>
  <resources>
   <include location="resources.qrc"/>
  </resources>

@@ -46,6 +46,11 @@ configuration:
         allows_empty: True
         default_value: []
 
+    show_recents:
+        type: bool
+        default_value: true
+        description: Controls whether to show the recently clicked on commands
+
     collapse_rules:
         type: list
         description: "A list of dictionaries that define how to collapse multile

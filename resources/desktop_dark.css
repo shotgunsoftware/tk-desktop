@@ -1,0 +1,122 @@
+/***************
+ * Header
+ ***************/
+#header QPushButton:pressed
+{
+    color: rgb(195, 63, 0);
+}
+
+#header QPushButton, #header QPushButton:pressed
+{
+    background-color: transparent;
+    font-size: 15px;
+    border: none;
+    padding: 15px 0px 10px 0px;
+    border-bottom: 2px solid rgb(195, 195, 195);
+}
+
+#header QPushButton:hover
+{
+    border-bottom: 2px solid gray;
+}
+
+/***************
+ * Project subheader
+ ***************/
+#subheader, #project_subheader
+{
+    background-color: rgb(38, 38, 38);
+}
+
+#subheader #search_frame
+{
+    border-radius: 5px;
+}
+
+#subheader #search_frame[collapsed="false"]
+{
+    background-color: rgb(154, 154, 154);
+}
+
+#subheader #search_frame[collapsed="true"]
+{
+    background-color: transparent;
+}
+
+#subheader #search_text
+{
+    color: rgb(38, 38, 38);
+    background-color: transparent;
+    border: none;
+}
+
+/***************
+ * Recents subheader
+ ***************/
+
+#recents_shelf QListView, #project_subheader QPushButton
+{
+    background-color: transparent;
+}
+
+#recents_shelf
+{
+    background-color: rgb(32, 32, 32);
+}
+
+#configuration_frame
+{
+    background-color: rgb(67, 131, 168);
+    padding: 10px;
+}
+
+#configuration_name
+{
+    color: white;
+}
+
+#project_menu
+{
+    background-color: rgb(48, 48, 48);
+}
+
+#project_menu::menu-indicator
+{
+    image: url(does_not_exist.jpg);
+}
+
+#project_menu_configuration_label
+{
+    padding-left: 5px;
+    padding-top: 5px;
+    padding-bottom: 2px;
+}
+/***************
+ * Project commands
+ ***************/
+#project_commands
+{
+    padding: 5px;
+    background-color: transparent;
+}
+
+/***************
+ * Footer
+ ***************/
+#shotgun_frame
+{
+    border: 1px solid transparent;
+    margin: 2px;
+}
+
+#shotgun_frame:hover
+{
+    border: 1px solid rgb(120, 120, 120);
+}
+
+#user_button::menu-indicator
+{
+    subcontrol-position: right center;
+    subcontrol-origin: padding;
+    left: 5px;
+}

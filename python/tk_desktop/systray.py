@@ -76,10 +76,6 @@ class SystrayWindow(QtGui.QMainWindow):
         # hook up handler for when the systray is clicked
         self.systray.clicked.connect(self.systray_clicked)
 
-        # hidden until shown
-        if osutils is not None:
-            osutils.make_app_background()
-
     # Customize behavior
     ###########################
 
@@ -115,8 +111,13 @@ class SystrayWindow(QtGui.QMainWindow):
         if self.__state == self.STATE_PINNED:
             self._set_window_mask()
             self.__move_to_systray()
+            self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            if osutils is not None:
+                osutils.make_app_background()
+
         elif self.__state == self.STATE_WINDOWED:
             self._set_window_mask()
+            self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.FramelessWindowHint)
             self.show()
             if osutils is None:
                 self.raise_()
@@ -299,6 +300,11 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def _set_window_mask(self):
         """ set the window mask when pinned to the systray """
+        if self.state == self.STATE_WINDOWED:
+            self.__content_layout.setContentsMargins(0, 0, 0, 0)
+            self.clearMask()
+            return
+
         # temp bitmap to store the mask
         bmp = QtGui.QBitmap(self.size())
 

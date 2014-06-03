@@ -9,67 +9,27 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
-import re
 import sys
-import string
 import logging
-import fnmatch
-import traceback
-import collections
 import logging.handlers
 
 import sgtk
 from sgtk.platform import Engine
-from sgtk.errors import TankEngineInitError
-
-
-class KeyedDefaultDict(collections.defaultdict):
-    """
-    Simple class to provide a dictionary whose default value for a key is a
-    function of that key.
-    """
-    def __missing__(self, key):
-        # call the default factory with the key as an argument
-        ret = self[key] = self.default_factory(key)
-        return ret
-
-
-class DisplayNameTemplate(string.Template):
-    def __init__(self, template):
-        # since the template is going to be used as a regex, escape everything
-        # except $ so that it isn't interpreted as part of the re we are building
-        template = re.escape(template).replace("\\$", "$")
-        string.Template.__init__(self, template)
-
-        # do a substitution where we build a regular expression with a group
-        # for each dollar var we match, substitute in a group named after
-        # the variable that will match any non-whitespace characters
-        default_kwargs = KeyedDefaultDict(lambda k: "(?P<%s>\S+)" % k)
-        self.match_re = re.compile(self.safe_substitute(default_kwargs))
-
-    def match(self, match_string):
-        """
-        Given a string, if the string matches the template, return a dictionary
-        where each key:value represents a substitution from the variables that
-        matched the template.  If the string does not match the template, returns
-        None.
-        """
-        match = self.match_re.match(match_string)
-        if match:
-            return match.groupdict()
-        return None
 
 
 class DesktopEngine(Engine):
     def __init__(self, tk, *args, **kwargs):
         """ Constructor """
+        self.__impl = None
+
         # Need to init logging before init_engine to satisfy logging from framework setup
-        self.proxy = None
         self._initialize_logging()
 
         # Now continue with the standard initialization
         Engine.__init__(self, tk, *args, **kwargs)
 
+    ############################################################################
+    # Engine methods
     def init_engine(self):
         """ Initialize the engine """
         # set logging to the proper level from settings
@@ -78,29 +38,11 @@ class DesktopEngine(Engine):
         else:
             self._logger.setLevel(logging.INFO)
 
-        self.proxy = None
-        self.msg_server = None
-
-        self.__callback_map = {}  # mapping from (namespace, name) to callbacks
-
-        # rules that determine how to collapse commands into buttons
-        # each rule is a dictionary with keys for match, button_label, and
-        # menu_label
-        self.__collapse_rules = []
-
-        # see if we are running with a gui proxy
-        self.has_gui = True
-        self.has_gui_proxy = False
-        self.disconnected = True
-        bootstrap_data = getattr(self.sgtk, "_desktop_data", None)
-        if bootstrap_data is not None:
-            if "proxy_pipe" in bootstrap_data and "proxy_auth" in bootstrap_data:
-                self.has_gui = False
-                self.has_gui_proxy = True
-                self.disconnected = False
-
+        # Import our python library
+        #
         # HACK ALERT: See if we can move this part of engine initialization
-        # above the call to init_engine in core
+        # above the call to init_engine in core.  This is needed to enable the
+        # call to import_module in init_engine.
         #
         # try to pull in QT classes and assign to sgtk.platform.qt.XYZ
         from sgtk.platform import qt
@@ -109,355 +51,55 @@ class DesktopEngine(Engine):
         qt.QtGui = base_def.get("qt_gui")
         qt.TankDialogBase = base_def.get("dialog_base")
 
-        self.tk_desktop = self.import_module("tk_desktop")
+        tk_desktop = self.import_module("tk_desktop")
 
-        # we have a gui proxy, connect to it via the data from the bootstrap
-        if self.has_gui_proxy:
-            pipe = bootstrap_data["proxy_pipe"]
-            auth = bootstrap_data["proxy_auth"]
-            self.log_info("Connecting to gui pipe %s" % pipe)
+        # Figure out which implementation we will use.  If the tk instance
+        # has the proxy connection information in it, then we are running
+        # for a specific project.  Otherwise we are running the GUI for a
+        # whole site.
+        interface_type = "site"
+        bootstrap_data = getattr(self.sgtk, "_desktop_data", None)
+        if bootstrap_data is not None:
+            if "proxy_pipe" in bootstrap_data and "proxy_auth" in bootstrap_data:
+                interface_type = "project"
 
-            # create the connection to the gui proxy
-            self.proxy = self.tk_desktop.RPCProxy(pipe, auth)
+        if interface_type == "site":
+            self.__impl = tk_desktop.DesktopEngineSiteImplementation(self)
+        else:
+            self.__impl = tk_desktop.DesktopEngineProjectImplementation(self)
 
-            # startup our server to receive gui calls
-            self.start_app_server()
+        # run the implementation init_engine if it has one
+        if hasattr(self.__impl, "init_engine"):
+            self.__impl.init_engine()
 
-            # get the list of configured groups
-            groups = [g["name"] for g in self.get_setting("groups", [])]
-            default_group = self.get_setting("default_group", [])
-
-            # add the default group in if it isn't already in the list.
-            # it goes at the beginning by default
-            if default_group not in groups:
-                groups.insert(0, default_group)
-
-            # get the rules for how to collapse the buttons
-            collapse_rules = self.get_setting("collapse_rules", [])
-
-            # and register our side of the pipe as the current app proxy
-            self.proxy.create_app_proxy(self.msg_server.pipe, self.msg_server.authkey)
-            self.proxy.set_groups(groups)
-            self.proxy.set_collapse_rules(collapse_rules)
+        # give the implementation a chance to update logging
+        if hasattr(self.__impl, "_initialize_logging"):
+            self.__impl._initialize_logging()
 
     def post_app_init(self):
         """ Called after all the apps have been initialized """
-        if self.has_gui_proxy:
-            # send the commands over to the proxy
-            for name, command_info in self.commands.iteritems():
-                self.__callback_map[("__commands", name)] = command_info["callback"]
-
-                # pull out needed values since this needs to be pickleable
-                gui_properties = {}
-                for prop in ["type", "icon", "title", "description"]:
-                    if prop in command_info["properties"]:
-                        gui_properties[prop] = command_info["properties"][prop]
-
-                # evaluate groups on the app proxy side
-                groups = self._get_groups(name, gui_properties)
-                self.proxy.trigger_register_command(name, gui_properties, groups)
-
-            # need to let the gui proxy know that all apps have been initialized
-            self.proxy.finish_app_initialization()
-
-    def start_app_server(self):
-        """ Start up the app side rpc server """
-        if self.msg_server is not None:
-            self.msg_server.close()
-
-        self.msg_server = self.tk_desktop.RPCServerThread(self)
-        self.msg_server.register_function(self.trigger_callback, "trigger_callback")
-        self.msg_server.register_function(self.trigger_disconnect, "signal_disconnect")
-        self.msg_server.register_function(self.open_project_locations, "open_project_locations")
-
-        self.msg_server.start()
-
-    def start_gui_server(self):
-        """ Start up the gui side rpc server """
-        if self.msg_server is not None:
-            self.msg_server.close()
-
-        self.msg_server = self.tk_desktop.RPCServerThread(self)
-        self.msg_server.register_function(self.app_proxy_startup_error, "engine_startup_error")
-        self.msg_server.register_function(self.create_app_proxy, "create_app_proxy")
-        self.msg_server.register_function(self.set_groups, "set_groups")
-        self.msg_server.register_function(self.set_collapse_rules, "set_collapse_rules")
-        self.msg_server.register_function(self.destroy_app_proxy, "destroy_app_proxy")
-        self.msg_server.register_function(self.trigger_register_command, "trigger_register_command")
-        self.msg_server.register_function(self.trigger_finish_app_initialization, "finish_app_initialization")
-        self.msg_server.register_function(self.trigger_gui, "trigger_gui")
-        self.msg_server.register_function(self.handle_proxy_log, "log")
-
-        self.msg_server.start()
+        if hasattr(self.__impl, "post_app_init"):
+            self.__impl.post_app_init()
 
     def destroy_engine(self):
         """ Clean up the engine """
+        self.log_debug("destroy_engine")
+
         # clean up our logging setup
         self._tear_down_logging()
 
-        # if we have a gui proxy alert it to the destruction
-        if self.has_gui_proxy:
-            self.proxy.destroy_app_proxy()
-            self.proxy.close()
-
-        # and close down our server thread
-        self.msg_server.close()
-
-    def open_project_locations(self):
-        """ Open the project locations in an os specific browser window """
-        paths = self.context.filesystem_locations
-        for disk_location in paths:
-            # get the setting
-            system = sys.platform
-
-            # run the app
-            if system.startswith("linux"):
-                cmd = 'xdg-open "%s"' % disk_location
-            elif system == "darwin":
-                cmd = 'open "%s"' % disk_location
-            elif system == "win32":
-                cmd = 'cmd.exe /C start "Folder" "%s"' % disk_location
-            else:
-                raise Exception("Platform '%s' is not supported." % system)
-
-            exit_code = os.system(cmd)
-            if exit_code != 0:
-                self.log_error("Failed to launch '%s'!" % cmd)
-
-    def create_app_proxy(self, pipe, authkey):
-        self.proxy = self.tk_desktop.RPCProxy(pipe, authkey)
-
-    def disconnect_app_proxy(self):
-        """ Disconnect from the app proxy. """
-        if self.proxy is not None:
-            try:
-                self.proxy.signal_disconnect(__proxy_expected_return=False)
-                self.proxy.close()
-            except Exception, e:
-                self.log_warning("Error disconnecting from proxy: %s", e)
-            finally:
-                self.proxy = None
-
-    def set_groups(self, groups):
-        self.desktop_window.set_groups(groups)
-
-    def set_collapse_rules(self, collapse_rules):
-        self.__collapse_rules = collapse_rules
-
-    def destroy_app_proxy(self):
-        """ App proxy has been destroyed, clean up state. """
-        self.desktop_window.clear_app_uis()
-        self.proxy.close()
-        self.proxy = None
+        if hasattr(self.__impl, "destroy_engine"):
+            self.__impl.destroy_engine()
 
     ############################################################################
-    # App proxy side methods
-
-    def call_callback(self, namespace, command, *args, **kwargs):
-        self.log_debug("calling callback %s::%s(%s, %s)" % (namespace, command, args, kwargs))
-        self.proxy.trigger_callback(namespace, command, *args, **kwargs)
-
-    def trigger_callback(self, namespace, command, *args, **kwargs):
-        callback = self.__callback_map.get((namespace, command))
-        try:
-            callback(*args, **kwargs)
-        except Exception:
-            self.log_error("Error calling %s::%s(%s, %s):\n%s" % (
-                namespace, command, args, kwargs, traceback.format_exc()))
-
-    def trigger_disconnect(self):
-        if self.has_ui:
-            from tank.platform.qt import QtGui
-
-            app = QtGui.QApplication.instance()
-            self.disconnected = True
-
-            top_level_windows = app.topLevelWidgets()
-            if top_level_windows:
-                self.log_debug("Disconnected with open windows, setting quit on last window closed.")
-                app.setQuitOnLastWindowClosed(True)
-            else:
-                self.log_debug("Quitting on disconnect")
-                app.quit()
-        else:
-            # just close down the message thread otherwise
-            self.msg_server.close()
-
-    def register_gui(self, namespace, callback):
-        """
-        App side method to register a callback to build a gui when a
-        namespace is triggered.
-        """
-        self.__callback_map[namespace] = callback
-
-    def trigger_build_gui(self, namespace):
-        """
-        App side method to trigger the building of a GUI for a given namespace.
-        """
-        self.proxy.trigger_gui(namespace)
-
-    ############################################################################
-    # GUI side methods
-
-    def trigger_gui(self, namespace):
-        """ GUI side handler for building a custom GUI. """
-        callback = self.__callback_map.get(namespace)
-
-        if callback is not None:
-            parent = self.desktop_window.get_app_widget(namespace)
-            callback(parent)
-
-    def trigger_finish_app_initialization(self):
-        """ GUI side handler called after app initialization is finished. """
-        # self.desktop_window.ui.project_commands.finalize()
-
-    def trigger_register_command(self, name, properties, groups):
-        """ GUI side handler for the add_command call. """
-        from tank.platform.qt import QtGui
-
-        self.log_debug("register_command(%s, %s)", name, properties)
-
-        command_type = properties.get("type")
-        command_icon = properties.get("icon")
-        command_tooltip = properties.get("description")
-
-        icon = None
-        if command_icon is not None:
-            if os.path.exists(command_icon):
-                icon = QtGui.QIcon(command_icon)
-            else:
-                self.log_error("Icon for command '%s' not found: '%s'" % (name, command_icon))
-
-        title = self._get_display_name(name, properties)
-
-        if command_type == "context_menu":
-            # Add the command to the project menu
-            action = QtGui.QAction(self.desktop_window)
-            if icon is not None:
-                action.setIcon(icon)
-            if command_tooltip is not None:
-                action.setToolTip(command_tooltip)
-            action.setText(title)
-
-            def action_triggered():
-                self.context_menu_app_triggered(name, properties)
-            action.triggered.connect(action_triggered)
-            self.desktop_window.add_to_project_menu(action)
-        else:
-            # Default is to add an icon/label for the command
-
-            # figure out what the button should be labeled
-            # default is that the button has no menu and is labeled
-            # the display name of the command
-            menu_name = None
-            button_name = title
-            for collapse_rule in self.__collapse_rules:
-
-                template = DisplayNameTemplate(collapse_rule["match"])
-                match = template.match(title)
-                if match is not None:
-                    self.log_debug("matching %s against %s" % (title, collapse_rule["match"]))
-                    if collapse_rule["menu_label"] == "None":
-                        menu_name = None
-                    else:
-                        menu_name = string.Template(collapse_rule["menu_label"]).safe_substitute(match)
-                    button_name = string.Template(collapse_rule["button_label"]).safe_substitute(match)
-                    break
-
-            self.desktop_window._project_command_model.add_command(
-                name, button_name, menu_name, icon, command_tooltip, groups)
-
-    def context_menu_app_triggered(self, name, properties):
-        """ App triggered from the project specific menu. """
-        # make sure to pass in that we are not expecting a response
-        # Especially for the engine restart command, the connection
-        # itself gets reset and so there isn't a channel to get a
-        # response back.
-        self.proxy.trigger_callback("__commands", name, __proxy_expected_return=False)
-
-    def _handle_button_command_triggered(self, group, name):
-        """ Button clicked from a registered command. """
-        self.proxy.trigger_callback("__commands", name, __proxy_expected_return=False)
-
-    def app_proxy_startup_error(self, error, tb=None):
-        """ Handle an error starting up the engine for the app proxy. """
-        if isinstance(error, TankEngineInitError):
-            message = "Error starting engine\n\n%s" % error.message
-        else:
-            message = "Unknown Error\n\n%s" % error.message
-
-        # add the traceback if debug is true
-        if self.get_setting("debug_logging", False) and tb is not None:
-            message += "\n\n%s" % tb
-
-        self.log_error(message)
-        self.desktop_window.project_overlay.show_error_message(message)
-
-    def clear_app_groups(self):
-        pass
-
-    def _get_display_name(self, name, properties):
-        return properties.get("title", name)
-
-    def _get_groups(self, name, properties):
-        display_name = self._get_display_name(name, properties)
-
-        default_group = self.get_setting("default_group", "Studio")
-        groups = self.get_setting("groups", [])
-
-        matches = []
-        for group in groups:
-            for match in group["matches"]:
-                if fnmatch.fnmatch(display_name.lower(), match.lower()):
-                    matches.append(group["name"])
-                    break
-
-        if not matches:
-            matches = [default_group]
-
-        self.log_debug("'%s' goes in groups: %s" % (display_name, matches))
-        return matches
-
-    def run(self, splash=None):
-        """
-        Run the engine.
-
-        This method is called from the GUI bootstrap to setup the application
-        and to run the Qt event loop.
-        """
-        # Initialize Qt app
-        from tank.platform.qt import QtGui
-
-        self.app = QtGui.QApplication.instance()
-        if self.app is None:
-            # setup the stylesheet
-            QtGui.QApplication.setStyle("cleanlooks")
-            self.app = QtGui.QApplication(sys.argv)
-            css_file = os.path.join(self.disk_location, "resources", "dark.css")
-            f = open(css_file)
-            css = f.read()
-            f.close()
-            self.app.setStyleSheet(css)
-
-        # update the app icon
-        icon = QtGui.QIcon(":res/default_systray_icon")
-        self.app.setWindowIcon(icon)
-
-        splash.showMessage("Building UI")
-
-        # initialize System Tray
-        self.desktop_window = self.tk_desktop.DesktopWindow()
-
-        # hide the splash if it exists
-        if splash is not None:
-            splash.finish(self.desktop_window)
-
-        # and run the app
-        return self.app.exec_()
+    # Dispatch to our implementation
+    def __getattr__(self, attr):
+        if self.__impl is not None:
+            return getattr(self.__impl, attr)
+        raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
 
     ############################################################################
     # Logging
-
     def _initialize_logging(self):
         # platform specific locations for the log file
         if sys.platform == "darwin":
@@ -477,24 +119,27 @@ class DesktopEngine(Engine):
         # setup default logger, used in the new default exception hook
         self._logger = logging.getLogger("tk-desktop")
         self._handler = logging.handlers.RotatingFileHandler(fname, maxBytes=1024*1024, backupCount=5)
-        formatter = logging.Formatter("%(asctime)s %(process) 5d [%(levelname) -7s] %(name)s - %(message)s")
+        formatter = logging.Formatter("%(asctime)s [%(process) -5d %(levelname) -7s] %(name)s - %(message)s")
         self._handler.setFormatter(formatter)
         self._logger.addHandler(self._handler)
 
+        # We allow other handlers to be added to the logger (the GUI console for example).
+        # Track them so we can clean them up when we clean up logging
+        self.__extra_handlers = []
+
     def _tear_down_logging(self):
-        # clear the handler so we don't end up with duplicate messages
+        # clear the handlers so we don't end up with duplicate messages
         self._logger.removeHandler(self._handler)
+        while (self.__extra_handlers):
+            self._logger.removeHandler(self.__extra_handlers.pop())
 
     def log(self, level, msg, *args):
-        if self.proxy is not None and self.has_gui_proxy:
-            # Only log through the proxy unless that fails
-            try:
-                self.proxy.log(level, msg, args, __proxy_expected_return=False)
-            except Exception:
-                pass
-            else:
-                return
-        self._logger.log(level, msg, *args)
+        if self.__impl is None:
+            # implementation has not been setup yet, log directly to the logger
+            self._logger.log(level, msg, *args)
+        else:
+            # implementation has been setup, let it handle the logging
+            self.__impl.log(level, msg, *args)
 
     def log_debug(self, msg, *args):
         self.log(logging.DEBUG, msg, *args)
@@ -508,15 +153,12 @@ class DesktopEngine(Engine):
     def log_error(self, msg, *args):
         self.log(logging.ERROR, msg, *args)
 
-    def handle_proxy_log(self, level, msg, args):
-        self._logger.log(level, "[PROXY] %s" % msg, *args)
-
-    def get_logger(self):
-        return self._logger
+    def add_logging_handler(self, handler):
+        self._logger.addHandler(handler)
+        self.__extra_handlers.append(handler)
 
     ##########################################################################################
     # pyside / qt
-
     @property
     def has_ui(self):
         """ Override base has_ui to reflect the state of Qt imports """

@@ -73,22 +73,25 @@ class ProjectCommandModel(GroupingModel):
 
         self.__project = None
         self.__recents = {}
+        self.__show_recents = True
 
-    def set_project(self, project, groups):
+    def set_project(self, project, groups, show_recents=True):
         self.clear()
         self.__project = project
+        self.__show_recents = show_recents
 
-        (header, _) = self.create_group(self.RECENT_GROUP_NAME)
-        self.set_group_rank(self.RECENT_GROUP_NAME, 0)
         for (i, group) in enumerate(groups):
             group = group.upper()
             (header, _) = self.create_group(group)
             self.set_group_rank(group, i+1)
 
-        self.__initialize_recents()
+        if self.__show_recents:
+            (header, _) = self.create_group(self.RECENT_GROUP_NAME)
+            self.set_group_rank(self.RECENT_GROUP_NAME, 0)
+            self.__initialize_recents()
 
     def add_command(self, name, button_name, menu_name, icon, command_tooltip, groups):
-        if name in self.__recents:
+        if name in self.__recents and not self.__recents[name]["added"]:
             item = QtGui.QStandardItem()
             item.setData(button_name, self.BUTTON_NAME_ROLE)
             item.setData(menu_name, self.MENU_NAME_ROLE)
@@ -100,6 +103,7 @@ class ProjectCommandModel(GroupingModel):
 
             self.set_item_group(item, self.RECENT_GROUP_NAME)
             self.appendRow(item)
+            self.__recents[name]["added"] = True
 
         for group in groups:
             group = group.upper()
@@ -156,7 +160,6 @@ class ProjectCommandModel(GroupingModel):
         if tooltip is None:
             tooltip = item.toolTip()
 
-
         login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
         data = {
             # recent is populated by grouping on description, so it needs
@@ -175,32 +178,33 @@ class ProjectCommandModel(GroupingModel):
         engine.log_debug("Registering app launch event: %s" % data)
         connection.create("EventLogEntry", data)
 
-        # find the corresponding recent if it exists
-        start = self.index(0, 0)
-        match_flags = QtCore.Qt.MatchExactly
-        indexes_in_recent = self.match(start, self.GROUP_ROLE, self.RECENT_GROUP_NAME, -1, match_flags)
+        if self.__show_recents:
+            # find the corresponding recent if it exists
+            start = self.index(0, 0)
+            match_flags = QtCore.Qt.MatchExactly
+            indexes_in_recent = self.match(start, self.GROUP_ROLE, self.RECENT_GROUP_NAME, -1, match_flags)
 
-        recent_item = None
-        for index in indexes_in_recent:
-            if index.data(self.COMMAND_ROLE) == command_name:
-                recent_item = self.itemFromIndex(index)
-                break
+            recent_item = None
+            for index in indexes_in_recent:
+                if index.data(self.COMMAND_ROLE) == command_name:
+                    recent_item = self.itemFromIndex(index)
+                    break
 
-        # create it if it doesn't
-        if recent_item is None:
-            recent_item = QtGui.QStandardItem()
-            recent_item.setData(button_name, self.BUTTON_NAME_ROLE)
-            recent_item.setData(menu_name, self.MENU_NAME_ROLE)
-            recent_item.setData(command_name, self.COMMAND_ROLE)
-            recent_item.setToolTip(tooltip)
-            if icon is not None:
-                recent_item.setIcon(icon)
+            # create it if it doesn't
+            if recent_item is None:
+                recent_item = QtGui.QStandardItem()
+                recent_item.setData(button_name, self.BUTTON_NAME_ROLE)
+                recent_item.setData(menu_name, self.MENU_NAME_ROLE)
+                recent_item.setData(command_name, self.COMMAND_ROLE)
+                recent_item.setToolTip(tooltip)
+                if icon is not None:
+                    recent_item.setIcon(icon)
 
-            self.set_item_group(recent_item, self.RECENT_GROUP_NAME)
-            self.appendRow(recent_item)
+                self.set_item_group(recent_item, self.RECENT_GROUP_NAME)
+                self.appendRow(recent_item)
 
-        # update its timestamp, keep everything in utc which is what shotgun does
-        recent_item.setData(datetime.datetime.utcnow(), self.LAST_LAUNCH_ROLE)
+            # update its timestamp, keep everything in utc which is what shotgun does
+            recent_item.setData(datetime.datetime.utcnow(), self.LAST_LAUNCH_ROLE)
 
         # and notify that the command was triggered
         self.command_triggered.emit(group_name, command_name)
@@ -249,6 +253,6 @@ class ProjectCommandModel(GroupingModel):
 
                 # if multiple descriptions end up with the same name use the most recent one
                 existing_info = self.__recents.setdefault(
-                    name, {"timestamp": time_stamp})
+                    name, {"timestamp": time_stamp, "added": False})
                 if existing_info["timestamp"] < time_stamp:
                     self.__recents[name]["timestamp"] = time_stamp

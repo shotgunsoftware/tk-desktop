@@ -16,6 +16,7 @@ import os
 import sys
 import subprocess
 
+import tank
 from tank import Hook
 
 
@@ -51,4 +52,6 @@ class LaunchPython(Hook):
         See bootstrap.py for an example of how to properly start the desktop engine
         in the python subprocess.
         """
-        return os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "bootstrap.py")
+        engine_path = tank.platform.get_engine_path(
+            self.parent.name, self.parent.sgtk, self.parent.context)
+        return os.path.join(engine_path, "bootstrap.py")

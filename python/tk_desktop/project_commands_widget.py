@@ -8,85 +8,48 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import sgtk
+
+import abc
 
 from tank.platform.qt import QtCore, QtGui
 
 from .ui import resources_rc
 
+import sgtk
+
 from .project_commands_model import ProjectCommandModel
 
 shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
 
-TOOLBUTTON_STYLE = """
+HOVER_STYLE = """
+QPushButton, QToolButton {
+    border: 1px solid %s;
+    background-color: %s;
+}
 QToolButton {
-    text-align: left;
-    font-size: 16px;
-    margin-left: 10px;
-    margin-right: 10px;
-    padding: 6px;
-    border: 1px solid transparent;
-    background-color: transparent;
+    font-size: 15px;
 }
-
-QToolButton::menu-arrow {
-    image:none;
-}
-
 QToolButton::menu-button  {
     border: none;
     width: 30px;
 }
+QPushButton:pressed, QToolButton:pressed {
+    background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #2d2d2d, stop: 0.1 #2b2b2b, stop: 0.5 #292929, stop: 0.9 #282828, stop: 1 #252525);
+}
 """
 
-TOOLBUTTON_HOVER_STYLE = """
-QToolButton {
-    text-align: left;
-    font-size: 16px;
-    margin-left: 10px;
-    margin-right: 10px;
-    padding: 6px;
+REGULAR_STYLE = """
+QPushButton, QToolButton {
+    background-color: transparent;
     border: 1px solid transparent;
-    background-color: rgb(32, 32, 32);
 }
-
-QToolButton:pressed {
-    border: 1px solid orange;
+QToolButton {
+    font-size: 15px;
 }
-
+QToolButton::menu-arrow { image:none; }
 QToolButton::menu-button  {
     border: none;
     width: 30px;
-}
-"""
-
-PUSHBUTTON_STYLE = """
-QPushButton {
-    background-color: transparent;
-    border-width: 1px;
-    border-color: transparent;
-    border-style: solid;
-}
-
-QLabel {
-    font-size: 12px;
-}
-"""
-
-PUSHBUTTON_HOVER_STYLE = """
-QPushButton {
-    background-color: rgb(32, 32, 32);
-    border-width: 1px;
-    border-color: transparent;
-    border-style: solid;
-}
-
-QPushButton:pressed {
-    border: 1px solid orange;
-}
-
-QLabel {
-    font-size: 12px;
 }
 """
 
@@ -113,7 +76,7 @@ class AbstractCommandDelegate(shotgun_view.WidgetDelegate):
 
     def _on_before_paint(self, widget, model_index, style_options, selected=False):
         (source_index, item, model) = self._source_for_index(model_index)
-        self._configure_widget(widget, item)
+        self._configure_widget(widget, item, style_options)
         stylesheet = self._stylesheet_for_options(style_options, selected)
         if stylesheet is not None:
             widget.setStyleSheet(stylesheet)
@@ -124,11 +87,13 @@ class AbstractCommandDelegate(shotgun_view.WidgetDelegate):
     def _on_before_selection(self, widget, model_index, style_options):
         self._on_before_paint(widget, model_index, style_options, selected=True)
 
-    def _configure_widget(self, widget, item):
-        raise NotImplementedError("abstract method called")
+    @abc.abstractmethod
+    def _configure_widget(self, widget, item, style_options):
+        pass
 
+    @abc.abstractmethod
     def _stylesheet_for_options(self, style_options, selected):
-        raise NotImplementedError("abstract method called")
+        return None
 
     def _source_for_index(self, model_index):
         # get the original model item for the index
@@ -185,9 +150,11 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         text_label.setAlignment(QtCore.Qt.AlignHCenter)
         button.layout().addWidget(text_label)
 
+        button.setFocusPolicy(QtCore.Qt.NoFocus)
+
         return button
 
-    def _configure_widget(self, widget, item):
+    def _configure_widget(self, widget, item, style_options):
         text_label = widget.layout().itemAt(1).widget()
         button_name = item.data(ProjectCommandModel.BUTTON_NAME_ROLE)
         menu_name = item.data(ProjectCommandModel.MENU_NAME_ROLE)
@@ -206,9 +173,16 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         widget.setToolTip(item.toolTip())
 
     def _stylesheet_for_options(self, style_options, selected):
+        # borrowed from qtwidgets framework's thumb_widget
+        p = QtGui.QPalette()
+        highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
+
+        border = "rgb(%s, %s, %s)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
+        background = "rgba(%s, %s, %s, 25%%)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
+
         if selected:
-            return PUSHBUTTON_HOVER_STYLE
-        return PUSHBUTTON_STYLE
+            return HOVER_STYLE % (border, background)
+        return REGULAR_STYLE
 
     def sizeHint(self, style_options, model_index):
         return QtCore.QSize(
@@ -233,9 +207,10 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
         widget.setSizePolicy(
             QtGui.QSizePolicy.MinimumExpanding,
             QtGui.QSizePolicy.MinimumExpanding)
+        widget.setFocusPolicy(QtCore.Qt.NoFocus)
         return widget
 
-    def _configure_widget(self, widget, item):
+    def _configure_widget(self, widget, item, style_options):
         # update button text
         widget.setText(item.data(ProjectCommandModel.BUTTON_NAME_ROLE))
 
@@ -281,9 +256,16 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
             menu.triggered.connect(self._handle_clicked)
 
     def _stylesheet_for_options(self, style_options, selected):
+        # borrowed from qtwidgets framework's thumb_widget
+        p = QtGui.QPalette()
+        highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
+
+        border = "rgb(%s, %s, %s)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
+        background = "rgba(%s, %s, %s, 25%%)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
+
         if selected:
-            return TOOLBUTTON_HOVER_STYLE
-        return TOOLBUTTON_STYLE
+            return HOVER_STYLE % (border, background)
+        return REGULAR_STYLE
 
     def sizeHint(self, style_options, model_index):
-        return QtCore.QSize((self.__view.width() / 2) - 8, self.ICON_SIZE.height() + 6)
+        return QtCore.QSize((self.__view.width() / 2) - 20, self.ICON_SIZE.height() + 8)

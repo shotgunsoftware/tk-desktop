@@ -36,9 +36,4 @@ class ThumbWidget(QtGui.QWidget):
 
     def set_selected(self, selected):
         """Adjust the style sheet to indicate selection or not"""
-        if selected:
-            # set the background color
-            self.ui.widget_frame.setStyleSheet(
-                """#widget_frame {background-color: rgb(65, 65, 65);}""")
-        else:
-            self.ui.widget_frame.setStyleSheet("")
+        pass

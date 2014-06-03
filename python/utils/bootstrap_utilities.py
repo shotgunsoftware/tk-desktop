@@ -38,9 +38,7 @@ def start_app(engine):
     if engine.has_ui:
         from tank.platform.qt import QtGui
 
-        QtGui.QApplication.setStyle("cleanlooks")
         app = QtGui.QApplication([])
-        app.setStyleSheet(engine._get_standard_qt_stylesheet())
         app.setQuitOnLastWindowClosed(False)
         app.setApplicationName("%s Python" % engine.context.project["name"])
 
@@ -50,17 +48,26 @@ def start_app(engine):
             "..", "..", "resources", "python_icon.png"))
         app.setWindowIcon(QtGui.QIcon(python_icon))
 
+        # Let the engine know we've created the app
+        engine.register_qapplication(app)
+
+        # use the toolkit look and feel
+        engine._initialize_dark_look_and_feel()
+
+        result = 0
         while True:
             # loop until we are signaled to close, in case an app accidentally quits the app
-            app.exec_()
-            if engine.disconnected:
+            result = app.exec_()
+            if not engine.connected:
                 # we have been signaled to quit rather than waiting for more commands
                 break
-        return
+        return result
 
     else:  # not engine.has_ui
         # wait for the engine communication channel to shut down
         engine.msg_server.join()
+        return 0
+
 
 def handle_error(data):
     """
@@ -79,12 +86,9 @@ def handle_error(data):
         authkey=data["proxy_data"]["proxy_auth"],
     )
 
+    # build a message for the GUI signaling that an error occurred
     exc_type, exc_value, exc_traceback = sys.exc_info()
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-    msg = pickle.dumps((
-        "engine_startup_error",
-        [exc_value, ''.join(lines)],
-        {"__proxy_expected_return": False},
-    ))
+    msg = pickle.dumps((False, "engine_startup_error", [exc_value, ''.join(lines)], {}))
     connection.send(msg)
     connection.close()

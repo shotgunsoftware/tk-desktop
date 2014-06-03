@@ -99,7 +99,7 @@ class DesktopWindow(SystrayWindow):
         # Setup the console
         self.__console = Console()
         self.__console_handler = ConsoleLogHandler(self.__console)
-        engine.get_logger().addHandler(self.__console_handler)
+        engine.add_logging_handler(self.__console_handler)
 
         # User menu
         ###########################
@@ -177,11 +177,11 @@ class DesktopWindow(SystrayWindow):
 
         # tell our project view to use a custom delegate to produce widgets
         self._project_delegate = \
-            SgProjectDelegate(self.ui.projects, QtCore.QSize(120, 130))
+            SgProjectDelegate(self.ui.projects, QtCore.QSize(120, 140))
         self.ui.projects.setItemDelegate(self._project_delegate)
 
         self._recent_project_delegate = \
-            SgProjectDelegate(self.ui.recent_projects, QtCore.QSize(100, 100))
+            SgProjectDelegate(self.ui.recent_projects, QtCore.QSize(100, 120))
         self.ui.recent_projects.setItemDelegate(self._recent_project_delegate)
 
         # handle project selection change
@@ -212,6 +212,10 @@ class DesktopWindow(SystrayWindow):
         self.ui.project_arrow.clicked.connect(self.toggle_recent_projects_shelf)
         self.ui.project_icon.clicked.connect(self.toggle_recent_projects_shelf)
         self.ui.project_name.clicked.connect(self.toggle_recent_projects_shelf)
+        self.ui.spacer_button_1.clicked.connect(self.toggle_recent_projects_shelf)
+        self.ui.spacer_button_2.clicked.connect(self.toggle_recent_projects_shelf)
+        self.ui.spacer_button_3.clicked.connect(self.toggle_recent_projects_shelf)
+        self.ui.spacer_button_4.clicked.connect(self.toggle_recent_projects_shelf)
 
         self.project_carat_up = QtGui.QIcon(":res/up_carat.png")
         self.project_carat_down = QtGui.QIcon(":res/down_carat.png")
@@ -415,14 +419,7 @@ class DesktopWindow(SystrayWindow):
 
     def on_project_filesystem_folder_triggered(self):
         engine = sgtk.platform.current_engine()
-        engine.proxy.open_project_locations()
-
-    def project_sort_triggered(self, action):
-        button_label = " ".join(action.text().split(" ")[0:-1])
-        self.ui.project_button.setText(button_label)
-
-    def project_filter_triggered(self, action):
-        raise NotImplementedError("ACTION: %s, GROUP %s" % (action.text(), action.parent()))
+        engine.proxy.call("open_project_locations")
 
     def sign_out(self):
         # clear password information
@@ -478,8 +475,9 @@ class DesktopWindow(SystrayWindow):
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
 
-    def set_groups(self, groups):
-        self._project_command_model.set_project(self.current_project, groups)
+    def set_groups(self, groups, show_recents=True):
+        self._project_command_model.set_project(
+            self.current_project, groups, show_recents=show_recents)
         self.project_overlay.hide()
 
         key = "project_expanded_state.%d" % self.current_project["id"]
@@ -487,9 +485,6 @@ class DesktopWindow(SystrayWindow):
         self._project_command_model.set_expanded_state(expanded_state)
 
     def clear_app_uis(self):
-        engine = sgtk.platform.current_engine()
-        engine.clear_app_groups()
-
         # empty the project commands
         self._project_command_model.clear()
 
@@ -597,25 +592,20 @@ class DesktopWindow(SystrayWindow):
                 break
 
     def __set_project_from_item(self, item):
-        self.current_project = item.data(ShotgunModel.SG_DATA_ROLE)
-        self._save_setting("project_id", self.current_project["id"], site_specific=True)
-
         # slide in the project specific view
         self.slide_view(self.ui.project_page, "right")
         self._project_selection_model.clear()
 
         # update the project icon
         self.ui.project_icon.setIcon(item.icon())
-        self.ui.project_name.setText(item.data(SgProjectModel.DISPLAY_NAME_ROLE))
+        self.ui.project_name.setText("%s" % item.data(SgProjectModel.DISPLAY_NAME_ROLE))
 
         # clear any selection in the recent projects
         self._recent_project_selection_model.clear()
 
         # launch the app proxy
-        self.__launch_app_proxy_for_project(self.current_project)
-
-        # and remember this project
-        self._save_setting("project_id", self.current_project["id"], site_specific=True)
+        project = item.data(SgProjectModel.SG_DATA_ROLE)
+        self.__launch_app_proxy_for_project(project)
 
     def _on_recent_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
@@ -781,7 +771,7 @@ class DesktopWindow(SystrayWindow):
         core_python = os.path.join(core_root, "install", "core", "python")
 
         # startup server pipe to listen
-        engine.start_gui_server()
+        engine.startup_rpc()
         server_pipe = engine.msg_server.pipe
         server_auth = engine.msg_server.authkey
 
@@ -810,6 +800,9 @@ class DesktopWindow(SystrayWindow):
         )
 
         self.current_project = project
+
+        # and remember it for next time
+        self._save_setting("project_id", self.current_project["id"], site_specific=True)
 
     def slide_view(self, new_page, from_direction="right"):
         offsetx = self.ui.stack.frameRect().width()

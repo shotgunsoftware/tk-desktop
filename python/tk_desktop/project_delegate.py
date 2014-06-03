@@ -27,7 +27,9 @@ class SgProjectDelegate(shotgun_view.WidgetDelegate):
 
     def _create_widget(self, parent):
         """ Widget factory as required by base class """
-        return ThumbWidget(parent)
+        thumb = ThumbWidget(parent)
+        thumb.setStyleSheet("background-color: transparent;")
+        return thumb
 
     def _on_before_paint(self, widget, model_index, style_options):
         """

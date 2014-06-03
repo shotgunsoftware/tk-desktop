@@ -87,12 +87,12 @@ class DefaultGroupingFooterDelegate(shotgun_view.WidgetDelegate):
 
     def _create_widget(self, parent):
         # footer is a simple horizontal line
-        line = QtGui.QFrame(parent)
-        line.setFrameShape(QtGui.QFrame.HLine)
-        line.setStyleSheet("color: rgb(65, 65, 65);")
-        line.setMidLineWidth(1)
-        line.setVisible(False)
-        return line
+        self.line = QtGui.QFrame(parent)
+        self.line.setFrameShape(QtGui.QFrame.HLine)
+        self.line.setStyleSheet("background-color: transparent; color: rgb(30, 30, 30);")
+        self.line.setMidLineWidth(2)
+        self.line.setVisible(False)
+        return self.line
 
     def _on_before_paint(self, widget, model_index, style_options):
         # no configuration needed for the line
@@ -104,7 +104,7 @@ class DefaultGroupingFooterDelegate(shotgun_view.WidgetDelegate):
 
     def sizeHint(self, style_options, model_index):
         # size is the parent width and height is the line plus margins
-        return QtCore.QSize(self.parent().viewport().width(), 2*self.MARGIN+1)
+        return QtCore.QSize(self.parent().viewport().width(), self.line.height())
 
 
 class GroupingListView(QtGui.QListView):

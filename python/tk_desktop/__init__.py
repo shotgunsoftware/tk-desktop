@@ -8,11 +8,5 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from .rpc import RPCProxy
-from .rpc import RPCServerThread
-
-try:
-    from .desktop_window import DesktopWindow
-except Exception:
-    # This will fail when the engine is running with no PySide or PyQt
-    pass
+from .desktop_engine_site_implementation import DesktopEngineSiteImplementation
+from .desktop_engine_project_implementation import DesktopEngineProjectImplementation
