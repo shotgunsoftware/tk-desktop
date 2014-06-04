@@ -13,6 +13,7 @@ import sys
 import uuid
 import select
 import logging
+import threading
 import traceback
 import cPickle as pickle
 import multiprocessing.connection
@@ -23,7 +24,7 @@ logger = logging.getLogger("tk-desktop.rpc")
 logger.setLevel(logging.DEBUG)
 
 
-class RPCServerThread(QtCore.QThread):
+class RPCServerThread(threading.Thread):
     """
     Run an RPC Server in a subthread.
 
@@ -39,8 +40,8 @@ class RPCServerThread(QtCore.QThread):
     can be used to keep the server from sending the return value of the
     method call back to the client side.
     """
-    def __init__(self, engine, parent=None):
-        QtCore.QThread.__init__(self, parent)
+    def __init__(self, engine):
+        threading.Thread.__init__(self)
         self._logger = logging.getLogger("tk-desktop.rpc")
 
         # registry for methods to call for names that come via the connection

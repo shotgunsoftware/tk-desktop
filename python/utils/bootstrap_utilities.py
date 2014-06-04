@@ -35,27 +35,32 @@ def start_engine(data):
 
 def start_app(engine):
     """ Run the QApplication for the given tk-desktop engine """
-    from tank.platform.qt import QtGui
+    if engine.has_ui:
+        from tank.platform.qt import QtGui
 
-    QtGui.QApplication.setStyle("cleanlooks")
-    app = QtGui.QApplication([])
-    app.setStyleSheet(engine._get_standard_qt_stylesheet())
-    app.setQuitOnLastWindowClosed(False)
-    app.setApplicationName("%s Python" % engine.context.project["name"])
+        QtGui.QApplication.setStyle("cleanlooks")
+        app = QtGui.QApplication([])
+        app.setStyleSheet(engine._get_standard_qt_stylesheet())
+        app.setQuitOnLastWindowClosed(False)
+        app.setApplicationName("%s Python" % engine.context.project["name"])
 
-    # set default icon
-    python_icon = os.path.realpath(os.path.join(
-        os.path.dirname(__file__),
-        "..", "..", "resources", "python_icon.png"))
-    app.setWindowIcon(QtGui.QIcon(python_icon))
+        # set default icon
+        python_icon = os.path.realpath(os.path.join(
+            os.path.dirname(__file__),
+            "..", "..", "resources", "python_icon.png"))
+        app.setWindowIcon(QtGui.QIcon(python_icon))
 
-    while True:
-        # loop until we are signaled to close, in case an app accidentally quits the app
-        app.exec_()
-        if engine.disconnected:
-            # we have been signaled to quit rather than waiting for more commands
-            break
+        while True:
+            # loop until we are signaled to close, in case an app accidentally quits the app
+            app.exec_()
+            if engine.disconnected:
+                # we have been signaled to quit rather than waiting for more commands
+                break
+        return
 
+    else:  # not engine.has_ui
+        # wait for the engine communication channel to shut down
+        engine.msg_server.join()
 
 def handle_error(data):
     """

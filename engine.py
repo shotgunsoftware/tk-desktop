@@ -497,6 +497,11 @@ class DesktopEngine(Engine):
     ##########################################################################################
     # pyside / qt
 
+    @property
+    def has_ui(self):
+        """ Override base has_ui to reflect the state of Qt imports """
+        return self._has_ui
+
     def _define_qt_base(self):
         """ check for pyside then pyqt """
         # proxy class used when QT does not exist on the system.

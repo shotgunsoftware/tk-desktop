@@ -42,7 +42,13 @@ class ProjectCommandProxyModel(GroupingProxyModel):
             return GroupingProxyModel.lessThan(self, left, right)
 
         left_launch = left.data(ProjectCommandModel.LAST_LAUNCH_ROLE)
+        if left_launch is None:
+            return True
+
         right_launch = right.data(ProjectCommandModel.LAST_LAUNCH_ROLE)
+        if right_launch is None:
+            return False
+
         return left_launch > right_launch
 
 

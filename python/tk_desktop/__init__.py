@@ -11,4 +11,8 @@
 from .rpc import RPCProxy
 from .rpc import RPCServerThread
 
-from .desktop_window import DesktopWindow
+try:
+    from .desktop_window import DesktopWindow
+except Exception:
+    # This will fail when the engine is running with no PySide or PyQt
+    pass
