@@ -64,6 +64,7 @@ class DesktopEngine(Engine):
     def __init__(self, tk, *args, **kwargs):
         """ Constructor """
         # Need to init logging before init_engine to satisfy logging from framework setup
+        self.proxy = None
         self._initialize_logging()
 
         # Now continue with the standard initialization
@@ -185,6 +186,7 @@ class DesktopEngine(Engine):
         self.msg_server.register_function(self.trigger_register_command, "trigger_register_command")
         self.msg_server.register_function(self.trigger_finish_app_initialization, "finish_app_initialization")
         self.msg_server.register_function(self.trigger_gui, "trigger_gui")
+        self.msg_server.register_function(self.handle_proxy_log, "log")
 
         self.msg_server.start()
 
@@ -264,18 +266,22 @@ class DesktopEngine(Engine):
                 namespace, command, args, kwargs, traceback.format_exc()))
 
     def trigger_disconnect(self):
-        from tank.platform.qt import QtGui
+        if self.has_ui:
+            from tank.platform.qt import QtGui
 
-        app = QtGui.QApplication.instance()
-        self.disconnected = True
+            app = QtGui.QApplication.instance()
+            self.disconnected = True
 
-        top_level_windows = app.topLevelWidgets()
-        if top_level_windows:
-            self.log_debug("Disconnected with open windows, setting quit on last window closed.")
-            app.setQuitOnLastWindowClosed(True)
+            top_level_windows = app.topLevelWidgets()
+            if top_level_windows:
+                self.log_debug("Disconnected with open windows, setting quit on last window closed.")
+                app.setQuitOnLastWindowClosed(True)
+            else:
+                self.log_debug("Quitting on disconnect")
+                app.quit()
         else:
-            self.log_debug("Quitting on disconnect")
-            app.quit()
+            # just close down the message thread otherwise
+            self.msg_server.close()
 
     def register_gui(self, namespace, callback):
         """
@@ -479,17 +485,31 @@ class DesktopEngine(Engine):
         # clear the handler so we don't end up with duplicate messages
         self._logger.removeHandler(self._handler)
 
+    def log(self, level, msg, *args):
+        if self.proxy is not None and self.has_gui_proxy:
+            # Only log through the proxy unless that fails
+            try:
+                self.proxy.log(level, msg, args)
+            except Exception:
+                pass
+            else:
+                return
+        self._logger.log(level, msg, *args)
+
     def log_debug(self, msg, *args):
-        self._logger.debug(msg, *args)
+        self.log(logging.DEBUG, msg, *args)
 
     def log_info(self, msg, *args):
-        self._logger.info(msg, *args)
+        self.log(logging.INFO, msg, *args)
 
     def log_warning(self, msg, *args):
-        self._logger.warn(msg, *args)
+        self.log(logging.WARNING, msg, *args)
 
     def log_error(self, msg, *args):
-        self._logger.error(msg, *args)
+        self.log(logging.ERROR, msg, *args)
+
+    def handle_proxy_log(self, level, msg, args):
+        self._logger.log(level, "[PROXY] %s" % msg, *args)
 
     def get_logger(self):
         return self._logger

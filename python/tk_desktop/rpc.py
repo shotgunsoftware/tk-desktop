@@ -21,7 +21,7 @@ import multiprocessing.connection
 from tank.platform.qt import QtCore
 
 logger = logging.getLogger("tk-desktop.rpc")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.WARNING)
 
 
 class RPCServerThread(threading.Thread):
