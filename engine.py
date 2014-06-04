@@ -459,7 +459,7 @@ class DesktopEngine(Engine):
         elif sys.platform == "win32":
             fname = os.path.join(os.environ.get("APPDATA", "APPDATA_NOT_SET"), "Shotgun", "tk-desktop.log")
         elif sys.platform.startswith("linux"):
-            fname = os.path.join(os.path.expanduser("~"), ".shotgun", "tk-desktop.log")
+            fname = os.path.join(os.path.expanduser("~"), ".shotgun", "logs", "tk-desktop.log")
         else:
             raise NotImplementedError("Unknown platform: %s" % sys.platform)
 
@@ -490,6 +490,9 @@ class DesktopEngine(Engine):
 
     def log_error(self, msg, *args):
         self._logger.error(msg, *args)
+
+    def get_logger(self):
+        return self._logger
 
     ##########################################################################################
     # pyside / qt

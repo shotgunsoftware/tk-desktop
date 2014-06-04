@@ -411,6 +411,8 @@ class Ui_DesktopWindow(object):
         self.actionProject_Filesystem_Folder.setObjectName("actionProject_Filesystem_Folder")
         self.actionPreferences = QtGui.QAction(DesktopWindow)
         self.actionPreferences.setObjectName("actionPreferences")
+        self.actionShow_Console = QtGui.QAction(DesktopWindow)
+        self.actionShow_Console.setObjectName("actionShow_Console")
 
         self.retranslateUi(DesktopWindow)
         self.stack.setCurrentIndex(0)
@@ -444,6 +446,8 @@ class Ui_DesktopWindow(object):
         self.actionProject_Filesystem_Folder.setText(QtGui.QApplication.translate("DesktopWindow", "Project Filesystem Folder", None, QtGui.QApplication.UnicodeUTF8))
         self.actionPreferences.setText(QtGui.QApplication.translate("DesktopWindow", "Preferences...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionPreferences.setShortcut(QtGui.QApplication.translate("DesktopWindow", "Ctrl+,", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionShow_Console.setText(QtGui.QApplication.translate("DesktopWindow", "Show Console", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionShow_Console.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Show the logging console.", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..grouping_list_view import GroupingListView
 from . import resources_rc

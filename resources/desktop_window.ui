@@ -1019,6 +1019,14 @@
     <string>Ctrl+,</string>
    </property>
   </action>
+  <action name="actionShow_Console">
+   <property name="text">
+    <string>Show Console</string>
+   </property>
+   <property name="toolTip">
+    <string>Show the logging console.</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

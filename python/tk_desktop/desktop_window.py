@@ -23,6 +23,8 @@ from sgtk.platform import constants
 from .ui import resources_rc
 from .ui import desktop_window
 
+from .console import Console
+from .console import ConsoleLogHandler
 from .login import ShotgunLogin
 from .systray import SystrayWindow
 from .preferences import Preferences
@@ -90,6 +92,13 @@ class DesktopWindow(SystrayWindow):
                 button.hide()
         connection = ShotgunLogin.get_connection()
 
+        engine = sgtk.platform.current_engine()
+
+        # Setup the console
+        self.__console = Console()
+        self.__console_handler = ConsoleLogHandler(self.__console)
+        engine.get_logger().addHandler(self.__console_handler)
+
         # User menu
         ###########################
         user = ShotgunLogin.get_login()
@@ -119,6 +128,7 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionPreferences)
+        self.user_menu.addAction(self.ui.actionShow_Console)
         self.user_menu.addAction(self.ui.actionQuit)
         QtGui.QApplication.instance().aboutToQuit.connect(self.handle_quit_action)
 
@@ -126,6 +136,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
+        self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
         self.ui.actionPreferences.triggered.connect(self.handle_preferences_action)
 
         self.ui.user_button.setMenu(self.user_menu)
@@ -138,7 +149,6 @@ class DesktopWindow(SystrayWindow):
         self._project_command_proxy.sort(0)
         self.ui.project_commands.setModel(self._project_command_proxy)
 
-        engine = sgtk.platform.current_engine()
         self._project_command_delegate = ProjectCommandDelegate(self.ui.project_commands)
         self.ui.project_commands.setItemDelegate(self._project_command_delegate)
         self.ui.project_commands.expanded_changed.connect(self.handle_project_command_expanded_changed)
@@ -264,6 +274,9 @@ class DesktopWindow(SystrayWindow):
 
     ########################################################################################
     # Event handlers and slots
+    def contextMenuEvent(self, event):
+        self.user_menu.exec_(event.globalPos())
+
     def handle_project_command_expanded_changed(self, group_key, expanded):
         expanded_state = self._project_command_model.get_expanded_state()
         key = "project_expanded_state.%d" % self.current_project["id"]
