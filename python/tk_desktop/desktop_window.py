@@ -141,6 +141,7 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
         self._project_command_delegate = ProjectCommandDelegate(self.ui.project_commands)
         self.ui.project_commands.setItemDelegate(self._project_command_delegate)
+        self.ui.project_commands.expanded_changed.connect(self.handle_project_command_expanded_changed)
 
         self._project_command_model.command_triggered.connect(engine._handle_button_command_triggered)
 
@@ -263,6 +264,11 @@ class DesktopWindow(SystrayWindow):
 
     ########################################################################################
     # Event handlers and slots
+    def handle_project_command_expanded_changed(self, group_key, expanded):
+        expanded_state = self._project_command_model.get_expanded_state()
+        key = "project_expanded_state.%d" % self.current_project["id"]
+        self._save_setting(key, expanded_state, site_specific=True)
+
     def handle_project_thumbnail_updated(self, item):
         project = item.data(ShotgunModel.SG_DATA_ROLE)
         if self.current_project is None or project["id"] != self.current_project["id"]:
@@ -452,6 +458,14 @@ class DesktopWindow(SystrayWindow):
         # remember that we are back at the browser
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
+
+    def set_groups(self, groups):
+        self._project_command_model.set_project(self.current_project, groups)
+        self.project_overlay.hide()
+
+        key = "project_expanded_state.%d" % self.current_project["id"]
+        expanded_state = self._load_setting(key, {}, True)
+        self._project_command_model.set_expanded_state(expanded_state)
 
     def clear_app_uis(self):
         engine = sgtk.platform.current_engine()

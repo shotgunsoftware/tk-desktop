@@ -109,6 +109,9 @@ class DefaultGroupingFooterDelegate(shotgun_view.WidgetDelegate):
 
 class GroupingListView(QtGui.QListView):
     """ A list view that handles grouping its items """
+    # expanded_changed(group_key, expanded)
+    expanded_changed = QtCore.Signal(str, bool)
+
     def __init__(self, parent=None):
         QtGui.QListView.__init__(self, parent)
 
@@ -218,6 +221,7 @@ class GroupingListView(QtGui.QListView):
             group_key = source_model.get_item_group_key(source_index)
             expanded = source_model.is_group_expanded(group_key)
             source_model.set_group_expanded(group_key, not expanded)
+            self.expanded_changed.emit(group_key, not expanded)
 
     # handlers for anything that could effect the row delegates
     def __handle_rows_inserted(self, parent, start, end):

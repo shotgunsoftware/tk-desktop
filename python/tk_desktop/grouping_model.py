@@ -105,7 +105,7 @@ class GroupingModel(QtGui.QStandardItemModel):
         self.__default_group = None
 
     # manage groups
-    def create_group(self, group_key):
+    def create_group(self, group_key, expanded=True):
         """
         Create a group for group_key
 
@@ -118,7 +118,7 @@ class GroupingModel(QtGui.QStandardItemModel):
         header = QtGui.QStandardItem()
         header.setData(self.ITEM_TYPE_HEADER, self.ITEM_TYPE_ROLE)
         header.setData(group_key, self.GROUP_ROLE)
-        header.setData(True, self.GROUP_VISIBLE_ROLE)
+        header.setData(expanded, self.GROUP_VISIBLE_ROLE)
 
         # create the footer item
         footer = QtGui.QStandardItem()
@@ -211,6 +211,18 @@ class GroupingModel(QtGui.QStandardItemModel):
 
         # let listeners know that the state has changed
         self.group_toggled.emit(group_key, expanded)
+
+    def get_expanded_state(self):
+        state = {}
+        for group_key in self.__groups.keys():
+            header = self.__groups[group_key]["header"]
+            state[group_key] = header.data(self.GROUP_VISIBLE_ROLE)
+        return state
+
+    def set_expanded_state(self, state):
+        for (group_key, expanded) in state.iteritems():
+            if group_key in self.__groups:
+                self.set_group_expanded(group_key, expanded)
 
     # manage items
     def set_item_group(self, item, group_key):

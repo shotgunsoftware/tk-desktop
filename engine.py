@@ -237,9 +237,7 @@ class DesktopEngine(Engine):
                 self.proxy = None
 
     def set_groups(self, groups):
-        project = self.desktop_window.current_project
-        self.desktop_window._project_command_model.set_project(project, groups)
-        self.desktop_window.project_overlay.hide()
+        self.desktop_window.set_groups(groups)
 
     def set_collapse_rules(self, collapse_rules):
         self.__collapse_rules = collapse_rules
@@ -413,11 +411,6 @@ class DesktopEngine(Engine):
 
         self.log_debug("'%s' goes in groups: %s" % (display_name, matches))
         return matches
-
-    def _create_group_guis(self, groups):
-        project = self.desktop_window.current_project
-        self.desktop_window._project_command_model.set_project(project, groups)
-        self.desktop_window.project_overlay.hide()
 
     def run(self, splash=None):
         """
