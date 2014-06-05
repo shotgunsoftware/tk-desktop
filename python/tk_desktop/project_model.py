@@ -29,21 +29,34 @@ class FuzzyMatcher():
     Based on the analysis at
     http://crossplatform.net/sublime-text-ctrl-p-fuzzy-matching-in-python
     """
-    def __init__(self, pattern):
+    def __init__(self, pattern, case_sensitive=False):
         # construct a pattern that matches the letters in order
-        # for example "aad" turns into "a.*?a.*?d".
-        self.pattern = ".*?".join(re.escape(char) for char in pattern)
-        self.re = re.compile(self.pattern)
+        # for example "aad" turns into "(a).*?(a).*?(d)".
+        self.pattern = ".*?".join("(%s)" % re.escape(char) for char in pattern)
+        if case_sensitive:
+            self.re = re.compile(self.pattern)
+        else:
+            self.re = re.compile(self.pattern, re.IGNORECASE)
 
-    def score(self, string):
+    def score(self, string, highlighter=None):
         match = self.re.search(string)
         if match is None:
             # letters did not appear in order
-            return 0
+            return (0, string)
         else:
             # have a match, scores are higher for matches near the beginning
             # or that are clustered together
-            return 100.0 / ((1 + match.start()) * (match.end() - match.start() + 1))
+            score = 100.0 / ((1 + match.start()) * (match.end() - match.start() + 1))
+
+            if highlighter is not None:
+                highlighted = string[0:match.start(1)]
+                for group in xrange(1, match.lastindex+1):
+                    if group == match.lastindex:
+                        remainder = string[match.end(group):]
+                    else:
+                        remainder = string[match.end(group):match.start(group+1)]
+                    highlighted += highlighter(match.group(group)) + remainder
+            return (score, highlighted)
 
 
 class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
@@ -116,27 +129,38 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         projects = []
         for row in xrange(src_model.rowCount()):
             item = src_model.item(row, 0)
-            projects.append(item.data(ShotgunModel.SG_DATA_ROLE))
+            project = item.data(ShotgunModel.SG_DATA_ROLE)
+            project["__item"] = item
+            projects.append(project)
 
         # apply ordering
         if self.search_text:
+            def highlighter(char):
+                return "<b>" + char + "</b>"
             # order is done by search text
             ratios = []
             matcher = FuzzyMatcher(self.search_text.lower())
             for project in projects:
-                ratio = matcher.score(project["name"].lower())
+                (ratio, highlighted) = matcher.score(project["name"], highlighter)
                 if ratio:
                     ratios.append((ratio, project))
+                    project["__item"].setData(highlighted, SgProjectModel.DISPLAY_NAME_ROLE)
+                else:
+                    project["__item"].setData(project["name"], SgProjectModel.DISPLAY_NAME_ROLE)
             ratios_in_order = sorted(ratios, key=lambda key: -key[0])
             projects_in_order = [r[1] for r in ratios_in_order]
         else:
+            # clear any existing highlighting
+            for project in projects:
+                project["__item"].setData(project["name"], SgProjectModel.DISPLAY_NAME_ROLE)
+
+            # sort by last_accessed_by_current_user
             def key_for_project(project):
                 return (
                     project["last_accessed_by_current_user"],
                     project["name"],
                     project["id"],
                 )
-            # order is by last access
             projects_in_order = sorted(projects, key=key_for_project, reverse=True)
 
         # apply limit post sort

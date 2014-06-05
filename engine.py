@@ -489,7 +489,7 @@ class DesktopEngine(Engine):
         if self.proxy is not None and self.has_gui_proxy:
             # Only log through the proxy unless that fails
             try:
-                self.proxy.log(level, msg, args)
+                self.proxy.log(level, msg, args, __proxy_expected_return=False)
             except Exception:
                 pass
             else:

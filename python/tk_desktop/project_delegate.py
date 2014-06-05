@@ -35,8 +35,9 @@ class SgProjectDelegate(shotgun_view.WidgetDelegate):
         painted in the view.
         """
         icon = model_index.data(QtCore.Qt.DecorationRole)
-        thumb = icon.pixmap(512)
-        widget.set_thumbnail(thumb)
+        if icon is not None:
+            thumb = icon.pixmap(512)
+            widget.set_thumbnail(thumb)
         widget.set_text(model_index.data(SgProjectModel.DISPLAY_NAME_ROLE))
         widget.set_selected(False)
 

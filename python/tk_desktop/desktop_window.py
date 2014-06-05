@@ -302,6 +302,9 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
         engine.disconnect_app_proxy()
 
+        if engine.msg_server is not None:
+            engine.msg_server.close()
+
         self._save_setting("pos", self.pos(), site_specific=True)
 
         self.close()
