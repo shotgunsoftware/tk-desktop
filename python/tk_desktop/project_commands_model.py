@@ -15,9 +15,11 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 
-from .login import ShotgunLogin
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
+
+shotgun_login = sgtk.platform.import_framework("tk-framework-login", "shotgun_login")
+ShotgunLogin = shotgun_login.ShotgunLogin
 
 
 class ProjectCommandProxyModel(GroupingProxyModel):
@@ -154,7 +156,8 @@ class ProjectCommandModel(GroupingModel):
         if tooltip is None:
             tooltip = item.toolTip()
 
-        login = ShotgunLogin.get_login()
+
+        login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
         data = {
             # recent is populated by grouping on description, so it needs
             # to be the same for each event created for a given name, but
@@ -213,7 +216,7 @@ class ProjectCommandModel(GroupingModel):
         self.__recents = {}
 
         # need to know what login to find events for
-        login = ShotgunLogin.get_login()
+        login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
 
         # pull down matching invents for the current project for the current user
         filters = [

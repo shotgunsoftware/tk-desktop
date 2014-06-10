@@ -25,7 +25,6 @@ from .ui import desktop_window
 
 from .console import Console
 from .console import ConsoleLogHandler
-from .login import ShotgunLogin
 from .systray import SystrayWindow
 from .preferences import Preferences
 from .project_model import SgProjectModel
@@ -45,8 +44,10 @@ except Exception:
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
+shotgun_login = sgtk.platform.import_framework("tk-framework-login", "shotgun_login")
 
 ShotgunModel = shotgun_model.ShotgunModel
+ShotgunLogin = shotgun_login.ShotgunLogin
 
 
 class DesktopWindow(SystrayWindow):
@@ -90,7 +91,8 @@ class DesktopWindow(SystrayWindow):
             if not state:
                 # do not show disabled interfaces
                 button.hide()
-        connection = ShotgunLogin.get_connection()
+        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
+        connection = login.get_connection()
 
         engine = sgtk.platform.current_engine()
 
@@ -101,7 +103,7 @@ class DesktopWindow(SystrayWindow):
 
         # User menu
         ###########################
-        user = ShotgunLogin.get_login()
+        user = login.get_login()
         thumbnail_url = connection.find_one(
             "HumanUser",
             [["id", "is", user["id"]]], ["image"],
@@ -424,7 +426,8 @@ class DesktopWindow(SystrayWindow):
 
     def sign_out(self):
         # clear password information
-        ShotgunLogin.logout()
+        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
+        login.logout()
 
         # disconnect from the current project
         engine = sgtk.platform.current_engine()
@@ -498,7 +501,8 @@ class DesktopWindow(SystrayWindow):
         self.__pipeline_configuration_separator = None
 
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
-        user = ShotgunLogin.get_login()
+        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
+        user = login.get_login()
 
         primary_pc = None
         extra_pcs = []
@@ -844,7 +848,8 @@ class DesktopWindow(SystrayWindow):
         anim_group.start()
 
     def shotgun_button_clicked(self):
-        connection = ShotgunLogin.get_connection()
+        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
+        connection = login.get_connection()
         url = connection.base_url
         if self.current_project is not None:
             url = "%s/detail/Project/%d" % (url, self.current_project["id"])
