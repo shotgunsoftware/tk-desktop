@@ -63,10 +63,7 @@ class DesktopEngine(Engine):
             if "proxy_pipe" in bootstrap_data and "proxy_auth" in bootstrap_data:
                 interface_type = "project"
 
-        if interface_type == "site":
-            self.__impl = tk_desktop.DesktopEngineSiteImplementation(self)
-        else:
-            self.__impl = tk_desktop.DesktopEngineProjectImplementation(self)
+        self.__impl = tk_desktop.get_engine_implementation(interface_type)(self)
 
         # run the implementation init_engine if it has one
         if hasattr(self.__impl, "init_engine"):
