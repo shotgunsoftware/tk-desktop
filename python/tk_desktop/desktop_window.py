@@ -127,19 +127,22 @@ class DesktopWindow(SystrayWindow):
         self.user_menu = QtGui.QMenu(self)
         self.user_menu.addAction(self.ui.actionPin_to_Menu)
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
-        self.user_menu.addAction(self.ui.actionSign_Out)
+        self.user_menu.addAction(self.ui.actionShow_Console)
+        self.user_menu.addAction(self.ui.actionRefresh_Projects)
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionPreferences)
-        self.user_menu.addAction(self.ui.actionShow_Console)
+        self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
+
         QtGui.QApplication.instance().aboutToQuit.connect(self.handle_quit_action)
 
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
+        self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
+        self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
+        self.ui.actionPreferences.triggered.connect(self.handle_preferences_action)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
-        self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
-        self.ui.actionPreferences.triggered.connect(self.handle_preferences_action)
 
         self.ui.user_button.setMenu(self.user_menu)
 
@@ -374,6 +377,17 @@ class DesktopWindow(SystrayWindow):
 
         # and run it
         prefs.exec_()
+
+    def handle_project_refresh_action(self):
+        """
+        Force a reload of the project model.
+        Clear cache and reload if shift is held down.
+        """
+        modifiers = QtGui.QApplication.keyboardModifiers()
+        if modifiers == QtCore.Qt.ShiftModifier:
+            self._project_model.hard_refresh()
+        else:
+            self._project_model._refresh_data()
 
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):

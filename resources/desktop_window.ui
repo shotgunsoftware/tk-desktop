@@ -1174,6 +1174,14 @@ font-size: 20px;
     <string>Show the logging console.</string>
    </property>
   </action>
+  <action name="actionRefresh_Projects">
+   <property name="text">
+    <string>Refresh Projects</string>
+   </property>
+   <property name="toolTip">
+    <string>Refreshes the project information.</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
