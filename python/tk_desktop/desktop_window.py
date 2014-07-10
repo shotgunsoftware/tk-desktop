@@ -26,6 +26,7 @@ from .ui import desktop_window
 from .console import Console
 from .console import ConsoleLogHandler
 from .systray import SystrayWindow
+from .setup_project import SetupProject
 from .preferences import Preferences
 from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
@@ -69,6 +70,7 @@ class DesktopWindow(SystrayWindow):
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
         self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
+        self.setup_project_widget = SetupProject(self.ui.project_commands)
 
         # setup systray behavior
         self.set_content_layout(self.ui.border_layout)
@@ -711,13 +713,9 @@ class DesktopWindow(SystrayWindow):
 
             if pipeline_configuration is None:
                 if primary_pipeline_configuration is None:
-                    # If the Project has not been setup for Toolkit
-                    # call it an error until we implement the setup
-                    # project
-                    self.project_overlay.show_error_message(
-                        "No pipeline configuration found.\n\n"
-                        "Have you run setup_project for this Project?"
-                    )
+                    # Show the Setup Project widget
+                    self.setup_project_widget.show()
+                    self.project_overlay.hide()
                     return
                 else:
                     engine.log_warning(

@@ -124,3 +124,4 @@ frameworks:
     - {"name": "tk-framework-qtwidgets", "version": "v1.x.x"}
     - {"name": "tk-framework-shotgunutils", "version": "v2.x.x"}
     - {"name": "tk-framework-login", "version": "v0.x.x"}
+    - {"name": "tk-framework-adminui", "version": "v0.x.x"}
