@@ -57,17 +57,29 @@ class DesktopEngineSiteImplementation(object):
 
     def engine_startup_error(self, error, tb=None):
         """ Handle an error starting up the engine for the app proxy. """
+        trigger_project_config = False
         if isinstance(error, TankEngineInitError):
-            message = "Error starting engine\n\n%s" % error.message
+            # match directly on the error message until something less fragile can be put in place
+            if error.message.startswith("Cannot find an engine instance tk-desktop"):
+                trigger_project_config = True
+            else:
+                message = "Error starting engine\n\n%s" % error.message
         else:
-            message = "Unknown Error\n\n%s" % error.message
+            message = "Error\n\n%s" % error.message
 
-        # add the traceback if debug is true
-        if self._engine.get_setting("debug_logging", False) and tb is not None:
-            message += "\n\n%s" % tb
+        if trigger_project_config:
+            # error is that the desktop engine hasn't been setup for the project
+            # show the UI to configure it
+            self.desktop_window.show_update_project_config()
+        else:
+            # just show the error in the window
 
-        self._engine.log_error(message)
-        self.desktop_window.project_overlay.show_error_message(message)
+            # add the traceback if debug is true
+            if self._engine.get_setting("debug_logging", False) and tb is not None:
+                message += "\n\n%s" % tb
+
+            self._engine.log_error(message)
+            self.desktop_window.project_overlay.show_error_message(message)
 
     def create_app_proxy(self, pipe, authkey):
         """ Called when the project engine has setup its RPC server thread """

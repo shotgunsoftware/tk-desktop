@@ -31,6 +31,7 @@ from .preferences import Preferences
 from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
 from .project_delegate import SgProjectDelegate
+from .update_project_config import UpdateProjectConfig
 
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
@@ -71,6 +72,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.setupUi(self)
         self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
         self.setup_project_widget = SetupProject(self.ui.project_commands)
+        self.update_project_config_widget = UpdateProjectConfig(self.ui.project_commands)
 
         # setup systray behavior
         self.set_content_layout(self.ui.border_layout)
@@ -504,12 +506,20 @@ class DesktopWindow(SystrayWindow):
         # empty the project commands
         self._project_command_model.clear()
 
+        # hide the setup project ui if it is shown
+        self.setup_project_widget.hide()
+        self.update_project_config_widget.hide()
+
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)
         self.project_menu.triggered.connect(self._on_project_menu_triggered)
         self.project_menu.addAction(self.ui.actionProject_Filesystem_Folder)
         self.ui.project_menu.setMenu(self.project_menu)
         self.__pipeline_configuration_separator = None
+
+    def show_update_project_config(self):
+        self.update_project_config_widget.show()
+        self.project_overlay.hide()
 
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
         login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
@@ -799,6 +809,10 @@ class DesktopWindow(SystrayWindow):
         }
         (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
         pickle.dump(desktop_data, open(pickle_data_file, "wb"))
+
+        # update the values on the project updater in case they are needed
+        self.update_project_config_widget.set_project_info(
+            path_to_python, core_python, config_path, project)
 
         # get the path to the utilities module
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))

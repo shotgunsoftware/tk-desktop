@@ -58,7 +58,7 @@ class SystrayWindow(QtGui.QMainWindow):
         self.__mouse_down_global = None  # track global position when dragging
 
         # setup the anchor
-        self.__bottom_anchor = QtGui.QPixmap(":/res/anchor_arrow.png")
+        self.__bottom_anchor = QtGui.QPixmap(":/tk-desktop/anchor_arrow.png")
         self.__top_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(1, 0, 0, -1, 0, 0))
         self.__right_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(0, 1, 1, 0, 0, 0))
         self.__left_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(0, 1, -1, 0, 0, 0))

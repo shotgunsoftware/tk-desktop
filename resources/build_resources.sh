@@ -42,6 +42,7 @@ build_ui login
 build_ui preferences
 build_ui thumb_widget
 build_ui setup_project
+build_ui update_project_config
 
 # build resources
 echo "building resources..."

@@ -21,7 +21,7 @@ class ShotgunSystemTrayIcon(QtGui.QSystemTrayIcon):
         QtGui.QSystemTrayIcon.__init__(self, parent)
 
         # configure the system tray icon
-        icon = QtGui.QIcon(":/res/default_systray_icon")
+        icon = QtGui.QIcon(":/tk-desktop/default_systray_icon")
         self.setIcon(icon)
         self.setToolTip("Shotgun")
 

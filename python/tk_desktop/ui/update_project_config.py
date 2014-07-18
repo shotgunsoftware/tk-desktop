@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'setup_project.ui'
+# Form implementation generated from reading ui file 'update_project_config.ui'
 #
 #      by: pyside-uic 0.2.15 running on PySide 1.2.1
 #
@@ -8,11 +8,11 @@
 
 from sgtk.platform.qt import QtCore, QtGui
 
-class Ui_SetupProject(object):
-    def setupUi(self, SetupProject):
-        SetupProject.setObjectName("SetupProject")
-        SetupProject.resize(417, 644)
-        self.horizontalLayout = QtGui.QHBoxLayout(SetupProject)
+class Ui_UpdateProjectConfig(object):
+    def setupUi(self, UpdateProjectConfig):
+        UpdateProjectConfig.setObjectName("UpdateProjectConfig")
+        UpdateProjectConfig.resize(432, 644)
+        self.horizontalLayout = QtGui.QHBoxLayout(UpdateProjectConfig)
         self.horizontalLayout.setObjectName("horizontalLayout")
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
@@ -23,7 +23,7 @@ class Ui_SetupProject(object):
         self.verticalLayout.addItem(spacerItem1)
         self.horizontalLayout_2 = QtGui.QHBoxLayout()
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.icon = QtGui.QLabel(SetupProject)
+        self.icon = QtGui.QLabel(UpdateProjectConfig)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -38,15 +38,17 @@ class Ui_SetupProject(object):
         self.icon.setObjectName("icon")
         self.horizontalLayout_2.addWidget(self.icon)
         self.verticalLayout.addLayout(self.horizontalLayout_2)
-        self.text = QtGui.QLabel(SetupProject)
+        self.text = QtGui.QLabel(UpdateProjectConfig)
         self.text.setStyleSheet("font-size: 26px;")
+        self.text.setAlignment(QtCore.Qt.AlignCenter)
         self.text.setObjectName("text")
         self.verticalLayout.addWidget(self.text)
         self.horizontalLayout_3 = QtGui.QHBoxLayout()
         self.horizontalLayout_3.setObjectName("horizontalLayout_3")
         spacerItem2 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem2)
-        self.button = QtGui.QPushButton(SetupProject)
+        self.button = QtGui.QPushButton(UpdateProjectConfig)
+        self.button.setEnabled(True)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -65,18 +67,38 @@ class Ui_SetupProject(object):
         spacerItem3 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem3)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
+        self.verticalLayout_2 = QtGui.QVBoxLayout()
+        self.verticalLayout_2.setSpacing(0)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.label = QtGui.QLabel(UpdateProjectConfig)
+        self.label.setScaledContents(False)
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setWordWrap(True)
+        self.label.setMargin(0)
+        self.label.setObjectName("label")
+        self.verticalLayout_2.addWidget(self.label)
+        self.success = QtGui.QLabel(UpdateProjectConfig)
+        self.success.setObjectName("success")
+        self.verticalLayout_2.addWidget(self.success)
+        self.error = QtGui.QLabel(UpdateProjectConfig)
+        self.error.setObjectName("error")
+        self.verticalLayout_2.addWidget(self.error)
+        self.verticalLayout.addLayout(self.verticalLayout_2)
         spacerItem4 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem4)
         self.horizontalLayout.addLayout(self.verticalLayout)
         spacerItem5 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem5)
 
-        self.retranslateUi(SetupProject)
-        QtCore.QMetaObject.connectSlotsByName(SetupProject)
+        self.retranslateUi(UpdateProjectConfig)
+        QtCore.QMetaObject.connectSlotsByName(UpdateProjectConfig)
 
-    def retranslateUi(self, SetupProject):
-        SetupProject.setWindowTitle(QtGui.QApplication.translate("SetupProject", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.text.setText(QtGui.QApplication.translate("SetupProject", "Setup Toolkit Project", None, QtGui.QApplication.UnicodeUTF8))
-        self.button.setText(QtGui.QApplication.translate("SetupProject", "Set up Project", None, QtGui.QApplication.UnicodeUTF8))
+    def retranslateUi(self, UpdateProjectConfig):
+        UpdateProjectConfig.setWindowTitle(QtGui.QApplication.translate("UpdateProjectConfig", "Form", None, QtGui.QApplication.UnicodeUTF8))
+        self.text.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add Shotgun Desktop", None, QtGui.QApplication.UnicodeUTF8))
+        self.button.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">Click here to upgrade your</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Pipeline Configuration</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.success.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">The project has been setup.</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Click it again to reload.</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.error.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">There was an error setting up the project.</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Please let toolkitsupport@shotgunsoftware.com know.</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc

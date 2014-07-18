@@ -35,7 +35,7 @@ class SetupProject(QtGui.QWidget):
         self.setVisible(False)
 
     def do_setup(self):
-        setup = adminui.SetupProject()
+        setup = adminui.SetupProjectWizard()
         setup.exec_()
 
     def _on_parent_resized(self):

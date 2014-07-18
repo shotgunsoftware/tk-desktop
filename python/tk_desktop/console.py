@@ -63,7 +63,7 @@ class Console(QtGui.QDialog):
         super(Console, self).__init__(parent)
 
         self.setWindowTitle('Shotgun Desktop Console')
-        self.setWindowIcon(QtGui.QIcon(":/res/default_systray_icon.png"))
+        self.setWindowIcon(QtGui.QIcon(":/tk-desktop/default_systray_icon.png"))
 
         self.__menu_bar = QtGui.QMenuBar(self)
 

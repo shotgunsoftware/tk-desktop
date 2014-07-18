@@ -1,5 +1,5 @@
 <RCC>
-  <qresource prefix="res">
+  <qresource prefix="tk-desktop">
     <file>anchor_arrow.png</file>
     <file>right_arrow.png</file>
     <file>ellipses.png</file>

@@ -229,7 +229,7 @@ class SgProjectModel(ShotgunModel):
         self.set_shotgun_connection(connection)
 
         # load up the thumbnail to use when there is none set in Shotgun
-        self._missing_thumbnail_project = QtGui.QPixmap(":/res/missing_thumbnail_project.png")
+        self._missing_thumbnail_project = QtGui.QPixmap(":/tk-desktop/missing_thumbnail_project.png")
 
         # load up the cached data for the model
         filters = [
