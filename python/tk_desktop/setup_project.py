@@ -27,6 +27,7 @@ class SetupProject(QtGui.QWidget):
         self.ui.setupUi(self)
         self.ui.button.clicked.connect(self.do_setup)
         self._parent = parent
+        self.project = None
 
         filter = ResizeEventFilter(self._parent)
         filter.resized.connect(self._on_parent_resized)
@@ -35,7 +36,7 @@ class SetupProject(QtGui.QWidget):
         self.setVisible(False)
 
     def do_setup(self):
-        setup = adminui.SetupProjectWizard()
+        setup = adminui.SetupProjectWizard(self.project)
         setup.exec_()
 
     def _on_parent_resized(self):

@@ -724,6 +724,7 @@ class DesktopWindow(SystrayWindow):
             if pipeline_configuration is None:
                 if primary_pipeline_configuration is None:
                     # Show the Setup Project widget
+                    self.setup_project_widget.project = project
                     self.setup_project_widget.show()
                     self.project_overlay.hide()
                     return
