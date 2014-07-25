@@ -191,7 +191,7 @@ class DesktopEngineSiteImplementation(object):
             app = QtGui.QApplication(sys.argv)
 
         # update the app icon
-        icon = QtGui.QIcon(":res/default_systray_icon")
+        icon = QtGui.QIcon(":tk-desktop/default_systray_icon")
         app.setWindowIcon(icon)
 
         splash.showMessage("Building UI")

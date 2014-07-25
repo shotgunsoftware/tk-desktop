@@ -20,6 +20,8 @@ adminui = sgtk.platform.import_framework("tk-framework-adminui", "setup_project"
 
 
 class SetupProject(QtGui.QWidget):
+    setup_finished = QtCore.Signal(bool)
+
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
@@ -36,8 +38,9 @@ class SetupProject(QtGui.QWidget):
         self.setVisible(False)
 
     def do_setup(self):
-        setup = adminui.SetupProjectWizard(self.project)
-        setup.exec_()
+        setup = adminui.SetupProjectWizard(self.project, self)
+        ret = setup.exec_()
+        self.setup_finished.emit(ret == setup.Accepted)
 
     def _on_parent_resized(self):
         """

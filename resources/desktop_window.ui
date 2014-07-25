@@ -20,7 +20,7 @@
    <string>Shotgun</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="resources.qrc">
+   <iconset>
     <normaloff>:/res/default_systray_icon.png</normaloff>:/res/default_systray_icon.png</iconset>
   </property>
   <property name="dockNestingEnabled">
@@ -335,7 +335,7 @@ font-size: 20px;
                  <string/>
                 </property>
                 <property name="pixmap">
-                 <pixmap resource="resources.qrc">:/res/search.png</pixmap>
+                 <pixmap resource="resources.qrc">:/tk-desktop/search.png</pixmap>
                 </property>
                 <property name="scaledContents">
                  <bool>true</bool>
@@ -371,7 +371,7 @@ font-size: 20px;
                 </property>
                 <property name="icon">
                  <iconset resource="resources.qrc">
-                  <normaloff>:/res/x.png</normaloff>:/res/x.png</iconset>
+                  <normaloff>:/tk-desktop/x.png</normaloff>:/tk-desktop/x.png</iconset>
                 </property>
                 <property name="iconSize">
                  <size>
@@ -580,7 +580,7 @@ font-size: 20px;
              </property>
              <property name="icon">
               <iconset resource="resources.qrc">
-               <normaloff>:/res/ellipses.png</normaloff>:/res/ellipses.png</iconset>
+               <normaloff>:/tk-desktop/ellipses.png</normaloff>:/tk-desktop/ellipses.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -682,7 +682,7 @@ font-size: 20px;
              </property>
              <property name="icon">
               <iconset resource="resources.qrc">
-               <normaloff>:/res/down_carat.png</normaloff>:/res/down_carat.png</iconset>
+               <normaloff>:/tk-desktop/down_carat.png</normaloff>:/tk-desktop/down_carat.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -736,7 +736,7 @@ font-size: 20px;
              </property>
              <property name="icon">
               <iconset resource="resources.qrc">
-               <normaloff>:/res/missing_thumbnail_project.png</normaloff>:/res/missing_thumbnail_project.png</iconset>
+               <normaloff>:/tk-desktop/missing_thumbnail_project.png</normaloff>:/tk-desktop/missing_thumbnail_project.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -802,7 +802,7 @@ font-size: 20px;
              </property>
              <property name="icon">
               <iconset resource="resources.qrc">
-               <normaloff>:/res/down_arrow.png</normaloff>:/res/down_arrow.png</iconset>
+               <normaloff>:/tk-desktop/down_arrow.png</normaloff>:/tk-desktop/down_arrow.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -1035,7 +1035,7 @@ font-size: 20px;
             </property>
             <property name="icon">
              <iconset resource="resources.qrc">
-              <normaloff>:/res/shotgun_logo_light_medium.png</normaloff>:/res/shotgun_logo_light_medium.png</iconset>
+              <normaloff>:/tk-desktop/shotgun_logo_light_medium.png</normaloff>:/tk-desktop/shotgun_logo_light_medium.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -1073,7 +1073,7 @@ font-size: 20px;
             </property>
             <property name="icon">
              <iconset resource="resources.qrc">
-              <normaloff>:/res/up_right_arrow.png</normaloff>:/res/up_right_arrow.png</iconset>
+              <normaloff>:/tk-desktop/up_right_arrow.png</normaloff>:/tk-desktop/up_right_arrow.png</iconset>
             </property>
             <property name="flat">
              <bool>true</bool>
@@ -1106,7 +1106,7 @@ font-size: 20px;
          </property>
          <property name="icon">
           <iconset resource="resources.qrc">
-           <normaloff>:/res/default_user_thumb.png</normaloff>:/res/default_user_thumb.png</iconset>
+           <normaloff>:/tk-desktop/default_user_thumb.png</normaloff>:/tk-desktop/default_user_thumb.png</iconset>
          </property>
          <property name="iconSize">
           <size>

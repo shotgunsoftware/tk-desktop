@@ -18,6 +18,8 @@ from .ui import update_project_config
 
 
 class UpdateProjectConfig(QtGui.QWidget):
+    update_finished = QtCore.Signal(bool)
+
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
@@ -82,6 +84,7 @@ class UpdateProjectConfig(QtGui.QWidget):
             # success
             self.ui.label.setVisible(False)
             self.ui.success.setVisible(True)
+            self.update_finished.emit(True)
         else:
             # failure
             message = """
@@ -101,6 +104,7 @@ class UpdateProjectConfig(QtGui.QWidget):
             self.ui.label.setVisible(False)
             self.ui.error.setText(message)
             self.ui.error.setVisible(True)
+            self.update_finished.emit(False)
 
     def _on_parent_resized(self):
         """

@@ -72,7 +72,9 @@ class DesktopWindow(SystrayWindow):
         self.ui.setupUi(self)
         self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
         self.setup_project_widget = SetupProject(self.ui.project_commands)
+        self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
         self.update_project_config_widget = UpdateProjectConfig(self.ui.project_commands)
+        self.update_project_config_widget.update_finished.connect(self._on_update_finished)
 
         # setup systray behavior
         self.set_content_layout(self.ui.border_layout)
@@ -203,8 +205,8 @@ class DesktopWindow(SystrayWindow):
             self.on_project_filesystem_folder_triggered)
 
         # setup project search
-        self._search_x_icon = QtGui.QIcon(":res/x.png")
-        self._search_magnifier_icon = QtGui.QIcon(":res/search.png")
+        self._search_x_icon = QtGui.QIcon(":tk-desktop/x.png")
+        self._search_magnifier_icon = QtGui.QIcon(":tk-desktop/search.png")
         self.ui.search_text.hide()
         self.ui.search_magnifier.hide()
         self.ui.search_button.setIcon(self._search_magnifier_icon)
@@ -224,10 +226,10 @@ class DesktopWindow(SystrayWindow):
         self.ui.spacer_button_3.clicked.connect(self.toggle_recent_projects_shelf)
         self.ui.spacer_button_4.clicked.connect(self.toggle_recent_projects_shelf)
 
-        self.project_carat_up = QtGui.QIcon(":res/up_carat.png")
-        self.project_carat_down = QtGui.QIcon(":res/down_carat.png")
-        self.down_arrow = QtGui.QIcon(":res/down_arrow.png")
-        self.right_arrow = QtGui.QIcon(":res/right_arrow.png")
+        self.project_carat_up = QtGui.QIcon(":tk-desktop/up_carat.png")
+        self.project_carat_down = QtGui.QIcon(":tk-desktop/down_carat.png")
+        self.down_arrow = QtGui.QIcon(":tk-desktop/down_arrow.png")
+        self.right_arrow = QtGui.QIcon(":tk-desktop/right_arrow.png")
 
         self.toggle_recent_projects_shelf()
 
@@ -658,6 +660,14 @@ class DesktopWindow(SystrayWindow):
         if pc_id is not None:
             self.__launch_app_proxy_for_project(self.current_project, pc_id)
 
+    def _on_setup_finished(self, success):
+        if success:
+            self.__launch_app_proxy_for_project(self.current_project)
+
+    def _on_update_finished(self, success):
+        if success:
+            self.__launch_app_proxy_for_project(self.current_project)
+
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
@@ -669,6 +679,8 @@ class DesktopWindow(SystrayWindow):
             # clear the current gui
             self.clear_app_uis()
             self.project_overlay.start_spin()
+
+            self.current_project = project
 
             # trigger an update to the model to track this project access
             self.__set_project_just_accessed(project)
@@ -825,8 +837,6 @@ class DesktopWindow(SystrayWindow):
             pickle_data_path=pickle_data_file,
             utilities_module_path=utilities_module_path,
         )
-
-        self.current_project = project
 
         # and remember it for next time
         self._save_setting("project_id", self.current_project["id"], site_specific=True)

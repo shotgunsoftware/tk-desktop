@@ -26,8 +26,8 @@ class DefaultGroupingHeader(QtGui.QPushButton):
         QtGui.QPushButton.__init__(self, parent)
 
         # cache the icons for collapsed/expanded
-        self.down_arrow = QtGui.QIcon(":res/down_arrow.png")
-        self.right_arrow = QtGui.QIcon(":res/right_arrow.png")
+        self.down_arrow = QtGui.QIcon(":tk-desktop/down_arrow.png")
+        self.right_arrow = QtGui.QIcon(":tk-desktop/right_arrow.png")
 
         # adjust the button look
         self.setFlat(True)
