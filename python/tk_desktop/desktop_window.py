@@ -508,6 +508,9 @@ class DesktopWindow(SystrayWindow):
         # empty the project commands
         self._project_command_model.clear()
 
+        # hide the pipeline configuration bar
+        self.ui.configuration_frame.hide()
+
         # hide the setup project ui if it is shown
         self.setup_project_widget.hide()
         self.update_project_config_widget.hide()
@@ -545,8 +548,6 @@ class DesktopWindow(SystrayWindow):
                 if user["id"] == u["id"]:
                     extra_pcs.append(pc)
                     continue
-
-        self.ui.configuration_frame.hide()
 
         if not extra_pcs:
             # only one configuration choice
