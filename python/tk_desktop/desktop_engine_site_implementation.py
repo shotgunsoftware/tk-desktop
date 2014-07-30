@@ -26,6 +26,7 @@ class DesktopEngineSiteImplementation(object):
         self.proxy = None
         self.msg_server = None
         self._engine = engine
+        self.app_version = None
 
         # rules that determine how to collapse commands into buttons
         # each rule is a dictionary with keys for match, button_label, and
@@ -176,13 +177,15 @@ class DesktopEngineSiteImplementation(object):
         """ Button clicked from a registered command. """
         self.proxy.call("trigger_callback", "__commands", name)
 
-    def run(self, splash=None):
+    def run(self, splash=None, version=None):
         """
         Run the engine.
 
         This method is called from the GUI bootstrap to setup the application
         and to run the Qt event loop.
         """
+        self.app_version = version
+
         # Initialize Qt app
         from tank.platform.qt import QtGui
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (c) 2013 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
@@ -7,6 +8,7 @@
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
+
 
 import os
 import sys
@@ -137,12 +139,14 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
         self.user_menu.addAction(self.ui.actionShow_Console)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
+        about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
 
         name_action.triggered.connect(self.open_site_in_browser)
         url_action.triggered.connect(self.open_site_in_browser)
+        about_action.triggered.connect(self.handle_about)
 
         QtGui.QApplication.instance().aboutToQuit.connect(self.handle_quit_action)
 
@@ -831,3 +835,19 @@ class DesktopWindow(SystrayWindow):
             url = "%s/detail/Project/%d" % (url, self.current_project["id"])
 
         QtGui.QDesktopServices.openUrl(url)
+
+    def handle_about(self):
+        engine = sgtk.platform.current_engine()
+        content = """
+            <html>
+                <p style="line-height: 130%%">
+                <center>
+                    <font size=+2><b>Shotgun Desktop</b></font><br/><br/>
+                    App Version %s<br/>
+                    Engine Version %s<br/><br/>
+                    Copyright ©2014 Shotgun Software Inc. All rights reserved.
+                </center>
+                </p>
+            </html>
+        """ % (engine.app_version, engine.version)
+        QtGui.QMessageBox.about(self, "Shotgun Desktop", content)
