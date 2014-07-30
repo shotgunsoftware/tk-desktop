@@ -70,6 +70,7 @@ class SystrayWindow(QtGui.QMainWindow):
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
         self.__state = None  # pinned or windowed
+        self.__anchor_side = None  # which side the anchor is currently pinned on
         self.__content_layout = None  # layout whose margin will be set to contain the anchor
         self.__mouse_down_pos = None  # track position when dragging
         self.__mouse_down_global = None  # track global position when dragging
@@ -238,6 +239,10 @@ class SystrayWindow(QtGui.QMainWindow):
 
         side = self._guess_toolbar_side()
 
+        if side != self.__class__:
+            # anchor needs to be updated
+            self._set_window_mask()
+
         if side == self.DOCK_TOP:
             x = geo.x() + (geo.width() - self.rect().width()) / 2.0
             pos = QtCore.QPoint(x, geo.y() + geo.height())
@@ -397,3 +402,4 @@ class SystrayWindow(QtGui.QMainWindow):
 
         # finally set the window mask to the bitmap
         self.setMask(bmp)
+        self.__anchor_side = side

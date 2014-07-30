@@ -6,27 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>450</width>
-    <height>756</height>
+    <width>454</width>
+    <height>754</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>450</width>
-    <height>450</height>
-   </size>
-  </property>
-  <property name="maximumSize">
-   <size>
-    <width>450</width>
-    <height>16777215</height>
-   </size>
   </property>
   <property name="mouseTracking">
    <bool>true</bool>
@@ -35,8 +23,8 @@
    <string>Shotgun</string>
   </property>
   <property name="windowIcon">
-   <iconset>
-    <normaloff>:/res/default_systray_icon.png</normaloff>:/res/default_systray_icon.png</iconset>
+   <iconset resource="resources.qrc">
+    <normaloff>:/tk-desktop/default_systray_icon.png</normaloff>:/tk-desktop/default_systray_icon.png</iconset>
   </property>
   <property name="dockNestingEnabled">
    <bool>false</bool>

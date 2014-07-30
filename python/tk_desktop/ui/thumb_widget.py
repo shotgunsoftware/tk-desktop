@@ -11,7 +11,13 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_ThumbWidget(object):
     def setupUi(self, ThumbWidget):
         ThumbWidget.setObjectName("ThumbWidget")
-        ThumbWidget.resize(120, 131)
+        ThumbWidget.resize(120, 130)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(ThumbWidget.sizePolicy().hasHeightForWidth())
+        ThumbWidget.setSizePolicy(sizePolicy)
+        ThumbWidget.setMaximumSize(QtCore.QSize(120, 130))
         self.verticalLayout_2 = QtGui.QVBoxLayout(ThumbWidget)
         self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
@@ -29,18 +35,25 @@ class Ui_ThumbWidget(object):
         self.thumbnail = QtGui.QLabel(self.widget_frame)
         self.thumbnail.setMouseTracking(True)
         self.thumbnail.setText("")
-        self.thumbnail.setPixmap(QtGui.QPixmap(":/res/loading_512x400.png"))
-        self.thumbnail.setScaledContents(False)
+        self.thumbnail.setPixmap(QtGui.QPixmap(":/tk-desktop/loading_512x400.png"))
+        self.thumbnail.setScaledContents(True)
         self.thumbnail.setAlignment(QtCore.Qt.AlignCenter)
         self.thumbnail.setObjectName("thumbnail")
         self.verticalLayout.addWidget(self.thumbnail)
         self.label = QtGui.QLabel(self.widget_frame)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.label.sizePolicy().hasHeightForWidth())
+        self.label.setSizePolicy(sizePolicy)
+        self.label.setMaximumSize(QtCore.QSize(16777215, 30))
         font = QtGui.QFont()
         font.setFamily("Helvetica")
         font.setPointSize(14)
         font.setWeight(50)
         font.setBold(False)
         self.label.setFont(font)
+        self.label.setScaledContents(True)
         self.label.setAlignment(QtCore.Qt.AlignHCenter|QtCore.Qt.AlignTop)
         self.label.setWordWrap(True)
         self.label.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
@@ -54,6 +67,8 @@ class Ui_ThumbWidget(object):
     def retranslateUi(self, ThumbWidget):
         ThumbWidget.setWindowTitle(QtGui.QApplication.translate("ThumbWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
         ThumbWidget.setProperty("label", QtGui.QApplication.translate("ThumbWidget", "project_thumbnail", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("ThumbWidget", "TextLabel", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("ThumbWidget", "This is a two line\n"
+"text label\n"
+"with overflow.", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
