@@ -24,8 +24,10 @@ class GroupingProxyModel(QtGui.QSortFilterProxyModel):
         # connect up signal to react to groups being toggled expanded or collapsed
         old_model = self.sourceModel()
         if old_model is not None:
-            old_model.group_toggled.disconnect(self.__handle_grouping_changed)
-        src_model.group_toggled.connect(self.__handle_grouping_changed)
+            old_model.group_toggled.disconnect(self.__handle_group_toggled)
+            old_model.groups_modified.disconnect(self.__handle_groups_modified)
+        src_model.group_toggled.connect(self.__handle_group_toggled)
+        src_model.groups_modified.connect(self.__handle_groups_modified)
 
         QtGui.QSortFilterProxyModel.setSourceModel(self, src_model)
 
@@ -59,9 +61,11 @@ class GroupingProxyModel(QtGui.QSortFilterProxyModel):
         src_model = self.sourceModel()
         index = src_model.index(src_row, 0, src_parent)
 
-        # items that are not content are always visible
+        # items that are not content are always visible if not empty
         if not src_model.is_content(index):
-            return True
+            group = src_model.get_item_group_key(index)
+            content = src_model.get_items_in_group(group)
+            return len(content) > 0
 
         # content items are only shown if the group is expanded
         group_key = src_model.get_item_group_key(index)
@@ -69,7 +73,11 @@ class GroupingProxyModel(QtGui.QSortFilterProxyModel):
             return True
         return False
 
-    def __handle_grouping_changed(self, group_key, expanded):
+    def __handle_groups_modified(self):
+        # trigger to re-filter if grouping changes
+        self.invalidate()
+
+    def __handle_group_toggled(self, group_key, expanded):
         # trigger to re-filter if a group is collapsed or expanded
         self.invalidateFilter()
 
@@ -88,6 +96,9 @@ class GroupingModel(QtGui.QStandardItemModel):
     # a signal that is emitted when a group is expanded or collapsed
     group_toggled = QtCore.Signal(str, bool)
 
+    # a signal that is emitted when groups are modified
+    groups_modified = QtCore.Signal()
+
     def __init__(self, parent=None):
         QtGui.QStandardItemModel.__init__(self, parent)
 
@@ -101,8 +112,10 @@ class GroupingModel(QtGui.QStandardItemModel):
     def clear(self):
         # clear groups and default group in addition to the model
         QtGui.QStandardItemModel.clear(self)
-        self.__groups = {}
-        self.__default_group = None
+        if self.__groups:
+            self.__groups = {}
+            self.__default_group = None
+            self.groups_modified.emit()
 
     # manage groups
     def create_group(self, group_key, expanded=True):
@@ -139,13 +152,16 @@ class GroupingModel(QtGui.QStandardItemModel):
         self.appendRow(header)
         self.appendRow(footer)
 
+        self.groups_modified.emit()
         return (header, footer)
 
     def set_default_group(self, group_key):
         """ Set the group that an item if there is no explicit assignment """
         if group_key not in self.__groups:
             raise KeyError("no group '%s'" % group_key)
-        self.__default_group = group_key
+        if self.__default_group != group_key:
+            self.groups_modified.emit()
+            self.__default_group = group_key
 
     def get_header_items(self):
         """ Returns all the header items """
@@ -172,7 +188,7 @@ class GroupingModel(QtGui.QStandardItemModel):
         start = self.index(0, 0)
         match_flags = QtCore.Qt.MatchExactly
         matching_indexes = self.match(start, self.GROUP_ROLE, group, -1, match_flags)
-        return [index for index in matching_indexes if index.data(self.ITEM_TYPE_ROLE is None)]
+        return [index for index in matching_indexes if index.data(self.ITEM_TYPE_ROLE) is None]
 
     def set_group_rank(self, group_key, rank):
         """ Set the rank for the given group.  Groups are ordered by rank. """
@@ -188,6 +204,8 @@ class GroupingModel(QtGui.QStandardItemModel):
         for index in matching_indexes:
             item = self.itemFromIndex(index)
             item.setData(rank, self.GROUP_RANK_ROLE)
+
+        self.groups_modified.emit()
 
     def is_group_expanded(self, group_key):
         """ Returns true of the given group is expanded """
@@ -234,6 +252,8 @@ class GroupingModel(QtGui.QStandardItemModel):
         rank = self.__groups[group_key]["header"].data(self.GROUP_RANK_ROLE)
         item.setData(group_key, self.GROUP_ROLE)
         item.setData(rank, self.GROUP_RANK_ROLE)
+
+        self.groups_modified.emit()
 
     def get_item_group_key(self, item):
         """
@@ -300,3 +320,5 @@ class GroupingModel(QtGui.QStandardItemModel):
             # if item is a footer then just remove the footer
             if item_type == self.ITEM_TYPE_FOOTER:
                 del self.__groups[group_key]["footer"]
+
+        self.groups_modified.emit()
