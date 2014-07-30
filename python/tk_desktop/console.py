@@ -54,8 +54,9 @@ class ConsoleLogHandler(logging.Handler):
         message = "<pre>%s</pre>" % message
 
         # Update console (possibly in a different thread than the current one)
-        force_show = record.levelno >= logging.ERROR
-        self.__signals.log_message.emit(message, force_show)
+        # force_show can pop open the console automatically, for example on
+        # ERROR: record.levelno >= logging.ERROR
+        self.__signals.log_message.emit(message, False)
 
 
 class Console(QtGui.QDialog):
@@ -90,8 +91,7 @@ class Console(QtGui.QDialog):
 
         # load up previous size
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
-        pos = self._settings_manager.retrieve(
-            "console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL)
+        pos = self._settings_manager.retrieve("console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL)
         size = self._settings_manager.retrieve(
             "console.size", QtCore.QSize(800, 400), self._settings_manager.SCOPE_GLOBAL)
 
@@ -120,14 +120,9 @@ class Console(QtGui.QDialog):
     def show_and_raise(self):
         self.show()
         self.raise_()
-        self.setWindowState(self.windowState() &
-                            ~QtCore.Qt.WindowMinimized |
-                            QtCore.Qt.WindowActive)
+        self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
 
     def closeEvent(self, event):
-        self._settings_manager.store(
-            "console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL)
-        self._settings_manager.store(
-            "console.size", self.size(), self._settings_manager.SCOPE_GLOBAL)
-
+        self._settings_manager.store("console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL)
+        self._settings_manager.store("console.size", self.size(), self._settings_manager.SCOPE_GLOBAL)
         event.accept()

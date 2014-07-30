@@ -121,8 +121,8 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset>
-         <normaloff>:/res/x.png</normaloff>:/res/x.png</iconset>
+        <iconset resource="resources.qrc">
+         <normaloff>:/tk-desktop/x.png</normaloff>:/tk-desktop/x.png</iconset>
        </property>
        <property name="iconSize">
         <size>

@@ -137,7 +137,7 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         # apply ordering
         if self.search_text:
             def highlighter(char):
-                return "<b>" + char + "</b>"
+                return "<b><u><font color='white'>" + char + "</font></u></b>"
             # order is done by search text
             ratios = []
             matcher = FuzzyMatcher(self.search_text.lower())

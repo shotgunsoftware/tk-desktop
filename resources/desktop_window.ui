@@ -6,15 +6,30 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>460</width>
-    <height>749</height>
+    <width>450</width>
+    <height>756</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="minimumSize">
    <size>
-    <width>460</width>
-    <height>400</height>
+    <width>450</width>
+    <height>450</height>
    </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>450</width>
+    <height>16777215</height>
+   </size>
+  </property>
+  <property name="mouseTracking">
+   <bool>true</bool>
   </property>
   <property name="windowTitle">
    <string>Shotgun</string>
@@ -35,6 +50,9 @@
      <horstretch>0</horstretch>
      <verstretch>0</verstretch>
     </sizepolicy>
+   </property>
+   <property name="mouseTracking">
+    <bool>true</bool>
    </property>
    <layout class="QVBoxLayout" name="border_layout">
     <property name="spacing">
@@ -267,11 +285,6 @@
              <property name="focusPolicy">
               <enum>Qt::WheelFocus</enum>
              </property>
-             <property name="styleSheet">
-              <string notr="true">QLabel{
-font-size: 20px;
-}</string>
-             </property>
              <property name="text">
               <string>PROJECTS</string>
              </property>
@@ -296,7 +309,7 @@ font-size: 20px;
            <item>
             <widget class="QFrame" name="search_frame">
              <property name="toolTip">
-              <string>Filter Projects</string>
+              <string>Search Projects</string>
              </property>
              <property name="frameShape">
               <enum>QFrame::StyledPanel</enum>
@@ -329,7 +342,7 @@ font-size: 20px;
                  </size>
                 </property>
                 <property name="toolTip">
-                 <string>Filter Projects</string>
+                 <string>Search Projects</string>
                 </property>
                 <property name="text">
                  <string/>
@@ -345,7 +358,7 @@ font-size: 20px;
               <item>
                <widget class="QLineEdit" name="search_text">
                 <property name="toolTip">
-                 <string>Filter Projects</string>
+                 <string>Search Projects</string>
                 </property>
                 <property name="placeholderText">
                  <string>Search Projects</string>
@@ -364,14 +377,14 @@ font-size: 20px;
                  <enum>Qt::NoFocus</enum>
                 </property>
                 <property name="toolTip">
-                 <string>Filter Projects</string>
+                 <string>Search Projects</string>
                 </property>
                 <property name="text">
                  <string/>
                 </property>
                 <property name="icon">
                  <iconset resource="resources.qrc">
-                  <normaloff>:/tk-desktop/x.png</normaloff>:/tk-desktop/x.png</iconset>
+                  <normaloff>:/tk-desktop/icon_inbox_clear.png</normaloff>:/tk-desktop/icon_inbox_clear.png</iconset>
                 </property>
                 <property name="iconSize">
                  <size>
@@ -444,7 +457,7 @@ font-size: 20px;
            <enum>QListView::SinglePass</enum>
           </property>
           <property name="spacing">
-           <number>16</number>
+           <number>40</number>
           </property>
           <property name="viewMode">
            <enum>QListView::IconMode</enum>
@@ -677,12 +690,15 @@ font-size: 20px;
              <property name="focusPolicy">
               <enum>Qt::NoFocus</enum>
              </property>
+             <property name="toolTip">
+              <string>Back to Projects</string>
+             </property>
              <property name="text">
               <string/>
              </property>
              <property name="icon">
               <iconset resource="resources.qrc">
-               <normaloff>:/tk-desktop/down_carat.png</normaloff>:/tk-desktop/down_carat.png</iconset>
+               <normaloff>:/tk-desktop/back_arrow.png</normaloff>:/tk-desktop/back_arrow.png</iconset>
              </property>
              <property name="iconSize">
               <size>
@@ -696,26 +712,20 @@ font-size: 20px;
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="spacer_button_2">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
-             <property name="focusPolicy">
-              <enum>Qt::NoFocus</enum>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
              </property>
-             <property name="text">
-              <string/>
-             </property>
-             <property name="flat">
-              <bool>true</bool>
-             </property>
-            </widget>
+            </spacer>
            </item>
            <item>
-            <widget class="QPushButton" name="project_icon">
+            <widget class="QLabel" name="project_icon">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
                <horstretch>0</horstretch>
@@ -725,72 +735,45 @@ font-size: 20px;
              <property name="maximumSize">
               <size>
                <width>42</width>
-               <height>62</height>
+               <height>42</height>
               </size>
-             </property>
-             <property name="focusPolicy">
-              <enum>Qt::NoFocus</enum>
              </property>
              <property name="text">
               <string/>
              </property>
-             <property name="icon">
-              <iconset resource="resources.qrc">
-               <normaloff>:/tk-desktop/missing_thumbnail_project.png</normaloff>:/tk-desktop/missing_thumbnail_project.png</iconset>
+             <property name="pixmap">
+              <pixmap resource="resources.qrc">:/tk-desktop/missing_thumbnail_project.png</pixmap>
              </property>
-             <property name="iconSize">
-              <size>
-               <width>32</width>
-               <height>32</height>
-              </size>
-             </property>
-             <property name="flat">
+             <property name="scaledContents">
               <bool>true</bool>
+             </property>
+             <property name="margin">
+              <number>5</number>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="project_name">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="focusPolicy">
-              <enum>Qt::NoFocus</enum>
-             </property>
-             <property name="styleSheet">
-              <string notr="true">QPushButton {
-font-size: 20px;
-}</string>
-             </property>
+            <widget class="QLabel" name="project_name">
              <property name="text">
               <string>Project</string>
              </property>
-             <property name="flat">
-              <bool>true</bool>
+             <property name="margin">
+              <number>5</number>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="spacer_button_3">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+            <spacer name="horizontalSpacer_3">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
-             <property name="focusPolicy">
-              <enum>Qt::NoFocus</enum>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
              </property>
-             <property name="text">
-              <string/>
-             </property>
-             <property name="flat">
-              <bool>true</bool>
-             </property>
-            </widget>
+            </spacer>
            </item>
            <item>
             <widget class="QToolButton" name="project_menu">
@@ -973,114 +956,52 @@ font-size: 20px;
     </item>
     <item>
      <widget class="QFrame" name="footer">
+      <property name="mouseTracking">
+       <bool>true</bool>
+      </property>
       <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
+       <enum>QFrame::NoFrame</enum>
       </property>
       <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
+       <enum>QFrame::Plain</enum>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
        <property name="spacing">
         <number>0</number>
        </property>
-       <property name="leftMargin">
+       <property name="margin">
         <number>5</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>5</number>
-       </property>
-       <property name="bottomMargin">
-        <number>0</number>
        </property>
        <item>
-        <widget class="QFrame" name="shotgun_frame">
+        <widget class="QPushButton" name="shotgun_button">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="mouseTracking">
+          <bool>true</bool>
+         </property>
+         <property name="focusPolicy">
+          <enum>Qt::NoFocus</enum>
+         </property>
          <property name="toolTip">
           <string>Open in Shotgun</string>
          </property>
-         <property name="frameShape">
-          <enum>QFrame::NoFrame</enum>
+         <property name="icon">
+          <iconset resource="resources.qrc">
+           <normaloff>:/tk-desktop/shotgun_logo_light_medium.png</normaloff>:/tk-desktop/shotgun_logo_light_medium.png</iconset>
          </property>
-         <property name="frameShadow">
-          <enum>QFrame::Raised</enum>
+         <property name="iconSize">
+          <size>
+           <width>122</width>
+           <height>16</height>
+          </size>
          </property>
-         <property name="lineWidth">
-          <number>0</number>
+         <property name="flat">
+          <bool>true</bool>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_7">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QPushButton" name="shotgun_button">
-            <property name="maximumSize">
-             <size>
-              <width>122</width>
-              <height>16</height>
-             </size>
-            </property>
-            <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
-            </property>
-            <property name="toolTip">
-             <string>Open in Shotgun</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-            <property name="icon">
-             <iconset resource="resources.qrc">
-              <normaloff>:/tk-desktop/shotgun_logo_light_medium.png</normaloff>:/tk-desktop/shotgun_logo_light_medium.png</iconset>
-            </property>
-            <property name="iconSize">
-             <size>
-              <width>122</width>
-              <height>16</height>
-             </size>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="shotgun_arrow">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>20</width>
-              <height>20</height>
-             </size>
-            </property>
-            <property name="focusPolicy">
-             <enum>Qt::NoFocus</enum>
-            </property>
-            <property name="toolTip">
-             <string>Open in Shotgun</string>
-            </property>
-            <property name="text">
-             <string/>
-            </property>
-            <property name="icon">
-             <iconset resource="resources.qrc">
-              <normaloff>:/tk-desktop/up_right_arrow.png</normaloff>:/tk-desktop/up_right_arrow.png</iconset>
-            </property>
-            <property name="flat">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </widget>
        </item>
        <item>
@@ -1098,8 +1019,20 @@ font-size: 20px;
        </item>
        <item>
         <widget class="QPushButton" name="user_button">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="mouseTracking">
+          <bool>true</bool>
+         </property>
          <property name="focusPolicy">
           <enum>Qt::NoFocus</enum>
+         </property>
+         <property name="toolTip">
+          <string>User menu</string>
          </property>
          <property name="text">
           <string/>
@@ -1192,13 +1125,9 @@ font-size: 20px;
  </customwidgets>
  <tabstops>
   <tabstop>projects</tabstop>
-  <tabstop>shotgun_button</tabstop>
-  <tabstop>shotgun_arrow</tabstop>
   <tabstop>user_button</tabstop>
   <tabstop>search_button</tabstop>
   <tabstop>search_text</tabstop>
-  <tabstop>project_icon</tabstop>
-  <tabstop>project_name</tabstop>
   <tabstop>project_commands</tabstop>
   <tabstop>all_projects_button</tabstop>
   <tabstop>recent_projects</tabstop>

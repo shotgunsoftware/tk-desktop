@@ -1,11 +1,6 @@
 /***************
  * Header
  ***************/
-#header QPushButton:pressed
-{
-    color: rgb(195, 63, 0);
-}
-
 #header QPushButton, #header QPushButton:pressed
 {
     background-color: transparent;
@@ -13,11 +8,6 @@
     border: none;
     padding: 15px 0px 10px 0px;
     border-bottom: 2px solid rgb(195, 195, 195);
-}
-
-#header QPushButton:hover
-{
-    border-bottom: 2px solid gray;
 }
 
 /***************
@@ -28,6 +18,10 @@
     background-color: rgb(38, 38, 38);
 }
 
+#subheader_label {
+    font-size: 20px;
+}
+
 #subheader #search_frame
 {
     border-radius: 5px;
@@ -35,7 +29,7 @@
 
 #subheader #search_frame[collapsed="false"]
 {
-    background-color: rgb(154, 154, 154);
+    background-color: rgb(195, 195, 195);
 }
 
 #subheader #search_frame[collapsed="true"]
@@ -54,14 +48,9 @@
  * Recents subheader
  ***************/
 
-#recents_shelf QListView, #project_subheader QPushButton
+#project_subheader QPushButton
 {
     background-color: transparent;
-}
-
-#recents_shelf
-{
-    background-color: rgb(32, 32, 32);
 }
 
 #configuration_frame
@@ -91,6 +80,12 @@
     padding-top: 5px;
     padding-bottom: 2px;
 }
+
+#project_name
+{
+    font-size: 20px;
+}
+
 /***************
  * Project commands
  ***************/
@@ -100,23 +95,19 @@
     background-color: transparent;
 }
 
-/***************
- * Footer
- ***************/
-#shotgun_frame
-{
-    border: 1px solid transparent;
-    margin: 2px;
-}
-
-#shotgun_frame:hover
-{
-    border: 1px solid rgb(120, 120, 120);
-}
-
 #user_button::menu-indicator
 {
-    subcontrol-position: right center;
-    subcontrol-origin: padding;
-    left: 5px;
+    subcontrol-position: none;
+}
+
+#footer QPushButton
+{
+    border: 1px solid transparent;
+    border-radius: 3px;
+}
+
+#footer QPushButton:hover
+{
+    border: 1px solid rgb(195, 195, 195);
+    border-radius: 3px;
 }

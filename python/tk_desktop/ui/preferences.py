@@ -56,7 +56,7 @@ class Ui_Preferences(object):
         self.hotkey_clear.setMaximumSize(QtCore.QSize(16, 16))
         self.hotkey_clear.setText("")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/res/x.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(QtGui.QPixmap(":/tk-desktop/x.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.hotkey_clear.setIcon(icon)
         self.hotkey_clear.setIconSize(QtCore.QSize(8, 8))
         self.hotkey_clear.setAutoDefault(False)

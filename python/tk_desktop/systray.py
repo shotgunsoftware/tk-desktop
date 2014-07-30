@@ -43,12 +43,29 @@ class SystrayWindow(QtGui.QMainWindow):
     # signal that is emitted when the system tray state changes
     systray_state_changed = QtCore.Signal(int)
 
+    class ApplicationEventFilter(QtCore.QObject):
+        """ Internal class to handle hiding window on App deactivate """
+        def __init__(self, window, parent=None):
+            QtCore.QObject.__init__(self, parent)
+            self._window = window
+
+        def eventFilter(self, obj, event):
+            if event.type() == QtCore.QEvent.ApplicationDeactivate:
+                if self._window.state == SystrayWindow.STATE_PINNED:
+                    self._window.hide()
+                    if osutils is not None:
+                        osutils.make_app_background()
+            return QtCore.QObject.eventFilter(self, obj, event)
+
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         self.__logger = logging.getLogger("tk-desktop.systray")
 
         if sys.platform == "darwin":
             self.setAttribute(QtCore.Qt.WA_MacNoShadow)
+
+        self.filter = self.ApplicationEventFilter(self)
+        QtGui.QApplication.instance().installEventFilter(self.filter)
 
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
@@ -64,7 +81,7 @@ class SystrayWindow(QtGui.QMainWindow):
         self.__left_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(0, 1, -1, 0, 0, 0))
 
         # radius for rounded corners
-        self.__corner_radius = 5
+        self.__corner_radius = 4
 
         # widgets that will trigger the drag to move behavior
         self.__drag_widgets = []
@@ -134,34 +151,40 @@ class SystrayWindow(QtGui.QMainWindow):
         elif self.state == self.STATE_WINDOWED:
             self._pin_to_menu()
 
-    def _pin_to_menu(self):
+    def _pin_to_menu(self, animated=True):
         # figure out start and end positions for the window
         self.systray.show()
         QtGui.QApplication.instance().processEvents()
         systray_geo = self.systray.geometry()
 
         self.__logger.debug("systray_geo: %s" % systray_geo)
-        final = QtCore.QRect(systray_geo.center().x(), systray_geo.bottom(), 5, 5)
-        start = self.geometry()
 
-        # setup the animation to shrink the window to the systray
-        # parent the anim to self to keep it from being garbage collected
-        anim = QtCore.QPropertyAnimation(self, "geometry", self)
-        anim.setDuration(300)
-        anim.setStartValue(start)
-        anim.setEndValue(final)
-        anim.setEasingCurve(QtCore.QEasingCurve.InQuad)
+        if animated:
+            final = QtCore.QRect(systray_geo.center().x(), systray_geo.bottom(), 5, 5)
+            start = self.geometry()
 
-        # when the anim is finished, call the post handler
-        def post_close_animation():
+            # setup the animation to shrink the window to the systray
+            # parent the anim to self to keep it from being garbage collected
+            anim = QtCore.QPropertyAnimation(self, "geometry", self)
+            anim.setDuration(300)
+            anim.setStartValue(start)
+            anim.setEndValue(final)
+            anim.setEasingCurve(QtCore.QEasingCurve.InQuad)
+
+            # when the anim is finished, call the post handler
+            def post_close_animation():
+                self.hide()
+                self.setGeometry(start)
+                self.state = self.STATE_PINNED
+
+            anim.finished.connect(post_close_animation)
+
+            # run the animation
+            anim.start()
+        else:
+            # not animated
             self.hide()
-            self.setGeometry(start)
             self.state = self.STATE_PINNED
-
-        anim.finished.connect(post_close_animation)
-
-        # run the animation
-        anim.start()
 
     # Drag to move behavior
     ###########################
@@ -206,6 +229,8 @@ class SystrayWindow(QtGui.QMainWindow):
         # propagate event
         event.ignore()
 
+    # Pinned behavior
+    ###########################
     def __move_to_systray(self):
         """ update the window position to be centered under the system tray icon """
         geo = self.systray.geometry()
@@ -241,6 +266,8 @@ class SystrayWindow(QtGui.QMainWindow):
 
         if hidden:
             # hidden, show and bring to the top
+            if self.state == self.STATE_PINNED:
+                self.__move_to_systray()
             self.show()
             self.raise_()
             self.activateWindow()
@@ -257,15 +284,6 @@ class SystrayWindow(QtGui.QMainWindow):
             self.activateWindow()
             if osutils is not None:
                 osutils.activate_application()
-
-    def event(self, event):
-        if event.type() == QtCore.QEvent.WindowDeactivate:
-            if self.state == self.STATE_PINNED:
-                self.hide()
-                if osutils is not None:
-                    osutils.make_app_background()
-
-        return QtGui.QMainWindow.event(self, event)
 
     # Update the window mask
     ############################
@@ -310,7 +328,6 @@ class SystrayWindow(QtGui.QMainWindow):
 
         # create and configure the painter
         self.painter = QtGui.QPainter(bmp)
-        self.painter.setRenderHint(QtGui.QPainter.Antialiasing, True)
         self.painter.setRenderHint(QtGui.QPainter.HighQualityAntialiasing, True)
 
         # figure out what side to draw the anchor on
@@ -349,8 +366,8 @@ class SystrayWindow(QtGui.QMainWindow):
                 anchor_pixmap = self.__top_anchor
                 anchor_center = anchor_pixmap.rect().center()
                 points.append(QtCore.QPoint(mask_center.x(), rect.top()))
-                points.append(QtCore.QPoint(mask_center.x() - anchor_center.x(), mask.top()))
-                points.append(QtCore.QPoint(mask_center.x() + anchor_center.x(), mask.top()))
+                points.append(QtCore.QPoint(mask_center.x() - anchor_height, mask.top()))
+                points.append(QtCore.QPoint(mask_center.x() + anchor_height, mask.top()))
             elif side == self.DOCK_LEFT:
                 anchor_pixmap = self.__left_anchor
                 anchor_center = anchor_pixmap.rect().center()
@@ -366,8 +383,8 @@ class SystrayWindow(QtGui.QMainWindow):
             elif side == self.DOCK_BOTTOM:
                 anchor_pixmap = self.__bottom_anchor
                 anchor_center = anchor_pixmap.rect().center()
-                points.append(QtCore.QPoint(mask_center.x() - anchor_center.x(), mask.bottom()))
-                points.append(QtCore.QPoint(mask_center.x() + anchor_center.x(), mask.bottom()))
+                points.append(QtCore.QPoint(mask_center.x() - anchor_height, mask.bottom()))
+                points.append(QtCore.QPoint(mask_center.x() + anchor_height, mask.bottom()))
                 points.append(QtCore.QPoint(mask_center.x(), rect.bottom()))
             else:
                 raise ValueError("Unknown value for side: %s" % side)

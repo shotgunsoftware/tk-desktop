@@ -27,7 +27,6 @@ from .console import Console
 from .console import ConsoleLogHandler
 from .systray import SystrayWindow
 from .setup_project import SetupProject
-from .preferences import Preferences
 from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
 from .project_delegate import SgProjectDelegate
@@ -136,7 +135,6 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionShow_Console)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
         self.user_menu.addSeparator()
-        self.user_menu.addAction(self.ui.actionPreferences)
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
 
@@ -146,7 +144,6 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
         self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
         self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
-        self.ui.actionPreferences.triggered.connect(self.handle_preferences_action)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
 
@@ -186,7 +183,7 @@ class DesktopWindow(SystrayWindow):
 
         # tell our project view to use a custom delegate to produce widgets
         self._project_delegate = \
-            SgProjectDelegate(self.ui.projects, QtCore.QSize(120, 140))
+            SgProjectDelegate(self.ui.projects, QtCore.QSize(90, 120))
         self.ui.projects.setItemDelegate(self._project_delegate)
 
         self._recent_project_delegate = \
@@ -205,7 +202,7 @@ class DesktopWindow(SystrayWindow):
             self.on_project_filesystem_folder_triggered)
 
         # setup project search
-        self._search_x_icon = QtGui.QIcon(":tk-desktop/x.png")
+        self._search_x_icon = QtGui.QIcon(":/tk-desktop/icon_inbox_clear.png")
         self._search_magnifier_icon = QtGui.QIcon(":tk-desktop/search.png")
         self.ui.search_text.hide()
         self.ui.search_magnifier.hide()
@@ -217,61 +214,41 @@ class DesktopWindow(SystrayWindow):
         self.ui.search_button.clicked.connect(self.search_button_clicked)
         self.ui.search_text.textChanged.connect(self.search_text_changed)
 
-        # recent projects shelf
-        self.ui.project_arrow.clicked.connect(self.toggle_recent_projects_shelf)
-        self.ui.project_icon.clicked.connect(self.toggle_recent_projects_shelf)
-        self.ui.project_name.clicked.connect(self.toggle_recent_projects_shelf)
-        self.ui.spacer_button_1.clicked.connect(self.toggle_recent_projects_shelf)
-        self.ui.spacer_button_2.clicked.connect(self.toggle_recent_projects_shelf)
-        self.ui.spacer_button_3.clicked.connect(self.toggle_recent_projects_shelf)
-        self.ui.spacer_button_4.clicked.connect(self.toggle_recent_projects_shelf)
-
         self.project_carat_up = QtGui.QIcon(":tk-desktop/up_carat.png")
         self.project_carat_down = QtGui.QIcon(":tk-desktop/down_carat.png")
         self.down_arrow = QtGui.QIcon(":tk-desktop/down_arrow.png")
         self.right_arrow = QtGui.QIcon(":tk-desktop/right_arrow.png")
 
-        self.toggle_recent_projects_shelf()
+        # recent projects shelf
+        # Shelf is disabled for initial release
+        self.ui.project_arrow.clicked.connect(self._on_all_projects_clicked)
+        self.ui.recents_shelf.hide()
 
         self.clear_app_uis()
 
         self.ui.shotgun_button.clicked.connect(self.shotgun_button_clicked)
-        self.ui.shotgun_button.setToolTip("Open in Shotgun\n%s" % connection.base_url)
-        self.ui.shotgun_arrow.clicked.connect(self.shotgun_button_clicked)
-        self.ui.shotgun_arrow.setToolTip("Open in Shotgun\n%s" % connection.base_url)
+        self.ui.shotgun_button.setToolTip("Open Shotgun in browser.\n%s" % connection.base_url)
 
         self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
 
         self._load_settings()
 
     def _load_settings(self):
-        project_id = self._settings_manager.retrieve("project_id", 0, self._settings_manager.SCOPE_SITE)
+        # last window position
         pos = self._settings_manager.retrieve("pos", QtCore.QPoint(200, 200), self._settings_manager.SCOPE_SITE)
-
-        self.__set_project_from_id(project_id)
         self.move(pos)
-
         # Force update so the project selection happens if the window is shown by default
         QtGui.QApplication.processEvents()
 
-        # settings that apply across any instance (after site specific, so pinned can reset pos)
-        try:
-            self.state = self._settings_manager.retrieve("systray_state", self.STATE_PINNED)
-        except Exception:
-            self.state = self.STATE_PINNED
+        # load up last project
+        project_id = self._settings_manager.retrieve("project_id", 0, self._settings_manager.SCOPE_SITE)
+        self.__set_project_from_id(project_id)
 
+        # settings that apply across any instance (after site specific, so pinned can reset pos)
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
-        # restore hotkey
-        (key, native_modifiers, native_key) = \
-            self._settings_manager.retrieve(
-                "activation_hotkey",
-                (None, None, None),
-                self._settings_manager.SCOPE_SITE)
-
-        if key:
-            shortcut = QtGui.QKeySequence(key)
-            self.set_activation_hotkey(shortcut, native_modifiers, native_key)
+        # always start pinned and hidden
+        self.state = self.STATE_PINNED
 
     def _save_setting(self, key, value, site_specific):
         if site_specific:
@@ -303,14 +280,13 @@ class DesktopWindow(SystrayWindow):
             # nothing needs updating
             return
 
-        self.ui.project_icon.setIcon(item.icon())
+        self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
 
     def handle_systray_state_changed(self, state):
         if state == self.STATE_PINNED:
             self.ui.actionPin_to_Menu.setText("Undock from Menu")
         elif state == self.STATE_WINDOWED:
             self.ui.actionPin_to_Menu.setText("Pin to Menu")
-        self._save_setting("systray_state", state, site_specific=False)
 
     def handle_quit_action(self):
         # disconnect from the current proxy
@@ -356,34 +332,6 @@ class DesktopWindow(SystrayWindow):
         if state == QtCore.Qt.Unchecked:
             osutils.set_launch_at_login(False)
 
-    def handle_preferences_action(self):
-        # create the dialog
-        prefs = Preferences()
-
-        # setup current prefs
-        (key, native_modifiers, native_key) = \
-            self._settings_manager.retrieve(
-                "activation_hotkey",
-                (None, None, None),
-                self._settings_manager.SCOPE_SITE)
-        if key:
-            shortcut = QtGui.QKeySequence(key)
-            prefs.ui.hotkey.key_sequence = shortcut
-
-        if osutils is not None:
-            start_on_login = osutils.get_launch_at_login()
-            if start_on_login:
-                prefs.ui.auto_start_checkbox.setCheckState(QtCore.Qt.Checked)
-            else:
-                prefs.ui.auto_start_checkbox.setCheckState(QtCore.Qt.Unchecked)
-
-        # handle changes
-        prefs.ui.hotkey.key_sequence_changed.connect(self.set_activation_hotkey)
-        prefs.ui.auto_start_checkbox.stateChanged.connect(self.handle_auto_start_changed)
-
-        # and run it
-        prefs.exec_()
-
     def handle_project_refresh_action(self):
         """
         Force a reload of the project model.
@@ -404,7 +352,6 @@ class DesktopWindow(SystrayWindow):
             self.ui.search_magnifier.show()
             self.ui.search_button.setIcon(self._search_x_icon)
             self.ui.search_frame.setProperty("collapsed", False)
-            self.ui.search_text.setFocus(QtCore.Qt.MouseFocusReason)
         else:
             # collapse
             self.ui.search_text.hide()
@@ -425,17 +372,6 @@ class DesktopWindow(SystrayWindow):
 
     def search_text_changed(self, text):
         self._project_proxy.search_text = text
-
-    def toggle_recent_projects_shelf(self):
-        if self.ui.recents_shelf.isHidden():
-            self.ui.recents_shelf.show()
-            self.ui.project_arrow.setIcon(self.project_carat_up)
-
-            self.ui.recents_shelf.adjustSize()
-            QtGui.QApplication.processEvents()
-        else:
-            self.ui.recents_shelf.hide()
-            self.ui.project_arrow.setIcon(self.project_carat_down)
 
     def on_project_filesystem_folder_triggered(self):
         engine = sgtk.platform.current_engine()
@@ -620,14 +556,19 @@ class DesktopWindow(SystrayWindow):
                     index, self._project_selection_model.SelectCurrent)
                 break
 
+    def __get_icon_pixmap(self, icon, size):
+        pixmap = icon.pixmap(512, 512)
+        return pixmap.scaled(size, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
+
     def __set_project_from_item(self, item):
         # slide in the project specific view
         self.slide_view(self.ui.project_page, "right")
         self._project_selection_model.clear()
 
         # update the project icon
-        self.ui.project_icon.setIcon(item.icon())
-        self.ui.project_name.setText("%s" % item.data(SgProjectModel.DISPLAY_NAME_ROLE))
+        self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
+        project = item.data(SgProjectModel.SG_DATA_ROLE)
+        self.ui.project_name.setText(project.get("name", "No Name"))
 
         # clear any selection in the recent projects
         self._recent_project_selection_model.clear()
@@ -648,8 +589,9 @@ class DesktopWindow(SystrayWindow):
         item = source_index.model().itemFromIndex(source_index)
 
         # update the project icon
-        self.ui.project_icon.setIcon(item.icon())
-        self.ui.project_name.setText(item.data(SgProjectModel.DISPLAY_NAME_ROLE))
+        self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
+        project = item.data(SgProjectModel.SG_DATA_ROLE)
+        self.ui.project_name.setText(project.get("name", "No Name"))
 
         # launch the app proxy
         project = item.data(ShotgunModel.SG_DATA_ROLE)

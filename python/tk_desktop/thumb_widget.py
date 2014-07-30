@@ -15,24 +15,27 @@ from .ui import thumb_widget
 
 class ThumbWidget(QtGui.QWidget):
     """Thumbnail widget to poplulate the projects list view """
-    def __init__(self, parent):
+    def __init__(self, size=120, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
         self.setVisible(False)
 
+        self.size = size
         self.ui = thumb_widget.Ui_ThumbWidget()
         self.ui.setupUi(self)
 
     def set_thumbnail(self, pixmap):
         """ Set a thumbnail given the current pixmap. """
-        # resize to a fixed size preserving aspect ratio
-        preserved_aspect = pixmap.scaled(120, 90, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-        self.ui.thumbnail.setPixmap(preserved_aspect)
+        # zoom to fit height, then crop to center
+        pixmap = pixmap.scaledToHeight(self.size, QtCore.Qt.SmoothTransformation)
+        if pixmap.width() > self.size:
+            extra = pixmap.width() - self.size
+            pixmap = pixmap.copy(extra/2, 0, self.size, self.size)
+        self.ui.thumbnail.setPixmap(pixmap)
 
     def set_text(self, label):
         """Populate the line of text in the widget """
         self.ui.label.setText(label)
-        self.setToolTip(label)
 
     def set_selected(self, selected):
         """Adjust the style sheet to indicate selection or not"""

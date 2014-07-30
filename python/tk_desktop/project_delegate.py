@@ -15,19 +15,23 @@ import sgtk
 from .thumb_widget import ThumbWidget
 from .project_model import SgProjectModel
 
-
+shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
+
+ShotgunModel = shotgun_model.ShotgunModel
 
 
 class SgProjectDelegate(shotgun_view.WidgetDelegate):
     def __init__(self, view, size):
-        shotgun_view.WidgetDelegate.__init__(self, view)
         self._size = size
         self.__current_selected_widget = None
+        self._view = view
+
+        shotgun_view.WidgetDelegate.__init__(self, view)
 
     def _create_widget(self, parent):
         """ Widget factory as required by base class """
-        thumb = ThumbWidget(parent)
+        thumb = ThumbWidget(self._size.width(), parent)
         thumb.setStyleSheet("background-color: transparent;")
         return thumb
 
@@ -36,11 +40,20 @@ class SgProjectDelegate(shotgun_view.WidgetDelegate):
         Called by the base class before the associated widget should be
         painted in the view.
         """
+        # setup thumbnail
         icon = model_index.data(QtCore.Qt.DecorationRole)
         if icon is not None:
             thumb = icon.pixmap(512)
             widget.set_thumbnail(thumb)
+
+        # set name
         widget.set_text(model_index.data(SgProjectModel.DISPLAY_NAME_ROLE))
+
+        # set description tooltip
+        project = model_index.data(ShotgunModel.SG_DATA_ROLE)
+        tooltip = project.get("sg_description") or ""
+        self._view.setToolTip(tooltip)
+
         widget.set_selected(False)
 
     def _on_before_selection(self, widget, model_index, style_options):

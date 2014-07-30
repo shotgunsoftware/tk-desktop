@@ -1,5 +1,7 @@
 <RCC>
   <qresource prefix="tk-desktop">
+    <file>back_arrow.png</file>
+    <file>icon_inbox_clear.png</file>
     <file>anchor_arrow.png</file>
     <file>right_arrow.png</file>
     <file>ellipses.png</file>
