@@ -82,11 +82,6 @@ class Ui_UpdateProjectConfig(object):
         self.success.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
         self.success.setObjectName("success")
         self.verticalLayout_2.addWidget(self.success)
-        self.error = QtGui.QLabel(UpdateProjectConfig)
-        self.error.setWordWrap(True)
-        self.error.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
-        self.error.setObjectName("error")
-        self.verticalLayout_2.addWidget(self.error)
         self.verticalLayout.addLayout(self.verticalLayout_2)
         spacerItem4 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem4)
@@ -103,6 +98,5 @@ class Ui_UpdateProjectConfig(object):
         self.button.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">Click here to upgrade your</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Pipeline Configuration</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
         self.success.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">The project has been setup.</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Click it again to reload.</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
-        self.error.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">There was an error setting up the project.</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Please let toolkitsupport@shotgunsoftware.com know.</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc

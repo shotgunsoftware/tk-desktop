@@ -15,6 +15,7 @@ from PySide import QtGui
 from PySide import QtCore
 
 from .ui import update_project_config
+from .error_dialog import ErrorDialog
 
 
 class UpdateProjectConfig(QtGui.QWidget):
@@ -37,7 +38,6 @@ class UpdateProjectConfig(QtGui.QWidget):
 
         # hide outcome messages
         self.ui.success.setVisible(False)
-        self.ui.error.setVisible(False)
 
         # resize with parent
         filter = ResizeEventFilter(self._parent)
@@ -57,7 +57,6 @@ class UpdateProjectConfig(QtGui.QWidget):
         # reset the ui
         self.ui.label.setVisible(True)
         self.ui.success.setVisible(False)
-        self.ui.error.setVisible(False)
         self.ui.button.setEnabled(True)
 
     def do_config(self):
@@ -89,21 +88,27 @@ class UpdateProjectConfig(QtGui.QWidget):
             # failure
             message = """
                 <html><head/><body>
-                    <p align="center"><span style=" font-size:16pt;">
+                    <p><span style=" font-size:16pt;">
                         There was an error adding the desktop engine:
                     </span></p>
-                    <p align="center"><span style=" font-size:12pt;">
+                    <p>
                         <pre>%s</pre>
-                    </span></p>
-                    <p align="center"><span style=" font-size:14pt;">
+                    </p>
+                    <p><span style=" font-size:14pt;">
                         Please let toolkitsupport@shotgunsoftware.com know.
                     </span></p>
                 </body></html>
             """ % stderr
 
-            self.ui.label.setVisible(False)
-            self.ui.error.setText(message)
-            self.ui.error.setVisible(True)
+            # show the error
+            e = ErrorDialog("Toolkit Error", message, self)
+            e.exec_()
+
+            # set the button up for another attempt
+            self.ui.button.setText("Try Again")
+            self.ui.button.setEnabled(True)
+
+            # let listeners know we finished
             self.update_finished.emit(False)
 
     def _on_parent_resized(self):
