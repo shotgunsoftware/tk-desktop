@@ -150,6 +150,14 @@ class DesktopEngine(Engine):
     def log_error(self, msg, *args):
         self.log(logging.ERROR, msg, *args)
 
+    def log_exception(self, msg, *args):
+        if self.__impl is None:
+            # implementation has not been setup yet, log directly to the logger
+            self._logger.exception(msg, *args)
+        else:
+            # implementation has been setup, let it handle the logging
+            self.__impl.exception(msg, *args)
+
     def add_logging_handler(self, handler):
         self._logger.addHandler(handler)
         self.__extra_handlers.append(handler)

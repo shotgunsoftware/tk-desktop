@@ -74,7 +74,7 @@
         <number>20</number>
        </property>
        <property name="leftMargin">
-        <number>30</number>
+        <number>40</number>
        </property>
        <property name="topMargin">
         <number>0</number>
@@ -266,13 +266,13 @@
             <number>15</number>
            </property>
            <property name="leftMargin">
-            <number>20</number>
+            <number>40</number>
            </property>
            <property name="topMargin">
             <number>15</number>
            </property>
            <property name="rightMargin">
-            <number>20</number>
+            <number>40</number>
            </property>
            <property name="bottomMargin">
             <number>15</number>
@@ -348,7 +348,7 @@
                  <string/>
                 </property>
                 <property name="pixmap">
-                 <pixmap resource="resources.qrc">:/tk-desktop/search.png</pixmap>
+                 <pixmap resource="resources.qrc">:/tk-desktop/search_dark.png</pixmap>
                 </property>
                 <property name="scaledContents">
                  <bool>true</bool>
@@ -377,7 +377,7 @@
                  <enum>Qt::NoFocus</enum>
                 </property>
                 <property name="toolTip">
-                 <string>Search Projects</string>
+                 <string>Clear search</string>
                 </property>
                 <property name="text">
                  <string/>
@@ -969,7 +969,16 @@
        <property name="spacing">
         <number>0</number>
        </property>
-       <property name="margin">
+       <property name="leftMargin">
+        <number>35</number>
+       </property>
+       <property name="topMargin">
+        <number>5</number>
+       </property>
+       <property name="rightMargin">
+        <number>10</number>
+       </property>
+       <property name="bottomMargin">
         <number>5</number>
        </property>
        <item>

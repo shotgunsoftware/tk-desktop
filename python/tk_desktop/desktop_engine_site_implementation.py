@@ -73,13 +73,13 @@ class DesktopEngineSiteImplementation(object):
             self.desktop_window.show_update_project_config()
         else:
             # just show the error in the window
+            display_message = "%s\n\nSee the console for more details." % message
+            self.desktop_window.project_overlay.show_error_message(display_message)
 
-            # add the traceback if debug is true
-            if self._engine.get_setting("debug_logging", False) and tb is not None:
+            # add the traceback if available
+            if tb is not None:
                 message += "\n\n%s" % tb
-
             self._engine.log_error(message)
-            self.desktop_window.project_overlay.show_error_message(message)
 
     def create_app_proxy(self, pipe, authkey):
         """ Called when the project engine has setup its RPC server thread """

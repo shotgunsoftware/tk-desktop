@@ -109,10 +109,10 @@ class DesktopWindow(SystrayWindow):
         # User menu
         ###########################
         user = login.get_login()
-        thumbnail_url = connection.find_one(
-            "HumanUser",
-            [["id", "is", user["id"]]], ["image"],
-        ).get("image")
+        current_user = connection.find_one(
+            "HumanUser", [["id", "is", user["id"]]],
+            ["image", "name"])
+        thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
             (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
             try:
@@ -130,6 +130,9 @@ class DesktopWindow(SystrayWindow):
 
         # populate user menu
         self.user_menu = QtGui.QMenu(self)
+        name_action = self.user_menu.addAction(current_user["name"])
+        url_action = self.user_menu.addAction(connection.base_url.split("://")[1])
+        self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionPin_to_Menu)
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
         self.user_menu.addAction(self.ui.actionShow_Console)
@@ -137,6 +140,9 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
+
+        name_action.triggered.connect(self.open_site_in_browser)
+        url_action.triggered.connect(self.open_site_in_browser)
 
         QtGui.QApplication.instance().aboutToQuit.connect(self.handle_quit_action)
 
@@ -203,7 +209,7 @@ class DesktopWindow(SystrayWindow):
 
         # setup project search
         self._search_x_icon = QtGui.QIcon(":/tk-desktop/icon_inbox_clear.png")
-        self._search_magnifier_icon = QtGui.QIcon(":tk-desktop/search.png")
+        self._search_magnifier_icon = QtGui.QIcon(":/tk-desktop/search_light.png")
         self.ui.search_text.hide()
         self.ui.search_magnifier.hide()
         self.ui.search_button.setIcon(self._search_magnifier_icon)
@@ -226,7 +232,7 @@ class DesktopWindow(SystrayWindow):
 
         self.clear_app_uis()
 
-        self.ui.shotgun_button.clicked.connect(self.shotgun_button_clicked)
+        self.ui.shotgun_button.clicked.connect(self.open_site_in_browser)
         self.ui.shotgun_button.setToolTip("Open Shotgun in browser.\n%s" % connection.base_url)
 
         self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
@@ -734,12 +740,9 @@ class DesktopWindow(SystrayWindow):
                 with open(parent_config_file, "r") as f:
                     current_config_path = f.read().strip()
         except Exception, error:
-            message = "Error setting up engine environment\n\n%s" % error.message
-
-            # add the traceback if debug is true
-            if engine.get_setting("debug_logging", False):
-                message += "\n\n%s" % traceback.format_exc()
-
+            engine.log_exception("Error setting up engine environment")
+            message = "Error setting up engine environment\n\n%s\n\n" \
+                "See the console for more details." % error.message
             self.project_overlay.show_error_message(message)
             return
 
@@ -820,7 +823,7 @@ class DesktopWindow(SystrayWindow):
         anim_group.finished.connect(slide_finished)
         anim_group.start()
 
-    def shotgun_button_clicked(self):
+    def open_site_in_browser(self):
         login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
         connection = login.get_connection()
         url = connection.base_url
