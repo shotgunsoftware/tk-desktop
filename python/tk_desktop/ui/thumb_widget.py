@@ -11,13 +11,12 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_ThumbWidget(object):
     def setupUi(self, ThumbWidget):
         ThumbWidget.setObjectName("ThumbWidget")
-        ThumbWidget.resize(120, 130)
+        ThumbWidget.resize(552, 480)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(ThumbWidget.sizePolicy().hasHeightForWidth())
         ThumbWidget.setSizePolicy(sizePolicy)
-        ThumbWidget.setMaximumSize(QtCore.QSize(120, 130))
         self.verticalLayout_2 = QtGui.QVBoxLayout(ThumbWidget)
         self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
@@ -30,7 +29,7 @@ class Ui_ThumbWidget(object):
         self.widget_frame.setObjectName("widget_frame")
         self.verticalLayout = QtGui.QVBoxLayout(self.widget_frame)
         self.verticalLayout.setSpacing(10)
-        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout.setContentsMargins(15, 15, 15, 15)
         self.verticalLayout.setObjectName("verticalLayout")
         self.thumbnail = QtGui.QLabel(self.widget_frame)
         self.thumbnail.setMouseTracking(True)

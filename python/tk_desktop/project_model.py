@@ -113,13 +113,10 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
 
     #############################################
 
-    def _update_cached_data(self, invalidate=True):
+    def _update_cached_data(self):
         """
         Update our internal state with the results of how the current
         properties are set.
-
-        Will call invalidate unless the invalidate parameter is set
-        to False.
         """
         src_model = self.sourceModel()
         if src_model is None:
@@ -171,15 +168,11 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         # grab the ids for easy access during lessThan and filterAcceptsRow
         self._ids_in_order = [p["id"] for p in projects_in_order]
 
-        if invalidate:
-            # invalidate to trigger views to refresh
-            self.invalidate()
-
     def invalidate(self):
         """
         Override invalidate to update our cached data before calling the base implementation.
         """
-        self._update_cached_data(invalidate=False)
+        self._update_cached_data()
         QtGui.QSortFilterProxyModel.invalidate(self)
 
     def lessThan(self, left, right):

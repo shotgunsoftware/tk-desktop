@@ -39,4 +39,26 @@ class ThumbWidget(QtGui.QWidget):
 
     def set_selected(self, selected):
         """Adjust the style sheet to indicate selection or not"""
-        pass
+        if selected:
+            p = QtGui.QPalette()
+            highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
+
+            border = "rgb(%s, %s, %s)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
+            background = "rgba(%s, %s, %s, 25%%)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
+            self.ui.widget_frame.setStyleSheet("""
+                #widget_frame {
+                    border: 1px solid %s;
+                    background-color: %s;
+                }
+            """ % (border, background))
+        else:
+            self.ui.widget_frame.setStyleSheet("""
+                #widget_frame {
+                    border: 1px solid transparent;
+                }
+            """)
+
+        # force a refresh of the stylesheet
+        self.ui.widget_frame.style().unpolish(self.ui.widget_frame)
+        self.ui.widget_frame.style().polish(self.ui.widget_frame)
+        self.ui.widget_frame.update()

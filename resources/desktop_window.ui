@@ -6,15 +6,9 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>454</width>
-    <height>754</height>
+    <width>427</width>
+    <height>715</height>
    </rect>
-  </property>
-  <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-    <horstretch>0</horstretch>
-    <verstretch>0</verstretch>
-   </sizepolicy>
   </property>
   <property name="mouseTracking">
    <bool>true</bool>
@@ -57,18 +51,18 @@
       <property name="frameShadow">
        <enum>QFrame::Raised</enum>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,0,0,0">
+      <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0">
        <property name="spacing">
         <number>20</number>
        </property>
        <property name="leftMargin">
-        <number>40</number>
+        <number>20</number>
        </property>
        <property name="topMargin">
         <number>0</number>
        </property>
        <property name="rightMargin">
-        <number>0</number>
+        <number>20</number>
        </property>
        <property name="bottomMargin">
         <number>0</number>
@@ -95,99 +89,6 @@
          </property>
          <property name="text">
           <string>Apps</string>
-         </property>
-         <property name="flat">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="inbox_button">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="focusPolicy">
-          <enum>Qt::NoFocus</enum>
-         </property>
-         <property name="text">
-          <string>Inbox</string>
-         </property>
-         <property name="flat">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="my_tasks_button">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="focusPolicy">
-          <enum>Qt::NoFocus</enum>
-         </property>
-         <property name="text">
-          <string>My Tasks</string>
-         </property>
-         <property name="flat">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="versions_button">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>0</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="mouseTracking">
-          <bool>true</bool>
-         </property>
-         <property name="focusPolicy">
-          <enum>Qt::NoFocus</enum>
-         </property>
-         <property name="text">
-          <string>Versions</string>
          </property>
          <property name="flat">
           <bool>true</bool>
@@ -254,13 +155,13 @@
             <number>15</number>
            </property>
            <property name="leftMargin">
-            <number>40</number>
+            <number>20</number>
            </property>
            <property name="topMargin">
             <number>15</number>
            </property>
            <property name="rightMargin">
-            <number>40</number>
+            <number>20</number>
            </property>
            <property name="bottomMargin">
             <number>15</number>
@@ -445,7 +346,7 @@
            <enum>QListView::SinglePass</enum>
           </property>
           <property name="spacing">
-           <number>40</number>
+           <number>5</number>
           </property>
           <property name="viewMode">
            <enum>QListView::IconMode</enum>
@@ -829,7 +730,7 @@
         <number>0</number>
        </property>
        <property name="leftMargin">
-        <number>35</number>
+        <number>10</number>
        </property>
        <property name="topMargin">
         <number>5</number>

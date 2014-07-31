@@ -95,9 +95,15 @@
     background-color: transparent;
 }
 
+#user_button
+{
+    padding: 5px;
+    background-color: transparent;
+}
+
 #user_button::menu-indicator
 {
-    subcontrol-position: none;
+    image: none;
 }
 
 #stack

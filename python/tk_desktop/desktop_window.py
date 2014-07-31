@@ -85,19 +85,9 @@ class DesktopWindow(SystrayWindow):
         QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
         # Setup header buttons
-        button_states = [
-            (self.ui.apps_button, True),
-            (self.ui.inbox_button, False),
-            (self.ui.my_tasks_button, False),
-            (self.ui.versions_button, False),
-        ]
-        for (button, state) in button_states:
-            button.setProperty("active", state)
-            button.style().unpolish(button)
-            button.style().polish(button)
-            if not state:
-                # do not show disabled interfaces
-                button.hide()
+        self.ui.apps_button.setProperty("active", True)
+        self.ui.apps_button.style().unpolish(self.ui.apps_button)
+        self.ui.apps_button.style().polish(self.ui.apps_button)
         login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
         connection = login.get_connection()
 
@@ -163,7 +153,6 @@ class DesktopWindow(SystrayWindow):
         self._project_command_model = ProjectCommandModel(self)
         self._project_command_proxy = ProjectCommandProxyModel(self)
         self._project_command_proxy.setSourceModel(self._project_command_model)
-        self._project_command_proxy.setDynamicSortFilter(True)
         self._project_command_proxy.sort(0)
         self.ui.project_commands.setModel(self._project_command_proxy)
 
@@ -179,13 +168,12 @@ class DesktopWindow(SystrayWindow):
 
         # hook up sorting/filtering GUI
         self._project_proxy.setSourceModel(self._project_model)
-        self._project_proxy.setDynamicSortFilter(True)
         self._project_proxy.sort(0)
         self.ui.projects.setModel(self._project_proxy)
 
         # tell our project view to use a custom delegate to produce widgets
         self._project_delegate = \
-            SgProjectDelegate(self.ui.projects, QtCore.QSize(90, 120))
+            SgProjectDelegate(self.ui.projects, QtCore.QSize(130, 150))
         self.ui.projects.setItemDelegate(self._project_delegate)
 
         # handle project selection change
@@ -413,6 +401,7 @@ class DesktopWindow(SystrayWindow):
 
     def _on_back_to_projects_clicked(self):
         self._project_selection_model.clear()
+        self._project_proxy.sort(0)
 
         self.slide_view(self.ui.project_browser_page, "left")
         self.clear_app_uis()
@@ -506,9 +495,7 @@ class DesktopWindow(SystrayWindow):
                 self.ui.configuration_name.setText(pc["code"])
 
     def __set_project_just_accessed(self, project):
-        self._project_selection_model.clear()
         self._project_model.update_project_accessed_time(project)
-        self._project_proxy.sort(0)
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
@@ -552,13 +539,10 @@ class DesktopWindow(SystrayWindow):
         # slide in the project specific view
         self.slide_view(self.ui.project_page, "right")
 
-        # update the project icon
+        # update the project icon and name
         self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
         project = item.data(SgProjectModel.SG_DATA_ROLE)
         self.ui.project_name.setText(project.get("name", "No Name"))
-
-        # clear any selections
-        self._project_selection_model.clear()
 
         # launch the app proxy
         project = item.data(SgProjectModel.SG_DATA_ROLE)

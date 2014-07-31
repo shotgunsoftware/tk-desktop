@@ -24,18 +24,14 @@ ShotgunModel = shotgun_model.ShotgunModel
 class SgProjectDelegate(shotgun_view.WidgetDelegate):
     def __init__(self, view, size):
         self._size = size
-        self.__current_selected_widget = None
         self._view = view
-
         shotgun_view.WidgetDelegate.__init__(self, view)
 
     def _create_widget(self, parent):
         """ Widget factory as required by base class """
-        thumb = ThumbWidget(self._size.width(), parent)
-        thumb.setStyleSheet("background-color: transparent;")
-        return thumb
+        return ThumbWidget(self._size.width(), parent)
 
-    def _on_before_paint(self, widget, model_index, style_options):
+    def _on_before_paint(self, widget, model_index, style_options, selected=False):
         """
         Called by the base class before the associated widget should be
         painted in the view.
@@ -54,27 +50,15 @@ class SgProjectDelegate(shotgun_view.WidgetDelegate):
         tooltip = project.get("sg_description") or ""
         self._view.setToolTip(tooltip)
 
-        widget.set_selected(False)
+        widget.set_selected(selected)
 
     def _on_before_selection(self, widget, model_index, style_options):
         """
         Called by the base class before the associated widget should
         be selected.
         """
-        if self.__current_selected_widget is not None:
-            try:
-                # only one selection at a time
-                self.__current_selected_widget.set_selected(False)
-            except RuntimeError:
-                # the current selected widget may be deleted from
-                # underneath us
-                pass
-
         # rendering of a selected widget is the same
-        self._on_before_paint(widget, model_index, style_options)
-
-        widget.set_selected(True)
-        self.__current_selected_widget = widget
+        self._on_before_paint(widget, model_index, style_options, selected=True)
 
     def sizeHint(self, style_options, model_index):
         return self._size
