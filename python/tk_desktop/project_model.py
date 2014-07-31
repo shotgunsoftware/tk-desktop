@@ -108,6 +108,7 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
             return
         self._search_text = value
         self._update_cached_data()
+        self.invalidate()
 
     search_text = property(_get_search_text, _set_search_text)
 

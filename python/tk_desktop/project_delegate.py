@@ -47,8 +47,9 @@ class SgProjectDelegate(shotgun_view.WidgetDelegate):
 
         # set description tooltip
         project = model_index.data(ShotgunModel.SG_DATA_ROLE)
-        tooltip = project.get("sg_description") or ""
-        self._view.setToolTip(tooltip)
+        if project is not None:
+            tooltip = project.get("sg_description") or ""
+            self._view.setToolTip(tooltip)
 
         widget.set_selected(selected)
 
