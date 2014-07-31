@@ -183,31 +183,15 @@ class DesktopWindow(SystrayWindow):
         self._project_proxy.sort(0)
         self.ui.projects.setModel(self._project_proxy)
 
-        # load and initialize cached recent projects
-        self._recent_project_proxy = SgProjectModelProxy(self)
-        self._recent_project_proxy.limit = 3
-        self._recent_project_proxy.setSourceModel(self._project_model)
-        self._recent_project_proxy.setDynamicSortFilter(True)
-        self._recent_project_proxy.sort(0)
-        self.ui.recent_projects.setModel(self._recent_project_proxy)
-
         # tell our project view to use a custom delegate to produce widgets
         self._project_delegate = \
             SgProjectDelegate(self.ui.projects, QtCore.QSize(90, 120))
         self.ui.projects.setItemDelegate(self._project_delegate)
 
-        self._recent_project_delegate = \
-            SgProjectDelegate(self.ui.recent_projects, QtCore.QSize(100, 120))
-        self.ui.recent_projects.setItemDelegate(self._recent_project_delegate)
-
         # handle project selection change
         self._project_selection_model = self.ui.projects.selectionModel()
         self._project_selection_model.selectionChanged.connect(self._on_project_selection)
-        self._recent_project_selection_model = self.ui.recent_projects.selectionModel()
-        self._recent_project_selection_model.selectionChanged.connect(
-            self._on_recent_project_selection)
 
-        self.ui.all_projects_button.clicked.connect(self._on_all_projects_clicked)
         self.ui.actionProject_Filesystem_Folder.triggered.connect(
             self.on_project_filesystem_folder_triggered)
 
@@ -229,10 +213,7 @@ class DesktopWindow(SystrayWindow):
         self.down_arrow = QtGui.QIcon(":tk-desktop/down_arrow.png")
         self.right_arrow = QtGui.QIcon(":tk-desktop/right_arrow.png")
 
-        # recent projects shelf
-        # Shelf is disabled for initial release
-        self.ui.project_arrow.clicked.connect(self._on_all_projects_clicked)
-        self.ui.recents_shelf.hide()
+        self.ui.project_arrow.clicked.connect(self._on_back_to_projects_clicked)
 
         self.clear_app_uis()
 
@@ -430,9 +411,8 @@ class DesktopWindow(SystrayWindow):
     def add_to_project_menu(self, action):
         self.project_menu.insertAction(self.__pipeline_configuration_separator, action)
 
-    def _on_all_projects_clicked(self):
+    def _on_back_to_projects_clicked(self):
         self._project_selection_model.clear()
-        self._recent_project_selection_model.clear()
 
         self.slide_view(self.ui.project_browser_page, "left")
         self.clear_app_uis()
@@ -527,10 +507,8 @@ class DesktopWindow(SystrayWindow):
 
     def __set_project_just_accessed(self, project):
         self._project_selection_model.clear()
-        self._recent_project_selection_model.clear()
         self._project_model.update_project_accessed_time(project)
         self._project_proxy.sort(0)
-        self._recent_project_proxy.sort(0)
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
@@ -573,38 +551,17 @@ class DesktopWindow(SystrayWindow):
     def __set_project_from_item(self, item):
         # slide in the project specific view
         self.slide_view(self.ui.project_page, "right")
+
+        # update the project icon
+        self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
+        project = item.data(SgProjectModel.SG_DATA_ROLE)
+        self.ui.project_name.setText(project.get("name", "No Name"))
+
+        # clear any selections
         self._project_selection_model.clear()
 
-        # update the project icon
-        self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
-        project = item.data(SgProjectModel.SG_DATA_ROLE)
-        self.ui.project_name.setText(project.get("name", "No Name"))
-
-        # clear any selection in the recent projects
-        self._recent_project_selection_model.clear()
-
         # launch the app proxy
         project = item.data(SgProjectModel.SG_DATA_ROLE)
-        self.__launch_app_proxy_for_project(project)
-
-    def _on_recent_project_selection(self, selected, deselected):
-        selected_indexes = selected.indexes()
-
-        if len(selected_indexes) == 0:
-            return
-
-        # pull the Shotgun information for the project corresponding to this item
-        proxy_model = selected_indexes[0].model()
-        source_index = proxy_model.mapToSource(selected_indexes[0])
-        item = source_index.model().itemFromIndex(source_index)
-
-        # update the project icon
-        self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
-        project = item.data(SgProjectModel.SG_DATA_ROLE)
-        self.ui.project_name.setText(project.get("name", "No Name"))
-
-        # launch the app proxy
-        project = item.data(ShotgunModel.SG_DATA_ROLE)
         self.__launch_app_proxy_for_project(project)
 
     def _on_project_menu_triggered(self, action):
