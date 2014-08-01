@@ -15,7 +15,8 @@ import sgtk
 
 from .ui import resources_rc
 
-from grouping_model import GroupingModel
+from .grouping_model import GroupingModel
+from .action_list_view import ActionListView
 
 shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
 
@@ -107,7 +108,7 @@ class DefaultGroupingFooterDelegate(shotgun_view.WidgetDelegate):
         return QtCore.QSize(self.parent().viewport().width(), self.line.height())
 
 
-class GroupingListView(QtGui.QListView):
+class GroupingListView(ActionListView):
     """ A list view that handles grouping its items """
     # expanded_changed(group_key, expanded)
     expanded_changed = QtCore.Signal(str, bool)

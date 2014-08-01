@@ -161,7 +161,7 @@
             <number>15</number>
            </property>
            <property name="rightMargin">
-            <number>20</number>
+            <number>15</number>
            </property>
            <property name="bottomMargin">
             <number>15</number>
@@ -256,6 +256,12 @@
               </item>
               <item>
                <widget class="QPushButton" name="search_button">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <property name="maximumSize">
                  <size>
                   <width>17</width>
@@ -293,7 +299,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QListView" name="projects">
+         <widget class="ActionListView" name="projects">
           <property name="sizePolicy">
            <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
             <horstretch>0</horstretch>
@@ -355,7 +361,7 @@
            <enum>QListView::IconMode</enum>
           </property>
           <property name="uniformItemSizes">
-           <bool>true</bool>
+           <bool>false</bool>
           </property>
           <property name="selectionRectVisible">
            <bool>false</bool>
@@ -517,6 +523,18 @@
            </item>
            <item>
             <widget class="QLabel" name="project_name">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>280</width>
+               <height>16777215</height>
+              </size>
+             </property>
              <property name="text">
               <string>Project</string>
              </property>
@@ -702,9 +720,6 @@
           <property name="layoutMode">
            <enum>QListView::Batched</enum>
           </property>
-          <property name="spacing">
-           <number>0</number>
-          </property>
           <property name="viewMode">
            <enum>QListView::IconMode</enum>
           </property>
@@ -755,6 +770,18 @@
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
+         <property name="minimumSize">
+          <size>
+           <width>132</width>
+           <height>26</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>132</width>
+           <height>26</height>
+          </size>
+         </property>
          <property name="mouseTracking">
           <bool>true</bool>
          </property>
@@ -795,10 +822,22 @@
        <item>
         <widget class="QPushButton" name="user_button">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>40</width>
+           <height>40</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>40</width>
+           <height>40</height>
+          </size>
          </property>
          <property name="mouseTracking">
           <bool>true</bool>
@@ -896,6 +935,11 @@
    <class>GroupingListView</class>
    <extends>QListView</extends>
    <header>..grouping_list_view.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ActionListView</class>
+   <extends>QListView</extends>
+   <header>..action_list_view.h</header>
   </customwidget>
  </customwidgets>
  <tabstops>

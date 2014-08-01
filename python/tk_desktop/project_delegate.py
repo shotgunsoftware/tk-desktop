@@ -62,4 +62,6 @@ class SgProjectDelegate(shotgun_view.WidgetDelegate):
         self._on_before_paint(widget, model_index, style_options, selected=True)
 
     def sizeHint(self, style_options, model_index):
-        return self._size
+        text = model_index.data(SgProjectModel.DISPLAY_NAME_ROLE)
+        height = ThumbWidget.height_for_width(self._size.width(), text)
+        return QtCore.QSize(self._size.width(), height)

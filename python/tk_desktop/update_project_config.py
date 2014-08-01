@@ -11,8 +11,8 @@
 import os
 import subprocess
 
-from PySide import QtGui
-from PySide import QtCore
+from sgtk.platform.qt import QtGui
+from sgtk.platform.qt import QtCore
 
 from .ui import update_project_config
 from .error_dialog import ErrorDialog

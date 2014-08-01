@@ -11,8 +11,8 @@
 import sgtk
 import logging
 
-from PySide import QtGui
-from PySide import QtCore
+from sgtk.platform.qt import QtGui
+from sgtk.platform.qt import QtCore
 
 from .ui import resources_rc
 
@@ -66,28 +66,17 @@ class Console(QtGui.QDialog):
         self.setWindowTitle('Shotgun Desktop Console')
         self.setWindowIcon(QtGui.QIcon(":/tk-desktop/default_systray_icon.png"))
 
-        self.__menu_bar = QtGui.QMenuBar(self)
-
-        self.__file_menu = self.__menu_bar.addMenu("File")
-        self.__close_action = self.__file_menu.addAction("Close")
-        self.__close_action.triggered.connect(self.close)
-
-        self.__edit_menu = self.__menu_bar.addMenu("Edit")
-        self.__copy_action = self.__edit_menu.addAction("Copy")
-        self.__copy_action.triggered.connect(self.copy)
-        self.__clear_action = self.__edit_menu.addAction("Clear")
-        self.__clear_action.triggered.connect(self.clear)
-
         self.__logs = QtGui.QPlainTextEdit()
-        self.__logs.setFocusPolicy(QtCore.Qt.NoFocus)
-
         layout = QtGui.QHBoxLayout()
         layout.addWidget(self.__logs)
         self.setLayout(layout)
 
         # configure the text widget
-        self.__logs.setLineWrapMode(self.__logs.NoWrap)
         self.__logs.setReadOnly(True)
+        self.__logs.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.__logs.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
+        self.__logs.customContextMenuRequested.connect(self.on_logs_context_menu_request)
+        self.__logs.setStyleSheet("QPlainTextEdit:focus { border: none; }")
 
         # load up previous size
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
@@ -98,7 +87,14 @@ class Console(QtGui.QDialog):
         self.move(pos)
         self.resize(size)
 
-        self.__opened = False
+    def on_logs_context_menu_request(self, point):
+        menu = self.__logs.createStandardContextMenu()
+        clear_action = menu.addAction("Clear")
+        clear_action.triggered.connect(self.clear)
+        close_action = menu.addAction("Close")
+        close_action.triggered.connect(self.close)
+
+        menu.exec_(self.__logs.mapToGlobal(point))
 
     def append_text(self, text, force_show=False):
         self.__logs.appendHtml(text)
@@ -110,9 +106,6 @@ class Console(QtGui.QDialog):
 
         if force_show:
             self.show_and_raise()
-
-    def copy(self):
-        QtGui.QApplication.clipboard().setText(self.__logs.toPlainText())
 
     def clear(self):
         self.__logs.setPlainText("")

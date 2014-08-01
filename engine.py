@@ -11,6 +11,7 @@
 import os
 import sys
 import logging
+import traceback
 import logging.handlers
 
 import sgtk
@@ -156,7 +157,8 @@ class DesktopEngine(Engine):
             self._logger.exception(msg, *args)
         else:
             # implementation has been setup, let it handle the logging
-            self.__impl.exception(msg, *args)
+            exception_msg = msg + "\n" + traceback.format_exc()
+            self.__impl.log(logging.ERROR, exception_msg, *args)
 
     def add_logging_handler(self, handler):
         self._logger.addHandler(handler)

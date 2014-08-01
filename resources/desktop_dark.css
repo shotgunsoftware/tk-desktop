@@ -16,6 +16,7 @@
 #subheader, #project_subheader
 {
     background-color: rgb(38, 38, 38);
+    border-bottom: 1px solid rgb(20, 20, 20);
 }
 
 #subheader_label {
@@ -66,7 +67,7 @@
 
 #project_menu
 {
-    background-color: rgb(48, 48, 48);
+    background-color: rgb(65, 65, 65);
 }
 
 #project_menu::menu-indicator
@@ -86,18 +87,20 @@
     font-size: 20px;
 }
 
-/***************
- * Project commands
- ***************/
 #project_commands
 {
-    padding: 5px;
-    background-color: transparent;
+    padding: 10px;
+    background-color: rgb(40, 40, 40);
+}
+
+#stack
+{
+    background-color: rgb(40, 40, 40);
 }
 
 #user_button
 {
-    padding: 5px;
+    margin: 2px;
     background-color: transparent;
 }
 
@@ -120,6 +123,6 @@
 
 #footer QPushButton:hover
 {
-    border: 1px solid rgb(195, 195, 195);
+    border: 1px solid rgb(67, 131, 168);
     border-radius: 3px;
 }

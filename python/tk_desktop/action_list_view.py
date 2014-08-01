@@ -8,8 +8,16 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-# import Qt to force the proper dependencies of osutils
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
 
-from . import osutils
+
+class ActionListView(QtGui.QListView):
+    """ Subclass of QListView that handles special logic when the items launch actions on select """
+    def mousePressEvent(self, event):
+        # Ignore right click events
+        if (event.button() == QtCore.Qt.RightButton):
+            return
+
+        # pass through to QListView for all other mouse events
+        QtGui.QListView.mousePressEvent(self, event)

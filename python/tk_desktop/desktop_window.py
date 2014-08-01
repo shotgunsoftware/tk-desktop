@@ -185,16 +185,10 @@ class DesktopWindow(SystrayWindow):
 
         # setup project search
         self._search_x_icon = QtGui.QIcon(":/tk-desktop/icon_inbox_clear.png")
-        self._search_magnifier_icon = QtGui.QIcon(":/tk-desktop/search_light.png")
-        self.ui.search_text.hide()
-        self.ui.search_magnifier.hide()
-        self.ui.search_button.setIcon(self._search_magnifier_icon)
-        self.ui.search_frame.setProperty("collapsed", True)
-        self.ui.search_frame.style().unpolish(self.ui.search_frame)
-        self.ui.search_frame.style().polish(self.ui.search_frame)
-        self.ui.search_frame.update()
+        self._search_magnifier_icon = QtGui.QIcon(":/tk-desktop/search_transparent.png")
         self.ui.search_button.clicked.connect(self.search_button_clicked)
         self.ui.search_text.textChanged.connect(self.search_text_changed)
+        self.search_button_clicked()
 
         self.project_carat_up = QtGui.QIcon(":tk-desktop/up_carat.png")
         self.project_carat_down = QtGui.QIcon(":tk-desktop/down_carat.png")
@@ -330,6 +324,8 @@ class DesktopWindow(SystrayWindow):
             self.ui.search_text.show()
             self.ui.search_magnifier.show()
             self.ui.search_button.setIcon(self._search_x_icon)
+            self.ui.search_button.setStyleSheet("")
+            self.ui.search_button.setToolTip("Clear search")
             self.ui.search_frame.setProperty("collapsed", False)
         else:
             # collapse
@@ -343,6 +339,16 @@ class DesktopWindow(SystrayWindow):
             # do not show the project menu for the time being
             # self.ui.project_button.show()
             self.ui.search_button.setIcon(self._search_magnifier_icon)
+            self.ui.search_button.setToolTip("Search Projects")
+            self.ui.search_button.setStyleSheet("""
+                QPushButton {
+                    border-image: url(:/tk-desktop/search_light.png);
+                }
+
+                QPushButton:hover {
+                    border-image: url(:/tk-desktop/search_blue.png);
+                }
+            """)
             self.ui.search_frame.setProperty("collapsed", True)
 
         self.ui.search_frame.style().unpolish(self.ui.search_frame)
