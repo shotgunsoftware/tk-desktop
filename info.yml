@@ -90,7 +90,8 @@ configuration:
                 button_label: { type: str }
                 menu_label: { type: str }
         allows_empty: True
-        default_value: []
+        default_value:
+        - {button_label: $app, match: Launch $app, menu_label: None}
 
     hook_launch_python:
         type: hook

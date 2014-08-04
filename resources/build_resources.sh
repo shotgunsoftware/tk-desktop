@@ -38,7 +38,9 @@ function build_res {
 # build UI's:
 echo "building user interfaces..."
 build_ui desktop_window
+build_ui wait_screen
 build_ui preferences
+build_ui about_screen
 build_ui error_dialog
 build_ui thumb_widget
 build_ui setup_project

@@ -1,10 +1,17 @@
 /***************
  * Header
  ***************/
+QWidget
+{
+    font-family: "Open Sans";
+    font-style: "Regular";
+}
+
 #header QPushButton, #header QPushButton:pressed
 {
     background-color: transparent;
     font-size: 15px;
+    font-style: "Condensed Light";
     border: none;
     padding: 15px 0px 10px 0px;
     border-bottom: 2px solid rgb(195, 195, 195);
@@ -21,6 +28,7 @@
 
 #subheader_label {
     font-size: 20px;
+    font-style: "Condensed Light";
 }
 
 #subheader #search_frame
@@ -85,6 +93,7 @@
 #project_subheader #project_name
 {
     font-size: 20px;
+    font-style: "Condensed Light";
 }
 
 #project_commands

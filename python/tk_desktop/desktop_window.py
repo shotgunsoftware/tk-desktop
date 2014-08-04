@@ -13,7 +13,6 @@
 import os
 import sys
 import tempfile
-import traceback
 import cPickle as pickle
 
 from tank.platform.qt import QtCore, QtGui
@@ -28,6 +27,7 @@ from .ui import desktop_window
 from .console import Console
 from .console import ConsoleLogHandler
 from .systray import SystrayWindow
+from .about_screen import AboutScreen
 from .setup_project import SetupProject
 from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
@@ -785,16 +785,10 @@ class DesktopWindow(SystrayWindow):
 
     def handle_about(self):
         engine = sgtk.platform.current_engine()
-        content = """
-            <html>
-                <p style="line-height: 130%%">
-                <center>
-                    <font size=+2><b>Shotgun Desktop</b></font><br/><br/>
-                    App Version %s<br/>
-                    Engine Version %s<br/><br/>
-                    Copyright ©2014 Shotgun Software Inc. All rights reserved.
-                </center>
-                </p>
-            </html>
-        """ % (engine.app_version, engine.version)
-        QtGui.QMessageBox.about(self, "Shotgun Desktop", content)
+        about = AboutScreen(parent=self, body="""
+            <center>
+                App Version %s<br/>
+                Engine Version %s
+            </center>
+        """ % (engine.app_version, engine.version))
+        about.exec_()

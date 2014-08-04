@@ -15,6 +15,7 @@ from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
 
 from .ui import update_project_config
+from .wait_screen import WaitScreen
 from .error_dialog import ErrorDialog
 
 
@@ -76,9 +77,19 @@ class UpdateProjectConfig(QtGui.QWidget):
             "--project_id", str(self.project["id"]),
         ]
 
-        # call it
-        python_process = subprocess.Popen(args, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
-        (stdout, stderr) = python_process.communicate()
+        try:
+            # show a message to indicate that something is happening
+            wait = WaitScreen("Updating project config,", "hold on...", self)
+            wait.show()
+            QtGui.QApplication.instance().processEvents()
+
+            # call it
+            python_process = subprocess.Popen(args, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            (stdout, stderr) = python_process.communicate()
+        finally:
+            # make sure the wait screen gets hidden
+            wait.hide()
+
         if python_process.returncode == 0:
             # success
             self.ui.label.setVisible(False)

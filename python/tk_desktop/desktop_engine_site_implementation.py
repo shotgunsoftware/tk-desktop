@@ -202,6 +202,12 @@ class DesktopEngineSiteImplementation(object):
         # setup the global look and feel
         self._engine._initialize_dark_look_and_feel()
 
+        # load custom font
+        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Bold.ttf")
+        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Regular.ttf")
+        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-CondLight.ttf")
+        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Light.ttf")
+
         # merge in app specific look and feel
         css_file = os.path.join(self._engine.disk_location, "resources", "desktop_dark.css")
         f = open(css_file)
