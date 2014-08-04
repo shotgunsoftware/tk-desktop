@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
+import sys
 import subprocess
 
 from sgtk.platform.qt import QtGui
@@ -83,8 +84,16 @@ class UpdateProjectConfig(QtGui.QWidget):
             wait.show()
             QtGui.QApplication.instance().processEvents()
 
+            # run hidden on windows
+            startupinfo = None
+            if sys.platform == "win32":
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                startupinfo.wShowWindow = subprocess.SW_HIDE
+
             # call it
-            python_process = subprocess.Popen(args, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+            python_process = subprocess.Popen(
+                args, stderr=subprocess.PIPE, stdout=subprocess.PIPE, startupinfo=startupinfo)
             (stdout, stderr) = python_process.communicate()
         finally:
             # make sure the wait screen gets hidden
