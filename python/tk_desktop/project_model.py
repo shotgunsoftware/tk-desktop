@@ -74,13 +74,6 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         Override base setSourceModel to include a call to update our
         internal representation for sorting and filtering.
         """
-        old_model = self.sourceModel()
-        if old_model is not None:
-            old_model.data_refreshed.disconnect(self._update_cached_data)
-            old_model.project_launched.disconnect(self._update_cached_data)
-        model.data_refreshed.connect(self._update_cached_data)
-        model.project_launched.connect(self._update_cached_data)
-
         QtGui.QSortFilterProxyModel.setSourceModel(self, model)
         self._update_cached_data()
 

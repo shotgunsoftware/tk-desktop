@@ -42,6 +42,7 @@ build_ui wait_screen
 build_ui preferences
 build_ui about_screen
 build_ui error_dialog
+build_ui setup_new_os
 build_ui thumb_widget
 build_ui setup_project
 build_ui update_project_config

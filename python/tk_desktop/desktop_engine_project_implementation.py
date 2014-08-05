@@ -132,6 +132,7 @@ class DesktopEngineProjectImplementation(object):
     def open_project_locations(self):
         """ Open the project locations in an os specific browser window """
         paths = self._engine.context.filesystem_locations
+
         for disk_location in paths:
             # get the setting
             system = sys.platform

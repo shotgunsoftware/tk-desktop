@@ -97,6 +97,6 @@ class Ui_UpdateProjectConfig(object):
         self.text.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add Shotgun Desktop", None, QtGui.QApplication.UnicodeUTF8))
         self.button.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">Click here to upgrade your</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Pipeline Configuration</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
-        self.success.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">The project has been setup.</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Click it again to reload.</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.success.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">The project has been set up.</span></p>", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc

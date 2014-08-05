@@ -29,6 +29,7 @@ from .console import ConsoleLogHandler
 from .systray import SystrayWindow
 from .about_screen import AboutScreen
 from .setup_project import SetupProject
+from .setup_new_os import SetupNewOS
 from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
 from .project_delegate import SgProjectDelegate
@@ -76,6 +77,7 @@ class DesktopWindow(SystrayWindow):
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
         self.update_project_config_widget = UpdateProjectConfig(self.ui.project_commands)
         self.update_project_config_widget.update_finished.connect(self._on_update_finished)
+        self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
 
         # setup systray behavior
         self.set_content_layout(self.ui.border_layout)
@@ -179,6 +181,9 @@ class DesktopWindow(SystrayWindow):
         # handle project selection change
         self._project_selection_model = self.ui.projects.selectionModel()
         self._project_selection_model.selectionChanged.connect(self._on_project_selection)
+
+        # handle project data updated
+        self._project_model.data_refreshed.connect(self._handle_project_data_changed)
 
         self.ui.actionProject_Filesystem_Folder.triggered.connect(
             self.on_project_filesystem_folder_triggered)
@@ -405,8 +410,14 @@ class DesktopWindow(SystrayWindow):
     def add_to_project_menu(self, action):
         self.project_menu.insertAction(self.__pipeline_configuration_separator, action)
 
+    def _handle_project_data_changed(self):
+        self._project_selection_model.clear()
+        self._project_proxy.invalidate()
+        self._project_proxy.sort(0)
+
     def _on_back_to_projects_clicked(self):
         self._project_selection_model.clear()
+        self._project_proxy.invalidate()
         self._project_proxy.sort(0)
 
         self.slide_view(self.ui.project_browser_page, "left")
@@ -435,6 +446,7 @@ class DesktopWindow(SystrayWindow):
         # hide the setup project ui if it is shown
         self.setup_project_widget.hide()
         self.update_project_config_widget.hide()
+        self.setup_new_os_widget.hide()
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)
@@ -670,6 +682,11 @@ class DesktopWindow(SystrayWindow):
                         path_to_python = f.read().strip()
                         core_root = current_config_path
 
+                    if not path_to_python:
+                        # python not specified for this os, show the setup new os widget
+                        self.setup_new_os_widget.show()
+                        self.project_overlay.hide()
+                        return
                     if not os.path.exists(path_to_python):
                         raise RuntimeError(
                             "Cannot find interpreter %s defined in "

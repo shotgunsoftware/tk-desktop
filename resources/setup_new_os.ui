@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>SetupProject</class>
- <widget class="QWidget" name="SetupProject">
+ <class>SetupNewOS</class>
+ <widget class="QWidget" name="SetupNewOS">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>417</width>
+    <width>435</width>
     <height>644</height>
    </rect>
   </property>
@@ -86,7 +86,13 @@
         <string notr="true">font-size: 26px;</string>
        </property>
        <property name="text">
-        <string>Set Up Toolkit Project</string>
+        <string>Set Up Project for New Operating System</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
@@ -123,7 +129,7 @@ QPushButton::disabled {
 }</string>
          </property>
          <property name="text">
-          <string>Set up Project</string>
+          <string>Learn More</string>
          </property>
          <property name="flat">
           <bool>false</bool>
@@ -144,6 +150,16 @@ QPushButton::disabled {
         </spacer>
        </item>
       </layout>
+     </item>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;The project has not been set up for the current operating system.&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;Click to view the docs on how to update your configuration.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <property name="wordWrap">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item>
       <spacer name="verticalSpacer_2">
