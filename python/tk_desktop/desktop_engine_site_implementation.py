@@ -197,7 +197,7 @@ class DesktopEngineSiteImplementation(object):
         icon = QtGui.QIcon(":tk-desktop/default_systray_icon")
         app.setWindowIcon(icon)
 
-        splash.showMessage("Building UI")
+        splash.set_message("Building UI")
 
         # setup the global look and feel
         self._engine._initialize_dark_look_and_feel()
@@ -223,7 +223,7 @@ class DesktopEngineSiteImplementation(object):
 
         # hide the splash if it exists
         if splash is not None:
-            splash.finish(self.desktop_window)
+            splash.hide()
 
         # and run the app
         result = app.exec_()
