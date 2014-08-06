@@ -86,7 +86,7 @@
         <string notr="true">font-size: 26px;</string>
        </property>
        <property name="text">
-        <string>Set Up Project for New Operating System</string>
+        <string>Set up project for new operating system</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>

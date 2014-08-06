@@ -32,26 +32,32 @@ class ProjectCommandProxyModel(GroupingProxyModel):
         src_model = self.sourceModel()
 
         if not src_model.is_content(left) or not src_model.is_content(right):
-            # only sort content
+            # let grouping model handle sorting non-content
             return GroupingProxyModel.lessThan(self, left, right)
 
         left_group = src_model.get_item_group_key(left)
         right_group = src_model.get_item_group_key(right)
 
-        if left_group != ProjectCommandModel.RECENT_GROUP_NAME or \
-           right_group != ProjectCommandModel.RECENT_GROUP_NAME:
-            # only sort when both content are from the Recent group
+        if left_group != right_group:
+            # let grouping model handle sorting across groups
             return GroupingProxyModel.lessThan(self, left, right)
 
-        left_launch = left.data(ProjectCommandModel.LAST_LAUNCH_ROLE)
-        if left_launch is None:
-            return True
+        if left_group == ProjectCommandModel.RECENT_GROUP_NAME:
+            # sort recents by launch time
+            left_launch = left.data(ProjectCommandModel.LAST_LAUNCH_ROLE)
+            if left_launch is None:
+                return True
 
-        right_launch = right.data(ProjectCommandModel.LAST_LAUNCH_ROLE)
-        if right_launch is None:
-            return False
+            right_launch = right.data(ProjectCommandModel.LAST_LAUNCH_ROLE)
+            if right_launch is None:
+                return False
 
-        return left_launch > right_launch
+            return left_launch > right_launch
+        else:
+            # sort alphabetically for commands
+            left_name = left.data(ProjectCommandModel.BUTTON_NAME_ROLE)
+            right_name = right.data(ProjectCommandModel.BUTTON_NAME_ROLE)
+            return left_name < right_name
 
 
 class ProjectCommandModel(GroupingModel):

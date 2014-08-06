@@ -31,7 +31,7 @@ class SetupNewOS(QtGui.QWidget):
         self.setVisible(False)
 
     def launch_docs(self):
-        url = "http://www.personal.psu.edu/rws5156/404/"
+        url = "https://toolkit.shotgunsoftware.com/entries/93728833"
         QtGui.QDesktopServices.openUrl(url)
 
     def _on_parent_resized(self):

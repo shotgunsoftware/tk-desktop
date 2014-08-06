@@ -82,7 +82,7 @@ class Ui_SetupNewOS(object):
 
     def retranslateUi(self, SetupNewOS):
         SetupNewOS.setWindowTitle(QtGui.QApplication.translate("SetupNewOS", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.text.setText(QtGui.QApplication.translate("SetupNewOS", "Set Up Project for New Operating System", None, QtGui.QApplication.UnicodeUTF8))
+        self.text.setText(QtGui.QApplication.translate("SetupNewOS", "Set up project for new operating system", None, QtGui.QApplication.UnicodeUTF8))
         self.button.setText(QtGui.QApplication.translate("SetupNewOS", "Learn More", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("SetupNewOS", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">The project has not been set up for the current operating system.</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Click to view the docs on how to update your configuration.</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
 
