@@ -79,7 +79,7 @@ class DefaultGroupingHeaderDelegate(shotgun_view.WidgetDelegate):
 
     def sizeHint(self, style_options, model_index):
         # width is the width of the whole parent
-        return QtCore.QSize(self.parent().viewport().width(), 40)
+        return QtCore.QSize(self.parent().viewport().width(), 30)
 
 
 class DefaultGroupingFooterDelegate(shotgun_view.WidgetDelegate):
@@ -104,8 +104,8 @@ class DefaultGroupingFooterDelegate(shotgun_view.WidgetDelegate):
         self._on_before_paint(widget, model_index, style_options)
 
     def sizeHint(self, style_options, model_index):
-        # size is the parent width and height is the line plus margins
-        return QtCore.QSize(self.parent().viewport().width(), self.line.height())
+        # size is the parent width and height fixed to the margins
+        return QtCore.QSize(self.parent().viewport().width(), self.MARGIN)
 
 
 class GroupingListView(ActionListView):

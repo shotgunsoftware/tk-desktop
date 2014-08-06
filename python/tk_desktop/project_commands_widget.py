@@ -129,14 +129,28 @@ class AbstractCommandDelegate(shotgun_view.WidgetDelegate):
 
 
 class RecentCommandDelegate(AbstractCommandDelegate):
-    ICON_SIZE = QtCore.QSize(60, 60)
-    MARGIN = 10
-    TEXT_HEIGHT = 50
+    ICON_SIZE = QtCore.QSize(50, 50)
+    MARGIN = 5
+    SPACING = 5
+    SIZER_LABEL = None
+
+    def __init__(self, view):
+        AbstractCommandDelegate.__init__(self, view)
+
+        if self.SIZER_LABEL is None:
+            # setup a label that we will use to get height
+            self.SIZER_LABEL = QtGui.QLabel()
+            self.SIZER_LABEL.setWordWrap(True)
+            self.SIZER_LABEL.setScaledContents(True)
+            self.SIZER_LABEL.setAlignment(QtCore.Qt.AlignHCenter)
 
     def _create_button(self, parent):
         button = QtGui.QPushButton(parent)
         button.setFlat(True)
-        button.setLayout(QtGui.QVBoxLayout())
+
+        layout = QtGui.QVBoxLayout(button)
+        layout.setSpacing(self.SPACING)
+        layout.setContentsMargins(self.SPACING, self.SPACING, self.SPACING, self.SPACING)
 
         icon_label = QtGui.QLabel(button)
         icon_label.setFixedSize(self.ICON_SIZE)
@@ -154,14 +168,17 @@ class RecentCommandDelegate(AbstractCommandDelegate):
 
         return button
 
-    def _configure_widget(self, widget, item, style_options):
-        text_label = widget.layout().itemAt(1).widget()
+    def _text_for_item(self, item):
         button_name = item.data(ProjectCommandModel.BUTTON_NAME_ROLE)
         menu_name = item.data(ProjectCommandModel.MENU_NAME_ROLE)
         if menu_name is None:
-            text_label.setText(button_name)
+            return button_name
         else:
-            text_label.setText("%s\n%s" % (button_name, menu_name))
+            return "%s\n%s" % (button_name, menu_name)
+
+    def _configure_widget(self, widget, item, style_options):
+        text_label = widget.layout().itemAt(1).widget()
+        text_label.setText(self._text_for_item(item))
 
         icon_label = widget.layout().itemAt(0).widget()
         icon = item.data(QtCore.Qt.DecorationRole)
@@ -185,13 +202,18 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         return REGULAR_STYLE
 
     def sizeHint(self, style_options, model_index):
-        return QtCore.QSize(
-            self.ICON_SIZE.width() + 2*self.MARGIN,
-            self.ICON_SIZE.height() + self.TEXT_HEIGHT)
+        # get the height from the sizer label
+        (_, item, _) = self._source_for_index(model_index)
+        self.SIZER_LABEL.setText(self._text_for_item(item))
+        text_height = self.SIZER_LABEL.heightForWidth(self.ICON_SIZE.width() + 2*self.MARGIN)
+
+        # height is icon + text + top spacing + bottom spacing + space between
+        height = self.ICON_SIZE.height() + text_height + (3 * self.SPACING)
+        return QtCore.QSize(self.ICON_SIZE.width() + 2*self.MARGIN, height)
 
 
 class ProjectCommandDelegate(AbstractCommandDelegate):
-    ICON_SIZE = QtCore.QSize(56, 56)
+    ICON_SIZE = QtCore.QSize(50, 50)
 
     def __init__(self, view):
         AbstractCommandDelegate.__init__(self, view)
@@ -212,7 +234,7 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
 
     def _configure_widget(self, widget, item, style_options):
         # update button text
-        widget.setText(item.data(ProjectCommandModel.BUTTON_NAME_ROLE))
+        widget.setText(" %s" % item.data(ProjectCommandModel.BUTTON_NAME_ROLE))
 
         # update button icon
         icon = item.data(QtCore.Qt.DecorationRole)
