@@ -149,20 +149,20 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         button.setFlat(True)
 
         layout = QtGui.QVBoxLayout(button)
+        layout.setAlignment(QtCore.Qt.AlignHCenter)
         layout.setSpacing(self.SPACING)
         layout.setContentsMargins(self.SPACING, self.SPACING, self.SPACING, self.SPACING)
 
-        icon_label = QtGui.QLabel(button)
-        icon_label.setFixedSize(self.ICON_SIZE)
-        icon_label.setAlignment(QtCore.Qt.AlignHCenter)
-        icon_label.setScaledContents(True)
-        button.layout().addWidget(icon_label)
+        button.icon_label = QtGui.QLabel(button)
+        button.icon_label.setFixedSize(self.ICON_SIZE)
+        button.icon_label.setAlignment(QtCore.Qt.AlignHCenter)
+        button.icon_label.setScaledContents(True)
+        button.layout().addWidget(button.icon_label)
 
-        text_label = QtGui.QLabel(parent)
-        text_label.setWordWrap(True)
-        text_label.setScaledContents(True)
-        text_label.setAlignment(QtCore.Qt.AlignHCenter)
-        button.layout().addWidget(text_label)
+        button.text_label = QtGui.QLabel(parent)
+        button.text_label.setWordWrap(True)
+        button.text_label.setAlignment(QtCore.Qt.AlignHCenter)
+        button.layout().addWidget(button.text_label, QtCore.Qt.AlignHCenter)
 
         button.setFocusPolicy(QtCore.Qt.NoFocus)
 
@@ -177,15 +177,13 @@ class RecentCommandDelegate(AbstractCommandDelegate):
             return "%s\n%s" % (button_name, menu_name)
 
     def _configure_widget(self, widget, item, style_options):
-        text_label = widget.layout().itemAt(1).widget()
-        text_label.setText(self._text_for_item(item))
+        widget.text_label.setText(self._text_for_item(item))
 
-        icon_label = widget.layout().itemAt(0).widget()
         icon = item.data(QtCore.Qt.DecorationRole)
         if icon is None:
-            icon_label.setPixmap(QtGui.QIcon().pixmap(self.ICON_SIZE))
+            widget.icon_label.setPixmap(QtGui.QIcon().pixmap(self.ICON_SIZE))
         else:
-            icon_label.setPixmap(icon.pixmap(self.ICON_SIZE))
+            widget.icon_label.setPixmap(icon.pixmap(self.ICON_SIZE))
 
         widget.setToolTip(item.toolTip())
 
@@ -202,14 +200,17 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         return REGULAR_STYLE
 
     def sizeHint(self, style_options, model_index):
-        # get the height from the sizer label
+        # get the text size from the sizer label
         (_, item, _) = self._source_for_index(model_index)
-        self.SIZER_LABEL.setText(self._text_for_item(item))
-        text_height = self.SIZER_LABEL.heightForWidth(self.ICON_SIZE.width() + 2*self.MARGIN)
+        text = self._text_for_item(item)
+        self.SIZER_LABEL.setText(text)
+        text_width = self.SIZER_LABEL.fontMetrics().boundingRect(text).width()
+        text_height = self.SIZER_LABEL.heightForWidth(self.ICON_SIZE.width())
 
         # height is icon + text + top spacing + bottom spacing + space between
+        width = max(self.ICON_SIZE.width(), text_width)
         height = self.ICON_SIZE.height() + text_height + (3 * self.SPACING)
-        return QtCore.QSize(self.ICON_SIZE.width() + 2*self.MARGIN, height)
+        return QtCore.QSize(width + 2*self.MARGIN, height)
 
 
 class ProjectCommandDelegate(AbstractCommandDelegate):
