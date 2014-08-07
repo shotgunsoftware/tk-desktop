@@ -11,7 +11,7 @@
 
 import abc
 
-from tank.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtCore, QtGui
 
 from .ui import resources_rc
 
@@ -234,49 +234,53 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
         return widget
 
     def _configure_widget(self, widget, item, style_options):
-        # update button text
-        widget.setText(" %s" % item.data(ProjectCommandModel.BUTTON_NAME_ROLE))
+        # gather list of actions if the button has multiple commands
+        children = ProjectCommandModel.get_item_children_in_order(item)
+        if children:
+            # create the menu when we have children
+            menu = QtGui.QMenu()
+            for child in children:
+                action = menu.addAction(child.data(ProjectCommandModel.MENU_NAME_ROLE))
+                action.setData({
+                    "command": child.data(ProjectCommandModel.COMMAND_ROLE),
+                    "button": child.data(ProjectCommandModel.BUTTON_NAME_ROLE),
+                })
+                action.setToolTip(child.toolTip())
+                action.setIconVisibleInMenu(False)
 
-        # update button icon
-        icon = item.data(QtCore.Qt.DecorationRole)
-        widget.setToolTip(item.toolTip())
-        if icon is None:
-            widget.setIcon(QtGui.QIcon())
-        else:
-            widget.setIcon(icon)
+                icon = child.data(QtCore.Qt.DecorationRole)
+                if icon is not None:
+                    action.setIcon(icon)
 
-        widget.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        widget.setIconSize(self.ICON_SIZE)
+            widget.setMenu(menu)
 
-        # update button menu
-        i = 0
-        menu = None
-        while True:
-            child = item.child(i, 0)
-            i += 1
-            if child is None:
-                break
-
-            if menu is None:
-                menu = QtGui.QMenu()
-            action = menu.addAction(child.data(ProjectCommandModel.MENU_NAME_ROLE))
-            action.setData({
-                "command": child.data(ProjectCommandModel.COMMAND_ROLE),
-                "button": child.data(ProjectCommandModel.BUTTON_NAME_ROLE),
-            })
-            action.setToolTip(child.toolTip())
-            action.setIconVisibleInMenu(False)
-
-            icon = child.data(QtCore.Qt.DecorationRole)
-            if icon is not None:
-                action.setIcon(icon)
-        widget.setMenu(menu)
-
-        if menu is None:
-            widget.setPopupMode(widget.DelayedPopup)
-        else:
+            # setup the widget to handle the menu click
             widget.setPopupMode(widget.MenuButtonPopup)
             menu.triggered.connect(self._handle_clicked)
+
+            # data comes from the first child for the button icon
+            button_icon = children[0].data(QtCore.Qt.DecorationRole)
+            button_tooltip = children[0].toolTip()
+        else:
+            # no children
+            # no actions for this command, just a simple button
+            widget.setMenu(None)
+            widget.setPopupMode(widget.DelayedPopup)
+
+            # data comes from the button item itself
+            button_icon = item.data(QtCore.Qt.DecorationRole)
+            button_tooltip = item.toolTip()
+
+        # update button
+        if button_icon is None:
+            widget.setIcon(QtGui.QIcon())
+        else:
+            widget.setIcon(button_icon)
+        widget.setToolTip(button_tooltip)
+        widget.setText(" %s" % item.data(ProjectCommandModel.BUTTON_NAME_ROLE))
+
+        widget.setIconSize(self.ICON_SIZE)
+        widget.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
 
     def _stylesheet_for_options(self, style_options, selected):
         # borrowed from qtwidgets framework's thumb_widget

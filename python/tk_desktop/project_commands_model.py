@@ -11,9 +11,10 @@
 import re
 import datetime
 
-from tank.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtCore, QtGui
 
 import sgtk
+from sgtk.deploy import util
 
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
@@ -148,23 +149,67 @@ class ProjectCommandModel(GroupingModel):
                     menu_item.setIcon(icon)
                 item.appendRow(menu_item)
 
+    @classmethod
+    def get_item_children_in_order(cls, item):
+        i = 0
+        children = []
+        while True:
+            child = item.child(i, 0)
+            i += 1
+            if child is None:
+                break
+
+            children.append(child)
+
+        # sort children in reverse version order
+        def child_cmp(left, right):
+            left_version = left.data(cls.MENU_NAME_ROLE)
+            right_version = right.data(cls.MENU_NAME_ROLE)
+            if util.is_version_newer(left_version, right_version):
+                return -1
+            if util.is_version_older(left_version, right_version):
+                return 1
+            return 0
+        children.sort(cmp=child_cmp)
+        return children
+
     def _handle_command_triggered(self, item, command_name=None, button_name=None,
                                   menu_name=None, icon=None, tooltip=None):
         # Create an event log entry to track app launches
         engine = sgtk.platform.current_engine()
         connection = engine.shotgun
 
+        # get the info for the command
+        # if the info was explicit use that, otherwise if the item has children
+        # use the info from the first one after sorting, otherwise use the item's
+        # data directly
+        children = self.get_item_children_in_order(item)
         group_name = item.data(self.GROUP_ROLE)
         if command_name is None:
-            command_name = item.data(self.COMMAND_ROLE)
+            if children:
+                command_name = children[0].data(self.COMMAND_ROLE)
+            else:
+                command_name = item.data(self.COMMAND_ROLE)
         if button_name is None:
-            button_name = item.data(self.BUTTON_NAME_ROLE)
+            if children:
+                button_name = children[0].data(self.BUTTON_NAME_ROLE)
+            else:
+                button_name = item.data(self.BUTTON_NAME_ROLE)
         if menu_name is None:
-            menu_name = item.data(self.MENU_NAME_ROLE)
+            if children:
+                menu_name = children[0].data(self.MENU_NAME_ROLE)
+            else:
+                menu_name = item.data(self.MENU_NAME_ROLE)
         if icon is None:
-            icon = item.data(QtCore.Qt.DecorationRole)
+            if children:
+                icon = children[0].data(QtCore.Qt.DecorationRole)
+            else:
+                icon = item.data(QtCore.Qt.DecorationRole)
         if tooltip is None:
-            tooltip = item.toolTip()
+            if children:
+                tooltip = children[0].toolTip()
+            else:
+                tooltip = item.toolTip()
 
         login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
         data = {
