@@ -234,13 +234,28 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
         return widget
 
     def _configure_widget(self, widget, item, style_options):
+        # defaults if no children
+        menu = None
+        popup_mode = widget.DelayedPopup
+        button_icon = item.data(QtCore.Qt.DecorationRole)
+        button_tooltip = item.toolTip()
+
         # gather list of actions if the button has multiple commands
         children = ProjectCommandModel.get_item_children_in_order(item)
+        first_child = True
         if children:
             # create the menu when we have children
             menu = QtGui.QMenu()
             for child in children:
-                action = menu.addAction(child.data(ProjectCommandModel.MENU_NAME_ROLE))
+                icon = child.data(QtCore.Qt.DecorationRole)
+                menu_name = child.data(ProjectCommandModel.MENU_NAME_ROLE)
+                if first_child:
+                    button_icon = icon
+                    button_tooltip = child.toolTip()
+                    if len(children) > 1:
+                        menu_name = "%s*" % menu_name
+
+                action = menu.addAction(menu_name)
                 action.setData({
                     "command": child.data(ProjectCommandModel.COMMAND_ROLE),
                     "button": child.data(ProjectCommandModel.BUTTON_NAME_ROLE),
@@ -248,30 +263,20 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
                 action.setToolTip(child.toolTip())
                 action.setIconVisibleInMenu(False)
 
-                icon = child.data(QtCore.Qt.DecorationRole)
                 if icon is not None:
                     action.setIcon(icon)
+
+                first_child = False
 
             widget.setMenu(menu)
 
             # setup the widget to handle the menu click
-            widget.setPopupMode(widget.MenuButtonPopup)
+            popup_mode = widget.MenuButtonPopup
             menu.triggered.connect(self._handle_clicked)
 
-            # data comes from the first child for the button icon
-            button_icon = children[0].data(QtCore.Qt.DecorationRole)
-            button_tooltip = children[0].toolTip()
-        else:
-            # no children
-            # no actions for this command, just a simple button
-            widget.setMenu(None)
-            widget.setPopupMode(widget.DelayedPopup)
-
-            # data comes from the button item itself
-            button_icon = item.data(QtCore.Qt.DecorationRole)
-            button_tooltip = item.toolTip()
-
         # update button
+        widget.setMenu(menu)
+        widget.setPopupMode(popup_mode)
         if button_icon is None:
             widget.setIcon(QtGui.QIcon())
         else:
