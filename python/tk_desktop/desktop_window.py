@@ -13,6 +13,7 @@
 import os
 import sys
 import tempfile
+import subprocess
 import cPickle as pickle
 
 from tank.platform.qt import QtCore, QtGui
@@ -285,6 +286,7 @@ class DesktopWindow(SystrayWindow):
         self._save_setting("pos", self.pos(), site_specific=True)
 
         self.close()
+        self.systray.hide()
         QtGui.QApplication.instance().quit()
 
     def handle_hotkey_triggered(self):
@@ -385,7 +387,8 @@ class DesktopWindow(SystrayWindow):
         engine.disconnect_app_proxy()
 
         # restart the application
-        os.execl(sys.argv[0], sys.argv[0], *sys.argv[1:])
+        subprocess.Popen(sys.argv)
+        self.handle_quit_action()
 
     def is_on_top(self):
         return (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
