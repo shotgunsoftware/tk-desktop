@@ -269,6 +269,15 @@ class SgProjectModel(ShotgunModel):
         # compared
         launches_by_project_id = {}
         for group in summary["groups"]:
+            
+            # ignore empty summaries reported by the Shotgun API
+            # these are on the form 
+            # {'group_name': '',
+            #  'group_value': None,
+            #   'summaries': {'created_at': '2014-08-07 12:19:23 UTC'}}
+            if group["group_value"] is None:
+                continue
+            
             # convert the text representation of created_at to a UTC based timetuple
             text_stamp = group["summaries"]["created_at"]
             time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
