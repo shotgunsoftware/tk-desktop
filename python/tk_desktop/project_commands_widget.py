@@ -56,15 +56,15 @@ QToolButton::menu-button  {
 
 class AbstractCommandDelegate(shotgun_view.WidgetDelegate):
     def __init__(self, view):
-        shotgun_view.WidgetDelegate.__init__(self, view)
-        self.__view = view
+        self.view = view
         view.entered.connect(self._handle_entered)
+        shotgun_view.WidgetDelegate.__init__(self, view)
 
     def _handle_entered(self, index):
         if index is None:
-            self.__view.selectionModel().clear()
+            self.view.selectionModel().clear()
         else:
-            self.__view.selectionModel().setCurrentIndex(
+            self.view.selectionModel().setCurrentIndex(
                 index,
                 QtGui.QItemSelectionModel.SelectCurrent)
 
@@ -107,11 +107,11 @@ class AbstractCommandDelegate(shotgun_view.WidgetDelegate):
 
     def _handle_clicked(self, action=None):
         # figure out current index
-        index = self.__view.selectionModel().currentIndex()
+        index = self.view.selectionModel().currentIndex()
         (_, item, model) = self._source_for_index(index)
 
         # need to clear the selection to avoid artifacts upon editor closing
-        self.__view.selectionModel().clear()
+        self.view.selectionModel().clear()
 
         if action is None:
             model._handle_command_triggered(item)
@@ -125,7 +125,8 @@ class AbstractCommandDelegate(shotgun_view.WidgetDelegate):
                 tooltip=action.toolTip(),
             )
 
-        self.__view.model().sort(0)
+        # and this can change the filtering and sorting, so invalidate
+        self.view.model().invalidate()
 
 
 class RecentCommandDelegate(AbstractCommandDelegate):
@@ -133,16 +134,6 @@ class RecentCommandDelegate(AbstractCommandDelegate):
     MARGIN = 5
     SPACING = 5
     SIZER_LABEL = None
-
-    def __init__(self, view):
-        AbstractCommandDelegate.__init__(self, view)
-
-        if self.SIZER_LABEL is None:
-            # setup a label that we will use to get height
-            self.SIZER_LABEL = QtGui.QLabel()
-            self.SIZER_LABEL.setWordWrap(True)
-            self.SIZER_LABEL.setScaledContents(True)
-            self.SIZER_LABEL.setAlignment(QtCore.Qt.AlignHCenter)
 
     def _create_button(self, parent):
         button = QtGui.QPushButton(parent)
@@ -154,10 +145,8 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         layout.setContentsMargins(self.SPACING, self.SPACING, self.SPACING, self.SPACING)
 
         button.icon_label = QtGui.QLabel(button)
-        button.icon_label.setFixedSize(self.ICON_SIZE)
         button.icon_label.setAlignment(QtCore.Qt.AlignHCenter)
-        button.icon_label.setScaledContents(True)
-        button.layout().addWidget(button.icon_label)
+        button.layout().addWidget(button.icon_label, QtCore.Qt.AlignHCenter)
 
         button.text_label = QtGui.QLabel(parent)
         button.text_label.setWordWrap(True)
@@ -199,18 +188,44 @@ class RecentCommandDelegate(AbstractCommandDelegate):
             return HOVER_STYLE % (border, background)
         return REGULAR_STYLE
 
+    @classmethod
+    def size_for_text(cls, text):
+        # setup a label that we will use to get height
+        if cls.SIZER_LABEL is None:
+            cls.SIZER_LABEL = QtGui.QLabel()
+            cls.SIZER_LABEL.setWordWrap(True)
+            cls.SIZER_LABEL.setScaledContents(True)
+            cls.SIZER_LABEL.setAlignment(QtCore.Qt.AlignHCenter)
+
+        cls.SIZER_LABEL.setText(text)
+        text_width = cls.SIZER_LABEL.fontMetrics().boundingRect(text).width()
+        text_height = cls.SIZER_LABEL.heightForWidth(cls.ICON_SIZE.width())
+
+        # height is icon + text + top spacing + bottom spacing + space between
+        width = max(cls.ICON_SIZE.width(), text_width)
+        height = cls.ICON_SIZE.height() + text_height + (3 * cls.SPACING)
+        return QtCore.QSize(width + 2*cls.MARGIN, height)
+
     def sizeHint(self, style_options, model_index):
         # get the text size from the sizer label
         (_, item, _) = self._source_for_index(model_index)
         text = self._text_for_item(item)
-        self.SIZER_LABEL.setText(text)
-        text_width = self.SIZER_LABEL.fontMetrics().boundingRect(text).width()
-        text_height = self.SIZER_LABEL.heightForWidth(self.ICON_SIZE.width())
+        full_size = self.size_for_text(text)
 
-        # height is icon + text + top spacing + bottom spacing + space between
-        width = max(self.ICON_SIZE.width(), text_width)
-        height = self.ICON_SIZE.height() + text_height + (3 * self.SPACING)
-        return QtCore.QSize(width + 2*self.MARGIN, height)
+        # see if the model has a limit on recents
+        model = self.view.model()
+        if hasattr(model, "get_recents_limit"):
+            limit = model.get_recents_limit()
+            if limit is not None:
+                # limiting the number of recents, each one gets equal spacing
+                # the spacing is the width of the view, without the spacing
+                # divided up equally
+                space_to_divide = self.view.width() - (self.SPACING * (limit + 1)) - self.MARGIN
+                width = space_to_divide / limit
+                return QtCore.QSize(width, full_size.height())
+
+        # no limit, ask for full size
+        return full_size
 
 
 class ProjectCommandDelegate(AbstractCommandDelegate):
@@ -218,7 +233,6 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
 
     def __init__(self, view):
         AbstractCommandDelegate.__init__(self, view)
-        self.__view = view
 
         # register a different delegate for the Recent group
         view.set_group_delegate(
@@ -300,4 +314,4 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
         return REGULAR_STYLE
 
     def sizeHint(self, style_options, model_index):
-        return QtCore.QSize((self.__view.width() / 2) - 20, self.ICON_SIZE.height() + 8)
+        return QtCore.QSize((self.view.width() / 2) - 20, self.ICON_SIZE.height() + 8)

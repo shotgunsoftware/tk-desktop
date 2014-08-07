@@ -172,6 +172,7 @@ class DesktopEngineSiteImplementation(object):
 
             self.desktop_window._project_command_model.add_command(
                 name, button_name, menu_name, icon, command_tooltip, groups)
+            self.desktop_window._project_command_proxy.invalidate()
 
     def _handle_button_command_triggered(self, group, name):
         """ Button clicked from a registered command. """

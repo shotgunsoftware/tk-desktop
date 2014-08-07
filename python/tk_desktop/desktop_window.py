@@ -158,9 +158,17 @@ class DesktopWindow(SystrayWindow):
         self._project_command_proxy.sort(0)
         self.ui.project_commands.setModel(self._project_command_proxy)
 
+        # limit how many recent commands are shown
+        self._project_command_proxy.set_recents_limit(6)
+
         self._project_command_delegate = ProjectCommandDelegate(self.ui.project_commands)
         self.ui.project_commands.setItemDelegate(self._project_command_delegate)
         self.ui.project_commands.expanded_changed.connect(self.handle_project_command_expanded_changed)
+
+        # fix for floating delegate bug
+        # see discussion at https://stackoverflow.com/questions/15331256
+        self.ui.project_commands.verticalScrollBar().valueChanged.connect(
+            self.ui.project_commands.updateEditorGeometries)
 
         self._project_command_model.command_triggered.connect(engine._handle_button_command_triggered)
 

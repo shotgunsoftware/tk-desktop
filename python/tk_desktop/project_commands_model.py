@@ -28,6 +28,50 @@ class ProjectCommandProxyModel(GroupingProxyModel):
         GroupingProxyModel.__init__(self, parent)
         self.setDynamicSortFilter(True)
 
+        self.__recents_limit = None
+
+    def set_recents_limit(self, limit):
+        self.__recents_limit = limit
+        self.invalidate()
+
+    def get_recents_limit(self):
+        return self.__recents_limit
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        # check to see if filter is valid
+        # we will only filter if we have a restriction on the number of recents set
+        # and if the model is set to show recents
+        src_model = self.sourceModel()
+        if self.__recents_limit is None or src_model.show_recents is False:
+            return GroupingProxyModel.filterAcceptsRow(self, source_row, source_parent)
+
+        # now only filter if the row is content in the recents group
+        index = src_model.index(source_row, 0, source_parent)
+        item = src_model.itemFromIndex(index)
+        group = src_model.get_item_group_key(item)
+        if group != ProjectCommandModel.RECENT_GROUP_NAME or not src_model.is_content(item):
+            return GroupingProxyModel.filterAcceptsRow(self, source_row, source_parent)
+
+        # now we are going to get all the recent items in proper order
+        recents = src_model.get_items_in_group(ProjectCommandModel.RECENT_GROUP_NAME)
+
+        def recent_item_cmp(left, right):
+            if self.lessThan(left, right):
+                return -1
+            if self.lessThan(right, left):
+                return 1
+            return 0
+        recents.sort(cmp=recent_item_cmp)
+
+        # see if the index of this item in that list is within our restriction
+        rows_in_order = [r.row() for r in recents]
+        current_index = rows_in_order.index(item.row())
+        if current_index < self.__recents_limit:
+            return GroupingProxyModel.filterAcceptsRow(self, source_row, source_parent)
+
+        # item is outside of our limit
+        return False
+
     def lessThan(self, left, right):
         # Order recents then pass through to default grouping order
         src_model = self.sourceModel()
@@ -80,19 +124,19 @@ class ProjectCommandModel(GroupingModel):
 
         self.__project = None
         self.__recents = {}
-        self.__show_recents = True
+        self.show_recents = True
 
     def set_project(self, project, groups, show_recents=True):
         self.clear()
         self.__project = project
-        self.__show_recents = show_recents
+        self.show_recents = show_recents
 
         for (i, group) in enumerate(groups):
             group = group.upper()
             (header, _) = self.create_group(group)
             self.set_group_rank(group, i+1)
 
-        if self.__show_recents:
+        if self.show_recents:
             (header, _) = self.create_group(self.RECENT_GROUP_NAME)
             self.set_group_rank(self.RECENT_GROUP_NAME, 0)
             self.__initialize_recents()
@@ -229,7 +273,7 @@ class ProjectCommandModel(GroupingModel):
         engine.log_debug("Registering app launch event: %s" % data)
         connection.create("EventLogEntry", data)
 
-        if self.__show_recents:
+        if self.show_recents:
             # find the corresponding recent if it exists
             start = self.index(0, 0)
             match_flags = QtCore.Qt.MatchExactly
