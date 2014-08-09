@@ -98,6 +98,7 @@ class DesktopEngineSiteImplementation(object):
 
     def disconnect_app_proxy(self):
         """ Disconnect from the app proxy. """
+        self._engine.log_debug("disconnecting from app proxy")
         if self.proxy is not None:
             try:
                 self.proxy.call("signal_disconnect")
