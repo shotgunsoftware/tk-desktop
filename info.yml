@@ -114,8 +114,8 @@ requires_shotgun_fields:
 
 
 # More verbose description of this item
-display_name: "DesktopEngine"
-description: "Shotgun Support for Operating System integration"
+display_name: "Shotgun Desktop"
+description: "The engine that runs inside the Shotgun Desktop Application"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
