@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import re
+import sys
 import time
 import datetime
 
@@ -122,8 +123,9 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         for row in xrange(src_model.rowCount()):
             item = src_model.item(row, 0)
             project = item.data(ShotgunModel.SG_DATA_ROLE)
-            project["__item"] = item
-            projects.append(project)
+            if project is not None:
+                project["__item"] = item
+                projects.append(project)
 
         # apply ordering
         if self.search_text:
@@ -174,10 +176,16 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         QSortFilterProxyModel override to base ordering on our cached values.
         """
         left_sg_data = left.data(ShotgunModel.SG_DATA_ROLE)
-        left_index = self._ids_in_order.index(left_sg_data["id"])
+        if left_sg_data is None:
+            left_index = sys.maxint
+        else:
+            left_index = self._ids_in_order.index(left_sg_data["id"])
 
         right_sg_data = right.data(ShotgunModel.SG_DATA_ROLE)
-        right_index = self._ids_in_order.index(right_sg_data["id"])
+        if right_sg_data is None:
+            right_index = sys.maxint
+        else:
+            right_index = self._ids_in_order.index(right_sg_data["id"])
 
         return (left_index < right_index)
 
@@ -337,10 +345,11 @@ class SgProjectModel(ShotgunModel):
         item = self.item_from_entity("Project", project["id"])
         project = item.data(ShotgunModel.SG_DATA_ROLE)
 
-        # set to unix seconds rather than datetime to be compatible with shotgun model
-        utc_now = time.mktime(datetime.datetime.utcnow().utctimetuple())
-        project["last_accessed_by_current_user"] = utc_now
-        item.setData(project, ShotgunModel.SG_DATA_ROLE)
+        if project is not None:
+            # set to unix seconds rather than datetime to be compatible with shotgun model
+            utc_now = time.mktime(datetime.datetime.utcnow().utctimetuple())
+            project["last_accessed_by_current_user"] = utc_now
+            item.setData(project, ShotgunModel.SG_DATA_ROLE)
 
         self.project_launched.emit()
 
