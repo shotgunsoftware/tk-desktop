@@ -177,11 +177,11 @@ class DesktopEngine(Engine):
         # this will raise an exception when any QT code tries to use it
         class QTProxy(object):
             def __getattr__(self, name):
-                raise sgtk.TankError("Looks like you are trying to run an App that uses a QT "
-                                     "based UI, however the Shell engine could not find a PyQt "
-                                     "or PySide installation in your python system path. We "
-                                     "recommend that you install PySide if you want to "
-                                     "run UI applications from the Shell.")
+                raise sgtk.TankError("Looks like you are trying to run an App that uses a QT based UI, however the "
+                                     "python installation that the Desktop engine is currently using does not seem "
+                                     "to contain a valid PySide or PyQt4 install. Either install PySide into your "
+                                     "python environment or alternatively switch back to using the native Shotgun "
+                                     "Desktop python installation, which includes full QT support.")
 
         base = {"qt_core": QTProxy(), "qt_gui": QTProxy(), "dialog_base": None}
         self._has_ui = False
