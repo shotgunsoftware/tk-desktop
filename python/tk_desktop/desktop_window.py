@@ -256,7 +256,6 @@ class DesktopWindow(SystrayWindow):
         Push current Dll Directory
         '''
         if sys.platform == "win32":
-            
             try:
                 import win32api
 
