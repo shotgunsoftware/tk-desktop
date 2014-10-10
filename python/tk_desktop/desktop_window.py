@@ -15,6 +15,7 @@ import sys
 import tempfile
 import subprocess
 import cPickle as pickle
+import win32api
 
 from tank.platform.qt import QtCore, QtGui
 
@@ -754,6 +755,9 @@ class DesktopWindow(SystrayWindow):
 
         # get the path to the utilities module
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
+
+        # Ticket 26741: Avoid having odd DLL loading issues on windows
+        win32api.SetDllDirectory(None)
 
         engine.log_info("--- launching python subprocess (%s)" % path_to_python)
         engine.execute_hook(
