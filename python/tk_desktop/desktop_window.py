@@ -256,18 +256,20 @@ class DesktopWindow(SystrayWindow):
         Push current Dll Directory
         '''
         if sys.platform == "win32":
-            # GetDLLDirectory throws an exception if none was set
-            try:
-                self._previous_dll_directory = win32api.GetDllDirectory(None)
-            except:
-                self._previous_dll_directory = None
             
             try:
                 import win32api
-                win32api.SetDllDirectory(None)
-            except:
-                engine.log_warning('Could not import win32api under Windows.')
 
+                # GetDLLDirectory throws an exception if none was set
+                try:
+                    self._previous_dll_directory = win32api.GetDllDirectory(None)
+                except StandardError:
+                    self._previous_dll_directory = None
+                
+                win32api.SetDllDirectory(None)
+            except StandardError:
+                engine.log_warning('Could not push DllDirectory under Windows.')
+            
     def _pop_dll_state(self):
         '''
         Pop the previously pushed DLL Directory
@@ -276,8 +278,8 @@ class DesktopWindow(SystrayWindow):
             try:
                 import win32api
                 win32api.SetDllDirectory(self._previous_dll_directory)
-            except:
-                engine.log_warning('Could not import win32api under Windows.')
+            except StandardError:
+                engine.log_warning('Could not restore DllDirectory under Windows.')
 
     ########################################################################################
     # Event handlers and slots
