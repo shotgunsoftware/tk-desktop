@@ -15,7 +15,6 @@ import sys
 import tempfile
 import subprocess
 import cPickle as pickle
-import win32api
 
 from tank.platform.qt import QtCore, QtGui
 
@@ -251,6 +250,34 @@ class DesktopWindow(SystrayWindow):
             ret = self._settings_manager.retrieve(key, default_value)
 
         return ret
+
+    def _push_dll_state(self):
+        '''
+        Push current Dll Directory
+        '''
+        if sys.platform == "win32":
+            # GetDLLDirectory throws an exception if none was set
+            try:
+                self._previous_dll_directory = win32api.GetDllDirectory(None)
+            except:
+                self._previous_dll_directory = None
+            
+            try:
+                import win32api
+                win32api.SetDllDirectory(None)
+            except:
+                engine.log_warning('Could not import win32api under Windows.')
+
+    def _pop_dll_state(self):
+        '''
+        Pop the previously pushed DLL Directory
+        '''
+        if sys.platform == "win32":
+            try:
+                import win32api
+                win32api.SetDllDirectory(self._previous_dll_directory)
+            except:
+                engine.log_warning('Could not import win32api under Windows.')
 
     ########################################################################################
     # Event handlers and slots
@@ -757,7 +784,7 @@ class DesktopWindow(SystrayWindow):
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
 
         # Ticket 26741: Avoid having odd DLL loading issues on windows
-        win32api.SetDllDirectory(None)
+        self._push_dll_state()
 
         engine.log_info("--- launching python subprocess (%s)" % path_to_python)
         engine.execute_hook(
@@ -766,6 +793,8 @@ class DesktopWindow(SystrayWindow):
             pickle_data_path=pickle_data_file,
             utilities_module_path=utilities_module_path,
         )
+
+        self._pop_dll_state()
 
         # and remember it for next time
         self._save_setting("project_id", self.current_project["id"], site_specific=True)
