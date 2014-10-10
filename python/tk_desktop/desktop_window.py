@@ -251,6 +251,35 @@ class DesktopWindow(SystrayWindow):
 
         return ret
 
+    def _push_dll_state(self):
+        '''
+        Push current Dll Directory
+        '''
+        if sys.platform == "win32":
+            try:
+                import win32api
+
+                # GetDLLDirectory throws an exception if none was set
+                try:
+                    self._previous_dll_directory = win32api.GetDllDirectory(None)
+                except StandardError:
+                    self._previous_dll_directory = None
+                
+                win32api.SetDllDirectory(None)
+            except StandardError:
+                engine.log_warning('Could not push DllDirectory under Windows.')
+            
+    def _pop_dll_state(self):
+        '''
+        Pop the previously pushed DLL Directory
+        '''
+        if sys.platform == "win32":
+            try:
+                import win32api
+                win32api.SetDllDirectory(self._previous_dll_directory)
+            except StandardError:
+                engine.log_warning('Could not restore DllDirectory under Windows.')
+
     ########################################################################################
     # Event handlers and slots
     def contextMenuEvent(self, event):
@@ -755,6 +784,9 @@ class DesktopWindow(SystrayWindow):
         # get the path to the utilities module
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
 
+        # Ticket 26741: Avoid having odd DLL loading issues on windows
+        self._push_dll_state()
+
         engine.log_info("--- launching python subprocess (%s)" % path_to_python)
         engine.execute_hook(
             "hook_launch_python",
@@ -762,6 +794,8 @@ class DesktopWindow(SystrayWindow):
             pickle_data_path=pickle_data_file,
             utilities_module_path=utilities_module_path,
         )
+
+        self._pop_dll_state()
 
         # and remember it for next time
         self._save_setting("project_id", self.current_project["id"], site_specific=True)
