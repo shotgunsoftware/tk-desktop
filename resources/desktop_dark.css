@@ -135,3 +135,9 @@ QWidget
     border: 1px solid rgb(67, 131, 168);
     border-radius: 3px;
 }
+
+QLineEdit:disabled
+{
+    background-color: rgb(60, 60, 60);
+    color:rgb(100, 100, 100);
+}
