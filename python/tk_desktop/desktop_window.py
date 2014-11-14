@@ -74,7 +74,7 @@ class DesktopWindow(SystrayWindow):
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
         self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
-        self.setup_project_widget = SetupProject(self.ui.project_commands)
+        self.setup_project_widget = SetupProject(self.ui.project_commands, self)
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
         self.update_project_config_widget = UpdateProjectConfig(self.ui.project_commands)
         self.update_project_config_widget.update_finished.connect(self._on_update_finished)
