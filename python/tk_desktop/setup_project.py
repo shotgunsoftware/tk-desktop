@@ -39,16 +39,21 @@ class SetupProject(QtGui.QWidget):
         self.setVisible(False)
 
     def do_setup(self):
-        # Only toggle top window if it used to be off (to avoid un-necessary window flicker in case it was already off)
+        # Only toggle top window if it used to be off (to avoid un-necessary window flicker in case it was already off) 
         is_on_top = self._is_on_top()
-        if is_on_top: self._set_top_window_on_top(False)
+
+        try:
+            if is_on_top: 
+                self._set_top_window_on_top(False)
 
 
-        setup = adminui.SetupProjectWizard(self.project, self)
-        ret = setup.exec_()
-        self.setup_finished.emit(ret == setup.Accepted)
+            setup = adminui.SetupProjectWizard(self.project, self)
+            ret = setup.exec_()
+            self.setup_finished.emit(ret == setup.Accepted)
 
-        if is_on_top: self._set_top_window_on_top(True)
+        finally:
+            if is_on_top: 
+                self._set_top_window_on_top(True)
 
     def _is_on_top(self):
         """
@@ -67,6 +72,8 @@ class SetupProject(QtGui.QWidget):
         Set always on top setting for top window.
         Since Qt re-parents when changing this flag, the window gets back behind everything,
         therefore we also need to bring it back to the front when toggling the state.
+
+        :param state: Boolean Whether to set the window always on top or not.
         """
         flags = self.window().windowFlags()
 
