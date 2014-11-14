@@ -23,7 +23,7 @@ adminui = sgtk.platform.import_framework("tk-framework-adminui", "setup_project"
 class SetupProject(QtGui.QWidget):
     setup_finished = QtCore.Signal(bool)
 
-    def __init__(self, parent=None, top_window=None):
+    def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
         self.ui = setup_project.Ui_SetupProject()
@@ -37,8 +37,6 @@ class SetupProject(QtGui.QWidget):
         self._parent.installEventFilter(filter)
 
         self.setVisible(False)
-
-        self._top_window = top_window
 
     def do_setup(self):
         # Only toggle top window if it used to be off (to avoid un-necessary window flicker in case it was already off)
@@ -59,9 +57,8 @@ class SetupProject(QtGui.QWidget):
         """
         is_on_top = False
         
-        if self._top_window:
-            flags = self._top_window.windowFlags()
-            is_on_top = (flags & QtCore.Qt.WindowStaysOnTopHint) == QtCore.Qt.WindowStaysOnTopHint
+        flags = self.window().windowFlags()
+        is_on_top = (flags & QtCore.Qt.WindowStaysOnTopHint) == QtCore.Qt.WindowStaysOnTopHint
 
         return is_on_top
 
@@ -71,17 +68,16 @@ class SetupProject(QtGui.QWidget):
         Since Qt re-parents when changing this flag, the window gets back behind everything,
         therefore we also need to bring it back to the front when toggling the state.
         """
-        if self._top_window:
-            flags = self._top_window.windowFlags()
+        flags = self.window().windowFlags()
 
-            if state:
-                self._top_window.setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
-            else:
-                self._top_window.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
+        if state:
+            self.window().setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
+        else:
+            self.window().setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
 
-            self._top_window.show()
-            self._top_window.raise_()
-            self._top_window.activateWindow()
+        self.window().show()
+        self.window().raise_()
+        self.window().activateWindow()
 
     def _on_parent_resized(self):
         """
