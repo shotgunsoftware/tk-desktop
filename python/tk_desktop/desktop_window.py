@@ -407,12 +407,17 @@ class DesktopWindow(SystrayWindow):
         engine.proxy.call("open_project_locations")
 
     def sign_out(self):
+        engine = sgtk.platform.current_engine()
+
         # clear password information
         login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
-        login.logout()
+        try:
+            login.logout()
+        except Exception:
+            # if logout raises an exception, just log and don't crash
+            engine.log_exception("Error logging out")
 
         # disconnect from the current project
-        engine = sgtk.platform.current_engine()
         engine.disconnect_app_proxy()
 
         # restart the application
