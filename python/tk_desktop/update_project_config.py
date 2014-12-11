@@ -93,7 +93,12 @@ class UpdateProjectConfig(QtGui.QWidget):
 
             # call it
             python_process = subprocess.Popen(
-                args, stderr=subprocess.PIPE, stdout=subprocess.PIPE, startupinfo=startupinfo)
+                args,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stdin=subprocess.PIPE,
+                startupinfo=startupinfo
+            )
             (stdout, stderr) = python_process.communicate()
         finally:
             # make sure the wait screen gets hidden
