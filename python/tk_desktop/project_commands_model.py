@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import re
+import time
 import datetime
 
 from sgtk.platform.qt import QtCore, QtGui
@@ -270,8 +271,11 @@ class ProjectCommandModel(GroupingModel):
         }
 
         # use toolkit connection to get ApiUser permissions for event creation
-        engine.log_debug("Registering app launch event: %s" % data)
+        start_time = time.time()
         connection.create("EventLogEntry", data)
+        end_time = time.time()
+        call_duration = end_time-start_time
+        engine.log_debug("Registering app launch event (%.3f s): %s" % (call_duration, data))
 
         if self.show_recents:
             # find the corresponding recent if it exists
@@ -326,13 +330,18 @@ class ProjectCommandModel(GroupingModel):
 
         # execute the Shotgun summarize command
         # get one group per description with a summary of the latest created_at
-        connection = sgtk.platform.current_engine().shotgun
+        engine = sgtk.platform.current_engine()
+        connection = engine.shotgun
+        start_time = time.time()
         summary = connection.summarize(
             entity_type="EventLogEntry",
             filters=filters,
             summary_fields=[{"field": "created_at", "type": "latest"}],
             grouping=[{"field": "description", "type": "exact", "direction": "desc"}],
         )
+        end_time = time.time()
+        call_duration = end_time-start_time
+        engine.log_debug("App Launches summarized (%.3f s)" % call_duration)
 
         # parse the results
         for group in summary["groups"]:

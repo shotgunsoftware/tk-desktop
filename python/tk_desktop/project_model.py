@@ -263,13 +263,19 @@ class SgProjectModel(ShotgunModel):
 
         # execute the Shotgun summarize command
         # get one group per project with a summary of the latest created_at
+        engine = sgtk.platform.current_engine()
         connection = sgtk.platform.current_engine().shotgun
+
+        start_time = time.time()
         summary = connection.summarize(
             entity_type="EventLogEntry",
             filters=filters,
             summary_fields=[{"field": "created_at", "type": "latest"}],
             grouping=[{"field": "project", "type": "exact", "direction": "asc"}],
         )
+        end_time = time.time()
+        call_duration = end_time-start_time
+        engine.log_debug("Project Launch events summarized (%.3f s)" % call_duration)
 
         # parse the results
         # convert all last accessed timestamps to naive datetime objects in UTC time
@@ -277,15 +283,15 @@ class SgProjectModel(ShotgunModel):
         # compared
         launches_by_project_id = {}
         for group in summary["groups"]:
-            
+
             # ignore empty summaries reported by the Shotgun API
-            # these are on the form 
+            # these are on the form
             # {'group_name': '',
             #  'group_value': None,
             #   'summaries': {'created_at': '2014-08-07 12:19:23 UTC'}}
             if group["group_value"] is None:
                 continue
-            
+
             # convert the text representation of created_at to a UTC based timetuple
             text_stamp = group["summaries"]["created_at"]
             time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
@@ -338,8 +344,13 @@ class SgProjectModel(ShotgunModel):
             "meta": {"version": engine.version},
             "user": login,
         }
-        engine.log_debug("Registering project launch event: %s" % data)
+
+        start_time = time.time()
         connection.create("EventLogEntry", data)
+        end_time = time.time()
+        call_duration = end_time-start_time
+
+        engine.log_debug("Registering project launch event (%.3f s): %s" % (call_duration, data))
 
         # update the data in the model
         item = self.item_from_entity("Project", project["id"])
