@@ -51,6 +51,15 @@ class SetupProject(QtGui.QWidget):
             ret = setup.exec_()
             self.setup_finished.emit(ret == setup.Accepted)
 
+        except TankErrorProjectIsSetup, e:
+            from error_dialog import ErrorDialog
+            error_dialog = ErrorDialog("Toolkit Setup Error",
+                                       "You are trying to set up a project which has already been set up\n\n"
+                                       "To re-setup a project, in a terminal window type: tank setup_project --force\n"
+                                       "Alternatively, you can go into shotgun and clear the Project.tank_name field and delete all pipeline configurations for your project."
+            )
+            ret = error_dialog.exec_()
+
         finally:
             if is_on_top: 
                 self._set_top_window_on_top(True)
