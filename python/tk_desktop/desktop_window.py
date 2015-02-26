@@ -20,7 +20,10 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.util import shotgun
+from sgtk.util import login
+from sgtk.util import authentication
 from sgtk.platform import constants
+from sgtk.platform import interactive_authentication
 
 from .ui import resources_rc
 from .ui import desktop_window
@@ -49,10 +52,8 @@ except Exception:
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
-shotgun_login = sgtk.platform.import_framework("tk-framework-login", "shotgun_login")
 
 ShotgunModel = shotgun_model.ShotgunModel
-ShotgunLogin = shotgun_login.ShotgunLogin
 
 
 class DesktopWindow(SystrayWindow):
@@ -91,8 +92,9 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.setProperty("active", True)
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
-        connection = login.get_connection()
+
+        interactive_authentication.ui_login()
+        connection = shotgun.get_sg_connection()
 
         engine = sgtk.platform.current_engine()
 
@@ -103,10 +105,7 @@ class DesktopWindow(SystrayWindow):
 
         # User menu
         ###########################
-        user = login.get_login()
-        current_user = connection.find_one(
-            "HumanUser", [["id", "is", user["id"]]],
-            ["image", "name"])
+        current_user = login.get_current_user()
         thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
             (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
@@ -409,10 +408,10 @@ class DesktopWindow(SystrayWindow):
     def sign_out(self):
         engine = sgtk.platform.current_engine()
 
-        # clear password information
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
         try:
-            login.logout()
+            # FIXME: Need to clear the password in the keychain here when that
+            # functionality is brought back.
+            authentication.logout()
         except Exception:
             # if logout raises an exception, just log and don't crash
             engine.log_exception("Error logging out")
@@ -505,8 +504,7 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay.hide()
 
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
-        user = login.get_login()
+        user = login.get_current_user()
 
         primary_pc = None
         extra_pcs = []
@@ -842,9 +840,7 @@ class DesktopWindow(SystrayWindow):
         anim_group.start()
 
     def open_site_in_browser(self):
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
-        connection = login.get_connection()
-        url = connection.base_url
+        url = shotgun.get_sg_connection().base_url
         if self.current_project is not None:
             url = "%s/detail/Project/%d" % (url, self.current_project["id"])
 

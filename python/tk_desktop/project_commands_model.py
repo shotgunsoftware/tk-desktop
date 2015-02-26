@@ -16,12 +16,10 @@ from sgtk.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.deploy import util
+from sgtk.util import login
 
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
-
-shotgun_login = sgtk.platform.import_framework("tk-framework-login", "shotgun_login")
-ShotgunLogin = shotgun_login.ShotgunLogin
 
 
 class ProjectCommandProxyModel(GroupingProxyModel):
@@ -256,7 +254,6 @@ class ProjectCommandModel(GroupingModel):
             else:
                 tooltip = item.toolTip()
 
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
         data = {
             # recent is populated by grouping on description, so it needs
             # to be the same for each event created for a given name, but
@@ -267,7 +264,7 @@ class ProjectCommandModel(GroupingModel):
             "event_type": self.APP_LAUNCH_EVENT_TYPE,
             "project": self.__project,
             "meta": {"name": command_name, "group": group_name},
-            "user": login,
+            "user": login.get_current_user(),
         }
 
         # use toolkit connection to get ApiUser permissions for event creation
