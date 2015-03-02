@@ -93,7 +93,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
 
-        interactive_authentication.ui_authenticate()
+        interactive_authentication.ui_authenticate(force_human_user_authentication=True)
         connection = shotgun.get_sg_connection()
 
         engine = sgtk.platform.current_engine()
