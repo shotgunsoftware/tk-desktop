@@ -93,7 +93,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
 
-        interactive_authentication.ui_login()
+        interactive_authentication.ui_authenticate()
         connection = shotgun.get_sg_connection()
 
         engine = sgtk.platform.current_engine()
@@ -105,7 +105,7 @@ class DesktopWindow(SystrayWindow):
 
         # User menu
         ###########################
-        current_user = login.get_current_user()
+        current_user = self._get_current_user()
         thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
             (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
@@ -503,8 +503,11 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.show()
         self.project_overlay.hide()
 
+    def _get_current_user(self):
+        return login.get_current_user(sgtk.platform.current_engine().tank)
+
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
-        user = login.get_current_user()
+        user = self._get_current_user()
 
         primary_pc = None
         extra_pcs = []

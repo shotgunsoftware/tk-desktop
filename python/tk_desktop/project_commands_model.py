@@ -264,7 +264,7 @@ class ProjectCommandModel(GroupingModel):
             "event_type": self.APP_LAUNCH_EVENT_TYPE,
             "project": self.__project,
             "meta": {"name": command_name, "group": group_name},
-            "user": login.get_current_user(),
+            "user": login.get_current_user(engine.tank),
         }
 
         # use toolkit connection to get ApiUser permissions for event creation
@@ -315,12 +315,9 @@ class ProjectCommandModel(GroupingModel):
         # and a boolean saying whether the corresponding command has been registered
         self.__recents = {}
 
-        # need to know what login to find events for
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
-
         # pull down matching invents for the current project for the current user
         filters = [
-            ["user", "is", login],
+            ["user", "is", login.get_current_user(sgtk.platform.current_engine().tank)],
             ["project", "is", self.__project],
             ["event_type", "is", self.APP_LAUNCH_EVENT_TYPE],
         ]

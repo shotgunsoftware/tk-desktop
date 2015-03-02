@@ -16,7 +16,7 @@ import datetime
 from tank.platform.qt import QtCore, QtGui
 
 import sgtk
-from sgtk.util import login
+from sgtk.util import login, shotgun
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
@@ -250,16 +250,16 @@ class SgProjectModel(ShotgunModel):
         # merge in timestamps from project launch events if they are newer than
         # the last access timestamps from Shotgun
 
+        engine = sgtk.platform.current_engine()
         # pull down matching events for the current user
         filters = [
-            ["user", "is", login.get_current_user()],
+            ["user", "is", login.get_current_user(engine.tank)],
             ["event_type", "is", self.PROJECT_LAUNCH_EVENT_TYPE],
         ]
 
         # execute the Shotgun summarize command
         # get one group per project with a summary of the latest created_at
-        engine = sgtk.platform.current_engine()
-        connection = sgtk.platform.current_engine().shotgun
+        connection = engine.shotgun
 
         start_time = time.time()
         summary = connection.summarize(
@@ -336,7 +336,7 @@ class SgProjectModel(ShotgunModel):
             "event_type": self.PROJECT_LAUNCH_EVENT_TYPE,
             "project": project,
             "meta": {"version": engine.version},
-            "user": login.get_current_user(),
+            "user": login.get_current_user(engine.tank),
         }
 
         start_time = time.time()
