@@ -16,12 +16,11 @@ import datetime
 from tank.platform.qt import QtCore, QtGui
 
 import sgtk
+from sgtk.util import login, shotgun
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-shotgun_login = sgtk.platform.import_framework("tk-framework-login", "shotgun_login")
 
 ShotgunModel = shotgun_model.ShotgunModel
-ShotgunLogin = shotgun_login.ShotgunLogin
 
 
 class FuzzyMatcher():
@@ -218,10 +217,7 @@ class SgProjectModel(ShotgunModel):
         """ Constructor """
         ShotgunModel.__init__(self, parent, download_thumbs=True)
 
-        # override the default connection to use one that is tied to the current login
-        connection = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_connection()
-
-        self.set_shotgun_connection(connection)
+        self.set_shotgun_connection(sgtk.platform.current_engine().sgtk.shotgun)
 
         # load up the thumbnail to use when there is none set in Shotgun
         self._missing_thumbnail_project = QtGui.QPixmap(":/tk-desktop/missing_thumbnail_project.png")
@@ -254,17 +250,16 @@ class SgProjectModel(ShotgunModel):
         # merge in timestamps from project launch events if they are newer than
         # the last access timestamps from Shotgun
 
+        engine = sgtk.platform.current_engine()
         # pull down matching events for the current user
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
         filters = [
-            ["user", "is", login],
+            ["user", "is", login.get_current_user(engine.tank)],
             ["event_type", "is", self.PROJECT_LAUNCH_EVENT_TYPE],
         ]
 
         # execute the Shotgun summarize command
         # get one group per project with a summary of the latest created_at
-        engine = sgtk.platform.current_engine()
-        connection = sgtk.platform.current_engine().shotgun
+        connection = engine.shotgun
 
         start_time = time.time()
         summary = connection.summarize(
@@ -336,13 +331,12 @@ class SgProjectModel(ShotgunModel):
         # use toolkit connection to get ApiUser permissions for event creation
         engine = sgtk.platform.current_engine()
         connection = engine.shotgun
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
         data = {
             "description": "Project launch from tk-desktop",
             "event_type": self.PROJECT_LAUNCH_EVENT_TYPE,
             "project": project,
             "meta": {"version": engine.version},
-            "user": login,
+            "user": login.get_current_user(engine.tank),
         }
 
         start_time = time.time()
