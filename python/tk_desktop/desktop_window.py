@@ -93,7 +93,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
 
-        interactive_authentication.ui_authenticate(force_human_user_authentication=True)
+        interactive_authentication.ui_authenticate()
         connection = shotgun.get_sg_connection()
 
         engine = sgtk.platform.current_engine()
@@ -133,7 +133,9 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
-        self.user_menu.addAction(self.ui.actionSign_Out)
+        # Only show sign out if you are logged as a human user.
+        if authentication.is_human_user_authenticated():
+            self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
 
         name_action.triggered.connect(self.open_site_in_browser)
