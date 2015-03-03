@@ -504,6 +504,10 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay.hide()
 
     def _get_current_user(self):
+        # FIXME: login.get_current_user code introduces a regression where the Shotgun account
+        # associated to the os user will be always be returned insead of the one associated with the
+        # login credentials. Once the core is updated so that login.get_current_user returns the user
+        # currently authenticated as, this regression will disappear.
         return login.get_current_user(sgtk.platform.current_engine().tank)
 
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):

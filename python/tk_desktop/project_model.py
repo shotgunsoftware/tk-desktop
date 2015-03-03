@@ -217,7 +217,7 @@ class SgProjectModel(ShotgunModel):
         """ Constructor """
         ShotgunModel.__init__(self, parent, download_thumbs=True)
 
-        self.set_shotgun_connection(shotgun.create_sg_connection())
+        self.set_shotgun_connection(sgtk.platform.current_engine().sgtk.shotgun)
 
         # load up the thumbnail to use when there is none set in Shotgun
         self._missing_thumbnail_project = QtGui.QPixmap(":/tk-desktop/missing_thumbnail_project.png")
