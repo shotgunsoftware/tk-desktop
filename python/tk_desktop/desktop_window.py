@@ -21,6 +21,7 @@ from tank.platform.qt import QtCore, QtGui
 import sgtk
 from sgtk.util import shotgun
 from sgtk.platform import constants
+from sgtk import pipelineconfig_utils
 
 from .ui import resources_rc
 from .ui import desktop_window
@@ -855,7 +856,8 @@ class DesktopWindow(SystrayWindow):
         about = AboutScreen(parent=self, body="""
             <center>
                 App Version %s<br/>
-                Engine Version %s
+                Engine Version %s<br/>
+                Core version %s
             </center>
-        """ % (engine.app_version, engine.version))
+        """ % (engine.app_version, engine.version, pipelineconfig_utils.get_currently_running_api_version()))
         about.exec_()
