@@ -859,5 +859,9 @@ class DesktopWindow(SystrayWindow):
                 Engine Version %s<br/>
                 Core Version %s
             </center>
-        """ % (engine.app_version, engine.version, pipelineconfig_utils.get_currently_running_api_version()))
+        """ % (
+            engine.app_version,
+            engine.version,
+            pipelineconfig_utils.get_currently_running_api_version())
+        )
         about.exec_()
