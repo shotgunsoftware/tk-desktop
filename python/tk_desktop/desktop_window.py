@@ -21,9 +21,10 @@ from tank.platform.qt import QtCore, QtGui
 import sgtk
 from sgtk.util import shotgun
 from sgtk.util import login
-from sgtk.util import authentication
+from tank_vendor.shotgun_authentication import authentication
+from sgtk.util import interactive_authentication
 from sgtk.platform import constants
-from sgtk.platform import interactive_authentication
+
 
 from .ui import resources_rc
 from .ui import desktop_window
@@ -134,7 +135,7 @@ class DesktopWindow(SystrayWindow):
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         # Only show sign out if you are logged as a human user.
-        if authentication.is_human_user_authenticated():
+        if authentication.is_human_user_authenticated(authentication.get_connection_information()):
             self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
 
