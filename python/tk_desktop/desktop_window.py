@@ -21,10 +21,8 @@ from tank.platform.qt import QtCore, QtGui
 import sgtk
 from sgtk.util import shotgun
 from sgtk.util import login
-from tank_vendor.shotgun_authentication import authentication
-from sgtk.util import interactive_authentication
 from sgtk.platform import constants
-
+from tank_vendor import shotgun_authentication as sg_auth
 
 from .ui import resources_rc
 from .ui import desktop_window
@@ -43,6 +41,7 @@ from .update_project_config import UpdateProjectConfig
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
+from shotgun_desktop.desktop_login import get_shotgun_authenticator
 
 try:
     from .extensions import osutils
@@ -94,7 +93,6 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
 
-        interactive_authentication.ui_authenticate()
         connection = shotgun.get_sg_connection()
 
         engine = sgtk.platform.current_engine()
@@ -135,7 +133,7 @@ class DesktopWindow(SystrayWindow):
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         # Only show sign out if you are logged as a human user.
-        if authentication.is_human_user_authenticated(authentication.get_connection_information()):
+        if sg_auth.is_session_user(sgtk.get_current_user()):
             self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
 
@@ -266,11 +264,12 @@ class DesktopWindow(SystrayWindow):
                     self._previous_dll_directory = win32api.GetDllDirectory(None)
                 except StandardError:
                     self._previous_dll_directory = None
-                
+
                 win32api.SetDllDirectory(None)
             except StandardError:
+                engine = sgtk.platform.current_engine()
                 engine.log_warning('Could not push DllDirectory under Windows.')
-            
+
     def _pop_dll_state(self):
         '''
         Pop the previously pushed DLL Directory
@@ -280,6 +279,7 @@ class DesktopWindow(SystrayWindow):
                 import win32api
                 win32api.SetDllDirectory(self._previous_dll_directory)
             except StandardError:
+                engine = sgtk.platform.current_engine()
                 engine.log_warning('Could not restore DllDirectory under Windows.')
 
     ########################################################################################
@@ -414,7 +414,7 @@ class DesktopWindow(SystrayWindow):
         try:
             # FIXME: Need to clear the password in the keychain here when that
             # functionality is brought back.
-            authentication.logout()
+            get_shotgun_authenticator(sg_auth).clear_saved_user()
         except Exception:
             # if logout raises an exception, just log and don't crash
             engine.log_exception("Error logging out")
@@ -507,10 +507,6 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay.hide()
 
     def _get_current_user(self):
-        # FIXME: login.get_current_user code introduces a regression where the Shotgun account
-        # associated to the os user will be always be returned insead of the one associated with the
-        # login credentials. Once the core is updated so that login.get_current_user returns the user
-        # currently authenticated as, this regression will disappear.
         return login.get_current_user(sgtk.platform.current_engine().tank)
 
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
