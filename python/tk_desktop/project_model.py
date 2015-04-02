@@ -247,6 +247,7 @@ class SgProjectModel(ShotgunModel):
         filters = [
             ["name", "is_not", "Template Project"],
             ["archived", "is_not", True],
+            ["is_template", "is_not", True]
         ]
         # Templates projects is a Shotgun 6.0 feature, so make sure it exists
         # on the server before filtering on that value.

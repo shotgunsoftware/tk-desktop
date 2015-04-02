@@ -10,6 +10,8 @@
 
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
+from sgtk import TankErrorProjectIsSetup
+from error_dialog import ErrorDialog
 
 
 from .ui import setup_project
@@ -46,10 +48,17 @@ class SetupProject(QtGui.QWidget):
             if is_on_top: 
                 self._set_top_window_on_top(False)
 
-
             setup = adminui.SetupProjectWizard(self.project, self)
             ret = setup.exec_()
             self.setup_finished.emit(ret == setup.Accepted)
+
+        except TankErrorProjectIsSetup, e:
+            error_dialog = ErrorDialog("Toolkit Setup Error",
+                                       "You are trying to set up a project which has already been set up\n\n"
+                                       "To re-setup a project, in a terminal window type: tank setup_project --force\n\n"
+                                       "Alternatively, you can go into shotgun and clear the Project.tank_name field\n"
+                                       "and delete all pipeline configurations for your project.")
+            ret = error_dialog.exec_()
 
         finally:
             if is_on_top: 
