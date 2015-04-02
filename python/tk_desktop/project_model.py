@@ -230,6 +230,7 @@ class SgProjectModel(ShotgunModel):
         filters = [
             ["name", "is_not", "Template Project"],
             ["archived", "is_not", True],
+            ["is_template", "is_not", True]
         ]
         interesting_fields = [
             "name",
