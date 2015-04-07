@@ -19,6 +19,7 @@ import sgtk
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 shotgun_login = sgtk.platform.import_framework("tk-framework-login", "shotgun_login")
+shotgun_api3 = sgtk.platform.import_framework("tk-framework-login", "shotgun_api3")
 
 ShotgunModel = shotgun_model.ShotgunModel
 ShotgunLogin = shotgun_login.ShotgunLogin
@@ -214,6 +215,33 @@ class SgProjectModel(ShotgunModel):
     thumbnail_updated = QtCore.Signal(QtGui.QStandardItem)
     project_launched = QtCore.Signal()
 
+    _supports_project_templates = None
+
+    @classmethod
+    def supports_project_templates(cls, connection):
+        """
+        Tests if Shotgun 6.0 Project Templates are supported on the server. If
+        this method has never been called, the server will be contacted
+        synchronously and the result will be cached so subsequent calls are
+        faster.
+
+        :param connection: A Shotgun connection instance.
+
+        :returns: True if the server supports Shotgun 6.0 Project Templates,
+                  False otherwise.
+        """
+        # If we haven't checked on the server yet.
+        if cls._supports_project_templates is None:
+            try:
+                # Try to read the field's schema.
+                connection.schema_field_read("Project", "is_template")
+                # It worked therefore it exists.
+                cls._supports_project_templates = True
+            except shotgun_api3.Fault:
+                # We got a fault, so it doesn't exist.
+                cls._supports_project_templates = False
+        return cls._supports_project_templates
+
     def __init__(self, parent, overlay_parent_widget):
         """ Constructor """
         ShotgunModel.__init__(self, parent, download_thumbs=True)
@@ -229,9 +257,13 @@ class SgProjectModel(ShotgunModel):
         # load up the cached data for the model
         filters = [
             ["name", "is_not", "Template Project"],
-            ["archived", "is_not", True],
-            ["is_template", "is_not", True]
+            ["archived", "is_not", True]
         ]
+        # Template projects is a Shotgun 6.0 feature, so make sure it exists
+        # on the server before filtering on that value.
+        if SgProjectModel.supports_project_templates(connection):
+            filters.append(["is_template", "is_not", True])
+
         interesting_fields = [
             "name",
             "sg_status",
