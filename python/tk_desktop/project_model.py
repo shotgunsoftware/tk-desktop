@@ -217,19 +217,30 @@ class SgProjectModel(ShotgunModel):
 
     _supports_project_templates = None
 
-    @staticmethod
-    def supports_project_templates(connection):
+    @classmethod
+    def supports_project_templates(cls, connection):
+        """
+        Tests if Shotgun 6.0 Project Templates are supported on the server. If
+        this method has never been called, the server will be contacted
+        synchronously and the result will be cached so subsequent calls are
+        faster.
+
+        :param connection: A Shotgun connection instance.
+
+        :returns: True if the server supports Shotgun 6.0 Project Templates,
+                  False otherwise.
+        """
         # If we haven't checked on the server yet.
-        if SgProjectModel._supports_project_templates is None:
+        if cls._supports_project_templates is None:
             try:
                 # Try to read the field's schema.
                 connection.schema_field_read("Project", "is_template")
-                # If worked therefore it exists.
-                SgProjectModel._supports_project_templates = True
+                # It worked therefore it exists.
+                cls._supports_project_templates = True
             except shotgun_api3.Fault:
                 # We got a fault, so it doesn't exist.
-                SgProjectModel._supports_project_templates = False
-        return SgProjectModel._supports_project_templates
+                cls._supports_project_templates = False
+        return cls._supports_project_templates
 
     def __init__(self, parent, overlay_parent_widget):
         """ Constructor """
@@ -246,10 +257,9 @@ class SgProjectModel(ShotgunModel):
         # load up the cached data for the model
         filters = [
             ["name", "is_not", "Template Project"],
-            ["archived", "is_not", True],
-            ["is_template", "is_not", True]
+            ["archived", "is_not", True]
         ]
-        # Templates projects is a Shotgun 6.0 feature, so make sure it exists
+        # Template projects is a Shotgun 6.0 feature, so make sure it exists
         # on the server before filtering on that value.
         if SgProjectModel.supports_project_templates(connection):
             filters.append(["is_template", "is_not", True])
