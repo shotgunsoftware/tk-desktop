@@ -23,6 +23,7 @@ from sgtk.util import shotgun
 from sgtk.util import login
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
+from sgtk import pipelineconfig_utils
 
 from .ui import resources_rc
 from .ui import desktop_window
@@ -857,7 +858,12 @@ class DesktopWindow(SystrayWindow):
         about = AboutScreen(parent=self, body="""
             <center>
                 App Version %s<br/>
-                Engine Version %s
+                Engine Version %s<br/>
+                Core Version %s
             </center>
-        """ % (engine.app_version, engine.version))
+        """ % (
+            engine.app_version,
+            engine.version,
+            pipelineconfig_utils.get_currently_running_api_version())
+        )
         about.exec_()
