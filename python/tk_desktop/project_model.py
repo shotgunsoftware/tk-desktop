@@ -19,7 +19,6 @@ import sgtk
 from sgtk.util import login
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-from tank_vendor.shotgun_api3 import Fault
 
 ShotgunModel = shotgun_model.ShotgunModel
 
@@ -236,8 +235,8 @@ class SgProjectModel(ShotgunModel):
                 connection.schema_field_read("Project", "is_template")
                 # It worked therefore it exists.
                 cls._supports_project_templates = True
-            except Fault:
-                # We got a fault, so it doesn't exist.
+            except Exception:
+                # We got an error, so it doesn't exist.
                 cls._supports_project_templates = False
         return cls._supports_project_templates
 
