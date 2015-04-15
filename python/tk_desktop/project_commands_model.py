@@ -16,7 +16,7 @@ from sgtk.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.deploy import util
-from sgtk.util import login
+from sgtk import sgtk_util
 
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
@@ -264,7 +264,7 @@ class ProjectCommandModel(GroupingModel):
             "event_type": self.APP_LAUNCH_EVENT_TYPE,
             "project": self.__project,
             "meta": {"name": command_name, "group": group_name},
-            "user": login.get_current_user(engine.sgtk),
+            "user": sgkt_util.get_current_user(engine.sgtk),
         }
 
         # use toolkit connection to get ApiUser permissions for event creation
@@ -317,7 +317,7 @@ class ProjectCommandModel(GroupingModel):
 
         # pull down matching invents for the current project for the current user
         filters = [
-            ["user", "is", login.get_current_user(sgtk.platform.current_engine().tank)],
+            ["user", "is", sgtk_util.get_current_user(sgtk.platform.current_engine().sgtk)],
             ["project", "is", self.__project],
             ["event_type", "is", self.APP_LAUNCH_EVENT_TYPE],
         ]

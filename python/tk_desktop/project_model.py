@@ -244,7 +244,7 @@ class SgProjectModel(ShotgunModel):
         """ Constructor """
         ShotgunModel.__init__(self, parent, download_thumbs=True)
 
-        connection = sgtk.platform.current_engine().sgtk.shotgun
+        connection = sgtk.platform.current_engine().shotgun
 
         self.set_shotgun_connection(connection)
 
@@ -287,7 +287,7 @@ class SgProjectModel(ShotgunModel):
         engine = sgtk.platform.current_engine()
         # pull down matching events for the current user
         filters = [
-            ["user", "is", login.get_current_user(engine.tank)],
+            ["user", "is", login.get_current_user(engine.sgtk)],
             ["event_type", "is", self.PROJECT_LAUNCH_EVENT_TYPE],
         ]
 
@@ -370,7 +370,7 @@ class SgProjectModel(ShotgunModel):
             "event_type": self.PROJECT_LAUNCH_EVENT_TYPE,
             "project": project,
             "meta": {"version": engine.version},
-            "user": login.get_current_user(engine.tank),
+            "user": login.get_current_user(engine.sgtk),
         }
 
         start_time = time.time()

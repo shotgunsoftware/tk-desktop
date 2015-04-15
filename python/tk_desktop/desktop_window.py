@@ -20,7 +20,7 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.util import shotgun
-from sgtk.util import login
+from sgtk import util
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
 from sgtk import pipelineconfig_utils
@@ -508,7 +508,7 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay.hide()
 
     def _get_current_user(self):
-        return login.get_current_user(sgtk.platform.current_engine().tank)
+        return util.get_current_user(sgtk.platform.current_engine().sgtk)
 
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
         user = self._get_current_user()
@@ -847,7 +847,7 @@ class DesktopWindow(SystrayWindow):
         anim_group.start()
 
     def open_site_in_browser(self):
-        url = shotgun.get_sg_connection().base_url
+        url = shotgun.get_associated_sg_base_url()
         if self.current_project is not None:
             url = "%s/detail/Project/%d" % (url, self.current_project["id"])
 
