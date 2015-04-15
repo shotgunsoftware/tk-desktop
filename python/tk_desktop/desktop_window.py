@@ -134,8 +134,7 @@ class DesktopWindow(SystrayWindow):
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         # Only show sign out if you are logged as a human user.
-        if sg_auth.is_session_user(sgtk.get_current_user()):
-            self.user_menu.addAction(self.ui.actionSign_Out)
+        self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
 
         name_action.triggered.connect(self.open_site_in_browser)

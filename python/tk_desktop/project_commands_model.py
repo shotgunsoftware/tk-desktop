@@ -16,7 +16,7 @@ from sgtk.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.deploy import util
-from sgtk import sgtk_util
+from sgtk import util as sgtk_util
 
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
