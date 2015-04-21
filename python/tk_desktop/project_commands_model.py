@@ -264,7 +264,7 @@ class ProjectCommandModel(GroupingModel):
             "event_type": self.APP_LAUNCH_EVENT_TYPE,
             "project": self.__project,
             "meta": {"name": command_name, "group": group_name},
-            "user": sgkt_util.get_current_user(engine.sgtk),
+            "user": sgtk_util.get_current_user(engine.sgtk),
         }
 
         # use toolkit connection to get ApiUser permissions for event creation
