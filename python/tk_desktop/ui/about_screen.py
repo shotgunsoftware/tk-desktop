@@ -64,7 +64,7 @@ class Ui_AboutScreen(object):
         AboutScreen.setWindowTitle(QtGui.QApplication.translate("AboutScreen", "About Shotgun Desktop", None, QtGui.QApplication.UnicodeUTF8))
         self.header.setText(QtGui.QApplication.translate("AboutScreen", "<b><big>Shotgun Desktop</big></b>", None, QtGui.QApplication.UnicodeUTF8))
         self.body.setText(QtGui.QApplication.translate("AboutScreen", "Body", None, QtGui.QApplication.UnicodeUTF8))
-        self.copyright.setText(QtGui.QApplication.translate("AboutScreen", "Copyright ©2014 Shotgun Software Inc.\n"
+        self.copyright.setText(QtGui.QApplication.translate("AboutScreen", "Copyright ©2015 Shotgun Software Inc.\n"
 "All rights reserved.", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
