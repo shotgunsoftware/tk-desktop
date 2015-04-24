@@ -732,7 +732,7 @@ class DesktopWindow(SystrayWindow):
                         # python not specified for this os, show the setup new os widget
                         engine.log_error("Cannot find interpreter '%s' defined in "
                                          "config file %s. Will show the special "
-                                         "'setup new OS' screen" % (path_to_python, interpreter_config_file))
+                                         "'no python' UI screen" % (path_to_python, interpreter_config_file))
                         self.setup_new_os_widget.show()
                         self.project_overlay.hide()
                         return
