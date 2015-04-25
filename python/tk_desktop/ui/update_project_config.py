@@ -71,6 +71,7 @@ class Ui_UpdateProjectConfig(object):
         self.verticalLayout_2.setSpacing(0)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.label = QtGui.QLabel(UpdateProjectConfig)
+        self.label.setStyleSheet("font-size: 14px;")
         self.label.setScaledContents(False)
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setWordWrap(True)
@@ -78,6 +79,8 @@ class Ui_UpdateProjectConfig(object):
         self.label.setObjectName("label")
         self.verticalLayout_2.addWidget(self.label)
         self.success = QtGui.QLabel(UpdateProjectConfig)
+        self.success.setStyleSheet("font-size: 14px;")
+        self.success.setAlignment(QtCore.Qt.AlignCenter)
         self.success.setWordWrap(True)
         self.success.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
         self.success.setObjectName("success")
@@ -96,7 +99,8 @@ class Ui_UpdateProjectConfig(object):
         UpdateProjectConfig.setWindowTitle(QtGui.QApplication.translate("UpdateProjectConfig", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.text.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add Shotgun Desktop", None, QtGui.QApplication.UnicodeUTF8))
         self.button.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">Click here to upgrade your</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Pipeline Configuration</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
-        self.success.setText(QtGui.QApplication.translate("UpdateProjectConfig", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">The project has been set up.</span></p>", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Click here to upgrade your\n"
+"Pipeline Configuration", None, QtGui.QApplication.UnicodeUTF8))
+        self.success.setText(QtGui.QApplication.translate("UpdateProjectConfig", "The project has been set up.", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
