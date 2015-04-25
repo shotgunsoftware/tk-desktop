@@ -728,15 +728,14 @@ class DesktopWindow(SystrayWindow):
                         path_to_python = f.read().strip()
                         core_root = current_config_path
 
-                    if not path_to_python:
+                    if not path_to_python or not os.path.exists(path_to_python):
                         # python not specified for this os, show the setup new os widget
+                        engine.log_error("Cannot find interpreter '%s' defined in "
+                                         "config file %s. Will show the special "
+                                         "'no python' UI screen" % (path_to_python, interpreter_config_file))
                         self.setup_new_os_widget.show()
                         self.project_overlay.hide()
                         return
-                    if not os.path.exists(path_to_python):
-                        raise RuntimeError(
-                            "Cannot find interpreter %s defined in "
-                            "config file %s!" % (path_to_python, interpreter_config_file))
 
                     # found it
                     break

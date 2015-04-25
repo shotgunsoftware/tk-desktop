@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_SetupNewOS(object):
     def setupUi(self, SetupNewOS):
         SetupNewOS.setObjectName("SetupNewOS")
-        SetupNewOS.resize(435, 644)
+        SetupNewOS.resize(304, 550)
         self.horizontalLayout = QtGui.QHBoxLayout(SetupNewOS)
         self.horizontalLayout.setObjectName("horizontalLayout")
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
@@ -68,6 +68,8 @@ class Ui_SetupNewOS(object):
         self.horizontalLayout_3.addItem(spacerItem3)
         self.verticalLayout.addLayout(self.horizontalLayout_3)
         self.label = QtGui.QLabel(SetupNewOS)
+        self.label.setStyleSheet("font-size: 14px;")
+        self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setWordWrap(True)
         self.label.setObjectName("label")
         self.verticalLayout.addWidget(self.label)
@@ -82,8 +84,10 @@ class Ui_SetupNewOS(object):
 
     def retranslateUi(self, SetupNewOS):
         SetupNewOS.setWindowTitle(QtGui.QApplication.translate("SetupNewOS", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.text.setText(QtGui.QApplication.translate("SetupNewOS", "Set up project for new operating system", None, QtGui.QApplication.UnicodeUTF8))
+        self.text.setText(QtGui.QApplication.translate("SetupNewOS", "Python not found", None, QtGui.QApplication.UnicodeUTF8))
         self.button.setText(QtGui.QApplication.translate("SetupNewOS", "Learn More", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("SetupNewOS", "<html><head/><body><p align=\"center\"><span style=\" font-size:16pt;\">The project has not been set up for the current operating system.</span></p><p align=\"center\"><span style=\" font-size:16pt;\">Click to view the docs on how to update your configuration.</span></p></body></html>", None, QtGui.QApplication.UnicodeUTF8))
+        self.label.setText(QtGui.QApplication.translate("SetupNewOS", "You need to configure the location of Python for this project and operating system.\n"
+"\n"
+"Click to view the docs on how to update your configuration.", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
