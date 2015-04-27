@@ -42,7 +42,6 @@ from .update_project_config import UpdateProjectConfig
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
-from shotgun_desktop.desktop_login import get_shotgun_authenticator
 
 try:
     from .extensions import osutils
@@ -414,7 +413,7 @@ class DesktopWindow(SystrayWindow):
         try:
             # FIXME: Need to clear the password in the keychain here when that
             # functionality is brought back.
-            get_shotgun_authenticator(sg_auth).clear_saved_user()
+            sg_auth.ShotgunAuthenticator().clear_default_user()
         except Exception:
             # if logout raises an exception, just log and don't crash
             engine.log_exception("Error logging out")
