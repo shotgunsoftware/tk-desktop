@@ -158,8 +158,12 @@ QPushButton::disabled {
        </property>
        <item>
         <widget class="QLabel" name="label">
+         <property name="styleSheet">
+          <string notr="true">font-size: 14px;</string>
+         </property>
          <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;Click here to upgrade your&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;Pipeline Configuration&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          <string>Click here to upgrade your
+Pipeline Configuration</string>
          </property>
          <property name="scaledContents">
           <bool>false</bool>
@@ -177,8 +181,14 @@ QPushButton::disabled {
        </item>
        <item>
         <widget class="QLabel" name="success">
+         <property name="styleSheet">
+          <string notr="true">font-size: 14px;</string>
+         </property>
          <property name="text">
-          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;The project has been set up.&lt;/span&gt;&lt;/p&gt;</string>
+          <string>The project has been set up.</string>
+         </property>
+         <property name="alignment">
+          <set>Qt::AlignCenter</set>
          </property>
          <property name="wordWrap">
           <bool>true</bool>

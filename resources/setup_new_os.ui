@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>435</width>
-    <height>644</height>
+    <width>304</width>
+    <height>550</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -86,7 +86,7 @@
         <string notr="true">font-size: 26px;</string>
        </property>
        <property name="text">
-        <string>Set up project for new operating system</string>
+        <string>Python not found</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>
@@ -153,8 +153,16 @@ QPushButton::disabled {
      </item>
      <item>
       <widget class="QLabel" name="label">
+       <property name="styleSheet">
+        <string notr="true">font-size: 14px;</string>
+       </property>
        <property name="text">
-        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;The project has not been set up for the current operating system.&lt;/span&gt;&lt;/p&gt;&lt;p align=&quot;center&quot;&gt;&lt;span style=&quot; font-size:16pt;&quot;&gt;Click to view the docs on how to update your configuration.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <string>You need to configure the location of Python for this project and operating system.
+
+Click to view the docs on how to update your configuration.</string>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignCenter</set>
        </property>
        <property name="wordWrap">
         <bool>true</bool>
