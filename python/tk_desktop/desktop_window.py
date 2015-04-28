@@ -132,7 +132,6 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
-        # Only show sign out if you are logged as a human user.
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
 
