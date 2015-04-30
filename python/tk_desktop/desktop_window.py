@@ -775,6 +775,7 @@ class DesktopWindow(SystrayWindow):
             "core_python_path": core_python,
             "config_path": config_path,
             "project": project,
+            "current_user": sg_auth.serialize_user(sgtk.get_authenticated_user()),
             "proxy_data": {
                 "proxy_pipe": server_pipe,
                 "proxy_auth": server_auth,
