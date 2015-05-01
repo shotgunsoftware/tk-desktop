@@ -20,7 +20,7 @@ import collections
 from sgtk.errors import TankEngineInitError
 
 from . import rpc
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 import sgtk
 
 
@@ -182,18 +182,21 @@ class DesktopEngineSiteImplementation(object):
         """ Button clicked from a registered command. """
         self.proxy.call("trigger_callback", "__commands", name)
 
-    def run(self, splash=None, version=None):
+    def run(self, splash, version):
         """
         Run the engine.
 
         This method is called from the GUI bootstrap to setup the application
         and to run the Qt event loop.
+
+        :param splash: Splash screen widget we can display messages on.
+        :param version: Version of the Shotgun Desktop installer code.
         """
         self.app_version = version
 
         if self.uses_legacy_authentication():
-            self._assert_authentication_fault_exists(splash)
-            self._migrate_credentials(splash)
+            self._restart_on_old_core(splash)
+            self._migrate_credentials()
 
         # Initialize Qt app
         from tank.platform.qt import QtGui
@@ -225,9 +228,10 @@ class DesktopEngineSiteImplementation(object):
         app.setStyleSheet(css)
 
         # desktop_window needs to import shotgun_authentication globally. However, doing so
-        # can cause a crash when running pre-1.0.2 bootstrap code. We used to not restart
-        # Desktop when upgrading the core, which caused the older version of core to be
-        # kept in memory and the newer core to not be used until the app was reloaded.
+        # can cause a crash when running Shotgun Desktop installer 1.02 code. We used to
+        # not restart Desktop when upgrading the core, which caused the older version of core
+        # to be kept in memory and the newer core to not be used until the app was reloaded.
+        #
         # Since pre 0.16 cores didn't have a shotgun_authentication module, we
         # would have crashed if this had been imported at init time. Note that earlier
         # in this method we forcefully restarted the application if we noticed
@@ -251,20 +255,29 @@ class DesktopEngineSiteImplementation(object):
 
     def uses_legacy_authentication(self):
         """
-        Returns if the Desktop's bootrap code uses the tk-framework-login for
+        Returns if the Shotgun Desktop installed code uses the tk-framework-login for
         logging in.
 
         :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
         """
-        return StrictVersion(self.app_version) < StrictVersion("1.1.0")
+        return LooseVersion(self.app_version) < LooseVersion("1.1.0")
 
     def create_legacy_login_instance(self):
         """
-        Creates the pre-bootstrap-1.1.0 ShotgunLogin used to authenticate.
+        Creates an instance of tk-framework-login.ShotgunLogin.
+
+        Before we introduced Shotgun Authentication in Core 0.16.0, we used
+        tk-framework-login to authenticate in the Shotgun Desktop's installer
+        code. Once we've detected using uses_legacy_authentication that we are
+        using tk-framework-login, create_legacy_login_instance creates an
+        instance of that class in order to access the credentials.
+
+        In the Shotgun Desktop installer v2.0.0 code and higher, this
+        ShotgunLogin class is no more.
 
         :raises ImportError: Thrown if the module is not available.
 
-        :returns: A tk-framework-login's ShotgunLogin instance.
+        :returns: A tk-framework-login.ShotgunLogin instance.
         """
         try:
             from python import ShotgunLogin
@@ -274,10 +287,12 @@ class DesktopEngineSiteImplementation(object):
         else:
             return ShotgunLogin.get_instance_for_namespace("tk-desktop")
 
-    def _assert_authentication_fault_exists(self, splash):
+    def _restart_on_old_core(self, splash):
         """
         Asserts that we importing the right version of shotgun_api3. If we are
         not, the user will be shown a countdown and the app will be restarted.
+
+        :param splash: Splash screen widget we can display messages on.
         """
         from tank_vendor import shotgun_api3
         try:
@@ -299,7 +314,7 @@ class DesktopEngineSiteImplementation(object):
             subprocess.Popen(sys.argv)
             sys.exit(0)
 
-    def _migrate_credentials(self, splash):
+    def _migrate_credentials(self):
         """
         Migrates the credentials from tk-framework-login to
         shotgun_authentication.
