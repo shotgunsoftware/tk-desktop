@@ -11,6 +11,8 @@
 import os
 import re
 import sys
+import time
+import subprocess
 import string
 import logging
 import collections
@@ -18,7 +20,8 @@ import collections
 from sgtk.errors import TankEngineInitError
 
 from . import rpc
-from . import desktop_window
+from distutils.version import LooseVersion
+import sgtk
 
 
 class DesktopEngineSiteImplementation(object):
@@ -179,14 +182,21 @@ class DesktopEngineSiteImplementation(object):
         """ Button clicked from a registered command. """
         self.proxy.call("trigger_callback", "__commands", name)
 
-    def run(self, splash=None, version=None):
+    def run(self, splash, version):
         """
         Run the engine.
 
         This method is called from the GUI bootstrap to setup the application
         and to run the Qt event loop.
+
+        :param splash: Splash screen widget we can display messages on.
+        :param version: Version of the Shotgun Desktop installer code.
         """
         self.app_version = version
+
+        if self.uses_legacy_authentication():
+            self._restart_on_old_core(splash)
+            self._migrate_credentials()
 
         # Initialize Qt app
         from tank.platform.qt import QtGui
@@ -217,6 +227,18 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
+        # desktop_window needs to import shotgun_authentication globally. However, doing so
+        # can cause a crash when running Shotgun Desktop installer 1.02 code. We used to
+        # not restart Desktop when upgrading the core, which caused the older version of core
+        # to be kept in memory and the newer core to not be used until the app was reloaded.
+        #
+        # Since pre 0.16 cores didn't have a shotgun_authentication module, we
+        # would have crashed if this had been imported at init time. Note that earlier
+        # in this method we forcefully restarted the application if we noticed
+        # that the core was upgraded without restarting. Which means that if we
+        # end up here, it's now because we're in a good state.
+        from . import desktop_window
+
         # initialize System Tray
         self.desktop_window = desktop_window.DesktopWindow()
 
@@ -230,6 +252,90 @@ class DesktopEngineSiteImplementation(object):
         # and run the app
         result = app.exec_()
         return result
+
+    def uses_legacy_authentication(self):
+        """
+        Returns if the Shotgun Desktop installed code uses the tk-framework-login for
+        logging in.
+
+        :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
+        """
+        return LooseVersion(self.app_version) < LooseVersion("1.1.0")
+
+    def create_legacy_login_instance(self):
+        """
+        Creates an instance of tk-framework-login.ShotgunLogin.
+
+        Before we introduced Shotgun Authentication in Core 0.16.0, we used
+        tk-framework-login to authenticate in the Shotgun Desktop's installer
+        code. Once we've detected using uses_legacy_authentication that we are
+        using tk-framework-login, create_legacy_login_instance creates an
+        instance of that class in order to access the credentials.
+
+        In the Shotgun Desktop installer v2.0.0 code and higher, this
+        ShotgunLogin class is no more.
+
+        :raises ImportError: Thrown if the module is not available.
+
+        :returns: A tk-framework-login.ShotgunLogin instance.
+        """
+        try:
+            from python import ShotgunLogin
+        except ImportError:
+            self.log_exception("Could not import tk-framework-login")
+            raise
+        else:
+            return ShotgunLogin.get_instance_for_namespace("tk-desktop")
+
+    def _restart_on_old_core(self, splash):
+        """
+        Asserts that we importing the right version of shotgun_api3. If we are
+        not, the user will be shown a countdown and the app will be restarted.
+
+        :param splash: Splash screen widget we can display messages on.
+        """
+        from tank_vendor import shotgun_api3
+        try:
+            # Try to access the new AuthenticationFault exception. If we are
+            # running a pre-1.0.2 version of Desktop, Desktop will not have been
+            # rebooted after the core upgrade and we'll get the pre 0.16.0
+            # shotgun_api3 module, which doesn't have the AuthenticationFault
+            # class.
+            shotgun_api3.AuthenticationFault
+        except AttributeError:
+            # Provide a countdown so the user knows that the desktop app is
+            # being restarted on purpose because of a core update. Otherwise,
+            # the user would get a flickering splash screen that from the user
+            # point of view looks like the app is redoing work it already did by
+            # mistake. This makes the behavior explicit.
+            for i in range(3, 0, -1):
+                splash.set_message("Core updated. Restarting desktop in %d seconds..." % i)
+                time.sleep(1)
+            subprocess.Popen(sys.argv)
+            sys.exit(0)
+
+    def _migrate_credentials(self):
+        """
+        Migrates the credentials from tk-framework-login to
+        shotgun_authentication.
+        """
+        from tank_vendor.shotgun_authentication import ShotgunAuthenticator
+        sl = self.create_legacy_login_instance()
+        # Call get_connection, since it will reprompt for the password if
+        # for some reason it is expired now.
+        connection = sl.get_connection()
+        # Extract the credentials from the old Shotgun instance and create a
+        # ShotgunUser with them.
+        user = ShotgunAuthenticator().create_session_user(
+            login=connection.config.user_login,
+            password=connection.config.user_password,
+            host=connection.base_url,
+            # Ugly, but this is the only way available to get at the
+            # raw http_proxy string.
+            http_proxy=sl._http_proxy
+        )
+        # And now we can set the authenticated user and we are done.
+        sgtk.set_authenticated_user(user)
 
     def _initialize_logging(self):
         formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")
