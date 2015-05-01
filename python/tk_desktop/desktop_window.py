@@ -412,7 +412,10 @@ class DesktopWindow(SystrayWindow):
         try:
             # FIXME: Need to clear the password in the keychain here when that
             # functionality is brought back.
-            sg_auth.ShotgunAuthenticator().clear_default_user()
+            if engine.uses_legacy_authentication():
+                engine.create_legacy_login_instance().logout()
+            else:
+                sg_auth.ShotgunAuthenticator().clear_default_user()
         except Exception:
             # if logout raises an exception, just log and don't crash
             engine.log_exception("Error logging out")
