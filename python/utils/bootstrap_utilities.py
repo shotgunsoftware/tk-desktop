@@ -12,7 +12,7 @@ import os
 import sys
 import traceback
 import cPickle as pickle
-
+from distutils.version import LooseVersion
 
 def start_engine(data):
     """
@@ -27,9 +27,14 @@ def start_engine(data):
     # make sure we don't inherit the GUI's pipeline configuration
     os.environ["TANK_CURRENT_PC"] = data["config_path"]
 
-    # Retrieve the currently authenticated user for this process.
-    from tank_vendor.shotgun_authentication import deserialize_user
-    sgtk.set_authenticated_user(deserialize_user(data["current_user"]))
+    version = sgtk.pipelineconfig_utils.get_currently_running_api_version()
+
+    # If the core supports the shotgun_authentication module and the pickle has
+    # a current user, we have to set the authenticated user.
+    if (version == "HEAD" or LooseVersion(version) >= LooseVersion("v0.16.0")) and data.get("current_user"):
+        # Retrieve the currently authenticated user for this process.
+        from tank_vendor.shotgun_authentication import deserialize_user
+        sgtk.set_authenticated_user(deserialize_user(data["current_user"]))
 
     tk = sgtk.sgtk_from_path(data["config_path"])
     tk._desktop_data = data["proxy_data"]
