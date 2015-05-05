@@ -282,7 +282,7 @@ class DesktopEngineSiteImplementation(object):
         try:
             from python import ShotgunLogin
         except ImportError:
-            self.log_exception("Could not import tk-framework-login")
+            self._engine.log_exception("Could not import tk-framework-login")
             raise
         else:
             return ShotgunLogin.get_instance_for_namespace("tk-desktop")
