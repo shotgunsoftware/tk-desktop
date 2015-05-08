@@ -18,6 +18,8 @@ from tank.platform.qt import QtCore, QtGui
 import sgtk
 from sgtk.util import login
 
+from tank_vendor.shotgun_api3 import ShotgunError
+
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
 ShotgunModel = shotgun_model.ShotgunModel
@@ -374,7 +376,10 @@ class SgProjectModel(ShotgunModel):
         }
 
         start_time = time.time()
-        connection.create("EventLogEntry", data)
+        try:
+            connection.create("EventLogEntry", data)
+        except ShotgunError:
+            pass
         end_time = time.time()
         call_duration = end_time-start_time
 

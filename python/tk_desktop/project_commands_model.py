@@ -21,6 +21,8 @@ from sgtk import util as sgtk_util
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
 
+from tank_vendor.shotgun_api3 import ShotgunError
+
 
 class ProjectCommandProxyModel(GroupingProxyModel):
     def __init__(self, parent=None):
@@ -269,7 +271,15 @@ class ProjectCommandModel(GroupingModel):
 
         # use toolkit connection to get ApiUser permissions for event creation
         start_time = time.time()
-        connection.create("EventLogEntry", data)
+
+        # FIXME: Temporarily ignore creation failures. This is going to happen because the new
+        # desktop engine runs using a human user. On 5.0 sites, human user don't have permission to
+        # create EventLogEntries. We'll get around this by replacing this with QSettings down the
+        # road.
+        try:
+            connection.create("EventLogEntry", data)
+        except ShotgunError:
+            pass
         end_time = time.time()
         call_duration = end_time-start_time
         engine.log_debug("Registering app launch event (%.3f s): %s" % (call_duration, data))
