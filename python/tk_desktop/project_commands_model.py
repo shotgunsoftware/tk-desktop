@@ -21,8 +21,6 @@ from sgtk import util as sgtk_util
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
 
-from tank_vendor.shotgun_api3 import ShotgunError
-
 
 class ProjectCommandProxyModel(GroupingProxyModel):
     def __init__(self, parent=None):
@@ -222,7 +220,6 @@ class ProjectCommandModel(GroupingModel):
                                   menu_name=None, icon=None, tooltip=None):
         # Create an event log entry to track app launches
         engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
 
         # get the info for the command
         # if the info was explicit use that, otherwise if the item has children
@@ -276,10 +273,8 @@ class ProjectCommandModel(GroupingModel):
         # desktop engine runs using a human user. On 5.0 sites, human user don't have permission to
         # create EventLogEntries. We'll get around this by replacing this with QSettings down the
         # road.
-        try:
-            connection.create("EventLogEntry", data)
-        except ShotgunError:
-            pass
+        engine.get_privileged_connection().create("EventLogEntry", data)
+
         end_time = time.time()
         call_duration = end_time-start_time
         engine.log_debug("Registering app launch event (%.3f s): %s" % (call_duration, data))

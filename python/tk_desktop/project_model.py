@@ -18,8 +18,6 @@ from tank.platform.qt import QtCore, QtGui
 import sgtk
 from sgtk.util import login
 
-from tank_vendor.shotgun_api3 import ShotgunError
-
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
 ShotgunModel = shotgun_model.ShotgunModel
@@ -366,7 +364,6 @@ class SgProjectModel(ShotgunModel):
         """
         # use toolkit connection to get ApiUser permissions for event creation
         engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
         data = {
             "description": "Project launch from tk-desktop",
             "event_type": self.PROJECT_LAUNCH_EVENT_TYPE,
@@ -376,10 +373,7 @@ class SgProjectModel(ShotgunModel):
         }
 
         start_time = time.time()
-        try:
-            connection.create("EventLogEntry", data)
-        except ShotgunError:
-            pass
+        engine.get_privileged_connection().create("EventLogEntry", data)
         end_time = time.time()
         call_duration = end_time-start_time
 

@@ -22,6 +22,7 @@ from sgtk.errors import TankEngineInitError
 from . import rpc
 from distutils.version import LooseVersion
 import sgtk
+from tank_vendor.shotgun_authentication import ShotgunAuthenticator
 
 
 class DesktopEngineSiteImplementation(object):
@@ -35,6 +36,8 @@ class DesktopEngineSiteImplementation(object):
         # each rule is a dictionary with keys for match, button_label, and
         # menu_label
         self._collapse_rules = []
+
+        self._cached_privileged_connection = None
 
     def destroy_engine(self):
         if self.proxy is not None:
@@ -84,6 +87,19 @@ class DesktopEngineSiteImplementation(object):
             if tb is not None:
                 message += "\n\n%s" % tb
             self._engine.log_error(message)
+
+    def get_privileged_connection(self):
+        """
+        This method will return a connection with the highest available privilege for the current
+        user.
+
+        :returns: A Shotgun instance with the highest level of permissions.
+        """
+        # IF the connection hasn't been cached yet, cache it.
+        if self._cached_privileged_connection is None:
+            user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
+            self._cached_privileged_connection = user.create_sg_connection()
+        return self._cached_privileged_connection
 
     def create_app_proxy(self, pipe, authkey):
         """ Called when the project engine has setup its RPC server thread """

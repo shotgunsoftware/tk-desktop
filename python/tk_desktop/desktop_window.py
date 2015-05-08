@@ -778,7 +778,12 @@ class DesktopWindow(SystrayWindow):
             "core_python_path": core_python,
             "config_path": config_path,
             "project": project,
-            "current_user": sg_auth.serialize_user(sgtk.get_authenticated_user()),
+            "current_user": sg_auth.serialize_user(
+                # We'll be launching the background processes as the highest privilege user
+                # available. CoreDefaultsManager will make sure a script user is used to launch the
+                # DCCs if it is available.
+                sg_auth.ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
+            ),
             "proxy_data": {
                 "proxy_pipe": server_pipe,
                 "proxy_auth": server_auth,
