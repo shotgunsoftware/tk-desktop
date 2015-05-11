@@ -12,7 +12,7 @@ import os
 import sys
 import traceback
 import cPickle as pickle
-from distutils.version import LooseVersion
+
 
 def start_engine(data):
     """
@@ -21,20 +21,19 @@ def start_engine(data):
     """
     sys.path.append(data["core_python_path"])
 
-    import sgtk
-    sgtk.util.append_path_to_env_var("PYTHONPATH", data["core_python_path"])
-
     # make sure we don't inherit the GUI's pipeline configuration
     os.environ["TANK_CURRENT_PC"] = data["config_path"]
 
-    version = sgtk.pipelineconfig_utils.get_currently_running_api_version()
+    import sgtk
+    sgtk.util.append_path_to_env_var("PYTHONPATH", data["core_python_path"])
 
     # If the core supports the shotgun_authentication module and the pickle has
     # a current user, we have to set the authenticated user.
-    if (version == "HEAD" or LooseVersion(version) >= LooseVersion("v0.16.0")) and data.get("current_user"):
+    if hasattr(sgtk, "set_authenticated_user"):
         # Retrieve the currently authenticated user for this process.
-        from tank_vendor.shotgun_authentication import deserialize_user
-        sgtk.set_authenticated_user(deserialize_user(data["current_user"]))
+        from tank_vendor.shotgun_authentication import ShotgunAuthenticator
+        user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
+        sgtk.set_authenticated_user(user)
 
     tk = sgtk.sgtk_from_path(data["config_path"])
     tk._desktop_data = data["proxy_data"]

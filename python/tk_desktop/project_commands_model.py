@@ -269,10 +269,6 @@ class ProjectCommandModel(GroupingModel):
         # use toolkit connection to get ApiUser permissions for event creation
         start_time = time.time()
 
-        # FIXME: Temporarily ignore creation failures. This is going to happen because the new
-        # desktop engine runs using a human user. On 5.0 sites, human user don't have permission to
-        # create EventLogEntries. We'll get around this by replacing this with QSettings down the
-        # road.
         engine.get_privileged_connection().create("EventLogEntry", data)
 
         end_time = time.time()

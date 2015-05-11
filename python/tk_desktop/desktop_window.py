@@ -410,8 +410,6 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
 
         try:
-            # FIXME: Need to clear the password in the keychain here when that
-            # functionality is brought back.
             if engine.uses_legacy_authentication():
                 engine.create_legacy_login_instance().logout()
             else:
@@ -778,12 +776,6 @@ class DesktopWindow(SystrayWindow):
             "core_python_path": core_python,
             "config_path": config_path,
             "project": project,
-            "current_user": sg_auth.serialize_user(
-                # We'll be launching the background processes as the highest privilege user
-                # available. CoreDefaultsManager will make sure a script user is used to launch the
-                # DCCs if it is available.
-                sg_auth.ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
-            ),
             "proxy_data": {
                 "proxy_pipe": server_pipe,
                 "proxy_auth": server_auth,
