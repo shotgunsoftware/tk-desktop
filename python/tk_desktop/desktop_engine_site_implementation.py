@@ -211,7 +211,6 @@ class DesktopEngineSiteImplementation(object):
         self.app_version = version
 
         if self.uses_legacy_authentication():
-            self._restart_on_old_core(splash)
             self._migrate_credentials()
 
         # Initialize Qt app
@@ -288,7 +287,7 @@ class DesktopEngineSiteImplementation(object):
         using tk-framework-login, create_legacy_login_instance creates an
         instance of that class in order to access the credentials.
 
-        In the Shotgun Desktop installer v2.0.0 code and higher, this
+        In the Shotgun Desktop installer v1.1.0 code and higher, this
         ShotgunLogin class is no more.
 
         :raises ImportError: Thrown if the module is not available.
@@ -303,39 +302,12 @@ class DesktopEngineSiteImplementation(object):
         else:
             return ShotgunLogin.get_instance_for_namespace("tk-desktop")
 
-    def _restart_on_old_core(self, splash):
-        """
-        Asserts that we importing the right version of shotgun_api3. If we are
-        not, the user will be shown a countdown and the app will be restarted.
-
-        :param splash: Splash screen widget we can display messages on.
-        """
-        from tank_vendor import shotgun_api3
-        try:
-            # Try to access the new AuthenticationFault exception. If we are
-            # running a pre-1.0.2 version of Desktop, Desktop will not have been
-            # rebooted after the core upgrade and we'll get the pre 0.16.0
-            # shotgun_api3 module, which doesn't have the AuthenticationFault
-            # class.
-            shotgun_api3.AuthenticationFault
-        except AttributeError:
-            # Provide a countdown so the user knows that the desktop app is
-            # being restarted on purpose because of a core update. Otherwise,
-            # the user would get a flickering splash screen that from the user
-            # point of view looks like the app is redoing work it already did by
-            # mistake. This makes the behavior explicit.
-            for i in range(3, 0, -1):
-                splash.set_message("Core updated. Restarting desktop in %d seconds..." % i)
-                time.sleep(1)
-            subprocess.Popen(sys.argv)
-            sys.exit(0)
-
     def _migrate_credentials(self):
         """
         Migrates the credentials from tk-framework-login to
         shotgun_authentication.
         """
-        from tank_vendor.shotgun_authentication import ShotgunAuthenticator
+        from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
         sl = self.create_legacy_login_instance()
         # Call get_connection, since it will reprompt for the password if
         # for some reason it is expired now.
@@ -352,6 +324,9 @@ class DesktopEngineSiteImplementation(object):
         )
         # And now we can set the authenticated user and we are done.
         sgtk.set_authenticated_user(user)
+        dm = DefaultsManager()
+        dm.set_host(user.host)
+        dm.set_login(user.login)
 
     def _initialize_logging(self):
         formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")

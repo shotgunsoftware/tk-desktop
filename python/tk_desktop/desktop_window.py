@@ -410,13 +410,12 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
 
         try:
+            sg_auth.ShotgunAuthenticator().clear_default_user()
             if engine.uses_legacy_authentication():
                 engine.create_legacy_login_instance().logout()
-            else:
-                sg_auth.ShotgunAuthenticator().clear_default_user()
         except Exception:
             # if logout raises an exception, just log and don't crash
-            engine.log_exception("Error logging out")
+            engine.log_exception("Error logging out.")
 
         # disconnect from the current project
         engine.disconnect_app_proxy()
