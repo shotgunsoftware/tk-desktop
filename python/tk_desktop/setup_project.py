@@ -17,6 +17,7 @@ from error_dialog import ErrorDialog
 from .ui import setup_project
 
 import sgtk
+from tank_vendor.shotgun_authentication import ShotgunAuthenticator
 
 
 adminui = sgtk.platform.import_framework("tk-framework-adminui", "setup_project")
@@ -45,10 +46,30 @@ class SetupProject(QtGui.QWidget):
         is_on_top = self._is_on_top()
 
         try:
+            # This engine always runs with a HumanUser for the Toolkit authenticated user (sgtk.get_authenticated_user).
+            # However, on 5.0 sites, HumanUsers can't configure a project. Therefore, we'll use the ShotgunAuthenticator
+            # here to get the default user using the CoreDefaultsManager.
+            #
+            # Since the Destktop bootstrap always sets up a script user for 5.0 sites, regardless of the version of the
+            # core, we can assume that on 5.0 sites we'll have a script user configured. Therefore, the scenarios are:
+            #
+            # - 5.0 site with 0.16 core and a script user configured -> You will escalate to script user
+            # - 6.0 site with 0.16 core and no script user -> The same user will be returned, no escalation will take
+            #   place and the setup will succeed if you have the right permissions.
+            # - 6.0 site with 0.16 and a script user -> You will escalate to script user and will always succeed at
+            #   configuing the site
+            #
+            user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
+            old_user = sgtk.get_authenticated_user()
+            sgtk.set_authenticated_user(user)
+
             if is_on_top: 
                 self._set_top_window_on_top(False)
 
             setup = adminui.SetupProjectWizard(self.project, self)
+
+            # If the site config has a script user configured, this will promoted the current user from
+            # a human user to a script user. We'll need this to configure the project correctly.
             ret = setup.exec_()
             self.setup_finished.emit(ret == setup.Accepted)
 
@@ -61,6 +82,7 @@ class SetupProject(QtGui.QWidget):
             ret = error_dialog.exec_()
 
         finally:
+            sgtk.set_authenticated_user(old_user)
             if is_on_top: 
                 self._set_top_window_on_top(True)
 

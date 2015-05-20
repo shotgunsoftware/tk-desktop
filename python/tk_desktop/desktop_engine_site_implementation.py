@@ -11,6 +11,8 @@
 import os
 import re
 import sys
+import time
+import subprocess
 import string
 import logging
 import collections
@@ -18,7 +20,9 @@ import collections
 from sgtk.errors import TankEngineInitError
 
 from . import rpc
-from . import desktop_window
+from distutils.version import LooseVersion
+import sgtk
+from tank_vendor.shotgun_authentication import ShotgunAuthenticator
 
 
 class DesktopEngineSiteImplementation(object):
@@ -32,6 +36,8 @@ class DesktopEngineSiteImplementation(object):
         # each rule is a dictionary with keys for match, button_label, and
         # menu_label
         self._collapse_rules = []
+
+        self._cached_privileged_connection = None
 
     def destroy_engine(self):
         if self.proxy is not None:
@@ -81,6 +87,19 @@ class DesktopEngineSiteImplementation(object):
             if tb is not None:
                 message += "\n\n%s" % tb
             self._engine.log_error(message)
+
+    def get_privileged_connection(self):
+        """
+        This method will return a connection with the highest available privilege for the current
+        user.
+
+        :returns: A Shotgun instance with the highest level of permissions.
+        """
+        # IF the connection hasn't been cached yet, cache it.
+        if self._cached_privileged_connection is None:
+            user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
+            self._cached_privileged_connection = user.create_sg_connection()
+        return self._cached_privileged_connection
 
     def create_app_proxy(self, pipe, authkey):
         """ Called when the project engine has setup its RPC server thread """
@@ -179,14 +198,27 @@ class DesktopEngineSiteImplementation(object):
         """ Button clicked from a registered command. """
         self.proxy.call("trigger_callback", "__commands", name)
 
-    def run(self, splash=None, version=None):
+    # Leave app_version as is for backwards compatibility.
+    def run(self, splash, version, **kwargs):
         """
         Run the engine.
 
         This method is called from the GUI bootstrap to setup the application
         and to run the Qt event loop.
+
+        :param splash: Splash screen widget we can display messages on.
+        :param version: Version of the Shotgun Desktop installer code.
+        :param startup_version: Version of the Desktop Startup code.
         """
         self.app_version = version
+
+        # Startup version and app version used to be in sync in the old installer.
+        # If startup_version is not set, we are running in legacy mode and the startup_version
+        # is the app version.
+        self.startup_version = kwargs.get("startup_version", version)
+
+        if self.uses_legacy_authentication():
+            self._migrate_credentials()
 
         # Initialize Qt app
         from tank.platform.qt import QtGui
@@ -217,6 +249,18 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
+        # desktop_window needs to import shotgun_authentication globally. However, doing so
+        # can cause a crash when running Shotgun Desktop installer 1.02 code. We used to
+        # not restart Desktop when upgrading the core, which caused the older version of core
+        # to be kept in memory and the newer core to not be used until the app was reloaded.
+        #
+        # Since pre 0.16 cores didn't have a shotgun_authentication module, we
+        # would have crashed if this had been imported at init time. Note that earlier
+        # in this method we forcefully restarted the application if we noticed
+        # that the core was upgraded without restarting. Which means that if we
+        # end up here, it's now because we're in a good state.
+        from . import desktop_window
+
         # initialize System Tray
         self.desktop_window = desktop_window.DesktopWindow()
 
@@ -230,6 +274,66 @@ class DesktopEngineSiteImplementation(object):
         # and run the app
         result = app.exec_()
         return result
+
+    def uses_legacy_authentication(self):
+        """
+        Returns if the Shotgun Desktop installed code uses the tk-framework-login for
+        logging in.
+
+        :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
+        """
+        return LooseVersion(self.app_version) < LooseVersion("1.1.0")
+
+    def create_legacy_login_instance(self):
+        """
+        Creates an instance of tk-framework-login.ShotgunLogin.
+
+        Before we introduced Shotgun Authentication in Core 0.16.0, we used
+        tk-framework-login to authenticate in the Shotgun Desktop's installer
+        code. Once we've detected using uses_legacy_authentication that we are
+        using tk-framework-login, create_legacy_login_instance creates an
+        instance of that class in order to access the credentials.
+
+        In the Shotgun Desktop installer v1.1.0 code and higher, this
+        ShotgunLogin class is no more.
+
+        :raises ImportError: Thrown if the module is not available.
+
+        :returns: A tk-framework-login.ShotgunLogin instance.
+        """
+        try:
+            from python import ShotgunLogin
+        except ImportError:
+            self._engine.log_exception("Could not import tk-framework-login")
+            raise
+        else:
+            return ShotgunLogin.get_instance_for_namespace("tk-desktop")
+
+    def _migrate_credentials(self):
+        """
+        Migrates the credentials from tk-framework-login to
+        shotgun_authentication.
+        """
+        from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
+        sl = self.create_legacy_login_instance()
+        # Call get_connection, since it will reprompt for the password if
+        # for some reason it is expired now.
+        connection = sl.get_connection()
+        # Extract the credentials from the old Shotgun instance and create a
+        # ShotgunUser with them.
+        user = ShotgunAuthenticator().create_session_user(
+            login=connection.config.user_login,
+            password=connection.config.user_password,
+            host=connection.base_url,
+            # Ugly, but this is the only way available to get at the
+            # raw http_proxy string.
+            http_proxy=sl._http_proxy
+        )
+        # And now we can set the authenticated user and we are done.
+        sgtk.set_authenticated_user(user)
+        dm = DefaultsManager()
+        dm.set_host(user.host)
+        dm.set_login(user.login)
 
     def _initialize_logging(self):
         formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")

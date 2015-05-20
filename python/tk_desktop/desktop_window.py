@@ -20,7 +20,9 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.util import shotgun
+from sgtk import util
 from sgtk.platform import constants
+from tank_vendor import shotgun_authentication as sg_auth
 from sgtk import pipelineconfig_utils
 
 from .ui import resources_rc
@@ -50,10 +52,8 @@ except Exception:
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
-shotgun_login = sgtk.platform.import_framework("tk-framework-login", "shotgun_login")
 
 ShotgunModel = shotgun_model.ShotgunModel
-ShotgunLogin = shotgun_login.ShotgunLogin
 
 
 class DesktopWindow(SystrayWindow):
@@ -92,8 +92,8 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.setProperty("active", True)
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
-        connection = login.get_connection()
+
+        connection = shotgun.get_sg_connection()
 
         engine = sgtk.platform.current_engine()
 
@@ -104,10 +104,7 @@ class DesktopWindow(SystrayWindow):
 
         # User menu
         ###########################
-        user = login.get_login()
-        current_user = connection.find_one(
-            "HumanUser", [["id", "is", user["id"]]],
-            ["image", "name"])
+        current_user = self._get_current_user()
         thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
             (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
@@ -265,11 +262,12 @@ class DesktopWindow(SystrayWindow):
                     self._previous_dll_directory = win32api.GetDllDirectory(None)
                 except StandardError:
                     self._previous_dll_directory = None
-                
+
                 win32api.SetDllDirectory(None)
             except StandardError:
+                engine = sgtk.platform.current_engine()
                 engine.log_warning('Could not push DllDirectory under Windows.')
-            
+
     def _pop_dll_state(self):
         '''
         Pop the previously pushed DLL Directory
@@ -279,6 +277,7 @@ class DesktopWindow(SystrayWindow):
                 import win32api
                 win32api.SetDllDirectory(self._previous_dll_directory)
             except StandardError:
+                engine = sgtk.platform.current_engine()
                 engine.log_warning('Could not restore DllDirectory under Windows.')
 
     ########################################################################################
@@ -410,13 +409,13 @@ class DesktopWindow(SystrayWindow):
     def sign_out(self):
         engine = sgtk.platform.current_engine()
 
-        # clear password information
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
         try:
-            login.logout()
+            sg_auth.ShotgunAuthenticator().clear_default_user()
+            if engine.uses_legacy_authentication():
+                engine.create_legacy_login_instance().logout()
         except Exception:
             # if logout raises an exception, just log and don't crash
-            engine.log_exception("Error logging out")
+            engine.log_exception("Error logging out.")
 
         # disconnect from the current project
         engine.disconnect_app_proxy()
@@ -505,9 +504,11 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.show()
         self.project_overlay.hide()
 
+    def _get_current_user(self):
+        return util.get_current_user(sgtk.platform.current_engine().sgtk)
+
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
-        user = login.get_login()
+        user = self._get_current_user()
 
         primary_pc = None
         extra_pcs = []
@@ -842,9 +843,7 @@ class DesktopWindow(SystrayWindow):
         anim_group.start()
 
     def open_site_in_browser(self):
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop")
-        connection = login.get_connection()
-        url = connection.base_url
+        url = shotgun.get_associated_sg_base_url()
         if self.current_project is not None:
             url = "%s/detail/Project/%d" % (url, self.current_project["id"])
 
@@ -855,11 +854,13 @@ class DesktopWindow(SystrayWindow):
         about = AboutScreen(parent=self, body="""
             <center>
                 App Version %s<br/>
+                Startup Version %s<br/>
                 Engine Version %s<br/>
                 Core Version %s
             </center>
         """ % (
             engine.app_version,
+            engine.startup_version,
             engine.version,
             pipelineconfig_utils.get_currently_running_api_version())
         )
