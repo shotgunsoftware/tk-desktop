@@ -854,11 +854,13 @@ class DesktopWindow(SystrayWindow):
         about = AboutScreen(parent=self, body="""
             <center>
                 App Version %s<br/>
+                Startup Version %s<br/>
                 Engine Version %s<br/>
                 Core Version %s
             </center>
         """ % (
             engine.app_version,
+            engine.startup_version,
             engine.version,
             pipelineconfig_utils.get_currently_running_api_version())
         )

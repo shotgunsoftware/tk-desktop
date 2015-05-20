@@ -198,7 +198,8 @@ class DesktopEngineSiteImplementation(object):
         """ Button clicked from a registered command. """
         self.proxy.call("trigger_callback", "__commands", name)
 
-    def run(self, splash, version):
+    # Leave app_version as is for backwards compatibility.
+    def run(self, splash, version, **kwargs):
         """
         Run the engine.
 
@@ -207,8 +208,14 @@ class DesktopEngineSiteImplementation(object):
 
         :param splash: Splash screen widget we can display messages on.
         :param version: Version of the Shotgun Desktop installer code.
+        :param startup_version: Version of the Desktop Startup code.
         """
         self.app_version = version
+
+        # Startup version and app version used to be in sync in the old installer.
+        # If startup_version is not set, we are running in legacy mode and the startup_version
+        # is the app version.
+        self.startup_version = kwargs.get("startup_version", version)
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()
