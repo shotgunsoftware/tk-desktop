@@ -16,12 +16,10 @@ from sgtk.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.deploy import util
+from sgtk import util as sgtk_util
 
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
-
-shotgun_login = sgtk.platform.import_framework("tk-framework-login", "shotgun_login")
-ShotgunLogin = shotgun_login.ShotgunLogin
 
 
 class ProjectCommandProxyModel(GroupingProxyModel):
@@ -222,7 +220,6 @@ class ProjectCommandModel(GroupingModel):
                                   menu_name=None, icon=None, tooltip=None):
         # Create an event log entry to track app launches
         engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
 
         # get the info for the command
         # if the info was explicit use that, otherwise if the item has children
@@ -256,7 +253,6 @@ class ProjectCommandModel(GroupingModel):
             else:
                 tooltip = item.toolTip()
 
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
         data = {
             # recent is populated by grouping on description, so it needs
             # to be the same for each event created for a given name, but
@@ -267,12 +263,14 @@ class ProjectCommandModel(GroupingModel):
             "event_type": self.APP_LAUNCH_EVENT_TYPE,
             "project": self.__project,
             "meta": {"name": command_name, "group": group_name},
-            "user": login,
+            "user": sgtk_util.get_current_user(engine.sgtk),
         }
 
         # use toolkit connection to get ApiUser permissions for event creation
         start_time = time.time()
-        connection.create("EventLogEntry", data)
+
+        engine.get_privileged_connection().create("EventLogEntry", data)
+
         end_time = time.time()
         call_duration = end_time-start_time
         engine.log_debug("Registering app launch event (%.3f s): %s" % (call_duration, data))
@@ -318,12 +316,9 @@ class ProjectCommandModel(GroupingModel):
         # and a boolean saying whether the corresponding command has been registered
         self.__recents = {}
 
-        # need to know what login to find events for
-        login = ShotgunLogin.get_instance_for_namespace("tk-desktop").get_login()
-
         # pull down matching invents for the current project for the current user
         filters = [
-            ["user", "is", login],
+            ["user", "is", sgtk_util.get_current_user(sgtk.platform.current_engine().sgtk)],
             ["project", "is", self.__project],
             ["event_type", "is", self.APP_LAUNCH_EVENT_TYPE],
         ]

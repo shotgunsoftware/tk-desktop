@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 '''
  -----------------------------------------------------------------------------
- Copyright (c) 2009-2011, Shotgun Software Inc
+ Copyright (c) 2009-2015, Shotgun Software Inc
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -36,9 +36,6 @@ import cStringIO    # used for attachment upload
 import datetime
 import logging
 import mimetools    # used for attachment upload
-import mimetypes    # used for attachment upload
-mimetypes.add_type('video/webm','.webm') # webm and mp4 seem to be missing
-mimetypes.add_type('video/mp4', '.mp4')  # from some OS/distros
 import os
 import re
 import copy
@@ -52,13 +49,20 @@ import urlparse
 import shutil       # used for attachment download
 
 # use relative import for versions >=2.5 and package import for python versions <2.5
-if (sys.version_info[0] > 2) or (sys.version_info[0] == 2 and sys.version_info[1] >= 5):
+if (sys.version_info[0] > 2) or (sys.version_info[0] == 2 and sys.version_info[1] >= 6):
+    from sg_26 import *
+elif (sys.version_info[0] > 2) or (sys.version_info[0] == 2 and sys.version_info[1] >= 5):
     from sg_25 import *
 else:
     from sg_24 import *
 
+# mimetypes imported in version specific imports
+mimetypes.add_type('video/webm','.webm') # webm and mp4 seem to be missing
+mimetypes.add_type('video/mp4', '.mp4')  # from some OS/distros
+
 LOG = logging.getLogger("shotgun_api3")
 LOG.setLevel(logging.WARN)
+
 
 SG_TIMEZONE = SgTimezone()
 
@@ -72,7 +76,7 @@ except ImportError:
 
 # ----------------------------------------------------------------------------
 # Version
-__version__ = "3.0.15.dev"
+__version__ = "3.0.19"
 
 # ----------------------------------------------------------------------------
 # Errors
@@ -87,6 +91,10 @@ class ShotgunFileDownloadError(ShotgunError):
 
 class Fault(ShotgunError):
     """Exception when server side exception detected."""
+    pass
+
+class AuthenticationFault(Fault):
+    """Exception when the server side reports an error related to authentication"""
     pass
 
 # ----------------------------------------------------------------------------
@@ -139,6 +147,14 @@ class ServerCapabilities(object):
             raise ShotgunError("JSON API requires server version 2.4 or "\
                 "higher, server is %s" % (self.version,))
 
+    def ensure_include_archived_projects(self):
+        """Checks the server version support include_archived_projects parameter
+        to find.
+        """
+        if not self.version or self.version < (5, 3, 14):
+            raise ShotgunError("The include_archived_projects flag requires server version 5.3.14 or "\
+                "higher, server is %s" % (self.version,))
+
 
     def __str__(self):
         return "ServerCapabilities: host %s, version %s, is_dev %s"\
@@ -180,6 +196,10 @@ class _Config(object):
 
     def __init__(self):
         self.max_rpc_attempts = 3
+        # From http://docs.python.org/2.6/library/httplib.html:
+        # If the optional timeout parameter is given, blocking operations 
+        # (like connection attempts) will timeout after that many seconds 
+        # (if it is not given, the global default timeout setting is used)
         self.timeout_secs = None
         self.api_ver = 'api3'
         self.convert_datetimes_to_utc = True
@@ -188,11 +208,21 @@ class _Config(object):
         self.script_name = None
         self.user_login = None
         self.user_password = None
+        self.sudo_as_login = None
         # uuid as a string
         self.session_uuid = None
         self.scheme = None
         self.server = None
         self.api_path = None
+        # The raw_http_proxy reflects the exact string passed in 
+        # to the Shotgun constructor. This can be useful if you 
+        # need to construct a Shotgun API instance based on 
+        # another Shotgun API instance.
+        self.raw_http_proxy = None
+        # if a proxy server is being used, the proxy_handler
+        # below will contain a urllib2.ProxyHandler instance
+        # which can be used whenever a request needs to be made.
+        self.proxy_handler = None
         self.proxy_server = None
         self.proxy_port = 8080
         self.proxy_user = None
@@ -200,6 +230,7 @@ class _Config(object):
         self.session_token = None
         self.authorization = None
         self.no_ssl_validation = False
+
 
 class Shotgun(object):
     """Shotgun Client Connection"""
@@ -221,9 +252,11 @@ class Shotgun(object):
                  http_proxy=None,
                  ensure_ascii=True,
                  connect=True,
-				 ca_certs=None,
+                 ca_certs=None,
                  login=None,
-                 password=None):
+                 password=None,
+                 sudo_as_login=None,
+                 session_token=None):
         """Initialises a new instance of the Shotgun client.
 
         :param base_url: http or https url to the shotgun server.
@@ -246,9 +279,16 @@ class Shotgun(object):
         form [username:pass@]proxy.com[:8080]
 
         :param connect: If True, connect to the server. Only used for testing.
-		
-		:param ca_certs: The path to the SSL certificate file. Useful for users
-		who would like to package their application into an executable.
+        
+        :param ca_certs: Optional path to an external SSL certificates file. By 
+        default, the Shotgun API will use its own built-in certificates file
+        which stores root certificates for the most common Certificate 
+        Authorities (CAs). If you are using a corporate or internal CA, or are
+        packaging an application into an executeable, it may be necessary to 
+        point to your own certificates file. You can do this by passing in the 
+        full path to the file via this parameter or by setting the environment 
+        variable `SHOTGUN_API_CACERTS`. In the case both are set, this 
+        parameter will take precedence. 
 
         :param login: The login to use to authenticate to the server. If login
         is provided, then password must be as well and neither script_name nor
@@ -257,9 +297,26 @@ class Shotgun(object):
         :param password: The password for the login to use to authenticate to
         the server. If password is provided, then login must be as well and
         neither script_name nor api_key can be provided.
+        
+        :param sudo_as_login: A user login string for the user whose permissions will
+        be applied to all actions and who will be logged as the user performing
+        all actions. Note that logged events will have an additional extra meta-data parameter 
+        'sudo_actual_user' indicating the script or user that actually authenticated.
+        
+        :param session_token: The session token to use to authenticate to the server. This
+        can be used as an alternative to authenticating with a script user or regular user.
+        You retrieve the session token by running the get_session_token() method.        
         """
 
         # verify authentication arguments
+        if session_token is not None:
+            if script_name is not None or api_key is not None:
+                raise ValueError("cannot provide both session_token "
+                                 "and script_name/api_key")
+            if login is not None or password is not None:
+                raise ValueError("cannot provide both session_token "
+                                 "and login/password")
+        
         if login is not None or password is not None:
             if script_name is not None or api_key is not None:
                 raise ValueError("cannot provide both login/password "
@@ -275,20 +332,26 @@ class Shotgun(object):
             if api_key is None:
                 raise ValueError("script_name provided without api_key")
 
-        if all(v is None for v in [script_name, api_key, login, password]):
+        # Can't use 'all' with python 2.4
+        if len([x for x in [session_token, script_name, api_key, login, password] if x]) == 0:
             if connect:
-                raise ValueError("must provide either login/password "
-                                 "or script_name/api_key")
+                raise ValueError("must provide login/password, session_token or script_name/api_key")
 
         self.config = _Config()
         self.config.api_key = api_key
         self.config.script_name = script_name
         self.config.user_login = login
         self.config.user_password = password
+        self.config.session_token = session_token
+        self.config.sudo_as_login = sudo_as_login
         self.config.convert_datetimes_to_utc = convert_datetimes_to_utc
         self.config.no_ssl_validation = NO_SSL_VALIDATION
+        self.config.raw_http_proxy = http_proxy
         self._connection = None
-        self.__ca_certs = ca_certs
+        if ca_certs is not None:
+            self.__ca_certs = ca_certs
+        else:
+            self.__ca_certs = os.environ.get('SHOTGUN_API_CACERTS')
 
         self.base_url = (base_url or "").lower()
         self.config.scheme, self.config.server, api_base, _, _ = \
@@ -299,7 +362,6 @@ class Shotgun(object):
         self.config.api_path = urlparse.urljoin(urlparse.urljoin(
             api_base or "/", self.config.api_ver + "/"), "json")
 
-        self.reset_user_agent()
 
         # if the service contains user information strip it out
         # copied from the xmlrpclib which turned the user:password into
@@ -330,14 +392,26 @@ class Shotgun(object):
                         ". If no port is specified, a default of %d will be "\
                         "used." % (http_proxy, self.config.proxy_port))
 
+            # now populate self.config.proxy_handler
+            if self.config.proxy_user and self.config.proxy_pass:
+                auth_string = "%s:%s@" % (self.config.proxy_user, self.config.proxy_pass)
+            else:
+                auth_string = ""
+            proxy_addr = "http://%s%s:%d" % (auth_string, self.config.proxy_server, self.config.proxy_port)
+            self.config.proxy_handler = urllib2.ProxyHandler({self.config.scheme : proxy_addr})
+
+
 
         if ensure_ascii:
             self._json_loads = self._json_loads_ascii
 
         self.client_caps = ClientCapabilities()
+        # this relies on self.client_caps being set first 
+        self.reset_user_agent()
+
         self._server_caps = None
-        #test to ensure the the server supports the json API
-        #call to server will only be made once and will raise error
+        # test to ensure the the server supports the json API
+        # call to server will only be made once and will raise error
         if connect:
             self.server_caps
 
@@ -388,7 +462,7 @@ class Shotgun(object):
         return self._call_rpc("info", None, include_auth_params=False)
 
     def find_one(self, entity_type, filters, fields=None, order=None,
-        filter_operator=None, retired_only=False):
+        filter_operator=None, retired_only=False, include_archived_projects=True):
         """Calls the find() method and returns the first result, or None.
 
         :param entity_type: Required, entity type (string) to find.
@@ -416,14 +490,15 @@ class Shotgun(object):
         """
 
         results = self.find(entity_type, filters, fields, order,
-            filter_operator, 1, retired_only)
+            filter_operator, 1, retired_only, include_archived_projects=include_archived_projects)
 
         if results:
             return results[0]
         return None
 
     def find(self, entity_type, filters, fields=None, order=None,
-        filter_operator=None, limit=0, retired_only=False, page=0):
+            filter_operator=None, limit=0, retired_only=False, page=0,
+            include_archived_projects=True):
         """Find entities matching the given filters.
 
         :param entity_type: Required, entity type (string) to find.
@@ -449,6 +524,9 @@ class Shotgun(object):
         been retried. Defaults to False which returns only entities which
         have not been retired.
 
+        :param include_archived_projects: Optional, flag to include entities
+        whose projects have been archived
+
         :returns: list of the dicts for each entity with the requested fields,
         and their id and type.
         """
@@ -466,11 +544,18 @@ class Shotgun(object):
             raise ShotgunError("Deprecated: Use of filter_operator for find()"
                 " is not valid any more. See the documentation on find()")
 
+        if not include_archived_projects:
+            # This defaults to True on the server (no argument is sent)
+            # So we only need to check the server version if it is False
+            self.server_caps.ensure_include_archived_projects()
+
+
         params = self._construct_read_parameters(entity_type,
                                                  fields,
                                                  filters,
                                                  retired_only,
-                                                 order)
+                                                 order,
+                                                 include_archived_projects)
 
         if limit and limit <= self.config.records_per_page:
             params["paging"]["entities_per_page"] = limit
@@ -513,7 +598,8 @@ class Shotgun(object):
                                    fields,
                                    filters,
                                    retired_only,
-                                   order):
+                                   order,
+                                   include_archived_projects):
         params = {}
         params["type"] = entity_type
         params["return_fields"] = fields or ["id"]
@@ -522,6 +608,10 @@ class Shotgun(object):
         params["return_paging_info"] = True
         params["paging"] = { "entities_per_page": self.config.records_per_page,
                              "current_page": 1 }
+
+        if include_archived_projects is False:
+            # Defaults to True on the server, so only pass it if it's False
+            params["include_archived_projects"] = False
 
         if order:
             sort_list = []
@@ -542,7 +632,8 @@ class Shotgun(object):
                   filters,
                   summary_fields,
                   filter_operator=None,
-                  grouping=None):
+                  grouping=None,
+                  include_archived_projects=True):
         """
         Return group and summary information for entity_type for summary_fields
         based on the given filters.
@@ -555,9 +646,19 @@ class Shotgun(object):
         if isinstance(filters, (list, tuple)):
             filters = _translate_filters(filters, filter_operator)
 
+        if not include_archived_projects:
+            # This defaults to True on the server (no argument is sent)
+            # So we only need to check the server version if it is False
+            self.server_caps.ensure_include_archived_projects()
+
         params = {"type": entity_type,
                   "summaries": summary_fields,
                   "filters": filters}
+
+        if include_archived_projects is False:
+            # Defaults to True on the server, so only pass it if it's False
+            params["include_archived_projects"] = False
+
         if grouping != None:
             params['grouping'] = grouping
 
@@ -892,23 +993,55 @@ class Shotgun(object):
         
         return self._call_rpc('followers', params)
 
-    def schema_entity_read(self):
+    def schema_entity_read(self, project_entity=None):
         """Gets all active entities defined in the schema.
+
+        :param dict project_entity: Optional, if set, each field's visibility is reported accordingly
+        to the specified project's current visibility settings.
+        If None, all fields are reported as visible.
 
         :returns: dict of Entity Type to dict containing the display name.
         """
 
-        return self._call_rpc("schema_entity_read", None)
+        params = {}
 
-    def schema_read(self):
+        if project_entity:
+            if not self.server_caps.version or self.server_caps.version < (5, 4, 4):
+                raise ShotgunError("Per project schema operations require server "\
+                                   "version 5.4.4 or higher, server is %s" % (self.server_caps.version,))
+            else:
+                params["project"] = project_entity
+
+        if params:
+            return self._call_rpc("schema_entity_read", params)
+        else:
+            return self._call_rpc("schema_entity_read", None)
+
+    def schema_read(self, project_entity=None):
         """Gets the schema for all fields in all entities.
+
+        :param dict project_entity: Optional, if set, each field's visibility is reported accordingly
+        to the specified project's current visibility settings.
+        If None, all fields are reported as visible.
 
         :returns: nested dicts
         """
 
-        return self._call_rpc("schema_read", None)
+        params = {}
 
-    def schema_field_read(self, entity_type, field_name=None):
+        if project_entity:
+            if not self.server_caps.version or self.server_caps.version < (5, 4, 4):
+                raise ShotgunError("Per project schema operations require server "\
+                                   "version 5.4.4 or higher, server is %s" % (self.server_caps.version,))
+            else:
+                params["project"] = project_entity
+            
+        if params:
+            return self._call_rpc("schema_read", params)
+        else:
+            return self._call_rpc("schema_read", None)
+
+    def schema_field_read(self, entity_type, field_name=None, project_entity=None):
         """Gets all schema for fields in the specified entity_type or one
         field.
 
@@ -919,14 +1052,25 @@ class Shotgun(object):
         definition for. If not supplied all fields for the entity type are
         returned.
 
+        :param dict project_entity: Optional, if set, each field's visibility is reported accordingly
+        to the specified project's current visibility settings.
+        If None, all fields are reported as visible.
+
         :returns: dict of field name to nested dicts which describe the field
         """
 
         params = {
-            "type" : entity_type,
+            "type": entity_type,
         }
         if field_name:
             params["field_name"] = field_name
+            
+        if project_entity:            
+            if not self.server_caps.version or self.server_caps.version < (5, 4, 4):
+                raise ShotgunError("Per project schema operations require server "\
+                                   "version 5.4.4 or higher, server is %s" % (self.server_caps.version,))
+            else:
+                params["project"] = project_entity
 
         return self._call_rpc("schema_field_read", params)
 
@@ -1014,8 +1158,14 @@ class Shotgun(object):
 
     def reset_user_agent(self):
         """Reset user agent to the default
+
+        Eg. shotgun-json (3.0.17); Python 2.6 (Mac)
         """
-        self._user_agents = ["shotgun-json (%s)" % __version__]
+        ua_platform = "Unknown"
+        if self.client_caps.platform is not None:
+            ua_platform = self.client_caps.platform.capitalize()
+        self._user_agents = ["shotgun-json (%s)" % __version__,
+                             "Python %s (%s)" % (self.client_caps.py_version, ua_platform)]
 
     def set_session_uuid(self, session_uuid):
         """Sets the browser session_uuid for this API session.
@@ -1300,7 +1450,7 @@ class Shotgun(object):
         """Sets up urllib2 with a cookie for authentication on the Shotgun 
         instance.
         """
-        sid = self._get_session_token()
+        sid = self.get_session_token()
         cj = cookielib.LWPCookieJar()
         c = cookielib.Cookie('0', '_session_id', sid, None, False,
             self.config.server, False, False, "/", True, False, None, True,
@@ -1387,11 +1537,40 @@ class Shotgun(object):
             raise
 
 
+    def update_project_last_accessed(self, project, user=None):
+        """
+        Update projects last_accessed_by_current_user field.
+        
+        :param project - a project entity hash
+        :param user - A human user entity hash. Optional if either login or sudo_as are used.
 
+        """
+        if self.server_caps.version and self.server_caps.version < (5, 3, 20):
+                raise ShotgunError("update_project_last_accessed requires server version 5.3.20 or "\
+                    "higher, server is %s" % (self.server_caps.version,))
 
-    def _get_session_token(self):
-        """Hack to authenticate in order to download protected content
-        like Attachments
+        if not user:
+            # Try to use sudo as user if present
+            if self.config.sudo_as_login:
+                user = self.find_one('HumanUser', [['login', 'is', self.config.sudo_as_login]])
+            # Try to use login if present
+            if self.config.user_login:
+                user = self.find_one('HumanUser', [['login', 'is', self.config.user_login]])
+
+        params = { "project_id": project['id'], }
+        if user:
+            params['user_id'] = user['id']
+
+        record = self._call_rpc("update_project_last_accessed_by_current_user", params)
+        result = self._parse_records(record)[0]
+
+    def get_session_token(self):
+        """
+        Get the session token associated with the current session.
+        If a session token has already been established, this is returned, 
+        otherwise a new one is generated on the server and returned.
+        
+        :returns: String containing a session token
         """
         if self.config.session_token:
             return self.config.session_token
@@ -1400,22 +1579,13 @@ class Shotgun(object):
         session_token = (rv or {}).get("session_id")
         if not session_token:
             raise RuntimeError("Could not extract session_id from %s", rv)
-
-        self.config.session_token = session_token
-        return self.config.session_token
+        self.config.session_token = session_token 
+        return session_token
 
     def _build_opener(self, handler):
         """Build urllib2 opener with appropriate proxy handler."""
-        if self.config.proxy_server:
-            # handle proxy auth
-            if self.config.proxy_user and self.config.proxy_pass:
-                auth_string = "%s:%s@" % (self.config.proxy_user, self.config.proxy_pass)
-            else:
-                auth_string = ""
-            proxy_addr = "http://%s%s:%d" % (auth_string, self.config.proxy_server, self.config.proxy_port)
-            proxy_support = urllib2.ProxyHandler({self.config.scheme : proxy_addr})
-
-            opener = urllib2.build_opener(proxy_support, handler)
+        if self.config.proxy_handler:
+            opener = urllib2.build_opener(self.config.proxy_handler, handler)
         else:
             opener = urllib2.build_opener(handler)
         return opener
@@ -1474,6 +1644,7 @@ class Shotgun(object):
 
     def _auth_params(self):
         """ return a dictionary of the authentication parameters being used. """
+                
         # Used to authenticate HumanUser credentials
         if self.config.user_login and self.config.user_password:
             auth_params = {
@@ -1488,11 +1659,31 @@ class Shotgun(object):
                 "script_key" : str(self.config.api_key),
             }
 
+        # Authenticate using session_id
+        elif self.config.session_token:
+            if self.server_caps.version and self.server_caps.version < (5, 3, 0):
+                raise ShotgunError("Session token based authentication requires server version 5.3.0 or "\
+                    "higher, server is %s" % (self.server_caps.version,))
+            
+            auth_params = {"session_token" : str(self.config.session_token)}
+
+            # Request server side to raise exception for expired sessions. 
+            # This was added in as part of Shotgun 5.4.4            
+            if self.server_caps.version and self.server_caps.version > (5, 4, 3):
+                auth_params["reject_if_expired"] = True
+
         else:
             raise ValueError("invalid auth params")
 
         if self.config.session_uuid:
             auth_params["session_uuid"] = self.config.session_uuid
+
+        # Make sure sudo_as_login is supported by server version
+        if self.config.sudo_as_login:
+            if self.server_caps.version and self.server_caps.version < (5, 3, 12):
+                raise ShotgunError("Option 'sudo_as_login' requires server version 5.3.12 or "\
+                    "higher, server is %s" % (self.server_caps.version,))
+            auth_params["sudo_as_login"] = self.config.sudo_as_login
 
         return auth_params
 
@@ -1658,10 +1849,17 @@ class Shotgun(object):
 
         :raises ShotgunError: If the server response contains an exception.
         """
+ 
+        ERR_AUTH = 102 # error code for authentication related problems
 
         if isinstance(sg_response, dict) and sg_response.get("exception"):
-            raise Fault(sg_response.get("message",
-                "Unknown Error"))
+            
+            if sg_response.get("error_code") == ERR_AUTH:
+                raise AuthenticationFault(sg_response.get("message", "Unknown Authentication Error"))
+
+            else:
+                # raise general Fault            
+                raise Fault(sg_response.get("message", "Unknown Error"))
         return
 
     def _visit_data(self, data, visitor):
