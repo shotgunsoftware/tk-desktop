@@ -287,7 +287,7 @@ class SgProjectModel(ShotgunModel):
         engine = sgtk.platform.current_engine()
         # pull down matching events for the current user
         filters = [
-            ["user", "is", login.get_current_user(engine.sgtk)],
+            ["user", "is", engine.get_current_login()],
             ["event_type", "is", self.PROJECT_LAUNCH_EVENT_TYPE],
         ]
 
@@ -373,7 +373,7 @@ class SgProjectModel(ShotgunModel):
         }
 
         start_time = time.time()
-        engine.get_privileged_connection().create("EventLogEntry", data)
+        engine.shotgun.create("EventLogEntry", data)
         end_time = time.time()
         call_duration = end_time-start_time
 

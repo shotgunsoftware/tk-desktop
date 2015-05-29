@@ -104,7 +104,11 @@ class DesktopWindow(SystrayWindow):
 
         # User menu
         ###########################
-        current_user = self._get_current_user()
+        user = engine.get_current_login()
+        current_user = connection.find_one(
+            "HumanUser", [["id", "is", user["id"]]],
+            ["image", "name"])
+        self._current_user_id = user["id"]
         thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
             (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
@@ -404,6 +408,7 @@ class DesktopWindow(SystrayWindow):
 
     def on_project_filesystem_folder_triggered(self):
         engine = sgtk.platform.current_engine()
+        self.refresh_user_credentials()
         engine.proxy.call("open_project_locations")
 
     def sign_out(self):
@@ -504,12 +509,7 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.show()
         self.project_overlay.hide()
 
-    def _get_current_user(self):
-        return util.get_current_user(sgtk.platform.current_engine().sgtk)
-
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
-        user = self._get_current_user()
-
         primary_pc = None
         extra_pcs = []
         for pc in pipeline_configurations:
@@ -524,8 +524,8 @@ class DesktopWindow(SystrayWindow):
                 continue
 
             # add pcs for this user
-            for u in pc["users"]:
-                if user["id"] == u["id"]:
+            for user in pc["users"]:
+                if self._current_user_id == user["id"]:
                     extra_pcs.append(pc)
                     continue
 
@@ -790,6 +790,12 @@ class DesktopWindow(SystrayWindow):
         # get the path to the utilities module
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
 
+        # Check if the pipeline configuration is login based.
+        engine.check_login_based(core_root)
+        # Make sure the credentials are refreshed so the background process
+        # has no problem launching.
+        engine.refresh_user_credentials()
+
         # Ticket 26741: Avoid having odd DLL loading issues on windows
         self._push_dll_state()
 
@@ -817,19 +823,19 @@ class DesktopWindow(SystrayWindow):
             offsetx = -offsetx
 
         curr_pos = new_page.pos()
-        new_page.move(curr_pos.x()+offsetx, curr_pos.y())
+        new_page.move(curr_pos.x() + offsetx, curr_pos.y())
         new_page.show()
         new_page.raise_()
 
         anim_old = QtCore.QPropertyAnimation(current_page, "pos", self)
         anim_old.setDuration(500)
         anim_old.setStartValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
-        anim_old.setEndValue(QtCore.QPoint(curr_pos.x()-offsetx, curr_pos.y()))
+        anim_old.setEndValue(QtCore.QPoint(curr_pos.x() - offsetx, curr_pos.y()))
         anim_old.setEasingCurve(QtCore.QEasingCurve.OutBack)
 
         anim_new = QtCore.QPropertyAnimation(new_page, "pos", self)
         anim_new.setDuration(500)
-        anim_new.setStartValue(QtCore.QPoint(curr_pos.x()+offsetx, curr_pos.y()))
+        anim_new.setStartValue(QtCore.QPoint(curr_pos.x() + offsetx, curr_pos.y()))
         anim_new.setEndValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
         anim_new.setEasingCurve(QtCore.QEasingCurve.OutBack)
 

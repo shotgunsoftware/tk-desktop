@@ -16,7 +16,6 @@ from sgtk.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.deploy import util
-from sgtk import util as sgtk_util
 
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
@@ -220,6 +219,7 @@ class ProjectCommandModel(GroupingModel):
                                   menu_name=None, icon=None, tooltip=None):
         # Create an event log entry to track app launches
         engine = sgtk.platform.current_engine()
+        connection = engine.shotgun
 
         # get the info for the command
         # if the info was explicit use that, otherwise if the item has children
@@ -263,13 +263,13 @@ class ProjectCommandModel(GroupingModel):
             "event_type": self.APP_LAUNCH_EVENT_TYPE,
             "project": self.__project,
             "meta": {"name": command_name, "group": group_name},
-            "user": sgtk_util.get_current_user(engine.sgtk),
+            "user": engine.get_current_login(),
         }
 
         # use toolkit connection to get ApiUser permissions for event creation
         start_time = time.time()
 
-        engine.get_privileged_connection().create("EventLogEntry", data)
+        connection.create("EventLogEntry", data)
 
         end_time = time.time()
         call_duration = end_time-start_time
@@ -318,7 +318,7 @@ class ProjectCommandModel(GroupingModel):
 
         # pull down matching invents for the current project for the current user
         filters = [
-            ["user", "is", sgtk_util.get_current_user(sgtk.platform.current_engine().sgtk)],
+            ["user", "is", sgtk.platform.current_engine().get_current_login()],
             ["project", "is", self.__project],
             ["event_type", "is", self.APP_LAUNCH_EVENT_TYPE],
         ]

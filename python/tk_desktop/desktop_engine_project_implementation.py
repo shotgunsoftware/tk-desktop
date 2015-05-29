@@ -15,6 +15,7 @@ import logging
 import traceback
 
 from . import rpc
+import sgtk
 
 
 class DesktopEngineProjectImplementation(object):

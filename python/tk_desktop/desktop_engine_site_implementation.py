@@ -8,11 +8,10 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from __future__ import with_statement
 import os
 import re
 import sys
-import time
-import subprocess
 import string
 import logging
 import collections
@@ -22,7 +21,8 @@ from sgtk.errors import TankEngineInitError
 from . import rpc
 from distutils.version import LooseVersion
 import sgtk
-from tank_vendor.shotgun_authentication import ShotgunAuthenticator
+from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
+from tank_vendor import yaml
 
 
 class DesktopEngineSiteImplementation(object):
@@ -31,17 +31,18 @@ class DesktopEngineSiteImplementation(object):
         self.msg_server = None
         self._engine = engine
         self.app_version = None
+        self._is_login_based = False
 
         # rules that determine how to collapse commands into buttons
         # each rule is a dictionary with keys for match, button_label, and
         # menu_label
         self._collapse_rules = []
 
-        self._cached_privileged_connection = None
-
     def destroy_engine(self):
         if self.proxy is not None:
             self.proxy.close()
+
+        self._is_login_based = False
 
         # close down our server thread
         if self.msg_server is not None:
@@ -87,19 +88,6 @@ class DesktopEngineSiteImplementation(object):
             if tb is not None:
                 message += "\n\n%s" % tb
             self._engine.log_error(message)
-
-    def get_privileged_connection(self):
-        """
-        This method will return a connection with the highest available privilege for the current
-        user.
-
-        :returns: A Shotgun instance with the highest level of permissions.
-        """
-        # IF the connection hasn't been cached yet, cache it.
-        if self._cached_privileged_connection is None:
-            user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
-            self._cached_privileged_connection = user.create_sg_connection()
-        return self._cached_privileged_connection
 
     def create_app_proxy(self, pipe, authkey):
         """ Called when the project engine has setup its RPC server thread """
@@ -167,6 +155,7 @@ class DesktopEngineSiteImplementation(object):
                 # Especially for the engine restart command, the connection
                 # itself gets reset and so there isn't a channel to get a
                 # response back.
+                self.refresh_user_credentials()
                 self.proxy.call_no_response("trigger_callback", "__commands", name)
             action.triggered.connect(action_triggered)
             self.desktop_window.add_to_project_menu(action)
@@ -196,6 +185,7 @@ class DesktopEngineSiteImplementation(object):
 
     def _handle_button_command_triggered(self, group, name):
         """ Button clicked from a registered command. """
+        self.refresh_user_credentials()
         self.proxy.call("trigger_callback", "__commands", name)
 
     # Leave app_version as is for backwards compatibility.
@@ -212,13 +202,32 @@ class DesktopEngineSiteImplementation(object):
         """
         self.app_version = version
 
-        # Startup version and app version used to be in sync in the old installer.
-        # If startup_version is not set, we are running in legacy mode and the startup_version
-        # is the app version.
+        # Startup version will not be set if we have an old installer invoking
+        # this engine.
         self.startup_version = kwargs.get("startup_version")
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()
+
+        # We need to initialize current login
+        # We know for sure there is a default user, since either the migration was done
+        # or we logged in as an actual user with the new installer.
+        human_user = ShotgunAuthenticator(
+            # We don't want to get the script user, but the human user, so tell the
+            # CoreDefaultsManager manager that we are not interested in the script user. Do not use
+            # the regular shotgun_authentication.DefaultsManager to get this user because it will
+            # not know about proxy information.
+            sgtk.util.CoreDefaultsManager(mask_script_user=True)
+        ).get_default_user()
+        # Cache the user so we can refresh the credentials before launching a background process
+        self._user = human_user
+        # Retrieve the current logged in user information. This will be used when creating
+        # event log entries.
+        self._current_login = self._engine.sgtk.shotgun.find_one(
+            "HumanUser",
+            [["login", "is", human_user.login]],
+            ["id", "login"]
+        )
 
         # Initialize Qt app
         from tank.platform.qt import QtGui
@@ -314,13 +323,12 @@ class DesktopEngineSiteImplementation(object):
         Migrates the credentials from tk-framework-login to
         shotgun_authentication.
         """
-        from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
         sl = self.create_legacy_login_instance()
         # Call get_connection, since it will reprompt for the password if
         # for some reason it is expired now.
         connection = sl.get_connection()
         # Extract the credentials from the old Shotgun instance and create a
-        # ShotgunUser with them.
+        # ShotgunUser with them. This will cache the session token as well.
         user = ShotgunAuthenticator().create_session_user(
             login=connection.config.user_login,
             password=connection.config.user_password,
@@ -329,8 +337,8 @@ class DesktopEngineSiteImplementation(object):
             # raw http_proxy string.
             http_proxy=sl._http_proxy
         )
-        # And now we can set the authenticated user and we are done.
-        sgtk.set_authenticated_user(user)
+
+        # Next set the current host and user in the framework.
         dm = DefaultsManager()
         dm.set_host(user.host)
         dm.set_login(user.login)
@@ -344,6 +352,41 @@ class DesktopEngineSiteImplementation(object):
 
     def proxy_log(self, level, msg, args):
         self._engine._logger.log(level, "[PROXY] %s" % msg, *args)
+
+    def get_current_login(self):
+        """
+        Returns the user's id and login.
+
+        :returns: Dictionary with keys id and login.
+        """
+        return self._current_login
+
+    def check_login_based(self, core_path):
+        """
+        Caches whether a pipeline configuration is login based or not.
+
+        :param core_path: Path to the core.
+        """
+        # Look inside the shotgun.yml file if there is a script user. If there isn't
+        # the core is login based and we have to refresh the credentials everytime
+        # we send a command to avoid password prompting in the background process.
+        shotgun_yml_path = os.path.join(core_path, "config", "core", "shotgun.yml")
+        with open(shotgun_yml_path, "r") as shotgun_yaml_file:
+            data = yaml.load(shotgun_yaml_file)
+            # If there are non null values set on both keys, we are not login based.
+            if data.get("api_script") and data.get("api_key"):
+                self._is_login_based = False
+            else:
+                self._is_login_based = True
+        self._engine.log_debug("login based: %s" % self._is_login_based)
+
+    def refresh_user_credentials(self):
+        """
+        Refreshes the human user credentials, potentially prompting for a password, only is
+        the desktop project engine is using login based authentication.
+        """
+        if self._is_login_based:
+            self._user.refresh_credentials()
 
 
 class KeyedDefaultDict(collections.defaultdict):
