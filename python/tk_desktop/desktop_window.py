@@ -93,9 +93,9 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
 
-        connection = shotgun.get_sg_connection()
-
         engine = sgtk.platform.current_engine()
+
+        connection = engine.get_current_user().create_sg_connection()
 
         # Setup the console
         self.__console = Console()

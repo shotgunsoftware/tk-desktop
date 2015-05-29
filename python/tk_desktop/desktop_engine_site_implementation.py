@@ -380,6 +380,14 @@ class DesktopEngineSiteImplementation(object):
                 self._is_login_based = True
         self._engine.log_debug("login based: %s" % self._is_login_based)
 
+    def get_current_user(self):
+        """
+        Returns the current login based user.
+
+        :returns: A ShotgunUser instance.
+        """
+        return self._user
+
     def refresh_user_credentials(self):
         """
         Refreshes the human user credentials, potentially prompting for a password, only is

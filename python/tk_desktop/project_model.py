@@ -244,8 +244,8 @@ class SgProjectModel(ShotgunModel):
         """ Constructor """
         ShotgunModel.__init__(self, parent, download_thumbs=True)
 
-        connection = sgtk.platform.current_engine().shotgun
-
+        engine = sgtk.platform.current_engine()
+        connection = engine.get_current_user().create_sg_connection()
         self.set_shotgun_connection(connection)
 
         # load up the thumbnail to use when there is none set in Shotgun
@@ -369,7 +369,7 @@ class SgProjectModel(ShotgunModel):
             "event_type": self.PROJECT_LAUNCH_EVENT_TYPE,
             "project": project,
             "meta": {"version": engine.version},
-            "user": login.get_current_user(engine.sgtk),
+            "user": engine.get_current_login()
         }
 
         start_time = time.time()
