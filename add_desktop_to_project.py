@@ -19,6 +19,16 @@ def main():
     # import toolkit from the specified core install
     sys.path.insert(0, opts.core_python_path)
     import sgtk
+    if hasattr(sgtk, "set_authenticated_user"):
+        # import authentication
+        from tank_vendor import shotgun_authentication
+        # Initialize the authenticator with Toolkit's defaults manager.
+        dm = sgtk.util.CoreDefaultsManager()
+        sg_auth = shotgun_authentication.ShotgunAuthenticator(dm)
+        # get the current user
+        user = sg_auth.get_default_user()
+        sgtk.set_authenticated_user(user)
+
     import sgtk.platform.engine
 
     # load up toolkit and get the environment for the project context
