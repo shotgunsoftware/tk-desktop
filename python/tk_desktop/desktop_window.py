@@ -20,7 +20,6 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.util import shotgun
-from sgtk import util
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
 from sgtk import pipelineconfig_utils
@@ -139,8 +138,9 @@ class DesktopWindow(SystrayWindow):
                 action = QtGui.QAction(self)
                 action.setObjectName(props["short_name"])
                 action.setText(name)
-                action.setToolTip(props.get("description", "No description available."))
-                action.triggered.connect(command["callback"])
+                if props.get("description"):
+                    action.setToolTip(props.get("description"))
+                action.triggered.connect(lambda: self._execute_command(name, command))
                 self.user_menu.addAction(action)
 
         self.user_menu.addSeparator()
@@ -235,6 +235,22 @@ class DesktopWindow(SystrayWindow):
         self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
 
         self._load_settings()
+
+    def _execute_command(self, name, command):
+        """
+        Executes an engine command. Called when the command is picked from the menu.
+
+        :param name: Name of the command
+        :param command: Command dictionary following the Toolkit command format.
+        """
+        try:
+            command["callback"](self)
+        except Exception, e:
+            msg = "There was a problem running the '%s' command:\n\n%s" % (name, str(e))
+            self._engine.log_error(msg)
+            QtGui.QMessageBox.critical(
+                self, "Shotgun Desktop", "%s\n\nPlease contact support at support@shotgunsoftware.com" % msg
+            )
 
     def _load_settings(self):
         # last window position

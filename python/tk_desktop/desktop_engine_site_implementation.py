@@ -243,6 +243,7 @@ class DesktopEngineSiteImplementation(object):
         # If the permission rule set is for the admin, we'll register a few
         # commands.
         if permission_rule_set["name"] == _ADMIN_RULE_SET:
+            # Some commands are available only under certain conditions.
             if assign_users_to_template_project_command.is_available(self._engine):
                 self._engine.register_command(
                     assign_users_to_template_project_command.name,
