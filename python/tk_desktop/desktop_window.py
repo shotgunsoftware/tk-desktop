@@ -125,10 +125,24 @@ class DesktopWindow(SystrayWindow):
                 except Exception:
                     pass
 
-        # populate user menu
+        # populate user Menu
         self.user_menu = QtGui.QMenu(self)
         name_action = self.user_menu.addAction(current_user["name"])
         url_action = self.user_menu.addAction(connection.base_url.split("://")[1])
+
+        # Build a menu with all the commands
+        commands = engine.commands
+        if commands:
+            self.user_menu.addSeparator()
+            for name, command in commands.iteritems():
+                props = command["properties"]
+                action = QtGui.QAction(self)
+                action.setObjectName(props["short_name"])
+                action.setText(name)
+                action.setToolTip(props.get("description", "No description available."))
+                action.triggered.connect(command["callback"])
+                self.user_menu.addAction(action)
+
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionPin_to_Menu)
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
