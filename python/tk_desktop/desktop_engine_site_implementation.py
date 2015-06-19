@@ -334,8 +334,9 @@ class DesktopEngineSiteImplementation(object):
         dm.set_host(site)
         dm.set_login(login)
 
-        # If the connection is session based, reuse the token
-        if connection.config.session_token is not None:
+        # If we have a version of the framework that supports password mangling with the session token,
+        # try to pick the session token from the connection.
+        if hasattr(sl, "mangle_password") and connection.config.session_token is not None:
             # Extract the credentials from the old Shotgun instance and create a
             # ShotgunUser with them. This will cache the session token as well.
             ShotgunAuthenticator().create_session_user(
