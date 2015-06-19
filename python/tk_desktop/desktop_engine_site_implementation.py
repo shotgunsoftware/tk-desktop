@@ -324,24 +324,36 @@ class DesktopEngineSiteImplementation(object):
         shotgun_authentication.
         """
         sl = self.create_legacy_login_instance()
+        site, login, _ = sl._get_saved_values()
         # Call get_connection, since it will reprompt for the password if
         # for some reason it is expired now.
         connection = sl.get_connection()
-        # Extract the credentials from the old Shotgun instance and create a
-        # ShotgunUser with them. This will cache the session token as well.
-        user = ShotgunAuthenticator().create_session_user(
-            login=connection.config.user_login,
-            password=connection.config.user_password,
-            host=connection.base_url,
-            # Ugly, but this is the only way available to get at the
-            # raw http_proxy string.
-            http_proxy=sl._http_proxy
-        )
 
         # Next set the current host and user in the framework.
         dm = DefaultsManager()
-        dm.set_host(user.host)
-        dm.set_login(user.login)
+        dm.set_host(site)
+        dm.set_login(login)
+
+        # If the connection is session based, reuse the token
+        if connection.config.session_token is not None:
+            # Extract the credentials from the old Shotgun instance and create a
+            # ShotgunUser with them. This will cache the session token as well.
+            ShotgunAuthenticator().create_session_user(
+                login=login,
+                session_token=connection.config.session_token,
+                # Ugly, but this is the only way available to get at the
+                # raw http_proxy string.
+                http_proxy=sl._http_proxy
+            )
+        else:
+            ShotgunAuthenticator().create_session_user(
+                login=connection.config.user_login,
+                password=connection.config.user_password,
+                host=connection.base_url,
+                # Ugly, but this is the only way available to get at the
+                # raw http_proxy string.
+                http_proxy=sl._http_proxy
+            )
 
     def _initialize_logging(self):
         formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")
