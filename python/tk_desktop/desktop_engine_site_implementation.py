@@ -206,6 +206,10 @@ class DesktopEngineSiteImplementation(object):
         # this engine.
         self.startup_version = kwargs.get("startup_version")
 
+        server = kwargs.get("server")
+        if server:
+            server.get_logger().addHandler(self._engine._handler)
+
         if self.uses_legacy_authentication():
             self._migrate_credentials()
 

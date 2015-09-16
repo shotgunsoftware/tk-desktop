@@ -43,7 +43,12 @@ class LaunchPython(Hook):
         # launch, running the bootstrap and passing through the startup data
         args = [project_python, bootstrap, "-d", pickle_data_path, "-u", utilities_module_path]
         self.parent.log_debug("launching %s" % " ".join(["'%s'" % arg for arg in args]))
-        subprocess.Popen(args, startupinfo=startupinfo)
+
+        # Very important to set close_fds otherwise the websocket server file descriptor
+        # will be shared with the child process and it prevent restarting the server
+        # after the process closes.
+        # Solution was found here: http://stackoverflow.com/a/13593715
+        subprocess.Popen(args, startupinfo=startupinfo, close_fds=True)
 
     def path_to_bootstrap(self):
         """

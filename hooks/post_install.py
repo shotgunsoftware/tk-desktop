@@ -71,7 +71,11 @@ class PostInstall(sgtk.get_hook_baseclass()):
         for i in range(3, 0, -1):
             splash.set_message("Core updated. Restarting desktop in %d seconds..." % i)
             time.sleep(1)
-        subprocess.Popen(sys.argv)
+        # Very important to set close_fds otherwise the websocket server file descriptor
+        # will be shared with the child process and it prevent restarting the server
+        # after the process closes.
+        # Solution was found here: http://stackoverflow.com/a/13593715
+        subprocess.Popen(sys.argv, close_fds=True)
         sys.exit(0)
 
     def execute(self, *args, **kwargs):

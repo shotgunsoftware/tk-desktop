@@ -426,8 +426,12 @@ class DesktopWindow(SystrayWindow):
         engine.disconnect_app_proxy()
 
         # restart the application
-        subprocess.Popen(sys.argv)
         self.handle_quit_action()
+        # Very important to set close_fds otherwise the websocket server file descriptor
+        # will be shared with the child process and it prevent restarting the server
+        # after the process closes.
+        # Solution was found here: http://stackoverflow.com/a/13593715
+        subprocess.Popen(sys.argv, close_fds=True)
 
     def is_on_top(self):
         return (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
