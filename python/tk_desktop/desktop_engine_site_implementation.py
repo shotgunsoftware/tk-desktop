@@ -206,6 +206,12 @@ class DesktopEngineSiteImplementation(object):
         # this engine.
         self.startup_version = kwargs.get("startup_version")
 
+        server = kwargs.get("server")
+        # If the startup has a websocket server.
+        if server:
+            # Make sure that the websocket server logs go the Desktop logs.
+            server.get_logger().addHandler(self._engine._handler)
+
         if self.uses_legacy_authentication():
             self._migrate_credentials()
 
