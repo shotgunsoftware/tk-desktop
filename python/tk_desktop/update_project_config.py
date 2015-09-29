@@ -120,7 +120,7 @@ class UpdateProjectConfig(QtGui.QWidget):
                         <pre>%s</pre>
                     </p>
                     <p><span style=" font-size:14pt;">
-                        Please let toolkitsupport@shotgunsoftware.com know.
+                        Please let support@shotgunsoftware.com know.
                     </span></p>
                 </body></html>
             """ % stderr
