@@ -431,7 +431,8 @@ class DesktopWindow(SystrayWindow):
         # will be shared with the child process and it prevent restarting the server
         # after the process closes.
         # Solution was found here: http://stackoverflow.com/a/13593715
-        subprocess.Popen(sys.argv, close_fds=True)
+        # Also tell the new shotgun to skip the tray and go directly to the login.
+        subprocess.Popen(sys.argv + ["--show-login"], close_fds=True)
 
     def is_on_top(self):
         return (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
