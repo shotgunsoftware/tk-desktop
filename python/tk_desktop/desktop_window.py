@@ -88,10 +88,23 @@ class DesktopWindow(SystrayWindow):
         self.systray_state_changed.connect(self.handle_systray_state_changed)
         QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
-        # Setup header buttons
-        self.ui.apps_button.setProperty("active", True)
-        self.ui.apps_button.style().unpolish(self.ui.apps_button)
-        self.ui.apps_button.style().polish(self.ui.apps_button)
+        # Setup tabs
+
+        # TODO should be reading list of tabs from config
+        self._register_tab("My Tasks")
+
+        # should always be true for now with the default Apps tab, but should
+        # make sure that the list is non-empty once the whole list of tabs is
+        # provided by the user.
+        assert(self.ui.tabs.count() > 0)
+
+        first_tab_button = self.ui.tabs.itemAt(0).widget()
+        first_tab_button.setProperty("active", True)
+
+        for tab_item in self.ui.tabs.children():
+            tab_button = tab_item.widget()
+            tab_button.style().unpolish(tab_button)
+            tab_button.style().polish(tab_button)
 
         engine = sgtk.platform.current_engine()
 
@@ -283,6 +296,27 @@ class DesktopWindow(SystrayWindow):
             except StandardError:
                 engine = sgtk.platform.current_engine()
                 engine.log_warning('Could not restore DllDirectory under Windows.')
+
+    def _register_tab(self, tab_name):
+        '''
+        Register a tab to add to the UI
+
+        :param tab_name: name displayed on the tab button
+        '''
+        tab_button = QtGui.QPushButton(self.ui.header)
+
+        # button behaviour/styling
+        tab_button.setMouseTracking(True)
+        tab_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        tab_button.setFlat(True)
+        tab_button.setProperty("active", False)
+
+        # tab-specific values
+        tab_button.setText(QtGui.QApplication.translate("DesktopWindow",
+            "My Tasks", None, QtGui.QApplication.UnicodeUTF8))
+
+        # add it to the ui
+        self.ui.tabs.addWidget(tab_button)
 
     ########################################################################################
     # Event handlers and slots
