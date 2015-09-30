@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'desktop_window.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.1
+#      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -38,6 +38,8 @@ class Ui_DesktopWindow(object):
         self.horizontalLayout_2.setSpacing(20)
         self.horizontalLayout_2.setContentsMargins(20, 0, 20, 0)
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.tabs = QtGui.QHBoxLayout()
+        self.tabs.setObjectName("tabs")
         self.apps_button = QtGui.QPushButton(self.header)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
@@ -49,7 +51,8 @@ class Ui_DesktopWindow(object):
         self.apps_button.setFocusPolicy(QtCore.Qt.NoFocus)
         self.apps_button.setFlat(True)
         self.apps_button.setObjectName("apps_button")
-        self.horizontalLayout_2.addWidget(self.apps_button)
+        self.tabs.addWidget(self.apps_button)
+        self.horizontalLayout_2.addLayout(self.tabs)
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem)
         self.border_layout.addWidget(self.header)
