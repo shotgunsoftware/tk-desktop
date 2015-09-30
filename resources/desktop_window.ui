@@ -88,7 +88,7 @@
     </item>
     <item>
      <widget class="QStackedWidget" name="tab_view">
-      <widget class="QStackedWidget" name="stack">
+      <widget class="QStackedWidget" name="apps_tab">
        <property name="currentIndex">
         <number>0</number>
        </property>

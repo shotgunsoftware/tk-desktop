@@ -91,7 +91,7 @@ class DesktopWindow(SystrayWindow):
         # Setup tabs
 
         # TODO should be reading list of tabs from config
-        self._register_tab("Apps", self.ui.stack)
+        self._register_tab("Apps", self.ui.apps_tab)
         self._register_tab("My Tasks", QtGui.QWidget())
 
         # should always be true for now with the default Apps tab, but should
@@ -878,9 +878,9 @@ class DesktopWindow(SystrayWindow):
         self._save_setting("project_id", self.current_project["id"], site_specific=True)
 
     def slide_view(self, new_page, from_direction="right"):
-        offsetx = self.ui.stack.frameRect().width()
-        offsety = self.ui.stack.frameRect().height()
-        current_page = self.ui.stack.currentWidget()
+        offsetx = self.ui.apps_tab.frameRect().width()
+        offsety = self.ui.apps_tab.frameRect().height()
+        current_page = self.ui.apps_tab.currentWidget()
 
         new_page.setGeometry(0, 0, offsetx, offsety)
 
@@ -909,7 +909,7 @@ class DesktopWindow(SystrayWindow):
         anim_group.addAnimation(anim_new)
 
         def slide_finished():
-            self.ui.stack.setCurrentWidget(new_page)
+            self.ui.apps_tab.setCurrentWidget(new_page)
         anim_group.finished.connect(slide_finished)
         anim_group.start()
 
