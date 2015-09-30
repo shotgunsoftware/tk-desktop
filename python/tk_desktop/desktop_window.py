@@ -101,8 +101,8 @@ class DesktopWindow(SystrayWindow):
         first_tab_button = self.ui.tabs.itemAt(0).widget()
         first_tab_button.setProperty("active", True)
 
-        for tab_item in self.ui.tabs.children():
-            tab_button = tab_item.widget()
+        for i in xrange(self.ui.tabs.count()):
+            tab_button = self.ui.tabs.itemAt(i).widget()
             tab_button.style().unpolish(tab_button)
             tab_button.style().polish(tab_button)
 
@@ -303,6 +303,7 @@ class DesktopWindow(SystrayWindow):
 
         :param tab_name: name displayed on the tab button
         '''
+        # setup the header button for the tab
         tab_button = QtGui.QPushButton(self.ui.header)
 
         # button behaviour/styling
@@ -315,8 +316,34 @@ class DesktopWindow(SystrayWindow):
         tab_button.setText(QtGui.QApplication.translate("DesktopWindow",
             "My Tasks", None, QtGui.QApplication.UnicodeUTF8))
 
-        # add it to the ui
+
+        # setup the tab page
+        tab_page = QtGui.QWidget()
+
+        # define the event handler when the user changes tab
+        def on_tab_selected():
+            '''
+            Event fired when a tab is selected by the user
+            '''
+            # update the state of tab buttons
+            for i in xrange(self.ui.tabs.count()):
+                button = self.ui.tabs.itemAt(i).widget()
+                button.setProperty("active", button == tab_button)
+                button.style().unpolish(button)
+                button.style().polish(button)
+
+            # display the new tab content
+            self.ui.stack.setCurrentWidget(tab_page)
+
+        # link the button to the page widget
+        tab_button.toggled.connect(on_tab_selected)
+        tab_button.clicked.connect(on_tab_selected)
+
+
+        # add the tab components to the ui
         self.ui.tabs.addWidget(tab_button)
+        self.ui.stack.addWidget(tab_page)
+
 
     ########################################################################################
     # Event handlers and slots
