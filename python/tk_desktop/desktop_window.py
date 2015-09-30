@@ -91,7 +91,8 @@ class DesktopWindow(SystrayWindow):
         # Setup tabs
 
         # TODO should be reading list of tabs from config
-        self._register_tab("My Tasks")
+        self._register_tab("Apps", self.ui.stack)
+        self._register_tab("My Tasks", QtGui.QWidget())
 
         # should always be true for now with the default Apps tab, but should
         # make sure that the list is non-empty once the whole list of tabs is
@@ -297,11 +298,12 @@ class DesktopWindow(SystrayWindow):
                 engine = sgtk.platform.current_engine()
                 engine.log_warning('Could not restore DllDirectory under Windows.')
 
-    def _register_tab(self, tab_name):
+    def _register_tab(self, tab_name, tab_widget):
         '''
         Register a tab to add to the UI
 
-        :param tab_name: name displayed on the tab button
+        :param tab_name:   name displayed on the tab button
+        :param tab_widget: widget to display for the tab
         '''
         # setup the header button for the tab
         tab_button = QtGui.QPushButton(self.ui.header)
@@ -314,11 +316,8 @@ class DesktopWindow(SystrayWindow):
 
         # tab-specific values
         tab_button.setText(QtGui.QApplication.translate("DesktopWindow",
-            "My Tasks", None, QtGui.QApplication.UnicodeUTF8))
+            tab_name, None, QtGui.QApplication.UnicodeUTF8))
 
-
-        # setup the tab page
-        tab_page = QtGui.QWidget()
 
         # define the event handler when the user changes tab
         def on_tab_selected():
@@ -333,7 +332,7 @@ class DesktopWindow(SystrayWindow):
                 button.style().polish(button)
 
             # display the new tab content
-            self.ui.stack.setCurrentWidget(tab_page)
+            self.ui.tab_view.setCurrentWidget(tab_widget)
 
         # link the button to the page widget
         tab_button.toggled.connect(on_tab_selected)
@@ -342,7 +341,7 @@ class DesktopWindow(SystrayWindow):
 
         # add the tab components to the ui
         self.ui.tabs.addWidget(tab_button)
-        self.ui.stack.addWidget(tab_page)
+        self.ui.tab_view.addWidget(tab_widget)
 
 
     ########################################################################################
