@@ -88,10 +88,8 @@ class DesktopWindow(SystrayWindow):
         self.systray_state_changed.connect(self.handle_systray_state_changed)
         QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
-        # Setup header buttons
-        self.ui.apps_button.setProperty("active", True)
-        self.ui.apps_button.style().unpolish(self.ui.apps_button)
-        self.ui.apps_button.style().polish(self.ui.apps_button)
+        # Setup default Apps tab
+        self.register_tab("Apps", self.ui.apps_tab)
 
         engine = sgtk.platform.current_engine()
 
@@ -283,6 +281,59 @@ class DesktopWindow(SystrayWindow):
             except StandardError:
                 engine = sgtk.platform.current_engine()
                 engine.log_warning('Could not restore DllDirectory under Windows.')
+
+    def register_tab(self, tab_name, tab_widget):
+        '''
+        Register a tab to add to the UI
+
+        :param tab_name:   Name displayed on the tab button.
+        :param tab_widget: Widget to display for the tab.
+        '''
+        # setup the header button for the tab
+        tab_button = QtGui.QPushButton(self.ui.header)
+
+        # button behaviour/styling
+        tab_button.setMouseTracking(True)
+        tab_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        tab_button.setFlat(True)
+        tab_button.setProperty("active", False)
+
+        # tab-specific values
+        tab_button.setText(tab_name)
+
+        # setup the tab widget
+        tab_widget.setParent(self)
+
+
+        # define the event handler when the user changes tab
+        def on_tab_selected():
+            '''
+            Event fired when a tab is selected by the user
+            '''
+            # update the state of tab buttons
+            for i in xrange(self.ui.tabs.count()):
+                button = self.ui.tabs.itemAt(i).widget()
+                button.setProperty("active", button == tab_button)
+                # apply style update
+                button.style().unpolish(button)
+                button.style().polish(button)
+
+            # display the new tab content
+            self.ui.tab_view.setCurrentWidget(tab_widget)
+
+        # link the button to the page widget
+        tab_button.toggled.connect(on_tab_selected)
+        tab_button.clicked.connect(on_tab_selected)
+
+
+        # add the tab components to the ui
+        self.ui.tabs.addWidget(tab_button)
+        self.ui.tab_view.addWidget(tab_widget)
+
+        # select tab if this is the first one
+        if self.ui.tabs.count() == 1:
+            on_tab_selected()
+
 
     ########################################################################################
     # Event handlers and slots
@@ -818,9 +869,9 @@ class DesktopWindow(SystrayWindow):
         self._save_setting("project_id", self.current_project["id"], site_specific=True)
 
     def slide_view(self, new_page, from_direction="right"):
-        offsetx = self.ui.stack.frameRect().width()
-        offsety = self.ui.stack.frameRect().height()
-        current_page = self.ui.stack.currentWidget()
+        offsetx = self.ui.apps_tab.frameRect().width()
+        offsety = self.ui.apps_tab.frameRect().height()
+        current_page = self.ui.apps_tab.currentWidget()
 
         new_page.setGeometry(0, 0, offsetx, offsety)
 
@@ -849,7 +900,7 @@ class DesktopWindow(SystrayWindow):
         anim_group.addAnimation(anim_new)
 
         def slide_finished():
-            self.ui.stack.setCurrentWidget(new_page)
+            self.ui.apps_tab.setCurrentWidget(new_page)
         anim_group.finished.connect(slide_finished)
         anim_group.start()
 
