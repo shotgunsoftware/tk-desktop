@@ -88,24 +88,8 @@ class DesktopWindow(SystrayWindow):
         self.systray_state_changed.connect(self.handle_systray_state_changed)
         QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
-        # Setup tabs
-
-        # TODO should be reading list of tabs from config
-        self._register_tab("Apps", self.ui.apps_tab)
-        self._register_tab("My Tasks", QtGui.QWidget())
-
-        # should always be true for now with the default Apps tab, but should
-        # make sure that the list is non-empty once the whole list of tabs is
-        # provided by the user.
-        assert(self.ui.tabs.count() > 0)
-
-        first_tab_button = self.ui.tabs.itemAt(0).widget()
-        first_tab_button.setProperty("active", True)
-
-        for i in xrange(self.ui.tabs.count()):
-            tab_button = self.ui.tabs.itemAt(i).widget()
-            tab_button.style().unpolish(tab_button)
-            tab_button.style().polish(tab_button)
+        # Setup default Apps tab
+        self.register_tab("Apps", self.ui.apps_tab)
 
         engine = sgtk.platform.current_engine()
 
@@ -298,7 +282,7 @@ class DesktopWindow(SystrayWindow):
                 engine = sgtk.platform.current_engine()
                 engine.log_warning('Could not restore DllDirectory under Windows.')
 
-    def _register_tab(self, tab_name, tab_widget):
+    def register_tab(self, tab_name, tab_widget):
         '''
         Register a tab to add to the UI
 
@@ -342,6 +326,10 @@ class DesktopWindow(SystrayWindow):
         # add the tab components to the ui
         self.ui.tabs.addWidget(tab_button)
         self.ui.tab_view.addWidget(tab_widget)
+
+        # make first tab active
+        if self.ui.tabs.count() == 1:
+            on_tab_selected()
 
 
     ########################################################################################
