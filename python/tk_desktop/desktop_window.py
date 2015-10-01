@@ -252,9 +252,9 @@ class DesktopWindow(SystrayWindow):
         return ret
 
     def _push_dll_state(self):
-        '''
+        """
         Push current Dll Directory
-        '''
+        """
         if sys.platform == "win32":
             try:
                 import win32api
@@ -271,9 +271,9 @@ class DesktopWindow(SystrayWindow):
                 engine.log_warning('Could not push DllDirectory under Windows.')
 
     def _pop_dll_state(self):
-        '''
+        """
         Pop the previously pushed DLL Directory
-        '''
+        """
         if sys.platform == "win32":
             try:
                 import win32api
@@ -283,12 +283,12 @@ class DesktopWindow(SystrayWindow):
                 engine.log_warning('Could not restore DllDirectory under Windows.')
 
     def register_tab(self, tab_name, tab_widget):
-        '''
+        """
         Register a tab to add to the UI
 
         :param tab_name:   Name displayed on the tab button.
         :param tab_widget: Widget to display for the tab.
-        '''
+        """
         # setup the header button for the tab
         tab_button = QtGui.QPushButton(self.ui.header)
 
@@ -307,9 +307,9 @@ class DesktopWindow(SystrayWindow):
 
         # define the event handler when the user changes tab
         def on_tab_selected():
-            '''
+            """
             Event fired when a tab is selected by the user
-            '''
+            """
             # update the state of tab buttons
             for i in xrange(self.ui.tabs.count()):
                 button = self.ui.tabs.itemAt(i).widget()
