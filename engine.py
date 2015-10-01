@@ -74,7 +74,6 @@ class DesktopEngine(Engine):
         if hasattr(self.__impl, "_initialize_logging"):
             self.__impl._initialize_logging()
 
-
     def post_app_init(self):
         """ Called after all the apps have been initialized """
         if hasattr(self.__impl, "post_app_init"):
@@ -185,7 +184,6 @@ class DesktopEngine(Engine):
     def add_logging_handler(self, handler):
         self._logger.addHandler(handler)
         self.__extra_handlers.append(handler)
-
 
     ##########################################################################################
     # pyside / qt
