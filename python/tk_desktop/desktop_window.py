@@ -286,8 +286,8 @@ class DesktopWindow(SystrayWindow):
         '''
         Register a tab to add to the UI
 
-        :param tab_name:   name displayed on the tab button
-        :param tab_widget: widget to display for the tab
+        :param tab_name:   Name displayed on the tab button.
+        :param tab_widget: Widget to display for the tab.
         '''
         # setup the header button for the tab
         tab_button = QtGui.QPushButton(self.ui.header)
@@ -299,8 +299,10 @@ class DesktopWindow(SystrayWindow):
         tab_button.setProperty("active", False)
 
         # tab-specific values
-        tab_button.setText(QtGui.QApplication.translate("DesktopWindow",
-            tab_name, None, QtGui.QApplication.UnicodeUTF8))
+        tab_button.setText(tab_name)
+
+        # setup the tab widget
+        tab_widget.setParent(self)
 
 
         # define the event handler when the user changes tab
@@ -312,6 +314,7 @@ class DesktopWindow(SystrayWindow):
             for i in xrange(self.ui.tabs.count()):
                 button = self.ui.tabs.itemAt(i).widget()
                 button.setProperty("active", button == tab_button)
+                # apply style update
                 button.style().unpolish(button)
                 button.style().polish(button)
 
@@ -327,7 +330,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.tabs.addWidget(tab_button)
         self.ui.tab_view.addWidget(tab_widget)
 
-        # make first tab active
+        # select tab if this is the first one
         if self.ui.tabs.count() == 1:
             on_tab_selected()
 

@@ -54,6 +54,7 @@ class DesktopEngineSiteImplementation(object):
     def _init_tabs(self):
         """ Create desktop tabs from the registered application panels """
         for panel in self._engine.panels.itervalues():
+            # let the panel show itself through its registered callback
             panel['callback']()
 
     def show_panel(self, panel_id, title, bundle, widget_class,
@@ -73,7 +74,6 @@ class DesktopEngineSiteImplementation(object):
         widget_class constructor.
         """
         widget = widget_class(*args, **kwargs)
-        widget.setParent(self.desktop_window)
 
         self.desktop_window.register_tab(title, widget)
 
