@@ -88,8 +88,6 @@ class DesktopWindow(SystrayWindow):
         self.systray_state_changed.connect(self.handle_systray_state_changed)
         QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
-        # Setup default Apps tab
-
         engine = sgtk.platform.current_engine()
 
         connection = engine.get_current_user().create_sg_connection()
