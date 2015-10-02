@@ -89,7 +89,6 @@ class DesktopWindow(SystrayWindow):
         QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
         # Setup default Apps tab
-        self.register_tab("Apps", self.ui.apps_tab)
 
         engine = sgtk.platform.current_engine()
 
@@ -333,6 +332,14 @@ class DesktopWindow(SystrayWindow):
         # select tab if this is the first one
         if self.ui.tabs.count() == 1:
             on_tab_selected()
+
+
+    def _register_apps_tab(self):
+        """
+        Registers the "Apps" tab, which allows users to launch toolkit apps.
+        This should eventually be moved to an app on its own.
+        """
+        self.register_tab("Apps", self.ui.apps_tab)
 
 
     ########################################################################################
