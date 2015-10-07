@@ -79,21 +79,6 @@ class DesktopEngine(Engine):
         if hasattr(self.__impl, "post_app_init"):
             self.__impl.post_app_init()
 
-    def register_panel(self, callback, panel_name="main", properties=None):
-        """
-        Registers a panel in the desktop ui.
-
-        :param callback: Callback to a factory method that creates the panel
-                         and returns a panel widget.
-        :param panel_name: String to distinguish panel from other panels
-                           created by the app. Will be used as part of the
-                           unique id of the panel.
-        :param properties: Properties dictionary.
-        :returns: A unique identifier for the panel.
-        """
-        if hasattr(self.__impl, "register_panel"):
-            self.__impl.register_panel(callback, panel_name, properties)
-
     def show_panel(self, panel_id, title, bundle, widget_class,
                    *args, **kwargs):
         """

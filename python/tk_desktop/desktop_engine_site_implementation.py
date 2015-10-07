@@ -62,44 +62,23 @@ class DesktopEngineSiteImplementation(object):
         apps_tab = {"callback":   self.desktop_window._register_apps_tab,
                     "properties": {"position": 0}}
 
-        panels = [apps_tab] + list(self._engine.panels.itervalues())
+        panels = [apps_tab] + self._engine.panels.values()
 
         def panel_position(panel):
             """ Returns the relative position of a panel """
-            # sane checking on the expected structure
-            assert("properties" in panel, "panel should have properties set")
-            assert("position" in panel["properties"],
-                   "panel should have a position set")
-            return panel["properties"]["position"]
+            # place the panels with unspecified positions at the end
+            LAST_POSITION = float("inf")
+
+            if "properties" not in panel:
+                return LAST_POSITION
+
+            return panel["properties"].get("position", LAST_POSITION)
 
         ordered_panels = sorted(panels, key=panel_position)
 
         for panel in ordered_panels:
             # let the panel show itself through its registered callback
             panel["callback"]()
-
-    def register_panel(self, callback, panel_name, properties):
-        """
-        Registers a panel in the desktop ui.
-        If the panel does not specify a relative position in its properties,
-        a default one will be picked (its position in the panels list).
-
-        :param callback: Callback to a factory method that creates the panel
-                         and returns a panel widget.
-        :param panel_name: String to distinguish panel from other panels
-                           created by the app. Will be used as part of the
-                           unique id of the panel.
-        :param properties: Properties dictionary.
-        :returns: A unique identifier for the panel.
-        """
-        if properties == None:
-            properties = dict()
-        if "position" not in properties:
-            # Start panels at position 1 so that they are after "Apps" (which
-            # is not a panel yet) by default.
-            properties["position"] = len(self._engine.panels) + 1
-
-        Engine.register_panel(self._engine, callback, panel_name, properties)
 
     def show_panel(self, panel_id, title, bundle, widget_class,
                    *args, **kwargs):
