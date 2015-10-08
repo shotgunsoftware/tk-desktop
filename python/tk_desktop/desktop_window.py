@@ -760,8 +760,8 @@ class DesktopWindow(SystrayWindow):
                     current_config_path = f.read().strip()
         except Exception, error:
             engine.log_exception("Error setting up engine environment")
-            message = "Error setting up engine environment\n\n%s\n\n" \
-                "See the console for more details." % error.message
+            message = "Error setting up engine environment" \
+                "\n\n%s\n\nSee the console for more details." % error.message
             self.project_overlay.show_error_message(message)
             return
 
