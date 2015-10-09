@@ -96,6 +96,8 @@ class DesktopEngineSiteImplementation(object):
         Additional parameters specified will be passed through to the
         widget_class constructor.
         """
+        self._engine.log_debug("Registering panel \"%s\" (id %s) as a tab." %
+                               (title, panel_id))
         widget = widget_class(*args, **kwargs)
 
         self.desktop_window.register_tab(title, widget)
