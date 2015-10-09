@@ -17,6 +17,7 @@ import logging
 import collections
 
 from sgtk.errors import TankEngineInitError
+from sgtk.platform import Engine
 
 from . import rpc
 from distutils.version import LooseVersion
@@ -47,6 +48,59 @@ class DesktopEngineSiteImplementation(object):
         # close down our server thread
         if self.msg_server is not None:
             self.msg_server.close()
+
+
+    ###########################################################################
+    # panel support (displayed as tabs)
+    def _init_tabs(self):
+        """
+        Create desktop tabs from the registered application panels, following
+        their specified relative positioning.
+        """
+        # make the "Apps" tab appear as a fake panel to fit in the sorting
+        # logic
+        apps_tab = {"callback":   self.desktop_window._register_apps_tab,
+                    "properties": {"position": 0}}
+
+        panels = [apps_tab] + self._engine.panels.values()
+
+        def panel_position(panel):
+            """ Returns the relative position of a panel """
+            # place the panels with unspecified positions at the end
+            LAST_POSITION = float("inf")
+
+            if "properties" not in panel:
+                return LAST_POSITION
+
+            return panel["properties"].get("position", LAST_POSITION)
+
+        ordered_panels = sorted(panels, key=panel_position)
+
+        for panel in ordered_panels:
+            # let the panel show itself through its registered callback
+            panel["callback"]()
+
+    def show_panel(self, panel_id, title, bundle, widget_class,
+                   *args, **kwargs):
+        """
+        Adds an app widget as a tab in the desktop UI.
+
+        :param panel_id:     Unique identifier for the panel, as obtained by
+                             register_panel().
+        :param title:        The title of the panel, to show as the tab name.
+        :param bundle:       The app, engine or framework object that is
+                             associated with this window.
+        :param widget_class: The class of the UI to be constructed. This must
+                             derive from QWidget.
+
+        Additional parameters specified will be passed through to the
+        widget_class constructor.
+        """
+        self._engine.log_debug("Registering panel \"%s\" (id %s) as a tab." %
+                               (title, panel_id))
+        widget = widget_class(*args, **kwargs)
+
+        self.desktop_window.register_tab(title, widget)
 
     def startup_rpc(self):
         if self.msg_server is not None:
@@ -278,6 +332,9 @@ class DesktopEngineSiteImplementation(object):
 
         # initialize System Tray
         self.desktop_window = desktop_window.DesktopWindow()
+
+        # initialize the application tabs
+        self._init_tabs()
 
         # make sure we close down our rpc threads
         app.aboutToQuit.connect(self._engine.destroy_engine)
