@@ -761,7 +761,7 @@ class DesktopWindow(SystrayWindow):
         except Exception, error:
             engine.log_exception("Error setting up engine environment")
             message = "Error setting up engine environment" \
-                "\n\n%s\n\nSee the console for more details." % error.message
+                "\n\n%s\n\nSee the console for more details." % str(error)
             self.project_overlay.show_error_message(message)
             return
 
