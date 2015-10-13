@@ -157,9 +157,8 @@ class DesktopEngineProjectImplementation(object):
         self._engine._handler.setFormatter(formatter)
 
     def log(self, level, msg, *args):
-        if self.connected:
-            # If we can log through the proxy, only do that to avoid
-            # duplicate entries in the log file
+        if self.connected and self._engine._logger.isEnabledFor(level):
+            # If we can log through the proxy, only do that to avoid duplicate entries in the log file
             try:
                 self.proxy.call_no_response("proxy_log", level, msg, args)
                 return

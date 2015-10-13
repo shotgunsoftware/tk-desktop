@@ -370,7 +370,8 @@ class DesktopEngineSiteImplementation(object):
         self._engine._logger.log(level, msg, *args)
 
     def proxy_log(self, level, msg, args):
-        self._engine._logger.log(level, "[PROXY] %s" % msg, *args)
+        # Use a high level so that messages we are a proxy for will always be logged
+        self._engine._logger.log(100, "[PROXY %s] %s" % (logging.getLevelName(level), msg), *args)
 
     def get_current_login(self):
         """
