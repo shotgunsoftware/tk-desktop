@@ -710,6 +710,9 @@ class DesktopWindow(SystrayWindow):
                         "falling back to primary." % pipeline_configuration_id)
                     pipeline_configuration = primary_pipeline_configuration
 
+            # going to launch the configuration, update the project menu if needed
+            self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration)
+
             config_path = pipeline_configuration[path_field]
 
             # Now find out the appropriate python to launch
@@ -771,9 +774,6 @@ class DesktopWindow(SystrayWindow):
                 "\n\n%s\n\nSee the console for more details." % str(error)
             self.project_overlay.show_error_message(message)
             return
-
-        # going to launch the configuration, update the project menu if needed
-        self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration)
 
         core_python = os.path.join(core_root, "install", "core", "python")
 
