@@ -722,6 +722,13 @@ class DesktopWindow(SystrayWindow):
             else:
                 raise RuntimeError("unknown platform: %s" % sys.platform)
 
+            if config_path == None:
+                raise RuntimeError("No path set for %s on the Pipeline "
+                                   "Configuration id %d. Please make sure that "
+                                   "it is set on your Shotgun website." %
+                                   (current_platform,
+                                    pipeline_configuration_id))
+
             current_config_path = config_path
             while True:
                 # First see if we have a local configuration for which interpreter
