@@ -18,6 +18,25 @@ configuration:
                      commands that do not match any of the values in the groups
                      setting."
 
+    tabs:
+        type: list
+        description: "Controls what apps will show up as tabs.  This is a list
+                     where each element is a dictionary with two keys:
+                     'app_instance' and 'title'. The app_instance value connects
+                     this entry to a particular app instance defined in the
+                     environment configuration file. The title is the string
+                     displayed to select that tab. The order in which the tabs
+                     appear in this list defines the order in which the tabs are
+                     displayed (first element being the leftmost tab, last
+                     element being the rightmost tab)."
+        allows_empty: True
+        default_value: []
+        values:
+            type: dict
+            items:
+                title: { type: str }
+                app_instance: { type: str }
+
     groups:
         type: list
         description: "A list of dictionaries that define what commands get put
