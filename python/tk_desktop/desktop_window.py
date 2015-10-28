@@ -725,7 +725,7 @@ class DesktopWindow(SystrayWindow):
             else:
                 raise RuntimeError("unknown platform: %s" % sys.platform)
 
-            if config_path == None:
+            if config_path is None:
                 raise RuntimeError("No path set for %s on the Pipeline "
                                    "Configuration id %d. Please make sure that "
                                    "it is set on your Shotgun website." %
