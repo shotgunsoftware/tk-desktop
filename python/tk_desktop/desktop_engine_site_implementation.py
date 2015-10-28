@@ -94,24 +94,28 @@ class DesktopEngineSiteImplementation(object):
         for panel in setting_value:
             panel_name = panel["name"]
             instance_name = panel["app_instance"]
-            instance_panels = panels_by_instance.get(instance_name)
+            instance_panels = panels_by_instance.get(instance_name, [])
 
-            if instance_panels is None:
-                self._engine.log_warning(
-                    "Error reading the '%s' configuration settings\n"
-                    "The requested panel '%s' from app '%s' isn't loaded.\n"
-                    "Please make sure that you have the app installed" % (setting, panel_name, instance_name))
-                continue
 
             #TODO extract function from core
             panel_id = "%s_%s" % (instance_name, panel_name)
             panel_id = re.sub("\W", "_", panel_id)
             panel_id = panel_id.lower()
 
-            for (id, callback) in instance_panels:
-                # add the panel if the name from the settings is '' or the name matches
-                if not panel_name or (panel_id == id):
-                    ret_value.append((instance_name, id, callback))
+            # add the panels if the name of the settings is '' or the name
+            # matches
+            matching_panels = [(instance_name, id, callback)
+                               for (id, callback) in instance_panels
+                               if not panel_name or (panel_id == id)]
+            ret_value.extend(matching_panels)
+
+            # give feedback if no panels were found
+            if not matching_panels:
+                self._engine.log_warning(
+                    "Error reading the '%s' configuration settings\n"
+                    "The requested panel '%s' from app '%s' isn't loaded.\n"
+                    "Please make sure that you have the app installed" %
+                    (setting, panel_name, instance_name))
 
         return ret_value
 
