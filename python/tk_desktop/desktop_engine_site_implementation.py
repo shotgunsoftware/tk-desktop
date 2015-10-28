@@ -57,28 +57,63 @@ class DesktopEngineSiteImplementation(object):
         Create desktop tabs from the registered application panels, following
         their specified relative positioning.
         """
-        # make the "Apps" tab appear as a fake panel to fit in the sorting
-        # logic
-        apps_tab = {"callback":   self.desktop_window._register_apps_tab,
-                    "properties": {"position": 0}}
+        # manually register the "Apps" tab for now. Ideally should be an app on
+        # its own.
+        self.desktop_window._register_apps_tab()
 
-        panels = [apps_tab] + self._engine.panels.values()
+        panels = self._get_panels_matching_setting("tabs")
 
-        def panel_position(panel):
-            """ Returns the relative position of a panel """
-            # place the panels with unspecified positions at the end
-            LAST_POSITION = float("inf")
-
-            if "properties" not in panel:
-                return LAST_POSITION
-
-            return panel["properties"].get("position", LAST_POSITION)
-
-        ordered_panels = sorted(panels, key=panel_position)
-
-        for panel in ordered_panels:
+        for (_,_,panel_callback) in panels:
             # let the panel show itself through its registered callback
-            panel["callback"]()
+            panel_callback()
+
+    def _get_panels_matching_setting(self, setting):
+        """
+        This expects a list of dictionaries in the form:
+            {name: panel-name, app_instance: instance-name }
+        The app_instance value will match a particular app instance associated
+        with the engine.  The name is the panel name of the panel to run when
+        the tabs are created.
+        If name is '' then all panels from the given app instance are returned.
+        :returns A list of tuples for all panels that match the given setting.
+                 Each tuple will be in the form:
+                    (instance_name, panel_id, callback)
+        """
+        # return a dictionary grouping all the panels by instance name
+        panels_by_instance = {}
+        for (id, value) in self._engine.panels.iteritems():
+            app_instance = value["properties"].get("app")
+            if app_instance is None:
+                continue
+            instance_name = app_instance.instance_name
+            panels_by_instance.setdefault(instance_name, []).append((id, value["callback"]))
+
+        # go through the values from the setting and return any matching panels
+        ret_value = []
+        setting_value = self._engine.get_setting(setting, [])
+        for panel in setting_value:
+            panel_name = panel["name"]
+            instance_name = panel["app_instance"]
+            instance_panels = panels_by_instance.get(instance_name)
+
+            if instance_panels is None:
+                self._engine.log_warning(
+                    "Error reading the '%s' configuration settings\n"
+                    "The requested panel '%s' from app '%s' isn't loaded.\n"
+                    "Please make sure that you have the app installed" % (setting, panel_name, instance_name))
+                continue
+
+            #TODO extract function from core
+            panel_id = "%s_%s" % (instance_name, panel_name)
+            panel_id = re.sub("\W", "_", panel_id)
+            panel_id = panel_id.lower()
+
+            for (id, callback) in instance_panels:
+                # add the panel if the name from the settings is '' or the name matches
+                if not panel_name or (panel_id == id):
+                    ret_value.append((instance_name, id, callback))
+
+        return ret_value
 
     def show_panel(self, panel_id, title, bundle, widget_class,
                    *args, **kwargs):
@@ -87,7 +122,8 @@ class DesktopEngineSiteImplementation(object):
 
         :param panel_id:     Unique identifier for the panel, as obtained by
                              register_panel().
-        :param title:        The title of the panel, to show as the tab name.
+        :param title:        The title of the panel, which is the title
+                             displayed for the tab in the UI.
         :param bundle:       The app, engine or framework object that is
                              associated with this window.
         :param widget_class: The class of the UI to be constructed. This must
