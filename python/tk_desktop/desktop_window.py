@@ -727,9 +727,11 @@ class DesktopWindow(SystrayWindow):
 
             if config_path is None:
                 raise RuntimeError("No path set for %s on the Pipeline "
-                                   "Configuration id %d. Please make sure that "
-                                   "it is set on your Shotgun website." %
+                                   "Configuration \"%s\" (id %d).\n"
+                                   "Please make sure that it is set on your "
+                                   "Shotgun website." %
                                    (current_platform,
+                                    pipeline_configuration["code"],
                                     pipeline_configuration_id))
 
             current_config_path = config_path
