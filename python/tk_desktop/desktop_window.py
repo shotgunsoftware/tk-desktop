@@ -723,16 +723,18 @@ class DesktopWindow(SystrayWindow):
             elif sys.platform.startswith("linux"):
                 current_platform = "Linux"
             else:
-                raise RuntimeError("unknown platform: %s" % sys.platform)
+                raise RuntimeError("Unknown platform: %s." % sys.platform)
 
             if config_path is None:
-                raise RuntimeError("No path set for %s on the Pipeline "
-                                   "Configuration \"%s\" (id %d).\n"
-                                   "Please make sure that it is set on your "
-                                   "Shotgun website." %
-                                   (current_platform,
-                                    pipeline_configuration["code"],
-                                    pipeline_configuration_id))
+                engine.log_error("No path set for %s on the Pipeline "
+                                 "Configuration \"%s\" (id %d)." %
+                                 (current_platform,
+                                  pipeline_configuration["code"],
+                                  pipeline_configuration_id))
+
+                raise RuntimeError("To resolve this, please navigate to this "
+                                   "project in Shotgun\nand check the path for "
+                                   "the Pipeline Configuration.")
 
             current_config_path = config_path
             while True:
@@ -750,7 +752,7 @@ class DesktopWindow(SystrayWindow):
                         # python not specified for this os, show the setup new os widget
                         engine.log_error("Cannot find interpreter '%s' defined in "
                                          "config file %s. Will show the special "
-                                         "'no python' UI screen" % (path_to_python, interpreter_config_file))
+                                         "'no python' UI screen." % (path_to_python, interpreter_config_file))
                         self.setup_new_os_widget.show()
                         self.project_overlay.hide()
                         return
@@ -763,17 +765,23 @@ class DesktopWindow(SystrayWindow):
                     current_config_path, "install", "core", "core_%s.cfg" % current_platform)
 
                 if not os.path.exists(parent_config_file):
+                    engine.log_error("No parent or interpreter found at '%s'."
+                                     % current_config_path)
                     raise RuntimeError(
-                        "invalid configuration, no parent or interpreter "
-                        "found at '%s'" % current_config_path)
+                        "Please make sure that the specified path points to a "
+                        "valid configuration.")
 
                 # Read the path to the parent configuration
                 with open(parent_config_file, "r") as f:
                     current_config_path = f.read().strip()
         except Exception, error:
-            engine.log_exception("Error setting up engine environment")
-            message = "Error setting up engine environment" \
-                "\n\n%s\n\nSee the console for more details." % str(error)
+            engine.log_exception("The Toolkit configuration path has not been "
+                                 "set for your operating system or points to "
+                                 "an invalid configuration.")
+            message = ("The Toolkit configuration path has not been set for "
+                       "your operating system\nor points to an invalid "
+                       "configuration.\n\n%s\n\nFor more details, see the "
+                       "console." % str(error))
             self.project_overlay.show_error_message(message)
             return
 
