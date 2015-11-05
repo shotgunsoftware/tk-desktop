@@ -61,63 +61,12 @@ class DesktopEngineSiteImplementation(object):
         # its own.
         self.desktop_window._register_apps_tab()
 
-        panels = self._get_panels_matching_setting("tabs")
+        tabs = self._engine.get_setting("tabs", [])
+        commands = self._engine.get_matching_commands(tabs)
 
-        for (_,_,panel_callback) in panels:
+        for (_,_,panel_callback) in commands:
             # let the panel show itself through its registered callback
             panel_callback()
-
-    def _get_panels_matching_setting(self, setting):
-        """
-        This expects a list of dictionaries in the form:
-            {name: panel-name, app_instance: instance-name }
-        The app_instance value will match a particular app instance associated
-        with the engine.  The name is the panel name of the panel to run when
-        the tabs are created.
-        If name is '' then all panels from the given app instance are returned.
-        :returns A list of tuples for all panels that match the given setting.
-                 Each tuple will be in the form:
-                    (instance_name, panel_id, callback)
-        """
-        # return a dictionary grouping all the panels by instance name
-        panels_by_instance = {}
-        for (id, value) in self._engine.panels.iteritems():
-            app_instance = value["properties"].get("app")
-            if app_instance is None:
-                continue
-            instance_name = app_instance.instance_name
-            panels_by_instance.setdefault(instance_name, []).append((id, value["callback"]))
-
-        # go through the values from the setting and return any matching panels
-        ret_value = []
-        setting_value = self._engine.get_setting(setting, [])
-        for panel in setting_value:
-            panel_name = panel["name"]
-            instance_name = panel["app_instance"]
-            instance_panels = panels_by_instance.get(instance_name, [])
-
-
-            #TODO extract function from core
-            panel_id = "%s_%s" % (instance_name, panel_name)
-            panel_id = re.sub("\W", "_", panel_id)
-            panel_id = panel_id.lower()
-
-            # add the panels if the name of the settings is '' or the name
-            # matches
-            matching_panels = [(instance_name, id, callback)
-                               for (id, callback) in instance_panels
-                               if not panel_name or (panel_id == id)]
-            ret_value.extend(matching_panels)
-
-            # give feedback if no panels were found
-            if not matching_panels:
-                self._engine.log_warning(
-                    "Error reading the '%s' configuration settings\n"
-                    "The requested panel '%s' from app '%s' isn't loaded.\n"
-                    "Please make sure that you have the app installed" %
-                    (setting, panel_name, instance_name))
-
-        return ret_value
 
     def show_panel(self, panel_id, title, bundle, widget_class,
                    *args, **kwargs):
