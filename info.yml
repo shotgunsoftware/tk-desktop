@@ -21,14 +21,14 @@ configuration:
     tabs:
         type: list
         description: "Controls what apps will show up as tabs.  This is a list
-                     where each element is a dictionary with three keys:
-                     'app_instance' and 'name'. The app_instance value connects
-                     this entry to a particular app instance defined in the
-                     environment configuration file. The name is the panel to
-                     run when the tabs are added to the UI. The order in which
-                     the tabs appear in this list defines the order in which the
-                     tabs are displayed (first element being the leftmost tab,
-                     last element being the rightmost tab)."
+                     where each element is a dictionary with two keys:
+                     'app_instance' and 'name'. The 'app_instance' value
+                     connects this entry to a particular app instance defined in
+                     the environment configuration file. 'name' is the command
+                     to run when the tabs are added to the UI. The order in
+                     which the tabs appear in this list defines the order in
+                     which the tabs are displayed (first element being the
+                     leftmost tab, last element being the rightmost tab)."
         allows_empty: True
         default_value: []
         values:
