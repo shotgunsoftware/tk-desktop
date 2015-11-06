@@ -30,7 +30,7 @@ configuration:
                      desktop starts up. If 'name' is '', then all commands from
                      the given app instance are started."
         allows_empty: True
-        default_value: []
+        default_value: [{app_instance: tk-desktop, name: ''}]
         values:
             type: dict
             items:

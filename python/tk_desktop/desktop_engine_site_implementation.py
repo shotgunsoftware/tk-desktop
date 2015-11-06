@@ -60,17 +60,62 @@ class DesktopEngineSiteImplementation(object):
         This gives an opportunity for apps to display panels through the
         execution of a command, which will add a tab to Desktop.
         """
-        # manually register the "Apps" tab for now. Ideally should be an app on
-        # its own.
-        self.desktop_window._register_apps_tab()
-
         selectors = self._engine.get_setting("run_at_startup", [])
+
+        # "Apps" is currently a builtin command, so we first figure out where it
+        # is (its index) in the selectors:
+        def is_apps_selector(selector):
+            return (selector["app_instance"] == self._engine.instance_name and
+                    (selector["name"] == "" or selector["name"] == "Apps"))
+        apps_index = next((i for i, selector in enumerate(selectors)
+                           if is_apps_selector(selector)),
+                          None)
+        # strip the "Apps" tab from the selectors, as we handle it separately
+        if apps_index is not None:
+            del selectors[apps_index]
+
         commands = self._engine.get_matching_commands(selectors)
 
+        # add the "Apps" tab back at the appropriate position
+        if apps_index is not None:
+            # we can't blindly use the previous index, since the following
+            # special cases can occur:
+            # - commands were not found (a selector with no matching command)
+            # - multiple commands were found (a wildcard selector found many)
+            #
+            # Thus, we go through the matched commands until we have run through
+            # all the commands that should occur before our "Apps" tab (based on
+            # its location in the selectors).
+            # In other words, we find where the "Apps" tab belongs in the
+            # matched commands.
+            apps_command_index = 0
+            # skip the commands from the selectors preceding "Apps"
+            for index in xrange(apps_index):
+                selector = selectors[index]
+                # skip all the commands that fit the current selector
+                while apps_command_index < len(commands): # insert as the last
+                                                          # command in the worst
+                                                          # case
+                    app, name, _ = commands[apps_command_index]
+
+                    # only keep skipping commands if the current selector
+                    # matches the current command
+                    if (selector["app_instance"] != app or
+                        (selector["name"] != "" and selector["name"] != name)):
+                        break
+
+                    apps_command_index += 1
+
+            # we now have the index where the apps command should be and we can
+            # add a fake command callback that will register the "Apps" tab.
+            apps_tab_callback = self.desktop_window._register_apps_tab
+            commands.insert(apps_command_index, ("", "", apps_tab_callback))
+
+
+        # Execute the actual commands.
+        # For example, a command could be displaying a panel in order to
+        # display it as a tab in the desktop.
         for (_,_,command_callback) in commands:
-            # Execute the actual command.
-            # For example, a command could be displaying a panel in order to
-            # display it as a tab in the desktop.
             command_callback()
 
     def show_panel(self, panel_id, title, bundle, widget_class,
