@@ -732,9 +732,8 @@ class DesktopWindow(SystrayWindow):
                                   pipeline_configuration["code"],
                                   pipeline_configuration_id))
 
-                raise RuntimeError("To resolve this, please navigate to this "
-                                   "project in Shotgun\nand check the path for "
-                                   "the Pipeline Configuration.")
+                raise RuntimeError("The Toolkit configuration path has not\n"
+                                   "been set for your operating system.")
 
             current_config_path = config_path
             while True:
@@ -767,21 +766,18 @@ class DesktopWindow(SystrayWindow):
                 if not os.path.exists(parent_config_file):
                     engine.log_error("No parent or interpreter found at '%s'."
                                      % current_config_path)
-                    raise RuntimeError(
-                        "Please make sure that the specified path points to a "
-                        "valid configuration.")
+                    raise RuntimeError("The Toolkit configuration path points\n"
+                                       "to an invalid configuration.")
 
                 # Read the path to the parent configuration
                 with open(parent_config_file, "r") as f:
                     current_config_path = f.read().strip()
         except Exception, error:
-            engine.log_exception("The Toolkit configuration path has not been "
-                                 "set for your operating system or points to "
-                                 "an invalid configuration.")
-            message = ("The Toolkit configuration path has not been set for "
-                       "your operating system\nor points to an invalid "
-                       "configuration.\n\n%s\n\nFor more details, see the "
-                       "console." % str(error))
+            engine.log_exception(str(error))
+            message = ("%s"
+                       "\n\nTo resolve this, open Shotgun in your browser\n"
+                       "and check the paths for this Pipeline Configuration."
+                       "\n\nFor more details, see the console." % str(error))
             self.project_overlay.show_error_message(message)
             return
 
