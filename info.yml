@@ -18,17 +18,17 @@ configuration:
                      commands that do not match any of the values in the groups
                      setting."
 
-    tabs:
+    run_at_startup:
         type: list
-        description: "Controls what apps will show up as tabs.  This is a list
+        description: "Controls what apps will run on startup.  This is a list
                      where each element is a dictionary with two keys:
-                     'app_instance' and 'name'. The 'app_instance' value
-                     connects this entry to a particular app instance defined in
-                     the environment configuration file. 'name' is the command
-                     to run when the tabs are added to the UI. The order in
-                     which the tabs appear in this list defines the order in
-                     which the tabs are displayed (first element being the
-                     leftmost tab, last element being the rightmost tab)."
+                     'app_instance' and 'name'.
+                     The 'app_instance' value connects this entry to a
+                     particular app instance defined in the environment
+                     configuration file.
+                     The 'name' is the menu name of the command to run when
+                     desktop starts up. If 'name' is '', then all commands from
+                     the given app instance are started."
         allows_empty: True
         default_value: []
         values:

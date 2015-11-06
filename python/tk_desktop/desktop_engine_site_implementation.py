@@ -52,26 +52,32 @@ class DesktopEngineSiteImplementation(object):
 
     ###########################################################################
     # panel support (displayed as tabs)
-    def _init_tabs(self):
+    def _run_startup_commands(self):
         """
-        Create desktop tabs from the registered application panels, following
-        their specified relative positioning.
+        Runs the commands that are configured to be executed at startup, through
+        the 'run_at_startup' setting in the configuration.
+
+        This gives an opportunity for apps to display panels through the
+        execution of a command, which will add a tab to Desktop.
         """
         # manually register the "Apps" tab for now. Ideally should be an app on
         # its own.
         self.desktop_window._register_apps_tab()
 
-        tabs = self._engine.get_setting("tabs", [])
-        commands = self._engine.get_matching_commands(tabs)
+        selectors = self._engine.get_setting("run_at_startup", [])
+        commands = self._engine.get_matching_commands(selectors)
 
-        for (_,_,panel_callback) in commands:
-            # let the panel show itself through its registered callback
-            panel_callback()
+        for (_,_,command_callback) in commands:
+            # Execute the actual command.
+            # For example, a command could be displaying a panel in order to
+            # display it as a tab in the desktop.
+            command_callback()
 
     def show_panel(self, panel_id, title, bundle, widget_class,
                    *args, **kwargs):
         """
-        Adds an app widget as a tab in the desktop UI.
+        Adds an app widget as a tab in the desktop UI. The tab is placed in the
+        next available tab slot in the desktop, going from left to right.
 
         :param panel_id:     Unique identifier for the panel, as obtained by
                              register_panel().
@@ -322,8 +328,8 @@ class DesktopEngineSiteImplementation(object):
         # initialize System Tray
         self.desktop_window = desktop_window.DesktopWindow()
 
-        # initialize the application tabs
-        self._init_tabs()
+        # run the commands that are configured to be executed at startup
+        self._run_startup_commands()
 
         # make sure we close down our rpc threads
         app.aboutToQuit.connect(self._engine.destroy_engine)
