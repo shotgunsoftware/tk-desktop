@@ -60,13 +60,14 @@ class DesktopEngineSiteImplementation(object):
         This gives an opportunity for apps to display panels through the
         execution of a command, which will add a tab to Desktop.
         """
-        selectors = self._engine.get_setting("run_at_startup", [])
+        apps_selector = {"app_instance": "", "name": "Apps"}
+
+        selectors = self._engine.get_setting("run_at_startup", [apps_selector])
 
         # "Apps" is currently a builtin command, so we take care of it
         # separately.
         # We first figure out what is its index in the selectors, or None if it
         # is not present
-        apps_selector = {"app_instance": "", "name": "Apps"}
         apps_index = (selectors.index(apps_selector)
                       if apps_selector in selectors else None)
         # strip the "Apps" tab from the selectors, as we handle it separately
