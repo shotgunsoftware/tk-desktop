@@ -35,7 +35,7 @@ configuration:
                        {app_instance: '', name: 'Apps'}
                      "
         allows_empty: True
-        default_value: [{app_instance: '', name: 'Apps'}]
+        default_value: [{app_instance: '', name: Apps}]
         values:
             type: dict
             items:
