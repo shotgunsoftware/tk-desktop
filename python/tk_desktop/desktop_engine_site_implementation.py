@@ -62,14 +62,13 @@ class DesktopEngineSiteImplementation(object):
         """
         selectors = self._engine.get_setting("run_at_startup", [])
 
-        # "Apps" is currently a builtin command, so we first figure out where it
-        # is (its index) in the selectors:
-        def is_apps_selector(selector):
-            return (selector["app_instance"] == self._engine.instance_name and
-                    (selector["name"] == "" or selector["name"] == "Apps"))
-        apps_index = next((i for i, selector in enumerate(selectors)
-                           if is_apps_selector(selector)),
-                          None)
+        # "Apps" is currently a builtin command, so we take care of it
+        # separately.
+        # We first figure out what is its index in the selectors, or None if it
+        # is not present
+        apps_selector = {"app_instance": "", "name": "Apps"}
+        apps_index = (selectors.index(apps_selector)
+                      if apps_selector in selectors else None)
         # strip the "Apps" tab from the selectors, as we handle it separately
         if apps_index is not None:
             del selectors[apps_index]
