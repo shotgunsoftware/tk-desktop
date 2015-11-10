@@ -52,42 +52,82 @@ class DesktopEngineSiteImplementation(object):
 
     ###########################################################################
     # panel support (displayed as tabs)
-    def _init_tabs(self):
+    def _run_startup_commands(self):
         """
-        Create desktop tabs from the registered application panels, following
-        their specified relative positioning.
+        Runs the commands that are configured to be executed at startup, through
+        the 'run_at_startup' setting in the configuration.
+
+        This gives an opportunity for apps to display panels through the
+        execution of a command, which will add a tab to Desktop.
         """
-        # make the "Apps" tab appear as a fake panel to fit in the sorting
-        # logic
-        apps_tab = {"callback":   self.desktop_window._register_apps_tab,
-                    "properties": {"position": 0}}
+        apps_selector = {"app_instance": "", "name": "Apps"}
 
-        panels = [apps_tab] + self._engine.panels.values()
+        selectors = self._engine.get_setting("run_at_startup", [apps_selector])
 
-        def panel_position(panel):
-            """ Returns the relative position of a panel """
-            # place the panels with unspecified positions at the end
-            LAST_POSITION = float("inf")
+        # "Apps" is currently a builtin command, so we take care of it
+        # separately.
+        # We first figure out what is its index in the selectors, or None if it
+        # is not present
+        apps_index = (selectors.index(apps_selector)
+                      if apps_selector in selectors else None)
+        # strip the "Apps" tab from the selectors, as we handle it separately
+        if apps_index is not None:
+            del selectors[apps_index]
 
-            if "properties" not in panel:
-                return LAST_POSITION
+        commands = self._engine.get_matching_commands(selectors)
 
-            return panel["properties"].get("position", LAST_POSITION)
+        # add the "Apps" tab back at the appropriate position
+        if apps_index is not None:
+            # we can't blindly use the previous index, since the following
+            # special cases can occur:
+            # - commands were not found (a selector with no matching command)
+            # - multiple commands were found (a wildcard selector found many)
+            #
+            # Thus, we go through the matched commands until we have run through
+            # all the commands that should occur before our "Apps" tab (based on
+            # its location in the selectors).
+            # In other words, we find where the "Apps" tab belongs in the
+            # matched commands.
+            apps_command_index = 0
+            # skip the commands from the selectors preceding "Apps"
+            for index in xrange(apps_index):
+                selector = selectors[index]
+                # skip all the commands that fit the current selector
+                while apps_command_index < len(commands): # insert as the last
+                                                          # command in the worst
+                                                          # case
+                    app, name, _ = commands[apps_command_index]
 
-        ordered_panels = sorted(panels, key=panel_position)
+                    # only keep skipping commands if the current selector
+                    # matches the current command
+                    if (selector["app_instance"] != app or
+                        (selector["name"] != "" and selector["name"] != name)):
+                        break
 
-        for panel in ordered_panels:
-            # let the panel show itself through its registered callback
-            panel["callback"]()
+                    apps_command_index += 1
+
+            # we now have the index where the apps command should be and we can
+            # add a fake command callback that will register the "Apps" tab.
+            apps_tab_callback = self.desktop_window._register_apps_tab
+            commands.insert(apps_command_index, ("", "", apps_tab_callback))
+
+
+        # Execute the actual commands.
+        # For example, a command could be displaying a panel in order to
+        # display it as a tab in the desktop.
+        for (_,_,command_callback) in commands:
+            command_callback()
 
     def show_panel(self, panel_id, title, bundle, widget_class,
                    *args, **kwargs):
         """
-        Adds an app widget as a tab in the desktop UI.
+        Adds an app widget as a tab in the desktop UI. The tab is placed in the
+        next available tab slot in the desktop, going from left to right.
 
         :param panel_id:     Unique identifier for the panel, as obtained by
                              register_panel().
-        :param title:        The title of the panel, to show as the tab name.
+        :param title:        The title of the panel, which is the title
+                             displayed for the tab in the UI.
         :param bundle:       The app, engine or framework object that is
                              associated with this window.
         :param widget_class: The class of the UI to be constructed. This must
@@ -333,8 +373,8 @@ class DesktopEngineSiteImplementation(object):
         # initialize System Tray
         self.desktop_window = desktop_window.DesktopWindow()
 
-        # initialize the application tabs
-        self._init_tabs()
+        # run the commands that are configured to be executed at startup
+        self._run_startup_commands()
 
         # make sure we close down our rpc threads
         app.aboutToQuit.connect(self._engine.destroy_engine)
