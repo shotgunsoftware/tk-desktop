@@ -768,6 +768,9 @@ class DesktopWindow(SystrayWindow):
                     sync_cmd.set_logger(engine.logger)
                     config_path = sync_cmd.execute(params)
                     
+                    # sync done! 
+                    self.project_overlay.start_spin()
+                    
                 else:
                     engine.log_error("No path set for %s on the Pipeline "
                                      "Configuration \"%s\" (id %d)." %
