@@ -61,6 +61,7 @@ class DesktopWindow(SystrayWindow):
 
     ORGANIZATION = "Shotgun Software"
     APPLICATION = "tk-desktop"
+    PIPELINE_CONFIG_ATTACHMENT_FIELD = "sg_config"
 
     def __init__(self, parent=None):
         SystrayWindow.__init__(self, parent)
@@ -568,6 +569,9 @@ class DesktopWindow(SystrayWindow):
         self._project_model.update_project_accessed_time(project)
 
     def _on_project_selection(self, selected, deselected):
+        """
+        Slot triggered when a a project icon is selected 
+        """
         selected_indexes = selected.indexes()
 
         if len(selected_indexes) == 0:
@@ -606,6 +610,9 @@ class DesktopWindow(SystrayWindow):
         return pixmap.scaled(size, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
 
     def __set_project_from_item(self, item):
+        """
+        Given a model item, begin switching from the overview and into a project.
+        """
         # slide in the project specific view
         self.slide_view(self.ui.project_page, "right")
 
@@ -632,7 +639,27 @@ class DesktopWindow(SystrayWindow):
         if success:
             self.__launch_app_proxy_for_project(self.current_project)
 
+    def __pc_sync_progress_cb(self, chapter, percent=None):
+        """
+        Callback called by the synchronize tank command as it is 
+        ensuring that a cloud based config is up to date.
+        
+        :param chapter: Part of the setup that is being executed
+        :param percent: Percent of current chapter completed.
+        """
+        if percent is None:
+            percent = 0
+        self.project_overlay.show_message("[%s %%] %s" % (percent, chapter))
+        QtGui.QApplication.instance().processEvents()
+
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
+        """
+        Switches to a project in Shotgun Desktop
+        
+        :param project: Shotgun project dictionary with type and id
+        :param pipeline_configuration_id: Optional pipeline configuration id. 
+                                          Defaults to primary.
+        """
         try:
             engine = sgtk.platform.current_engine()
             engine.log_debug("launch app proxy: %s" % project)
@@ -643,7 +670,7 @@ class DesktopWindow(SystrayWindow):
             # clear the current gui
             self.clear_app_uis()
             self.project_overlay.start_spin()
-
+            
             self.current_project = project
 
             # trigger an update to the model to track this project access
@@ -663,7 +690,11 @@ class DesktopWindow(SystrayWindow):
                 ["project", "is", project],
             ]
 
-            fields = [path_field, "users", "code"]
+            fields = [path_field, 
+                      "users", 
+                      "code", 
+                      self.PIPELINE_CONFIG_ATTACHMENT_FIELD, 
+                      "project"]
 
             connection = engine.shotgun
             pipeline_configurations = connection.find(
@@ -726,14 +757,26 @@ class DesktopWindow(SystrayWindow):
                 raise RuntimeError("Unknown platform: %s." % sys.platform)
 
             if config_path is None:
-                engine.log_error("No path set for %s on the Pipeline "
-                                 "Configuration \"%s\" (id %d)." %
-                                 (current_platform,
-                                  pipeline_configuration["code"],
-                                  pipeline_configuration_id))
+                # no absolute paths set
+            
+                if pipeline_configuration["sg_config"]:
+                    # ...but we have a zip config
+                    sync_cmd = engine.sgtk.get_command("synchronize")
+                    params = {}
+                    params["shotgun_pipeline_config_data"] = pipeline_configuration
+                    params["progress_callback"] = self.__pc_sync_progress_cb
+                    sync_cmd.set_logger(engine.logger)
+                    config_path = sync_cmd.execute(params)
+                    
+                else:
+                    engine.log_error("No path set for %s on the Pipeline "
+                                     "Configuration \"%s\" (id %d)." %
+                                     (current_platform,
+                                      pipeline_configuration["code"],
+                                      pipeline_configuration_id))
 
-                raise RuntimeError("The Toolkit configuration path has not\n"
-                                   "been set for your operating system.")
+                    raise RuntimeError("The Toolkit configuration path has not\n"
+                                       "been set for your operating system.")
 
             current_config_path = config_path
             while True:

@@ -130,6 +130,13 @@ class DesktopEngine(Engine):
         self._logger.removeHandler(self._handler)
         while (self.__extra_handlers):
             self._logger.removeHandler(self.__extra_handlers.pop())
+    
+    @property
+    def logger(self):
+        """
+        Std logger object used by the desktop engine
+        """
+        return self._logger
 
     def log(self, level, msg, *args):
         if self.__impl is None:
