@@ -370,6 +370,7 @@ class DesktopWindow(SystrayWindow):
             # do not show the project menu for the time being
             # self.ui.project_button.hide()
             self.ui.search_text.show()
+            self.ui.search_text.setFocus()
             self.ui.search_magnifier.show()
             self.ui.search_button.setIcon(self._search_x_icon)
             self.ui.search_button.setStyleSheet("")
