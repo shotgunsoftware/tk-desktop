@@ -773,6 +773,7 @@ class DesktopWindow(SystrayWindow):
                 # Read the path to the parent configuration
                 with open(parent_config_file, "r") as f:
                     current_config_path = f.read().strip()
+                    current_config_path = os.path.expandvars(current_config_path)
         except Exception, error:
             engine.log_exception(str(error))
             message = ("%s"
