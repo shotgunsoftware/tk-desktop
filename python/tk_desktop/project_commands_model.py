@@ -8,8 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import re
-import time
 import datetime
 
 from sgtk.platform.qt import QtCore, QtGui
@@ -19,6 +17,8 @@ from sgtk.deploy import util
 
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
+
+settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
 
 class ProjectCommandProxyModel(GroupingProxyModel):
@@ -104,8 +104,6 @@ class ProjectCommandProxyModel(GroupingProxyModel):
 
 
 class ProjectCommandModel(GroupingModel):
-    APP_LAUNCH_EVENT_TYPE = "Toolkit_Desktop_AppLaunch"
-
     RECENT_GROUP_NAME = "RECENT"
 
     BUTTON_NAME_ROLE = QtCore.Qt.UserRole + 1
@@ -124,6 +122,9 @@ class ProjectCommandModel(GroupingModel):
         self.__recents = {}
         self.show_recents = True
 
+        # load recent app launches from settings
+        self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
+
     def set_project(self, project, groups, show_recents=True):
         self.clear()
         self.__project = project
@@ -137,7 +138,7 @@ class ProjectCommandModel(GroupingModel):
         if self.show_recents:
             (header, _) = self.create_group(self.RECENT_GROUP_NAME)
             self.set_group_rank(self.RECENT_GROUP_NAME, 0)
-            self.__initialize_recents()
+            self.__load_recents_from_settings()
 
     def add_command(self, name, button_name, menu_name, icon, command_tooltip, groups):
         if name in self.__recents and not self.__recents[name]["added"]:
@@ -217,10 +218,6 @@ class ProjectCommandModel(GroupingModel):
 
     def _handle_command_triggered(self, item, command_name=None, button_name=None,
                                   menu_name=None, icon=None, tooltip=None):
-        # Create an event log entry to track app launches
-        engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
-
         # get the info for the command
         # if the info was explicit use that, otherwise if the item has children
         # use the info from the first one after sorting, otherwise use the item's
@@ -253,33 +250,16 @@ class ProjectCommandModel(GroupingModel):
             else:
                 tooltip = item.toolTip()
 
-        data = {
-            # recent is populated by grouping on description, so it needs
-            # to be the same for each event created for a given name, but
-            # different for different names
-            #
-            # this is parsed when populating the recents menu
-            "description": "App '%s' launched from tk-desktop-engine" % command_name,
-            "event_type": self.APP_LAUNCH_EVENT_TYPE,
-            "project": self.__project,
-            "meta": {"name": command_name, "group": group_name},
-            "user": engine.get_current_login(),
-        }
-
-        # use toolkit connection to get ApiUser permissions for event creation
-        start_time = time.time()
-
-        connection.create("EventLogEntry", data)
-
-        end_time = time.time()
-        call_duration = end_time-start_time
-        engine.log_debug("Registering app launch event (%.3f s): %s" % (call_duration, data))
+        # save app launch in recent settings
+        self.__recents[command_name] = {"timestamp": datetime.datetime.utcnow(), "added": False}
+        self.__store_recents_in_settings()
 
         if self.show_recents:
             # find the corresponding recent if it exists
             start = self.index(0, 0)
             match_flags = QtCore.Qt.MatchExactly
-            indexes_in_recent = self.match(start, self.GROUP_ROLE, self.RECENT_GROUP_NAME, -1, match_flags)
+            indexes_in_recent = self.match(start, self.GROUP_ROLE, self.RECENT_GROUP_NAME, -1,
+                                           match_flags)
 
             recent_item = None
             for index in indexes_in_recent:
@@ -306,52 +286,29 @@ class ProjectCommandModel(GroupingModel):
         # and notify that the command was triggered
         self.command_triggered.emit(group_name, command_name)
 
-    def __initialize_recents(self):
+    def __store_recents_in_settings(self):
         """
-        Pull down the information from Shotgun for what the recent command
-        launches have been.  Needed to track which ones are still registered.
+        Stores a list of recently launched apps in the user settings. Resets the "added" key so
+        when the settings are loaded again, each item will be added to the list. They are stored as
+        a dictionary in the following format::
+
+            self.__recents = {
+                'launch_nuke': {
+                    'timestamp': datetime.datetime(2016, 5, 20, 21, 48, 17, 495234),
+                    'added': False},
+                ...
+            }
         """
-        # dictionary to keep track of the commands launched with recency information
-        # each command name keeps track of a timestamp of when it was last launched
-        # and a boolean saying whether the corresponding command has been registered
-        self.__recents = {}
+        recents = {}
+        for name, details in self.__recents.iteritems():
+            recents[name] = {"timestamp": details["timestamp"], "added": False}
+            self._settings_manager.store("sg_desktop.recent_apps", recents,
+                                         self._settings_manager.SCOPE_PROJECT)
 
-        # pull down matching invents for the current project for the current user
-        filters = [
-            ["user", "is", sgtk.platform.current_engine().get_current_login()],
-            ["project", "is", self.__project],
-            ["event_type", "is", self.APP_LAUNCH_EVENT_TYPE],
-        ]
-
-        # execute the Shotgun summarize command
-        # get one group per description with a summary of the latest created_at
-        engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
-        start_time = time.time()
-        summary = connection.summarize(
-            entity_type="EventLogEntry",
-            filters=filters,
-            summary_fields=[{"field": "created_at", "type": "latest"}],
-            grouping=[{"field": "description", "type": "exact", "direction": "desc"}],
-        )
-        end_time = time.time()
-        call_duration = end_time-start_time
-        engine.log_debug("App Launches summarized (%.3f s)" % call_duration)
-
-        # parse the results
-        for group in summary["groups"]:
-            # convert the text representation of created_at to a datetime
-            text_stamp = group["summaries"]["created_at"]
-            time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
-
-            # pull the command name from the description
-            description = group["group_name"]
-            match = re.search("'(?P<name>.+)'", description)
-            if match is not None:
-                name = match.group("name")
-
-                # if multiple descriptions end up with the same name use the most recent one
-                existing_info = self.__recents.setdefault(
-                    name, {"timestamp": time_stamp, "added": False})
-                if existing_info["timestamp"] < time_stamp:
-                    self.__recents[name]["timestamp"] = time_stamp
+    def __load_recents_from_settings(self):
+        """
+        Loads the dict of recently launched apps from the user settings. See above for the
+        format.
+        """
+        self.__recents = self._settings_manager.retrieve("sg_desktop.recent_apps", {},
+                                                         self._settings_manager.SCOPE_PROJECT)
