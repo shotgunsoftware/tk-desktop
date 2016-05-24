@@ -9,6 +9,8 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import datetime
+import time
+import re
 
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -104,6 +106,8 @@ class ProjectCommandProxyModel(GroupingProxyModel):
 
 
 class ProjectCommandModel(GroupingModel):
+    APP_LAUNCH_EVENT_TYPE = "Toolkit_Desktop_AppLaunch"
+
     RECENT_GROUP_NAME = "RECENT"
 
     BUTTON_NAME_ROLE = QtCore.Qt.UserRole + 1
@@ -138,7 +142,7 @@ class ProjectCommandModel(GroupingModel):
         if self.show_recents:
             (header, _) = self.create_group(self.RECENT_GROUP_NAME)
             self.set_group_rank(self.RECENT_GROUP_NAME, 0)
-            self.__load_recents_from_settings()
+            self.__load_recents()
 
     def add_command(self, name, button_name, menu_name, icon, command_tooltip, groups):
         if name in self.__recents and not self.__recents[name]["added"]:
@@ -302,13 +306,81 @@ class ProjectCommandModel(GroupingModel):
         recents = {}
         for name, details in self.__recents.iteritems():
             recents[name] = {"timestamp": details["timestamp"], "added": False}
-            self._settings_manager.store("sg_desktop.recent_apps", recents,
-                                         self._settings_manager.SCOPE_PROJECT)
+        self._settings_manager.store("sg_desktop.recent_apps", recents,
+                                     self._settings_manager.SCOPE_PROJECT)
 
-    def __load_recents_from_settings(self):
+    def __load_recents(self):
         """
-        Loads the dict of recently launched apps from the user settings. See above for the
-        format.
+        Loads recently launched apps from the user settings and returns them in a dict. See above
+        for the format.
+
+        If recent app launch settings don't exist yet for this project, fall back to
+        looking them up from the event log in order to preserve previous history. This will only
+        happen one time as the settings are seeded after the event log lookup.
         """
-        self.__recents = self._settings_manager.retrieve("sg_desktop.recent_apps", {},
-                                                         self._settings_manager.SCOPE_PROJECT)
+        recents = self._settings_manager.retrieve("sg_desktop.recent_apps", None,
+                                                  self._settings_manager.SCOPE_PROJECT)
+        if recents is not None:
+            self.__recents = recents
+            return
+
+        # Settings haven't been created for this project yet. In order to ensure that users'
+        # recent app launches don't get lost as we move to using the settings module, do a
+        # one-time lookup for app launches from the event log and use that information to seed
+        # the recent app launches in settings.
+        engine = sgtk.platform.current_engine()
+        engine.log_debug("No recent apps setting found. Falling back on loading recent app "
+                         "launches from the event log.")
+
+        self.__recents = self.__load_recents_from_event_log()
+        self.__store_recents_in_settings()
+
+    def __load_recents_from_event_log(self):
+        """
+        Loads recently launched apps from the event log and returns them in a dict. See above
+        for the format.
+
+        This is a fallback method used when this info doesn't exist yet in the user settings. It
+        is used only to preserve past app launch history and move it over to the user settings
+        framework which is much faster. This method can be very slow depending on the size of the
+        event log and the user's specific permission settings.
+        """
+        recents = {}
+        engine = sgtk.platform.current_engine()
+        connection = engine.shotgun
+
+        # find all app launch events for the current project and current user
+        filters = [
+            ["user", "is", engine.get_current_login()],
+            ["project", "is", self.__project],
+            ["event_type", "is", self.APP_LAUNCH_EVENT_TYPE],
+        ]
+
+        # Summarize latest app launches grouped by description which contains the command name:
+        # eg. "App 'launch_nuke' launched from tk-desktop-engine"
+        start_time = time.time()
+        summary = connection.summarize(entity_type="EventLogEntry",
+                                       filters=filters,
+                                       summary_fields=[{"field": "created_at", "type": "latest"}],
+                                       grouping=[{"field": "description", "type": "exact",
+                                                  "direction": "desc"}])
+        end_time = time.time()
+        call_duration = end_time-start_time
+        engine.log_debug("App launches summarized from event log (%.3f s)" % call_duration)
+
+        # parse the results
+        for group in summary["groups"]:
+            # convert the text representation of created_at to a datetime
+            text_stamp = group["summaries"]["created_at"]
+            time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
+
+            # match the command name from the description
+            description = group["group_value"]
+            match = re.search("'(?P<name>.+)'", description)
+            if match is not None:
+                name = match.group("name")
+                recents.setdefault(name, {"timestamp": time_stamp, "added": False})
+
+        return recents
+
+
