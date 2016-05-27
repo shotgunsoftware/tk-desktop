@@ -111,7 +111,7 @@ class DesktopWindow(SystrayWindow):
         self._current_user_id = user["id"]
         thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
-            (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
+            (fd, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
             try:
                 shotgun.download_url(connection, thumbnail_url, thumbnail_file)
                 pixmap = QtGui.QPixmap(thumbnail_file)
@@ -120,6 +120,7 @@ class DesktopWindow(SystrayWindow):
                 # if it fails for any reason, that's alright
                 pass
             finally:
+                os.close(fd)
                 try:
                     os.remove(thumbnail_file)
                 except Exception:
@@ -799,8 +800,9 @@ class DesktopWindow(SystrayWindow):
                 "proxy_auth": server_auth,
             },
         }
-        (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
+        (fd, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
         pickle.dump(desktop_data, open(pickle_data_file, "wb"))
+        os.close(fd)
 
         # update the values on the project updater in case they are needed
         self.update_project_config_widget.set_project_info(
