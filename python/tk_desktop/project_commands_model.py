@@ -327,12 +327,20 @@ class ProjectCommandModel(GroupingModel):
         engine.log_debug("No recent apps settings found. Falling back on loading recent app "
                          "launches from the event log.")
 
-        # bypass event log query if flag is set (see #29128)
-        if engine.proxy.call("get_setting", "bypass_event_log", None):
+        # Bypass event log query if flag is set (see #29128)
+        # We have to handle cases where the project version of Desktop engine is an older one 
+        # that doesn't support get_setting()
+        try:
+            bypass_event_log = engine.proxy.call("get_setting", "bypass_event_log", False)
+        except ValueError:
+            bypass_event_log = False
+
+        if bypass_event_log:
             engine.log_debug("bypass_event_log setting detected. Skipping event log query.")
             self.__recents = {}
         else:
             self.__recents = self.__load_recents_from_event_log()
+
         self.__store_recents_in_settings()
 
     def __load_recents_from_event_log(self):
