@@ -86,6 +86,7 @@ class DesktopEngineProjectImplementation(object):
         self.msg_server.register_function(self.trigger_callback, "trigger_callback")
         self.msg_server.register_function(self.signal_disconnect, "signal_disconnect")
         self.msg_server.register_function(self.open_project_locations, "open_project_locations")
+        self.msg_server.register_function(self.get_setting, "get_setting")
 
         self.msg_server.start()
 
@@ -151,6 +152,10 @@ class DesktopEngineProjectImplementation(object):
             exit_code = os.system(cmd)
             if exit_code != 0:
                 self._engine.log_error("Failed to launch '%s'!" % cmd)
+
+    def get_setting(self, setting_name, default_value=None):
+        """ Look up engine setting for current environment """
+        return self._engine.get_setting(setting_name, default_value)
 
     def _initialize_logging(self):
         formatter = logging.Formatter("%(asctime)s [PROJ   %(levelname) -7s] %(name)s - %(message)s")
