@@ -20,8 +20,6 @@ from sgtk.deploy import util
 from .grouping_model import GroupingModel
 from .grouping_model import GroupingProxyModel
 
-settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
-
 
 class ProjectCommandProxyModel(GroupingProxyModel):
     def __init__(self, parent=None):
@@ -125,9 +123,6 @@ class ProjectCommandModel(GroupingModel):
         self.__project = None
         self.__recents = {}
         self.show_recents = True
-
-        # load recent app launches from settings
-        self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
 
     def set_project(self, project, groups, show_recents=True):
         self.clear()
@@ -306,8 +301,8 @@ class ProjectCommandModel(GroupingModel):
         recents = {}
         for name, details in self.__recents.iteritems():
             recents[name] = {"timestamp": details["timestamp"], "added": False}
-        self._settings_manager.store("sg_desktop.recent_apps", recents,
-                                     self._settings_manager.SCOPE_PROJECT)
+        key = "project_recent_apps.%d" % self.__project["id"]
+        self.parent()._save_setting(key, recents, site_specific=True)
 
     def __load_recents(self):
         """
@@ -318,8 +313,8 @@ class ProjectCommandModel(GroupingModel):
         looking them up from the event log in order to preserve previous history. This will only
         happen one time as the settings are seeded after the event log lookup.
         """
-        recents = self._settings_manager.retrieve("sg_desktop.recent_apps", None,
-                                                  self._settings_manager.SCOPE_PROJECT)
+        key = "project_recent_apps.%d" % self.__project["id"]
+        recents = self.parent()._load_setting(key, None, True)
         if recents is not None:
             self.__recents = recents
             return
@@ -333,7 +328,7 @@ class ProjectCommandModel(GroupingModel):
                          "launches from the event log.")
 
         # bypass event log query if flag is set (see #29128)
-        if engine.get_setting("bypass_event_log", False):
+        if engine.proxy.call("get_setting", "bypass_event_log", None):
             engine.log_debug("bypass_event_log setting detected. Skipping event log query.")
             self.__recents = {}
         else:
