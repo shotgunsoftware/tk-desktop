@@ -12,6 +12,7 @@ from __future__ import with_statement
 import os
 import re
 import sys
+import logging
 import string
 import collections
 
@@ -206,12 +207,6 @@ class DesktopEngineSiteImplementation(object):
         # this engine.
         self.startup_version = kwargs.get("startup_version")
 
-        server = kwargs.get("server")
-        # If the startup has a websocket server.
-        if server:
-            # Make sure that the websocket server logs go the Desktop logs.
-            server.get_logger().addHandler(self._engine._handler)
-
         if self.uses_legacy_authentication():
             self._migrate_credentials()
 
@@ -361,13 +356,6 @@ class DesktopEngineSiteImplementation(object):
                 # raw http_proxy string.
                 http_proxy=sl._http_proxy
             )
-
-    def _initialize_logging(self):
-        formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")
-        self._engine._handler.setFormatter(formatter)
-
-    def log(self, level, msg, *args):
-        self._engine.logger.log(level, msg, *args)
 
     def proxy_log(self, level, msg, args):
         self._engine.logger.log(level, "[PROXY] %s" % msg, *args)
