@@ -101,7 +101,7 @@ class DesktopEngine(Engine):
             self.logger.removeHandler(self.__extra_handlers.pop())
 
     def add_logging_handler(self, handler):
-        self.logger.addHandler(handler)
+        sgtk.LogManager().initialize_custom_handler(handler)
         self.__extra_handlers.append(handler)
 
     ##########################################################################################
