@@ -120,11 +120,15 @@ class DesktopEngineProjectImplementation(object):
             self.connected = False
 
             top_level_windows = app.topLevelWidgets()
-            if top_level_windows:
-                self._engine.log_debug("Disconnected with open windows, setting quit on last window closed.")
+            sgtk.platform.current_engine()
+            # Bugs in client code (or Toolkit) can cause a leak of a top-level dialog that is already
+            # closed. So if any top level dialog is visible, wait for it to close.
+            if filter(lambda w: w.isVisible(), top_level_windows):
+                print top_level_windows
+                print("Disconnected with open windows, setting quit on last window closed.")
                 app.setQuitOnLastWindowClosed(True)
             else:
-                self._engine.log_debug("Quitting on disconnect")
+                print("Quitting on disconnect")
                 app.quit()
         else:
             # just close down the message thread otherwise
