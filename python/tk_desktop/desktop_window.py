@@ -311,10 +311,9 @@ class DesktopWindow(SystrayWindow):
     def handle_quit_action(self):
         # disconnect from the current proxy
         engine = sgtk.platform.current_engine()
-        engine.disconnect_app_proxy()
 
-        if engine.msg_server is not None:
-            engine.msg_server.close()
+        # disconnect from the current project
+        engine.site_comm.shut_down()
 
         self._save_setting("pos", self.pos(), site_specific=True)
 
@@ -410,7 +409,7 @@ class DesktopWindow(SystrayWindow):
     def on_project_filesystem_folder_triggered(self):
         engine = sgtk.platform.current_engine()
         engine.refresh_user_credentials()
-        engine.proxy.call("open_project_locations")
+        engine.site_comm.call("open_project_locations")
 
     def sign_out(self):
         engine = sgtk.platform.current_engine()
@@ -422,9 +421,6 @@ class DesktopWindow(SystrayWindow):
         except Exception:
             # if logout raises an exception, just log and don't crash
             engine.log_exception("Error logging out.")
-
-        # disconnect from the current project
-        engine.disconnect_app_proxy()
 
         # restart the application
         self.handle_quit_action()
@@ -472,12 +468,14 @@ class DesktopWindow(SystrayWindow):
         self._project_proxy.sort(0)
 
     def _on_back_to_projects_clicked(self):
+        engine = sgtk.platform.current_engine()
+        engine.site_comm.shut_down()
+
         self._project_selection_model.clear()
         self._project_proxy.invalidate()
         self._project_proxy.sort(0)
 
         self.slide_view(self.ui.project_browser_page, "left")
-        self.clear_app_uis()
 
         # remember that we are back at the browser
         self.current_project = None
@@ -636,13 +634,8 @@ class DesktopWindow(SystrayWindow):
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
-            engine.log_debug("launch app proxy: %s" % project)
+            engine.log_debug("launching app proxy for project: %s" % project)
 
-            # disconnect from the current proxy
-            engine.disconnect_app_proxy()
-
-            # clear the current gui
-            self.clear_app_uis()
             self.project_overlay.start_spin()
 
             self.current_project = project
@@ -786,8 +779,6 @@ class DesktopWindow(SystrayWindow):
 
         # startup server pipe to listen
         engine.startup_rpc()
-        server_pipe = engine.msg_server.pipe
-        server_auth = engine.msg_server.authkey
 
         # pickle up the info needed to bootstrap the project python
         desktop_data = {
@@ -795,9 +786,9 @@ class DesktopWindow(SystrayWindow):
             "config_path": config_path,
             "project": project,
             "proxy_data": {
-                "proxy_pipe": server_pipe,
-                "proxy_auth": server_auth,
-            },
+                "proxy_pipe": engine.site_comm.server_pipe,
+                "proxy_auth": engine.site_comm.server_authkey
+            }
         }
         (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
         pickle.dump(desktop_data, open(pickle_data_file, "wb"))
