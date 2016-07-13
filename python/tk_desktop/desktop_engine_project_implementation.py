@@ -145,12 +145,15 @@ class DesktopEngineProjectImplementation(object):
             sgtk.platform.current_engine()
             # Bugs in client code (or Toolkit) can cause a leak of a top-level dialog that is already
             # closed. So if any top level dialog is visible, wait for it to close.
-            if filter(lambda w: w.isVisible(), top_level_windows):
-                print top_level_windows
-                print("Disconnected with open windows, setting quit on last window closed.")
+            opened_windows = filter(lambda w: w.isVisible(), top_level_windows)
+            if opened_windows:
+                self._engine.log_debug("The following top level widgets are still visible:")
+                for w in opened_windows:
+                    self._engine.log_debug(str(w))
+                self._engine.log_debug("Process will quit only when the last window is closed.")
                 app.setQuitOnLastWindowClosed(True)
             else:
-                print("Quitting on disconnect")
+                self._engine.log_debug("Quitting on disconnect")
                 app.quit()
         else:
             # just close down the message thread otherwise
