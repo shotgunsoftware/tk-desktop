@@ -24,7 +24,7 @@ import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
 from tank_vendor import yaml
 
-from .servers import SiteCommunication
+from .site_communication import SiteCommunication
 
 
 class DesktopEngineSiteImplementation(object):

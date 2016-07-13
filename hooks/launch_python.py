@@ -35,7 +35,7 @@ class LaunchPython(Hook):
 
         # run hidden on windows
         startupinfo = None
-        if sys.platform == "win32":
+        if sys.platform == "win32" and not os.environ.get("SGTK_DESKTOP_BACKGROUND_CONSOLE"):
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
