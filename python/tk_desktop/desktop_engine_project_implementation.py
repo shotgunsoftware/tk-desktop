@@ -42,24 +42,31 @@ class DesktopEngineProjectImplementation(object):
         self._engine.log_debug("starting rpc")
         self.start_rpc()
 
-        # get the list of configured groups
-        # add the default group in if it isn't already in the list.
-        groups = [g["name"] for g in self._engine.get_setting("groups", [])]
-        default_group = self._engine.get_setting("default_group", [])
-        if default_group not in groups:
-            groups.insert(0, default_group)
+        try:
+            # get the list of configured groups
+            # add the default group in if it isn't already in the list.
+            groups = [g["name"] for g in self._engine.get_setting("groups", [])]
+            default_group = self._engine.get_setting("default_group", [])
+            if default_group not in groups:
+                groups.insert(0, default_group)
 
-        # get the rules for how to collapse the buttons
-        collapse_rules = self._engine.get_setting("collapse_rules", [])
+            # get the rules for how to collapse the buttons
+            collapse_rules = self._engine.get_setting("collapse_rules", [])
 
-        # register our side of the pipe as the current app proxy
-        self.proxy.call("create_app_proxy", self.msg_server.pipe, self.msg_server.authkey)
-        self.connected = True
+            # register our side of the pipe as the current app proxy
+            self.proxy.call("create_app_proxy", self.msg_server.pipe, self.msg_server.authkey)
+            self.connected = True
 
-        # tell the GUI how to organize our commands
-        show_recents = self._engine.get_setting("show_recents", True)
-        self.proxy.call("set_groups", groups, show_recents=show_recents)
-        self.proxy.call("set_collapse_rules", collapse_rules)
+            # tell the GUI how to organize our commands
+            show_recents = self._engine.get_setting("show_recents", True)
+            self.proxy.call("set_groups", groups, show_recents=show_recents)
+            self.proxy.call("set_collapse_rules", collapse_rules)
+        except:
+            # If something goes wrong while initializing the engine, we need to be able to close all
+            # pipes and listening threads. If we don't, the handles will be leaked and the process
+            # won't terminate.
+            self.destroy_engine()
+            raise
 
     def post_app_init(self):
         # send the commands over to the proxy
@@ -91,20 +98,29 @@ class DesktopEngineProjectImplementation(object):
         self.msg_server.start()
 
     def destroy_engine(self):
-
         # If the user hits Cmd-Q to close the dialog, it will close and the QApplication will quit.
         # Indicate that we won't be connected anymore so the application loop in bootstrap_utilities
         # can quit.
         self.connected = False
 
+        # Be super careful when closing the proxy, because it can be in an inconsistent state and
+        # throw errors.
         if self.proxy is not None:
             try:
                 self.proxy.call_no_response("destroy_app_proxy")
-            except EOFError:
-                # it is ok if it is already shut down on the other side
-                pass
+            except Exception:
+                self._engine.log_exception("Error while destroying app proxy:")
+            else:
+                self._engine.log_debug("Destroyed app proxy.")
 
-            self.proxy.close()
+            try:
+                self.proxy.close()
+            except Exception:
+                self._engine.log_exception("Error while closing app proxy:")
+            else:
+                self._engine.log_debug("Closed the proxy.")
+            finally:
+                self._proxy = None
 
         # close down our server thread
         if self.msg_server is not None:

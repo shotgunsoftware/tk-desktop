@@ -53,7 +53,6 @@ def main():
             # Use the utilities module to send the error message back to the app
             # acting as the GUI proxy for this engine.
             utilities.handle_error(data)
-
         # Reraise the error
         raise
 
