@@ -91,6 +91,12 @@ class DesktopEngineProjectImplementation(object):
         self.msg_server.start()
 
     def destroy_engine(self):
+
+        # If the user hits Cmd-Q to close the dialog, it will close and the QApplication will quit.
+        # Indicate that we won't be connected anymore so the application loop in bootstrap_utilities
+        # can quit.
+        self.connected = False
+
         if self.proxy is not None:
             try:
                 self.proxy.call_no_response("destroy_app_proxy")
