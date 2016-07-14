@@ -171,6 +171,11 @@ class DesktopEngine(Engine):
         """ Override base has_ui to reflect the state of Qt imports """
         return self._has_ui
 
+    @has_ui.setter
+    def has_ui(self, has_a_ui):
+        """ Allows to set the has ui property. """
+        self._has_ui = has_a_ui
+
     def _define_qt_base(self):
         """ check for pyside then pyqt """
         # proxy class used when QT does not exist on the system.
