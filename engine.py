@@ -191,86 +191,55 @@ class DesktopEngine(Engine):
         base = {"qt_core": QTProxy(), "qt_gui": QTProxy(), "dialog_base": None}
         self._has_ui = False
 
-        if not self._has_ui:
-            try:
-                from PySide import QtCore, QtGui
-                import PySide
+        try:
+            from PySide import QtCore, QtGui
+            import PySide
 
-                # Some old versions of PySide don't include version information
-                # so add something here so that we can use PySide.__version__
-                # later without having to check!
-                if not hasattr(PySide, "__version__"):
-                    PySide.__version__ = "<unknown>"
+            # Some old versions of PySide don't include version information
+            # so add something here so that we can use PySide.__version__
+            # later without having to check!
+            if not hasattr(PySide, "__version__"):
+                PySide.__version__ = "<unknown>"
 
-                # tell QT to interpret C strings as utf-8
-                utf8 = QtCore.QTextCodec.codecForName("utf-8")
-                QtCore.QTextCodec.setCodecForCStrings(utf8)
-
-                # a simple dialog proxy that pushes the window forward
-                class ProxyDialogPySide(QtGui.QDialog):
-                    def show(self):
-                        QtGui.QDialog.show(self)
-                        self.activateWindow()
-                        self.raise_()
-
-                    def exec_(self):
-                        self.activateWindow()
-                        self.raise_()
-                        # the trick of activating + raising does not seem to be enough for
-                        # modal dialogs. So force put them on top as well.
-                        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | self.windowFlags())
-                        QtGui.QDialog.exec_(self)
-
-                base["qt_core"] = QtCore
-                base["qt_gui"] = QtGui
-                base["dialog_base"] = ProxyDialogPySide
-                self.log_debug("Successfully initialized PySide '%s' located in %s."
-                               % (PySide.__version__, PySide.__file__))
-                self._has_ui = True
-            except ImportError:
-                pass
-            except Exception, e:
-                self.log_warning("Error setting up pyside. Pyside based UI support will not "
-                                 "be available: %s" % e)
-
-        if not self._has_ui:
+            self.log_debug("Found PySide '%s' located in %s." % (PySide.__version__, PySide.__file__))
+        except ImportError:
             try:
                 from PyQt4 import QtCore, QtGui
                 import PyQt4
-
-                # tell QT to interpret C strings as utf-8
-                utf8 = QtCore.QTextCodec.codecForName("utf-8")
-                QtCore.QTextCodec.setCodecForCStrings(utf8)
-
-                # a simple dialog proxy that pushes the window forward
-                class ProxyDialogPyQt(QtGui.QDialog):
-                    def show(self):
-                        QtGui.QDialog.show(self)
-                        self.activateWindow()
-                        self.raise_()
-
-                    def exec_(self):
-                        self.activateWindow()
-                        self.raise_()
-                        # the trick of activating + raising does not seem to be enough for
-                        # modal dialogs. So force put them on top as well.
-                        self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | self.windowFlags())
-                        QtGui.QDialog.exec_(self)
-
-                # hot patch the library to make it work with pyside code
                 QtCore.Signal = QtCore.pyqtSignal
                 QtCore.Slot = QtCore.pyqtSlot
                 QtCore.Property = QtCore.pyqtProperty
-                base["qt_core"] = QtCore
-                base["qt_gui"] = QtGui
-                base["dialog_base"] = ProxyDialogPyQt
-                self.log_debug("Successfully initialized PyQt '%s' located in %s."
-                               % (QtCore.PYQT_VERSION_STR, PyQt4.__file__))
-                self._has_ui = True
+
+                self.log_debug("Found PyQt '%s' located in %s." % (QtCore.PYQT_VERSION_STR, PyQt4.__file__))
             except ImportError:
-                pass
-            except Exception, e:
-                self.log_warning("Error setting up PyQt. PyQt based UI support will not "
-                                 "be available: %s" % e)
+                return base
+        except Exception:
+            self.log_exception("Error setting up QT. QT based UI support will not be available: %s" % e)
+            return base
+
+        # tell QT to interpret C strings as utf-8
+        utf8 = QtCore.QTextCodec.codecForName("utf-8")
+        QtCore.QTextCodec.setCodecForCStrings(utf8)
+
+        # a simple dialog proxy that pushes the window forward
+        class ProxyDialog(QtGui.QDialog):
+
+            def show(self):
+                QtGui.QDialog.show(self)
+                self.activateWindow()
+                self.raise_()
+
+            def exec_(self):
+                self.activateWindow()
+                self.raise_()
+                # the trick of activating + raising does not seem to be enough for
+                # modal dialogs. So force put them on top as well.
+                self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | self.windowFlags())
+                return QtGui.QDialog.exec_(self)
+
+        base["qt_core"] = QtCore
+        base["qt_gui"] = QtGui
+        base["dialog_base"] = ProxyDialog
+        self._has_ui = True
 
         return base
