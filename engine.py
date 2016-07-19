@@ -39,6 +39,18 @@ class DesktopEngine(Engine):
         else:
             self._logger.setLevel(logging.INFO)
 
+        # Figure out which implementation we will use.  If the tk instance
+        # has the proxy connection information in it, then we are running
+        # for a specific project.  Otherwise we are running the GUI for a
+        # whole site.
+        interface_type = "site"
+        bootstrap_data = getattr(self.sgtk, "_desktop_data", None)
+        if bootstrap_data is not None:
+            if "proxy_pipe" in bootstrap_data and "proxy_auth" in bootstrap_data:
+                interface_type = "project"
+
+        self._is_site_engine = interface_type == "site"
+
         # Import our python library
         #
         # HACK ALERT: See if we can move this part of engine initialization
@@ -53,16 +65,6 @@ class DesktopEngine(Engine):
         qt.TankDialogBase = base_def.get("dialog_base")
 
         tk_desktop = self.import_module("tk_desktop")
-
-        # Figure out which implementation we will use.  If the tk instance
-        # has the proxy connection information in it, then we are running
-        # for a specific project.  Otherwise we are running the GUI for a
-        # whole site.
-        interface_type = "site"
-        bootstrap_data = getattr(self.sgtk, "_desktop_data", None)
-        if bootstrap_data is not None:
-            if "proxy_pipe" in bootstrap_data and "proxy_auth" in bootstrap_data:
-                interface_type = "project"
 
         self.__impl = tk_desktop.get_engine_implementation(interface_type)(self)
 
@@ -223,6 +225,26 @@ class DesktopEngine(Engine):
 
         # a simple dialog proxy that pushes the window forward
         class ProxyDialog(QtGui.QDialog):
+
+            _requires_visibility_hack = True if sys.platform == "win32" and not self._is_site_engine else False
+
+            def setVisible(self, make_visible):
+                # On Windows, a bug in Qt seems to prevent the first dialog we invoke to appear in the
+                # background process. This seems to be related to the fact that the background process
+                # doesn't even have a presence in the task bar. If we give the background process a
+                # taskbar presence, then dialogs will appear right away. So when there is a request to
+                # show the first dialog, we will "show" another dialog first, which will clean up
+                # whatever incoherent state there is in Qt and will allow the requested dialog to
+                # appear.
+                if self._requires_visibility_hack:
+                    d = QtGui.QDialog()
+                    d.show()
+                    d.activateWindow()
+                    d.raise_()
+                    d.deleteLater()
+                    self._requires_visibility_hack = False
+
+                QtGui.QDialog.setVisible(self, make_visible)
 
             def show(self):
                 QtGui.QDialog.show(self)
