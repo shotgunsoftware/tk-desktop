@@ -17,7 +17,7 @@ from .rpc import RPCServerThread, RPCProxy
 
 class CommunicationBase(object):
     """
-    Communication channel for the site engine to the background process, aka slave.
+    Communication channel base class.
     """
 
     def __init__(self, engine):
@@ -30,7 +30,7 @@ class CommunicationBase(object):
 
     def shut_down(self):
         """
-        Disconnects from the slave process and shuts down the local server.
+        Disconnects from the other process and shuts down the local server.
         """
         self._log_debug("Shutting down communication channel...")
 

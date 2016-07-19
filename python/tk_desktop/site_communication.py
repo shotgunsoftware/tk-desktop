@@ -12,16 +12,13 @@
 Implements communication channels between the desktop app and the background process.
 """
 
-import logging
-
-from .rpc import RPCServerThread, RPCProxy
 from sgtk.platform.qt import QtCore
 from .communication_base import CommunicationBase
 
 
 class SiteCommunication(QtCore.QObject, CommunicationBase):
     """
-    Communication channel for the site engine to the background process, aka slave.
+    Communication channel for the site engine to the project engine.
     """
 
     proxy_closing = QtCore.Signal()

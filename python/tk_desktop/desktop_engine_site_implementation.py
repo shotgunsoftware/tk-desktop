@@ -81,7 +81,7 @@ class DesktopEngineSiteImplementation(object):
 
     def _on_proxy_closing(self):
         """
-        Invoked when slave process is closing down.
+        Invoked when background process is closing down.
         """
         # Clear the UI, we can't launch anything anymore!
         self.desktop_window.clear_app_uis()

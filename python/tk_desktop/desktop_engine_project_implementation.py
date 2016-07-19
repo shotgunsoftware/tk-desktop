@@ -57,7 +57,7 @@ class DesktopEngineProjectImplementation(object):
             # background process is initializing. The ui state (engine.has_ui and QApplication.instance()) needs
             # to be coherent for start_app and _signal_disconnect to execute properly.
             #
-            # For these reasons, why are postponing the connection to the server (and therefore the possibility)
+            # For these reasons, we are postponing the connection to the server (and therefore the possibility)
             # to be torn down to after Qt has been initialized.
             #
             # At that point, it is possible to evaluate engine.has_ui and QApplication.instance() in a thread-safe
@@ -140,7 +140,7 @@ class DesktopEngineProjectImplementation(object):
             # False.
             from tank.platform.qt import QtGui
             # If the engine reports having qt, but the QApplication hasn't been initialized yet, we want to make sure
-            # that the tear down is going to be coherent and
+            # that the _signal_disconnect and start_app both use the same part of if self._engine.has_ui.
             self._engine.has_ui = True if (self._engine.has_ui and QtGui.QApplication.instance()) else False
 
         if self._engine.has_ui:

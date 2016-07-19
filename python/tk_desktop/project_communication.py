@@ -17,7 +17,7 @@ from .communication_base import CommunicationBase
 
 class ProjectCommunication(CommunicationBase):
     """
-    Communication channel for the site engine to the background process, aka slave.
+    Communication channel for the project engine to the site engine.
     """
 
     def __init__(self, engine):
