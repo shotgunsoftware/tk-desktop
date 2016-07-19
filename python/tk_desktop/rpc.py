@@ -154,7 +154,9 @@ class RPCServerThread(threading.Thread):
                         # execute the function on the main thread.  It may do GUI work.
                         result = self.engine.execute_in_main_thread(func, *args, **kwargs)
 
-                        # If the stop flag was set, do not send a response.
+                        # If the RPC server was stopped, don't bother trying to reply, the connection
+                        # will have been broken on the client side and this will avoid an error
+                        # on the server side when calling send.
                         if self._SERVER_WAS_STOPPED != result:
                             # if the client expects the results, send them along
                             self._logger.debug("server got result '%s'" % result)
