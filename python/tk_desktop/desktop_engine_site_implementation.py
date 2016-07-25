@@ -12,8 +12,8 @@ from __future__ import with_statement
 import os
 import re
 import sys
-import string
 import logging
+import string
 import collections
 
 from sgtk.errors import TankEngineInitError
@@ -23,6 +23,7 @@ from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
 from tank_vendor import yaml
+
 
 
 class DesktopEngineSiteImplementation(object):
@@ -87,7 +88,7 @@ class DesktopEngineSiteImplementation(object):
             # add the traceback if available
             if tb is not None:
                 message += "\n\n%s" % tb
-            self._engine.log_error(message)
+            self._engine.logger.error(message)
 
     def create_app_proxy(self, pipe, authkey):
         """ Called when the project engine has setup its RPC server thread """
@@ -105,13 +106,13 @@ class DesktopEngineSiteImplementation(object):
 
     def disconnect_app_proxy(self):
         """ Disconnect from the app proxy. """
-        self._engine.log_debug("disconnecting from app proxy")
+        self._engine.logger.debug("disconnecting from app proxy")
         if self.proxy is not None:
             try:
                 self.proxy.call("signal_disconnect")
                 self.proxy.close()
             except Exception, e:
-                self._engine.log_warning("Error disconnecting from proxy: %s", e)
+                self._engine.logger.warning("Error disconnecting from proxy: %s", e)
             finally:
                 self.proxy = None
 
@@ -125,7 +126,7 @@ class DesktopEngineSiteImplementation(object):
         """ GUI side handler for the add_command call. """
         from tank.platform.qt import QtGui
 
-        self._engine.log_debug("register_command(%s, %s)", name, properties)
+        self._engine.logger.debug("register_command(%s, %s)", name, properties)
 
         command_type = properties.get("type")
         command_icon = properties.get("icon")
@@ -136,7 +137,7 @@ class DesktopEngineSiteImplementation(object):
             if os.path.exists(command_icon):
                 icon = QtGui.QIcon(command_icon)
             else:
-                self._engine.log_error(
+                self._engine.logger.error(
                     "Icon for command '%s' not found: '%s'" % (name, command_icon))
 
         title = properties.get("title", name)
@@ -171,7 +172,7 @@ class DesktopEngineSiteImplementation(object):
                 template = DisplayNameTemplate(collapse_rule["match"])
                 match = template.match(title)
                 if match is not None:
-                    self._engine.log_debug("matching %s against %s" % (title, collapse_rule["match"]))
+                    self._engine.logger.debug("matching %s against %s" % (title, collapse_rule["match"]))
                     if collapse_rule["menu_label"] == "None":
                         menu_name = None
                     else:
@@ -205,12 +206,6 @@ class DesktopEngineSiteImplementation(object):
         # Startup version will not be set if we have an old installer invoking
         # this engine.
         self.startup_version = kwargs.get("startup_version")
-
-        server = kwargs.get("server")
-        # If the startup has a websocket server.
-        if server:
-            # Make sure that the websocket server logs go the Desktop logs.
-            server.get_logger().addHandler(self._engine._handler)
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()
@@ -319,7 +314,7 @@ class DesktopEngineSiteImplementation(object):
         try:
             from python import ShotgunLogin
         except ImportError:
-            self._engine.log_exception("Could not import tk-framework-login")
+            self._engine.logger.exception("Could not import tk-framework-login")
             raise
         else:
             return ShotgunLogin.get_instance_for_namespace("tk-desktop")
@@ -362,15 +357,8 @@ class DesktopEngineSiteImplementation(object):
                 http_proxy=sl._http_proxy
             )
 
-    def _initialize_logging(self):
-        formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")
-        self._engine._handler.setFormatter(formatter)
-
-    def log(self, level, msg, *args):
-        self._engine._logger.log(level, msg, *args)
-
     def proxy_log(self, level, msg, args):
-        self._engine._logger.log(level, "[PROXY] %s" % msg, *args)
+        self._engine.logger.log(level, "[PROXY] %s" % msg, *args)
 
     def get_current_login(self):
         """
@@ -397,7 +385,7 @@ class DesktopEngineSiteImplementation(object):
                 self._is_login_based = False
             else:
                 self._is_login_based = True
-        self._engine.log_debug("login based: %s" % self._is_login_based)
+        self._engine.logger.debug("login based: %s" % self._is_login_based)
 
     def get_current_user(self):
         """
