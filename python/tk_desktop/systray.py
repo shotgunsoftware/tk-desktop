@@ -11,6 +11,7 @@
 from __future__ import absolute_import
 
 import sys
+import logging
 
 from tank.platform.qt import QtCore, QtGui
 
@@ -23,7 +24,6 @@ try:
 except Exception:
     osutils = None
 
-import sgtk
 
 class SystrayWindow(QtGui.QMainWindow):
     """
@@ -59,7 +59,7 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
-        self.__logger = sgtk.platform.get_logger(__name__)
+        self.__logger = logging.getLogger("tk-desktop.systray")
 
         if sys.platform == "darwin":
             self.setAttribute(QtCore.Qt.WA_MacNoShadow)

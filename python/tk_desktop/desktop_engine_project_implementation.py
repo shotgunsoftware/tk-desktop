@@ -17,27 +17,6 @@ import traceback
 from . import rpc
 import sgtk
 
-class ProxyHandler(logging.Handler):
-    """
-    Forwards the logs to the site engine.
-    """
-    def __init__(self, proxy):
-        """
-        Constructor.
-
-        :param proxy: ``RPCProxy`` instance.
-        """
-        super(ProxyHandler, self).__init__()
-        self._proxy = proxy
-
-    def emit(self, record):
-        """
-        Emits a record if the proxy is still running.
-
-        :param record: ``logging.LogRecord`` object to log.
-        """
-        if not self._proxy.is_closed():
-            self._proxy.call_no_response("proxy_log", record.levelno, record.msg, record.args)
 
 class DesktopEngineProjectImplementation(object):
     def __init__(self, engine):
@@ -46,7 +25,6 @@ class DesktopEngineProjectImplementation(object):
         self.proxy = None
         self.msg_server = None
         self.connected = False
-        self._proxy_handler = None
 
     def init_engine(self):
         self.__callback_map = {}
@@ -57,11 +35,11 @@ class DesktopEngineProjectImplementation(object):
         proxy_auth = bootstrap_data["proxy_auth"]
 
         # create the connection to the gui proxy
-        self._engine.logger.info("Connecting to gui pipe %s" % proxy_pipe)
+        self._engine.log_info("Connecting to gui pipe %s" % proxy_pipe)
         self.proxy = rpc.RPCProxy(proxy_pipe, proxy_auth)
 
         # startup our server to receive gui calls
-        self._engine.logger.debug("starting rpc")
+        self._engine.log_debug("starting rpc")
         self.start_rpc()
 
         # get the list of configured groups
@@ -77,9 +55,6 @@ class DesktopEngineProjectImplementation(object):
         # register our side of the pipe as the current app proxy
         self.proxy.call("create_app_proxy", self.msg_server.pipe, self.msg_server.authkey)
         self.connected = True
-        sgtk.LogManager().uninitialize_base_file_handler()
-        self._proxy_handler = ProxyHandler(self.proxy)
-        sgtk.LogManager().initialize_custom_handler(self._proxy_handler)
 
         # tell the GUI how to organize our commands
         show_recents = self._engine.get_setting("show_recents", True)
@@ -125,8 +100,6 @@ class DesktopEngineProjectImplementation(object):
 
             self.proxy.close()
 
-        sgtk.LogManager().root_logger.removeHandler(self._proxy_handler)
-
         # close down our server thread
         if self.msg_server is not None:
             self.msg_server.close()
@@ -136,7 +109,7 @@ class DesktopEngineProjectImplementation(object):
         try:
             callback(*args, **kwargs)
         except Exception:
-            self._engine.logger.error("Error calling %s::%s(%s, %s):\n%s" % (
+            self._engine.log_error("Error calling %s::%s(%s, %s):\n%s" % (
                 namespace, command, args, kwargs, traceback.format_exc()))
 
     def signal_disconnect(self):
@@ -148,14 +121,14 @@ class DesktopEngineProjectImplementation(object):
 
             top_level_windows = app.topLevelWidgets()
             if top_level_windows:
-                self._engine.logger.debug("Disconnected with open windows, setting quit on last window closed.")
+                self._engine.log_debug("Disconnected with open windows, setting quit on last window closed.")
                 app.setQuitOnLastWindowClosed(True)
             else:
-                self._engine.logger.debug("Quitting on disconnect")
+                self._engine.log_debug("Quitting on disconnect")
                 app.quit()
         else:
             # just close down the message thread otherwise
-            self._engine.logger.debug("Disconnect with no UI.  Shutting down")
+            self._engine.log_debug("Disconnect with no UI.  Shutting down")
             self.msg_server.close()
 
     def open_project_locations(self):
@@ -178,11 +151,28 @@ class DesktopEngineProjectImplementation(object):
 
             exit_code = os.system(cmd)
             if exit_code != 0:
-                self._engine.logger.error("Failed to launch '%s'!" % cmd)
+                self._engine.log_error("Failed to launch '%s'!" % cmd)
 
     def get_setting(self, setting_name, default_value=None):
         """ Look up engine setting for current environment """
         return self._engine.get_setting(setting_name, default_value)
+
+    def _initialize_logging(self):
+        formatter = logging.Formatter("%(asctime)s [PROJ   %(levelname) -7s] %(name)s - %(message)s")
+        self._engine._handler.setFormatter(formatter)
+
+    def log(self, level, msg, *args):
+        if self.connected:
+            # If we can log through the proxy, only do that to avoid
+            # duplicate entries in the log file
+            try:
+                self.proxy.call_no_response("proxy_log", level, msg, args)
+                return
+            except Exception:
+                # could not log through the proxy, log to the file
+                pass
+
+        self._engine._logger.log(level, msg, *args)
 
     def _get_groups(self, name, properties):
         display_name = properties.get("title", name)
@@ -200,5 +190,5 @@ class DesktopEngineProjectImplementation(object):
         if not matches:
             matches = [default_group]
 
-        self._engine.logger.debug("'%s' goes in groups: %s" % (display_name, matches))
+        self._engine.log_debug("'%s' goes in groups: %s" % (display_name, matches))
         return matches

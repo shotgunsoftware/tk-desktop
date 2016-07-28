@@ -19,14 +19,13 @@ import traceback
 import cPickle as pickle
 import multiprocessing.connection
 
-import sgtk
-
-logger = sgtk.platform.get_logger(__name__)
+logger = logging.getLogger("tk-desktop.rpc")
 
 if "TK_DESKTOP_RPC_DEBUG" in os.environ:
     logger.setLevel(logging.DEBUG)
 else:
     logger.setLevel(logging.INFO)
+
 
 class RPCServerThread(threading.Thread):
     """
@@ -43,6 +42,7 @@ class RPCServerThread(threading.Thread):
 
     def __init__(self, engine):
         threading.Thread.__init__(self)
+        self._logger = logging.getLogger("tk-desktop.rpc")
 
         # registry for methods to call for names that come via the connection
         self._functions = {
@@ -50,7 +50,7 @@ class RPCServerThread(threading.Thread):
         }
 
         self._stop = False  # used to shut down the thread cleanly
-        self.engine = engine
+        self.engine = engine  # need access to the engine to run functions in the main thread
         self.authkey = str(uuid.uuid1())  # generate a random key for authentication
 
         # setup the server pipe
@@ -86,7 +86,7 @@ class RPCServerThread(threading.Thread):
         Run the thread, accepting connections and then listening on them until
         they are closed.  Each message is a call into the function table.
         """
-        logger.debug("server listening on '%s'", self.pipe)
+        self._logger.debug("server listening on '%s'", self.pipe)
         while True:
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
@@ -112,7 +112,7 @@ class RPCServerThread(threading.Thread):
 
             # connection waiting to be read, accept it
             connection = self.server.accept()
-            logger.debug("server accepted connection")
+            self._logger.debug("server accepted connection")
             try:
                 while True:
                     # test to see if there is data waiting on the connection
@@ -124,11 +124,11 @@ class RPCServerThread(threading.Thread):
 
                     # data coming over the connection is a tuple of (name, args, kwargs)
                     (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
-                    logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
+                    self._logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
 
                     try:
                         if func_name not in self._functions:
-                            logger.error("unknown function call: '%s'" % func_name)
+                            self._logger.error("unknown function call: '%s'" % func_name)
                             raise ValueError("unknown function call: '%s'" % func_name)
 
                         # grab the function from the function table
@@ -138,14 +138,14 @@ class RPCServerThread(threading.Thread):
                         result = self.engine.execute_in_main_thread(func, *args, **kwargs)
 
                         # if the client expects the results, send them along
-                        logger.debug("server got result '%s'" % result)
+                        self._logger.debug("server got result '%s'" % result)
 
                         if respond:
                             connection.send(pickle.dumps(result))
                     except Exception as e:
                         # if any of the above fails send the exception back to the client
-                        logger.error("got exception '%s'" % e)
-                        logger.debug("   traceback:\n%s" % traceback.format_exc())
+                        self._logger.error("got exception '%s'" % e)
+                        self._logger.debug("   traceback:\n%s" % traceback.format_exc())
                         if respond:
                             connection.send(pickle.dumps(e))
             except (EOFError, IOError):
@@ -153,12 +153,12 @@ class RPCServerThread(threading.Thread):
                 # just keep serving new connections
                 pass
             finally:
-                logger.debug("server closing")
+                self._logger.debug("server closing")
                 connection.close()
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
-        logger.debug("server setting flag to stop")
+        self._logger.debug("server setting flag to stop")
         self._stop = True
 
 
@@ -173,7 +173,7 @@ class RPCProxy(object):
     LISTEN_TIMEOUT = 2
 
     def __init__(self, pipe, authkey):
-        logger = logging
+        self._logger = logging.getLogger("tk-desktop.rpc")
         self._closed = False
 
         # connect to the server via the pipe using authkey for authentication
@@ -181,17 +181,17 @@ class RPCProxy(object):
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
-        logger.debug("client connecting to to %s", pipe)
+        self._logger.debug("client connecting to to %s", pipe)
         self._connection = multiprocessing.connection.Client(
             address=pipe, family=family, authkey=authkey)
-        logger.debug("client connected to %s", pipe)
+        self._logger.debug("client connected to %s", pipe)
 
     def call_no_response(self, name, *args, **kwargs):
         msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise EOFError("closed " + msg)
         # send the call through with args and kwargs
-        logger.debug(msg)
+        self._logger.debug(msg)
         self._connection.send(pickle.dumps((False, name, args, kwargs)))
 
     def call(self, name, *args, **kwargs):
@@ -199,7 +199,7 @@ class RPCProxy(object):
         if self._closed:
             raise EOFError("closed " + msg)
         # send the call through with args and kwargs
-        logger.debug(msg)
+        self._logger.debug(msg)
         self._connection.send(pickle.dumps((True, name, args, kwargs)))
 
         # wait until there is a result, pause to check if we have been closed
@@ -214,7 +214,7 @@ class RPCProxy(object):
                 continue
         # read the result
         result = pickle.loads(self._connection.recv())
-        logger.debug("client got result '%s'" % result)
+        self._logger.debug("client got result '%s'" % result)
         # if an exception was returned raise it on the client side
         if isinstance(result, Exception):
             raise result
@@ -226,6 +226,6 @@ class RPCProxy(object):
 
     def close(self):
         # close down the client connection
-        logger.debug("closing connection")
+        self._logger.debug("closing connection")
         self._connection.close()
         self._closed = True

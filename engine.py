@@ -10,7 +10,9 @@
 
 import os
 import sys
+import logging
 import traceback
+import logging.handlers
 
 import sgtk
 from sgtk.platform import Engine
@@ -31,6 +33,12 @@ class DesktopEngine(Engine):
     # Engine methods
     def init_engine(self):
         """ Initialize the engine """
+        # set logging to the proper level from settings
+        if self.get_setting("debug_logging", False):
+            self._logger.setLevel(logging.DEBUG)
+        else:
+            self._logger.setLevel(logging.INFO)
+
         # Import our python library
         #
         # HACK ALERT: See if we can move this part of engine initialization
@@ -73,7 +81,7 @@ class DesktopEngine(Engine):
 
     def destroy_engine(self):
         """ Clean up the engine """
-        self.logger.debug("destroy_engine")
+        self.log_debug("destroy_engine")
 
         # clean up our logging setup
         self._tear_down_logging()
@@ -91,17 +99,69 @@ class DesktopEngine(Engine):
     ############################################################################
     # Logging
     def _initialize_logging(self):
+        # platform specific locations for the log file
+        if sys.platform == "darwin":
+            fname = os.path.join(os.path.expanduser("~"), "Library", "Logs", "Shotgun", "tk-desktop.log")
+        elif sys.platform == "win32":
+            fname = os.path.join(os.environ.get("APPDATA", "APPDATA_NOT_SET"), "Shotgun", "tk-desktop.log")
+        elif sys.platform.startswith("linux"):
+            fname = os.path.join(os.path.expanduser("~"), ".shotgun", "logs", "tk-desktop.log")
+        else:
+            raise NotImplementedError("Unknown platform: %s" % sys.platform)
+
+        # create the directory for the log file
+        log_dir = os.path.dirname(fname)
+        if not os.path.exists(log_dir):
+            os.makedirs(log_dir)
+
+        # setup default logger, used in the new default exception hook
+        self._logger = logging.getLogger("tk-desktop")
+        self._handler = logging.handlers.RotatingFileHandler(fname, maxBytes=1024*1024, backupCount=5)
+        formatter = logging.Formatter("%(asctime)s [%(process) -5d %(levelname) -7s] %(name)s - %(message)s")
+        self._handler.setFormatter(formatter)
+        self._logger.addHandler(self._handler)
+
         # We allow other handlers to be added to the logger (the GUI console for example).
         # Track them so we can clean them up when we clean up logging
         self.__extra_handlers = []
 
     def _tear_down_logging(self):
         # clear the handlers so we don't end up with duplicate messages
+        self._logger.removeHandler(self._handler)
         while (self.__extra_handlers):
-            self.logger.removeHandler(self.__extra_handlers.pop())
+            self._logger.removeHandler(self.__extra_handlers.pop())
+
+    def log(self, level, msg, *args):
+        if self.__impl is None:
+            # implementation has not been setup yet, log directly to the logger
+            self._logger.log(level, msg, *args)
+        else:
+            # implementation has been setup, let it handle the logging
+            self.__impl.log(level, msg, *args)
+
+    def log_debug(self, msg, *args):
+        self.log(logging.DEBUG, msg, *args)
+
+    def log_info(self, msg, *args):
+        self.log(logging.INFO, msg, *args)
+
+    def log_warning(self, msg, *args):
+        self.log(logging.WARNING, msg, *args)
+
+    def log_error(self, msg, *args):
+        self.log(logging.ERROR, msg, *args)
+
+    def log_exception(self, msg, *args):
+        if self.__impl is None:
+            # implementation has not been setup yet, log directly to the logger
+            self._logger.exception(msg, *args)
+        else:
+            # implementation has been setup, let it handle the logging
+            exception_msg = msg + "\n" + traceback.format_exc()
+            self.__impl.log(logging.ERROR, exception_msg, *args)
 
     def add_logging_handler(self, handler):
-        sgtk.LogManager().initialize_custom_handler(handler)
+        self._logger.addHandler(handler)
         self.__extra_handlers.append(handler)
 
     ##########################################################################################
@@ -154,18 +214,18 @@ class DesktopEngine(Engine):
                         # the trick of activating + raising does not seem to be enough for
                         # modal dialogs. So force put them on top as well.
                         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | self.windowFlags())
-                        return QtGui.QDialog.exec_(self)
+                        QtGui.QDialog.exec_(self)
 
                 base["qt_core"] = QtCore
                 base["qt_gui"] = QtGui
                 base["dialog_base"] = ProxyDialogPySide
-                self.logger.debug("Successfully initialized PySide '%s' located in %s."
+                self.log_debug("Successfully initialized PySide '%s' located in %s."
                                % (PySide.__version__, PySide.__file__))
                 self._has_ui = True
             except ImportError:
                 pass
             except Exception, e:
-                self.logger.warning("Error setting up pyside. Pyside based UI support will not "
+                self.log_warning("Error setting up pyside. Pyside based UI support will not "
                                  "be available: %s" % e)
 
         if not self._has_ui:
@@ -190,7 +250,7 @@ class DesktopEngine(Engine):
                         # the trick of activating + raising does not seem to be enough for
                         # modal dialogs. So force put them on top as well.
                         self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | self.windowFlags())
-                        return QtGui.QDialog.exec_(self)
+                        QtGui.QDialog.exec_(self)
 
                 # hot patch the library to make it work with pyside code
                 QtCore.Signal = QtCore.pyqtSignal
@@ -199,13 +259,13 @@ class DesktopEngine(Engine):
                 base["qt_core"] = QtCore
                 base["qt_gui"] = QtGui
                 base["dialog_base"] = ProxyDialogPyQt
-                self.logger.debug("Successfully initialized PyQt '%s' located in %s."
+                self.log_debug("Successfully initialized PyQt '%s' located in %s."
                                % (QtCore.PYQT_VERSION_STR, PyQt4.__file__))
                 self._has_ui = True
             except ImportError:
                 pass
             except Exception, e:
-                self.logger.warning("Error setting up PyQt. PyQt based UI support will not "
+                self.log_warning("Error setting up PyQt. PyQt based UI support will not "
                                  "be available: %s" % e)
 
         return base

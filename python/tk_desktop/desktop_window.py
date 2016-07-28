@@ -270,7 +270,7 @@ class DesktopWindow(SystrayWindow):
                 win32api.SetDllDirectory(None)
             except StandardError:
                 engine = sgtk.platform.current_engine()
-                engine.logger.warning('Could not push DllDirectory under Windows.')
+                engine.log_warning('Could not push DllDirectory under Windows.')
 
     def _pop_dll_state(self):
         '''
@@ -282,7 +282,7 @@ class DesktopWindow(SystrayWindow):
                 win32api.SetDllDirectory(self._previous_dll_directory)
             except StandardError:
                 engine = sgtk.platform.current_engine()
-                engine.logger.warning('Could not restore DllDirectory under Windows.')
+                engine.log_warning('Could not restore DllDirectory under Windows.')
 
     ########################################################################################
     # Event handlers and slots
@@ -421,7 +421,7 @@ class DesktopWindow(SystrayWindow):
                 engine.create_legacy_login_instance().logout()
         except Exception:
             # if logout raises an exception, just log and don't crash
-            engine.logger.exception("Error logging out.")
+            engine.log_exception("Error logging out.")
 
         # disconnect from the current project
         engine.disconnect_app_proxy()
@@ -636,7 +636,7 @@ class DesktopWindow(SystrayWindow):
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
-            engine.logger.debug("launch app proxy: %s" % project)
+            engine.log_debug("launch app proxy: %s" % project)
 
             # disconnect from the current proxy
             engine.disconnect_app_proxy()
@@ -706,7 +706,7 @@ class DesktopWindow(SystrayWindow):
                     self.project_overlay.hide()
                     return
                 else:
-                    engine.logger.warning(
+                    engine.log_warning(
                         "Pipeline configuration id %d not found, "
                         "falling back to primary." % pipeline_configuration_id)
                     pipeline_configuration = primary_pipeline_configuration
@@ -727,7 +727,7 @@ class DesktopWindow(SystrayWindow):
                 raise RuntimeError("Unknown platform: %s." % sys.platform)
 
             if config_path is None:
-                engine.logger.error("No path set for %s on the Pipeline "
+                engine.log_error("No path set for %s on the Pipeline "
                                  "Configuration \"%s\" (id %d)." %
                                  (current_platform,
                                   pipeline_configuration["code"],
@@ -750,7 +750,7 @@ class DesktopWindow(SystrayWindow):
 
                     if not path_to_python or not os.path.exists(path_to_python):
                         # python not specified for this os, show the setup new os widget
-                        engine.logger.error("Cannot find interpreter '%s' defined in "
+                        engine.log_error("Cannot find interpreter '%s' defined in "
                                          "config file %s. Will show the special "
                                          "'no python' UI screen." % (path_to_python, interpreter_config_file))
                         self.setup_new_os_widget.show()
@@ -765,7 +765,7 @@ class DesktopWindow(SystrayWindow):
                     current_config_path, "install", "core", "core_%s.cfg" % current_platform)
 
                 if not os.path.exists(parent_config_file):
-                    engine.logger.error("No parent or interpreter found at '%s'."
+                    engine.log_error("No parent or interpreter found at '%s'."
                                      % current_config_path)
                     raise RuntimeError("The Toolkit configuration path points\n"
                                        "to an invalid configuration.")
@@ -774,7 +774,7 @@ class DesktopWindow(SystrayWindow):
                 with open(parent_config_file, "r") as f:
                     current_config_path = f.read().strip()
         except Exception, error:
-            engine.logger.exception(str(error))
+            engine.log_exception(str(error))
             message = ("%s"
                        "\n\nTo resolve this, open Shotgun in your browser\n"
                        "and check the paths for this Pipeline Configuration."
@@ -818,7 +818,7 @@ class DesktopWindow(SystrayWindow):
         # Ticket 26741: Avoid having odd DLL loading issues on windows
         self._push_dll_state()
 
-        engine.logger.info("--- launching python subprocess (%s)" % path_to_python)
+        engine.log_info("--- launching python subprocess (%s)" % path_to_python)
         engine.execute_hook(
             "hook_launch_python",
             project_python=path_to_python,

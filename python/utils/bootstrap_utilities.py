@@ -14,24 +14,6 @@ import traceback
 import cPickle as pickle
 
 
-def _get_logfile_location():
-    """
-    Returns the platform specific location of the logfile.
-
-    :returns: Path to the logfile.
-    """
-    # platform specific locations for the log file
-    if sys.platform == "darwin":
-        fname = os.path.join(os.path.expanduser("~"), "Library", "Logs", "Shotgun", "tk-desktop.log")
-    elif sys.platform == "win32":
-        fname = os.path.join(os.environ.get("APPDATA", "APPDATA_NOT_SET"), "Shotgun", "tk-desktop.log")
-    elif sys.platform.startswith("linux"):
-        fname = os.path.join(os.path.expanduser("~"), ".shotgun", "logs", "tk-desktop.log")
-    else:
-        raise NotImplementedError("Unknown platform: %s" % sys.platform)
-    return fname
-
-
 def start_engine(data):
     """
     Start the tk-desktop engine given a data dictionary like the one passed
@@ -44,10 +26,6 @@ def start_engine(data):
 
     import sgtk
     sgtk.util.append_path_to_env_var("PYTHONPATH", data["core_python_path"])
-
-    # If this version of core supports logging, make sure that the logs always go to the legacy location.
-    if hasattr(sgtk, "LogManager") and hasattr(sgtk.LogManager, "initialize_base_file_handler_from_path"):
-        sgtk.LogManager().initialize_base_file_handler_from_path(_get_logfile_location())
 
     # If the core supports the shotgun_authentication module and the pickle has
     # a current user, we have to set the authenticated user.

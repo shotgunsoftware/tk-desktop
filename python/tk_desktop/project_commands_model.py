@@ -324,7 +324,7 @@ class ProjectCommandModel(GroupingModel):
         # one-time lookup for app launches from the event log and use that information to seed
         # the recent app launches in settings.
         engine = sgtk.platform.current_engine()
-        engine.log.debug("No recent apps settings found. Falling back on loading recent app "
+        engine.log_debug("No recent apps settings found. Falling back on loading recent app "
                          "launches from the event log.")
 
         # Bypass event log query if flag is set (see #29128)
@@ -336,7 +336,7 @@ class ProjectCommandModel(GroupingModel):
             bypass_event_log = False
 
         if bypass_event_log:
-            engine.log.debug("bypass_event_log setting detected. Skipping event log query.")
+            engine.log_debug("bypass_event_log setting detected. Skipping event log query.")
             self.__recents = {}
         else:
             self.__recents = self.__load_recents_from_event_log()
@@ -374,7 +374,7 @@ class ProjectCommandModel(GroupingModel):
                                                   "direction": "desc"}])
         end_time = time.time()
         call_duration = end_time-start_time
-        engine.log.debug("App launches summarized from event log (%.3f s)" % call_duration)
+        engine.log_debug("App launches summarized from event log (%.3f s)" % call_duration)
 
         # parse the results
         for group in summary["groups"]:
