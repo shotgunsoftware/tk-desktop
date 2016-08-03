@@ -40,6 +40,11 @@ class RPCServerThread(threading.Thread):
     # timeout in seconds to wait for a request
     LISTEN_TIMEOUT = 2
 
+    # Special return value from the main thread signifying the callable wasn't executed because
+    # the server is tearing down. Ideally we would raise an exception but execute_in_main_thread
+    # doesn't propagate exceptions.
+    _SERVER_WAS_STOPPED = "INTERNAL_DESKTOP_MESSAGE : SERVER_WAS_STOPPED"
+
     def __init__(self, engine):
         threading.Thread.__init__(self)
         self._logger = logging.getLogger("tk-desktop.rpc")
@@ -79,7 +84,15 @@ class RPCServerThread(threading.Thread):
         """
         if name is None:
             name = func.__name__
-        self._functions[name] = func
+
+        # This method will be called from the main thread. If the server has been stopped, there
+        # is no need to call the method.
+        def wrapper(*args, **kwargs):
+            if self._stop:
+                # Return special value indicating the server was stopped.
+                return self._SERVER_WAS_STOPPED
+            return func(*args, **kwargs)
+        self._functions[name] = wrapper
 
     def run(self):
         """
@@ -116,10 +129,14 @@ class RPCServerThread(threading.Thread):
             try:
                 while True:
                     # test to see if there is data waiting on the connection
-                    if not connection.poll(self.LISTEN_TIMEOUT):
-                        # no data waiting, see if we need to stop the server, if not keep waiting
-                        if self._stop:
-                            break
+                    has_data = connection.poll(self.LISTEN_TIMEOUT)
+
+                    # see if we need to stop the server
+                    if self._stop:
+                        break
+
+                    # If we timed out waiting for data, go back to sleep.
+                    if not has_data:
                         continue
 
                     # data coming over the connection is a tuple of (name, args, kwargs)
@@ -137,11 +154,15 @@ class RPCServerThread(threading.Thread):
                         # execute the function on the main thread.  It may do GUI work.
                         result = self.engine.execute_in_main_thread(func, *args, **kwargs)
 
-                        # if the client expects the results, send them along
-                        self._logger.debug("server got result '%s'" % result)
+                        # If the RPC server was stopped, don't bother trying to reply, the connection
+                        # will have been broken on the client side and this will avoid an error
+                        # on the server side when calling send.
+                        if self._SERVER_WAS_STOPPED != result:
+                            # if the client expects the results, send them along
+                            self._logger.debug("server got result '%s'" % result)
 
-                        if respond:
-                            connection.send(pickle.dumps(result))
+                            if respond:
+                                connection.send(pickle.dumps(result))
                     except Exception as e:
                         # if any of the above fails send the exception back to the client
                         self._logger.error("got exception '%s'" % e)

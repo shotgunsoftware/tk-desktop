@@ -24,11 +24,15 @@ import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
 from tank_vendor import yaml
 
+from .site_communication import SiteCommunication
+
 
 class DesktopEngineSiteImplementation(object):
     def __init__(self, engine):
-        self.proxy = None
-        self.msg_server = None
+
+        self.site_comm = SiteCommunication(engine)
+        self.site_comm.proxy_closing.connect(self._on_proxy_closing)
+
         self._engine = engine
         self.app_version = None
         self._is_login_based = False
@@ -39,29 +43,15 @@ class DesktopEngineSiteImplementation(object):
         self._collapse_rules = []
 
     def destroy_engine(self):
-        if self.proxy is not None:
-            self.proxy.close()
-
+        self.site_comm.shut_down()
         self._is_login_based = False
 
-        # close down our server thread
-        if self.msg_server is not None:
-            self.msg_server.close()
-
     def startup_rpc(self):
-        if self.msg_server is not None:
-            self.msg_server.close()
-
-        self.msg_server = rpc.RPCServerThread(self._engine)
-        self.msg_server.register_function(self.engine_startup_error, "engine_startup_error")
-        self.msg_server.register_function(self.create_app_proxy, "create_app_proxy")
-        self.msg_server.register_function(self.destroy_app_proxy, "destroy_app_proxy")
-        self.msg_server.register_function(self.set_groups, "set_groups")
-        self.msg_server.register_function(self.set_collapse_rules, "set_collapse_rules")
-        self.msg_server.register_function(self.trigger_register_command, "trigger_register_command")
-        self.msg_server.register_function(self.proxy_log, "proxy_log")
-
-        self.msg_server.start()
+        self.site_comm.start_server()
+        self.site_comm.register_function(self.engine_startup_error, "engine_startup_error")
+        self.site_comm.register_function(self.set_groups, "set_groups")
+        self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
+        self.site_comm.register_function(self.trigger_register_command, "trigger_register_command")
 
     def engine_startup_error(self, error, tb=None):
         """ Handle an error starting up the engine for the app proxy. """
@@ -89,31 +79,12 @@ class DesktopEngineSiteImplementation(object):
                 message += "\n\n%s" % tb
             self._engine.log_error(message)
 
-    def create_app_proxy(self, pipe, authkey):
-        """ Called when the project engine has setup its RPC server thread """
-        if self.proxy is not None:
-            self.proxy.close()
-
-        self.proxy = rpc.RPCProxy(pipe, authkey)
-
-    def destroy_app_proxy(self):
-        """ App proxy has been destroyed, clean up state. """
+    def _on_proxy_closing(self):
+        """
+        Invoked when background process is closing down.
+        """
+        # Clear the UI, we can't launch anything anymore!
         self.desktop_window.clear_app_uis()
-        if self.proxy is not None:
-            self.proxy.close()
-            self.proxy = None
-
-    def disconnect_app_proxy(self):
-        """ Disconnect from the app proxy. """
-        self._engine.log_debug("disconnecting from app proxy")
-        if self.proxy is not None:
-            try:
-                self.proxy.call("signal_disconnect")
-                self.proxy.close()
-            except Exception, e:
-                self._engine.log_warning("Error disconnecting from proxy: %s", e)
-            finally:
-                self.proxy = None
 
     def set_groups(self, groups, show_recents=True):
         self.desktop_window.set_groups(groups, show_recents)
@@ -156,7 +127,7 @@ class DesktopEngineSiteImplementation(object):
                 # itself gets reset and so there isn't a channel to get a
                 # response back.
                 self.refresh_user_credentials()
-                self.proxy.call_no_response("trigger_callback", "__commands", name)
+                self.site_comm.call_no_response("trigger_callback", "__commands", name)
             action.triggered.connect(action_triggered)
             self.desktop_window.add_to_project_menu(action)
         else:
@@ -186,7 +157,7 @@ class DesktopEngineSiteImplementation(object):
     def _handle_button_command_triggered(self, group, name):
         """ Button clicked from a registered command. """
         self.refresh_user_credentials()
-        self.proxy.call("trigger_callback", "__commands", name)
+        self.site_comm.call("trigger_callback", "__commands", name)
 
     # Leave app_version as is for backwards compatibility.
     def run(self, splash, version, **kwargs):
@@ -368,9 +339,6 @@ class DesktopEngineSiteImplementation(object):
 
     def log(self, level, msg, *args):
         self._engine._logger.log(level, msg, *args)
-
-    def proxy_log(self, level, msg, args):
-        self._engine._logger.log(level, "[PROXY] %s" % msg, *args)
 
     def get_current_login(self):
         """

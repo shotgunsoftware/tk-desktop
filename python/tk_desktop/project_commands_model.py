@@ -331,7 +331,7 @@ class ProjectCommandModel(GroupingModel):
         # We have to handle cases where the project version of Desktop engine is an older one 
         # that doesn't support get_setting()
         try:
-            bypass_event_log = engine.proxy.call("get_setting", "bypass_event_log", False)
+            bypass_event_log = engine.site_comm.call("get_setting", "bypass_event_log", False)
         except ValueError:
             bypass_event_log = False
 

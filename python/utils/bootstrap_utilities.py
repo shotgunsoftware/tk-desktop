@@ -43,39 +43,7 @@ def start_engine(data):
 
 def start_app(engine):
     """ Run the QApplication for the given tk-desktop engine """
-    if engine.has_ui:
-        from tank.platform.qt import QtGui
-
-        app = QtGui.QApplication([])
-        app.setQuitOnLastWindowClosed(False)
-        app.setApplicationName("%s Python" % engine.context.project["name"])
-
-        # set default icon
-        python_icon = os.path.realpath(os.path.join(
-            os.path.dirname(__file__),
-            "..", "..", "resources", "python_icon.png"))
-        app.setWindowIcon(QtGui.QIcon(python_icon))
-
-        # Let the engine know we've created the app
-        engine.register_qapplication(app)
-
-        # use the toolkit look and feel
-        engine._initialize_dark_look_and_feel()
-
-        result = 0
-        while True:
-            # loop until we are signaled to close, in case an app accidentally quits the app
-            result = app.exec_()
-            if not engine.connected:
-                # we have been signaled to quit rather than waiting for more commands
-                break
-        return result
-
-    else:  # not engine.has_ui
-        # wait for the engine communication channel to shut down
-        engine.msg_server.join()
-        return 0
-
+    return engine.start_app()
 
 def handle_error(data):
     """
