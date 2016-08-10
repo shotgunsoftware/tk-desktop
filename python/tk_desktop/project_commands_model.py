@@ -140,7 +140,7 @@ class ProjectCommandModel(GroupingModel):
             self.__load_recents()
 
     def add_command(self, name, button_name, menu_name, icon, command_tooltip, groups):
-        if name in self.__recents and not self.__recents[name]["added"]:
+        if self.show_recents and name in self.__recents and not self.__recents[name]["added"]:
             item = QtGui.QStandardItem()
             item.setData(button_name, self.BUTTON_NAME_ROLE)
             item.setData(menu_name, self.MENU_NAME_ROLE)
