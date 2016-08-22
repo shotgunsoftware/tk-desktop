@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2016 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -7,6 +7,10 @@
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
+
+"""
+Shotgun Desktop project-level engine implementation.
+"""
 
 from __future__ import with_statement
 
@@ -18,13 +22,19 @@ import logging
 import traceback
 import threading
 
-from . import rpc
 from .project_communication import ProjectCommunication
 import sgtk
 
 
 class DesktopEngineProjectImplementation(object):
+    """
+    Launches an RPC server which listens for requests from the Shotgun Desktop to launch an app.
+    """
+
     def __init__(self, engine):
+        """
+        :param engine: Actual Toolkit engine this implementation is for.
+        """
         self._engine = engine
         self._project_comm = ProjectCommunication(engine)
         self.__callback_map = {}
@@ -122,6 +132,9 @@ class DesktopEngineProjectImplementation(object):
             self._project_comm.call("trigger_register_command", name, gui_properties, groups)
 
     def destroy_engine(self):
+        """
+        Called when the engine is being torn-down.
+        """
         self._project_comm.shut_down()
 
     def _trigger_callback(self, namespace, command, *args, **kwargs):
@@ -187,7 +200,7 @@ class DesktopEngineProjectImplementation(object):
 
         else:  # not engine.has_ui
             # wait for the engine communication channel to shut down
-            self._project_comm.wait_for_shutdown()
+            self._project_comm.join()
             return 0
 
     def _initialize_application(self):
@@ -206,13 +219,40 @@ class DesktopEngineProjectImplementation(object):
             "..", "..", "resources", "python_icon.png"))
         app.setWindowIcon(QtGui.QIcon(python_icon))
 
-        # make sure we shut down cleanly
-        app.aboutToQuit.connect(self._engine.destroy_engine)
-
+        self.register_qpplication(app)
         # use the toolkit look and feel
         self._engine._initialize_dark_look_and_feel()
 
         return app
+
+    ############################################################################
+    # Pre Desktop engine 2.0.17 compatibility section
+    # Do not rename or remove methods in this section or it will break compatibility
+    # with older site engines.
+
+    def register_qapplication(self, app):
+        """
+        Called when QApplication has been created.
+        """
+        # Make sure we shut down cleanly.
+        app.aboutToQuit.connect(self._engine.destroy_engine)
+
+    @property
+    def connected(self):
+        """
+        Indicates if we're still connected to the site engine.
+        """
+        return self._project_comm.connected
+
+    @property
+    def msg_server(self):
+        """
+        The msg_server functionality has now been wrapped into the ProjectCommunication object.
+        """
+        return self._project_comm
+
+    # End of pre Desktop engine 2.0.17 compatibility section
+    ############################################################################
 
     def _open_project_locations(self):
         """
@@ -239,7 +279,9 @@ class DesktopEngineProjectImplementation(object):
                 self._engine.log_error("Failed to launch '%s'!" % cmd)
 
     def _get_setting(self, setting_name, default_value=None):
-        """ Look up engine setting for current environment """
+        """
+        Look up engine setting for current environment.
+        """
         return self._engine.get_setting(setting_name, default_value)
 
     def _initialize_logging(self):
@@ -247,6 +289,9 @@ class DesktopEngineProjectImplementation(object):
         self._engine._handler.setFormatter(formatter)
 
     def log(self, level, msg, *args):
+        """
+        Logs a message to the site engine if available, otherwise logs to disk.
+        """
         if self._project_comm.connected:
             # If we can log through the proxy, only do that to avoid
             # duplicate entries in the log file

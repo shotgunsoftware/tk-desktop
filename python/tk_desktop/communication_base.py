@@ -82,7 +82,7 @@ class CommunicationBase(object):
         :param args: Position arguments for the call.
         :param kwargs: Named arguments for the call.
         """
-        return self._proxy.call(name, *args, **kwargs)
+        return self._proxy.call_no_response(name, *args, **kwargs)
 
     def _create_proxy(self, pipe, authkey):
         """
