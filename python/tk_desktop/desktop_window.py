@@ -409,7 +409,7 @@ class DesktopWindow(SystrayWindow):
     def on_project_filesystem_folder_triggered(self):
         engine = sgtk.platform.current_engine()
         engine.refresh_user_credentials()
-        engine.site_comm.call("open_project_locations")
+        engine.site_comm.call_no_response("open_project_locations")
 
     def sign_out(self):
         engine = sgtk.platform.current_engine()

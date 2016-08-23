@@ -219,7 +219,7 @@ class DesktopEngineProjectImplementation(object):
             "..", "..", "resources", "python_icon.png"))
         app.setWindowIcon(QtGui.QIcon(python_icon))
 
-        self.register_qpplication(app)
+        self.register_qapplication(app)
         # use the toolkit look and feel
         self._engine._initialize_dark_look_and_feel()
 
