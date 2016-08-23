@@ -46,7 +46,7 @@ class ProjectCommunication(CommunicationBase):
             disconnect_callback()
         self.register_function(wrapper, "signal_disconnect")
 
-    def wait_for_shutdown(self):
+    def join(self):
         """
         Waits for the message server to shut down.
         """
