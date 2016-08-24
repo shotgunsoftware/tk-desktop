@@ -63,7 +63,6 @@ class DefaultGroupingHeaderDelegate(views.WidgetDelegate):
         source_index = model_index
         while hasattr(model, "sourceModel"):
             source_index = model.mapToSource(source_index)
-            source_index = model.mapToSource(source_index)
             model = model.sourceModel()
 
         # update expanded to reflect the state of the item
@@ -115,7 +114,7 @@ class GroupingListView(ActionListView):
     expanded_changed = QtCore.Signal(str, bool)
 
     def __init__(self, parent=None):
-        QtGui.QListView.__init__(self, parent)
+        ActionListView.__init__(self, parent)
 
         # keep around the delegates that should be used for the various items
         self.__group_delegates = {}
