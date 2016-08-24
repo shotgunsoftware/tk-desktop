@@ -16,16 +16,16 @@ from .thumb_widget import ThumbWidget
 from .project_model import SgProjectModel
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
+views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
 
 ShotgunModel = shotgun_model.ShotgunModel
 
 
-class SgProjectDelegate(shotgun_view.WidgetDelegate):
+class SgProjectDelegate(views.WidgetDelegate):
     def __init__(self, view, size):
         self._size = size
         self._view = view
-        shotgun_view.WidgetDelegate.__init__(self, view)
+        views.WidgetDelegate.__init__(self, view)
 
     def _create_widget(self, parent):
         """ Widget factory as required by base class """

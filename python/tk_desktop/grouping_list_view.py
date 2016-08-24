@@ -18,7 +18,7 @@ from .ui import resources_rc
 from .grouping_model import GroupingModel
 from .action_list_view import ActionListView
 
-shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
+views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
 
 
 class DefaultGroupingHeader(QtGui.QPushButton):
@@ -50,7 +50,7 @@ class DefaultGroupingHeader(QtGui.QPushButton):
             self.setIcon(self.right_arrow)
 
 
-class DefaultGroupingHeaderDelegate(shotgun_view.WidgetDelegate):
+class DefaultGroupingHeaderDelegate(views.WidgetDelegate):
     """ Default delegate for header items """
     def _create_widget(self, parent):
         widget = DefaultGroupingHeader(parent)
@@ -62,6 +62,7 @@ class DefaultGroupingHeaderDelegate(shotgun_view.WidgetDelegate):
         model = model_index.model()
         source_index = model_index
         while hasattr(model, "sourceModel"):
+            source_index = model.mapToSource(source_index)
             source_index = model.mapToSource(source_index)
             model = model.sourceModel()
 
@@ -82,7 +83,7 @@ class DefaultGroupingHeaderDelegate(shotgun_view.WidgetDelegate):
         return QtCore.QSize(self.parent().viewport().width(), 30)
 
 
-class DefaultGroupingFooterDelegate(shotgun_view.WidgetDelegate):
+class DefaultGroupingFooterDelegate(views.WidgetDelegate):
     """ Default delegate for footer items """
     MARGIN = 10
 
