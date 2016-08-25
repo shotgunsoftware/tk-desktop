@@ -213,18 +213,19 @@ class SgProjectModel(ShotgunModel):
     _supports_project_templates = None
 
     @classmethod
-    def supports_project_templates(cls, connection):
+    def supports_project_templates(cls):
         """
         Tests if Shotgun 6.0 Project Templates are supported on the server. If
         this method has never been called, the server will be contacted
         synchronously and the result will be cached so subsequent calls are
         faster.
 
-        :param connection: A Shotgun connection instance.
-
         :returns: True if the server supports Shotgun 6.0 Project Templates,
                   False otherwise.
         """
+
+        connection = sgtk.platform.current_engine().shotgun
+
         # If we haven't checked on the server yet.
         if cls._supports_project_templates is None:
             try:
@@ -241,10 +242,6 @@ class SgProjectModel(ShotgunModel):
         """ Constructor """
         ShotgunModel.__init__(self, parent, download_thumbs=True)
 
-        engine = sgtk.platform.current_engine()
-        connection = engine.get_current_user().create_sg_connection()
-        self.set_shotgun_connection(connection)
-
         # load up the thumbnail to use when there is none set in Shotgun
         self._missing_thumbnail_project = QtGui.QPixmap(":/tk-desktop/missing_thumbnail_project.png")
 
@@ -255,7 +252,7 @@ class SgProjectModel(ShotgunModel):
         ]
         # Template projects is a Shotgun 6.0 feature, so make sure it exists
         # on the server before filtering on that value.
-        if SgProjectModel.supports_project_templates(connection):
+        if SgProjectModel.supports_project_templates():
             filters.append(["is_template", "is_not", True])
 
         interesting_fields = [
