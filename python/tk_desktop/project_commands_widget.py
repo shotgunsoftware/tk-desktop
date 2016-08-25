@@ -54,10 +54,10 @@ QToolButton::menu-button  {
 """
 
 
-class AbstractCommandDelegate(views.WidgetDelegate):
+class AbstractCommandDelegate(views.EditSelectedWidgetDelegate):
     def __init__(self, view):
         view.entered.connect(self._handle_entered)
-        views.WidgetDelegate.__init__(self, view)
+        views.EditSelectedWidgetDelegate.__init__(self, view)
 
     def _handle_entered(self, index):
         if index is None:
