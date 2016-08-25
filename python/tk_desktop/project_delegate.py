@@ -21,11 +21,11 @@ views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
 ShotgunModel = shotgun_model.ShotgunModel
 
 
-class SgProjectDelegate(views.WidgetDelegate):
+class SgProjectDelegate(views.EditSelectedWidgetDelegate):
     def __init__(self, view, size):
         self._size = size
         self._view = view
-        views.WidgetDelegate.__init__(self, view)
+        views.EditSelectedWidgetDelegate.__init__(self, view)
 
     def _create_widget(self, parent):
         """ Widget factory as required by base class """
