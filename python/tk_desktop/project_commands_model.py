@@ -310,4 +310,4 @@ class ProjectCommandModel(GroupingModel):
         for the format.
         """
         key = "project_recent_apps.%d" % self.__project["id"]
-        self.__recents = self.parent()._load_setting(key, None, True)
+        self.__recents = self.parent()._load_setting(key, None, True) or {}
