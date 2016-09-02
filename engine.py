@@ -158,8 +158,11 @@ class DesktopEngine(Engine):
             # implementation has not been setup yet, log directly to the logger
             self._logger.exception(msg, *args)
         else:
-            # implementation has been setup, let it handle the logging
-            exception_msg = msg + "\n" + traceback.format_exc()
+            if msg is not None:
+                # implementation has been setup, let it handle the logging
+                exception_msg = str(msg) + "\n" + traceback.format_exc()
+            else:
+                exception_msg = traceback.format_exc()
             self.__impl.log(logging.ERROR, exception_msg, *args)
 
     def add_logging_handler(self, handler):
