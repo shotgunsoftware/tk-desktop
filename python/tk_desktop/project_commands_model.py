@@ -251,7 +251,7 @@ class ProjectCommandModel(GroupingModel):
 
         # save app launch in recent settings
         self.__recents[command_name] = {"timestamp": datetime.datetime.utcnow(), "added": False}
-        self.__store_recents_in_settings()
+        self.__store_recents()
 
         if self.show_recents:
             # find the corresponding recent if it exists
@@ -285,7 +285,7 @@ class ProjectCommandModel(GroupingModel):
         # and notify that the command was triggered
         self.command_triggered.emit(group_name, command_name)
 
-    def __store_recents_in_settings(self):
+    def __store_recents(self):
         """
         Stores a list of recently launched apps in the user settings. Resets the "added" key so
         when the settings are loaded again, each item will be added to the list. They are stored as
@@ -308,87 +308,6 @@ class ProjectCommandModel(GroupingModel):
         """
         Loads recently launched apps from the user settings and returns them in a dict. See above
         for the format.
-
-        If recent app launch settings don't exist yet for this project, fall back to
-        looking them up from the event log in order to preserve previous history. This will only
-        happen one time as the settings are seeded after the event log lookup.
         """
         key = "project_recent_apps.%d" % self.__project["id"]
-        recents = self.parent()._load_setting(key, None, True)
-        if recents is not None:
-            self.__recents = recents
-            return
-
-        # Settings haven't been created for this project yet. In order to ensure that users'
-        # recent app launches don't get lost as we move to using the settings module, do a
-        # one-time lookup for app launches from the event log and use that information to seed
-        # the recent app launches in settings.
-        engine = sgtk.platform.current_engine()
-        engine.log_debug("No recent apps settings found. Falling back on loading recent app "
-                         "launches from the event log.")
-
-        # Bypass event log query if flag is set (see #29128)
-        # We have to handle cases where the project version of Desktop engine is an older one 
-        # that doesn't support get_setting()
-        try:
-            bypass_event_log = engine.site_comm.call("get_setting", "bypass_event_log", False)
-        except ValueError:
-            bypass_event_log = False
-
-        if bypass_event_log:
-            engine.log_debug("bypass_event_log setting detected. Skipping event log query.")
-            self.__recents = {}
-        else:
-            self.__recents = self.__load_recents_from_event_log()
-
-        self.__store_recents_in_settings()
-
-    def __load_recents_from_event_log(self):
-        """
-        Loads recently launched apps from the event log and returns them in a dict. See above
-        for the format.
-
-        This is a fallback method used when this info doesn't exist yet in the user settings. It
-        is used only to preserve past app launch history and move it over to the user settings
-        framework which is much faster. This method can be very slow depending on the size of the
-        event log and the user's specific permission settings.
-        """
-        recents = {}
-        engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
-
-        # find all app launch events for the current project and current user
-        filters = [
-            ["user", "is", engine.get_current_login()],
-            ["project", "is", self.__project],
-            ["event_type", "is", self.APP_LAUNCH_EVENT_TYPE],
-        ]
-
-        # Summarize latest app launches grouped by description which contains the command name:
-        # eg. "App 'launch_nuke' launched from tk-desktop-engine"
-        start_time = time.time()
-        summary = connection.summarize(entity_type="EventLogEntry",
-                                       filters=filters,
-                                       summary_fields=[{"field": "created_at", "type": "latest"}],
-                                       grouping=[{"field": "description", "type": "exact",
-                                                  "direction": "desc"}])
-        end_time = time.time()
-        call_duration = end_time-start_time
-        engine.log_debug("App launches summarized from event log (%.3f s)" % call_duration)
-
-        # parse the results
-        for group in summary["groups"]:
-            # convert the text representation of created_at to a datetime
-            text_stamp = group["summaries"]["created_at"]
-            time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
-
-            # match the command name from the description
-            description = group["group_value"]
-            match = re.search("'(?P<name>.+)'", description)
-            if match is not None:
-                name = match.group("name")
-                recents.setdefault(name, {"timestamp": time_stamp, "added": False})
-
-        return recents
-
-
+        self.__recents = self.parent()._load_setting(key, None, True) or {}
