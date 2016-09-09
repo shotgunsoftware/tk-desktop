@@ -26,6 +26,9 @@ from tank_vendor import yaml
 
 from .site_communication import SiteCommunication
 
+shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
+task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+
 
 class DesktopEngineSiteImplementation(object):
     def __init__(self, engine):
@@ -42,7 +45,11 @@ class DesktopEngineSiteImplementation(object):
         # menu_label
         self._collapse_rules = []
 
+        self._task_manager = task_manager.BackgroundTaskManager(parent=None)
+        shotgun_globals.register_bg_task_manager(self._task_manager)
+
     def destroy_engine(self):
+        shotgun_globals.unregister_bg_task_manager(self._task_manager)
         self.site_comm.shut_down()
         self._is_login_based = False
 
