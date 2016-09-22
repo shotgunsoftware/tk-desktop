@@ -636,6 +636,12 @@ class DesktopWindow(SystrayWindow):
             engine = sgtk.platform.current_engine()
             engine.log_debug("launching app proxy for project: %s" % project)
 
+            # Make sure that not only the previous proxy is not running anymore
+            # but that the UI has been cleared as well.
+            engine = sgtk.platform.current_engine()
+            engine.site_comm.shut_down()
+            self.clear_app_uis()
+
             self.project_overlay.start_spin()
 
             self.current_project = project

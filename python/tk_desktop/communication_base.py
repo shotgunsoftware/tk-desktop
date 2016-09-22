@@ -34,7 +34,6 @@ class CommunicationBase(object):
         """
         self._log_debug("Shutting down communication channel...")
 
-        self._connected = False
         # Be super careful when closing the proxy, because it can be in an inconsistent state and
         # throw errors.
         if self._proxy is not None:
