@@ -468,6 +468,9 @@ class DesktopWindow(SystrayWindow):
         self._project_proxy.sort(0)
 
     def _on_back_to_projects_clicked(self):
+        """
+        Invoked when the user leaves a project.
+        """
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
 
@@ -481,7 +484,8 @@ class DesktopWindow(SystrayWindow):
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
 
-        # We'll be showing the project list, show back the menu item.
+        # We switching back to the project list, so need to show the
+        # "Refresh Projects" once again.
         self.ui.actionRefresh_Projects.setVisible(True)
 
     def set_groups(self, groups, show_recents=True):
@@ -639,8 +643,8 @@ class DesktopWindow(SystrayWindow):
             engine = sgtk.platform.current_engine()
             engine.log_debug("launching app proxy for project: %s" % project)
 
-            # Always hide the Refresh Projects menu items when launching a Python for a project,
-            # since no projects will be displayed.
+            # Always hide the Refresh Projects menu item when launching the project engine
+            # since no projects will be displayed in the app launcher pane.
             self.ui.actionRefresh_Projects.setVisible(False)
 
             self.project_overlay.start_spin()
