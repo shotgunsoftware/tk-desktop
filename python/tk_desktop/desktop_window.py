@@ -481,6 +481,9 @@ class DesktopWindow(SystrayWindow):
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
 
+        # We'll be showing the project list, show back the menu item.
+        self.ui.actionRefresh_Projects.setVisible(True)
+
     def set_groups(self, groups, show_recents=True):
         self._project_command_model.set_project(
             self.current_project, groups, show_recents=show_recents)
@@ -635,6 +638,10 @@ class DesktopWindow(SystrayWindow):
         try:
             engine = sgtk.platform.current_engine()
             engine.log_debug("launching app proxy for project: %s" % project)
+
+            # Always hide the Refresh Projects menu items when launching a Python for a project,
+            # since no projects will be displayed.
+            self.ui.actionRefresh_Projects.setVisible(False)
 
             self.project_overlay.start_spin()
 
