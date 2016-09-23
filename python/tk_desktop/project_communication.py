@@ -46,6 +46,13 @@ class ProjectCommunication(CommunicationBase):
             disconnect_callback()
         self.register_function(wrapper, "signal_disconnect")
 
+    def shut_down(self):
+        """
+        Disconnects from the other process and shuts down the local server.
+        """
+        self._connected = False
+        CommunicationBase.shut_down(self)
+
     def join(self):
         """
         Waits for the message server to shut down.
@@ -61,7 +68,6 @@ class ProjectCommunication(CommunicationBase):
 
     def _signal_disconnect(self):
         self._connected = False
-        self
 
     @property
     def connected(self):
