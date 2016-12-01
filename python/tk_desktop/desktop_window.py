@@ -639,159 +639,44 @@ class DesktopWindow(SystrayWindow):
             self.__launch_app_proxy_for_project(self.current_project)
 
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
-        try:
-            engine = sgtk.platform.current_engine()
-            engine.log_debug("launching app proxy for project: %s" % project)
 
-            # Make sure that not only the previous proxy is not running anymore
-            # but that the UI has been cleared as well.
-            engine = sgtk.platform.current_engine()
-            engine.site_comm.shut_down()
-            self.clear_app_uis()
-            # Always hide the Refresh Projects menu item when launching the project engine
-            # since no projects will be displayed in the app launcher pane.
-            self.ui.actionRefresh_Projects.setVisible(False)
+        engine = sgtk.platform.current_engine()
+        engine.log_debug("launching app proxy for project: %s" % project)
 
-            self.project_overlay.start_spin()
+        # Make sure that not only the previous proxy is not running anymore
+        # but that the UI has been cleared as well.
+        engine = sgtk.platform.current_engine()
+        engine.site_comm.shut_down()
+        self.clear_app_uis()
+        # Always hide the Refresh Projects menu item when launching the project engine
+        # since no projects will be displayed in the app launcher pane.
+        self.ui.actionRefresh_Projects.setVisible(False)
 
-            self.current_project = project
+        self.project_overlay.start_spin()
 
-            # trigger an update to the model to track this project access
-            self.__set_project_just_accessed(project)
-            QtGui.QApplication.instance().processEvents()
+        self.current_project = project
 
-            if sys.platform == "darwin":
-                path_field = "mac_path"
-            elif sys.platform == "win32":
-                path_field = "windows_path"
-            elif sys.platform.startswith("linux"):
-                path_field = "linux_path"
-            else:
-                raise SystemError("Unsupported platform: %s" % sys.platform)
+        # trigger an update to the model to track this project access
+        self.__set_project_just_accessed(project)
+        QtGui.QApplication.instance().processEvents()
 
-            filters = [
-                ["project", "is", project],
-            ]
+        # bootstrap into project
+        mgr = sgtk.bootstrap.ToolkitManager()
+        #mgr.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
+        mgr.base_configuration = "sgtk:descriptor:dev?path=/Users/manne/Documents/work_dev/toolkit/tk-config-basic"
+        mgr.plugin_id = "basic.desktop"
 
-            fields = [path_field, "users", "code"]
 
-            connection = engine.shotgun
-            pipeline_configurations = connection.find(
-                "PipelineConfiguration",
-                filters,
-                fields=fields,
-            )
+        # @todo - for dev sandboxes - find name of pipeline config id and pass in
+        # mgr.pipeline_configuration = pipeline_configuration_id
 
-            setting = "pipeline_configuration_for_project_%d" % project["id"]
-            if pipeline_configuration_id is None:
-                # Load up last accessed project if it hasn't been specified
-                pipeline_configuration_id = self._load_setting(setting, 0, site_specific=True)
-            else:
-                # Save pipeline_configuration_id as last accessed
-                self._save_setting(setting, pipeline_configuration_id, site_specific=True)
+        # NOTE - we need to add a new method to the bootstrap to ask it to
+        # just pre-cache the config and not start the engine
+        # this seems like a reasonable thing to have outside of desktop too
+        (config, status) = mgr.precache_sgtk("tk-desktop", entity=project)
+        config_path = config.get_path().current_os
 
-            # Find the matching pipeline configuration to launch against
-            pipeline_configuration = None
-            primary_pipeline_configuration = None
-            for pc in pipeline_configurations:
-                if pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
-                    primary_pipeline_configuration = pc
-                    if pipeline_configuration_id == 0:
-                        pipeline_configuration = pc
-
-                    if pipeline_configuration is not None:
-                        break
-
-                if pipeline_configuration_id != 0 and pc["id"] == pipeline_configuration_id:
-                    pipeline_configuration = pc
-                    if primary_pipeline_configuration is not None:
-                        break
-
-            if pipeline_configuration is None:
-                if primary_pipeline_configuration is None:
-                    # Show the Setup Project widget
-                    self.setup_project_widget.project = project
-                    self.setup_project_widget.show()
-                    self.project_overlay.hide()
-                    return
-                else:
-                    engine.log_warning(
-                        "Pipeline configuration id %d not found, "
-                        "falling back to primary." % pipeline_configuration_id)
-                    pipeline_configuration = primary_pipeline_configuration
-
-            # going to launch the configuration, update the project menu if needed
-            self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration)
-
-            config_path = pipeline_configuration[path_field]
-
-            # Now find out the appropriate python to launch
-            if sys.platform == "darwin":
-                current_platform = "Darwin"
-            elif sys.platform == "win32":
-                current_platform = "Windows"
-            elif sys.platform.startswith("linux"):
-                current_platform = "Linux"
-            else:
-                raise RuntimeError("Unknown platform: %s." % sys.platform)
-
-            if config_path is None:
-                engine.log_error("No path set for %s on the Pipeline "
-                                 "Configuration \"%s\" (id %d)." %
-                                 (current_platform,
-                                  pipeline_configuration["code"],
-                                  pipeline_configuration_id))
-
-                raise RuntimeError("The Toolkit configuration path has not\n"
-                                   "been set for your operating system.")
-
-            current_config_path = config_path
-            while True:
-                # First see if we have a local configuration for which interpreter
-                interpreter_config_file = os.path.join(
-                    current_config_path, "config", "core", "interpreter_%s.cfg" % current_platform)
-
-                if os.path.exists(interpreter_config_file):
-                    # Found the file that says where the interpreter is
-                    with open(interpreter_config_file, "r") as f:
-                        path_to_python = f.read().strip()
-                        core_root = current_config_path
-
-                    if not path_to_python or not os.path.exists(path_to_python):
-                        # python not specified for this os, show the setup new os widget
-                        engine.log_error("Cannot find interpreter '%s' defined in "
-                                         "config file %s. Will show the special "
-                                         "'no python' UI screen." % (path_to_python, interpreter_config_file))
-                        self.setup_new_os_widget.show()
-                        self.project_overlay.hide()
-                        return
-
-                    # found it
-                    break
-
-                # look for a parent config to see if it has an interpreter
-                parent_config_file = os.path.join(
-                    current_config_path, "install", "core", "core_%s.cfg" % current_platform)
-
-                if not os.path.exists(parent_config_file):
-                    engine.log_error("No parent or interpreter found at '%s'."
-                                     % current_config_path)
-                    raise RuntimeError("The Toolkit configuration path points\n"
-                                       "to an invalid configuration.")
-
-                # Read the path to the parent configuration
-                with open(parent_config_file, "r") as f:
-                    current_config_path = f.read().strip()
-        except Exception, error:
-            engine.log_exception(str(error))
-            message = ("%s"
-                       "\n\nTo resolve this, open Shotgun in your browser\n"
-                       "and check the paths for this Pipeline Configuration."
-                       "\n\nFor more details, see the console." % str(error))
-            self.project_overlay.show_error_message(message)
-            return
-
-        core_python = os.path.join(core_root, "install", "core", "python")
+        core_python = os.path.join(config_path, "install", "core", "python")
 
         # startup server pipe to listen
         engine.startup_rpc()
@@ -809,6 +694,8 @@ class DesktopWindow(SystrayWindow):
         (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
         pickle.dump(desktop_data, open(pickle_data_file, "wb"))
 
+        path_to_python = "/Applications/Shotgun.app/Contents/Resources/Python/bin/Python2.7"
+
         # update the values on the project updater in case they are needed
         self.update_project_config_widget.set_project_info(
             path_to_python, core_python, config_path, project)
@@ -817,7 +704,7 @@ class DesktopWindow(SystrayWindow):
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
 
         # Check if the pipeline configuration is login based.
-        engine.check_login_based(core_root)
+        engine.check_login_based(config_path)
         # Make sure the credentials are refreshed so the background process
         # has no problem launching.
         engine.refresh_user_credentials()
