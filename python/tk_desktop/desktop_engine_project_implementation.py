@@ -93,6 +93,7 @@ class DesktopEngineProjectImplementation(object):
         self._project_comm.connect_to_server(proxy_pipe, proxy_auth, self._signal_disconnect)
 
         self._project_comm.register_function(self._trigger_callback, "trigger_callback")
+        self._project_comm.register_function(self._test_project_locations, "test_project_locations")
         self._project_comm.register_function(self._open_project_locations, "open_project_locations")
         self._project_comm.register_function(self._get_setting, "get_setting")
 
@@ -255,6 +256,15 @@ class DesktopEngineProjectImplementation(object):
 
     # End of pre Desktop engine 2.0.17 compatibility section
     ############################################################################
+
+    def _test_project_locations(self):
+        """
+        Tests for the availability of the project locations.
+
+        :returns: True when there are file system locations; False otherwise.
+        """
+
+        return bool(self._engine.context.filesystem_locations)
 
     def _open_project_locations(self):
         """
