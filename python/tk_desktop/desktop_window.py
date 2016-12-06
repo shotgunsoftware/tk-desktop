@@ -511,7 +511,9 @@ class DesktopWindow(SystrayWindow):
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)
+        self.project_menu.aboutToShow.connect(self._on_project_menu_about_to_show)
         self.project_menu.triggered.connect(self._on_project_menu_triggered)
+        self.ui.actionProject_Filesystem_Folder.setVisible(True)
         self.project_menu.addAction(self.ui.actionProject_Filesystem_Folder)
         self.ui.project_menu.setMenu(self.project_menu)
         self.__pipeline_configuration_separator = None
@@ -623,6 +625,25 @@ class DesktopWindow(SystrayWindow):
         # launch the app proxy
         project = item.data(SgProjectModel.SG_DATA_ROLE)
         self.__launch_app_proxy_for_project(project)
+
+    def _on_project_menu_about_to_show(self):
+        """
+        Called just before the project specific menu is shown to the user.
+        """
+
+        engine = sgtk.platform.current_engine()
+
+        try:
+            # Get the availability of the project locations.
+            has_project_locations = engine.site_comm.call("test_project_locations")
+        except Exception, exception:
+            engine.log_debug("Cannot get the availability of the project locations: %s" % exception)
+            # Assume project locations are not available.
+            has_project_locations = False
+
+        # Show or hide project menu item "Project Filesystem Folder"
+        # based on the availability of the project locations.
+        self.ui.actionProject_Filesystem_Folder.setVisible(has_project_locations)
 
     def _on_project_menu_triggered(self, action):
         pc_id = action.property("project_configuration_id")
