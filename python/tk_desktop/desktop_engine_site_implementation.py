@@ -59,6 +59,7 @@ class DesktopEngineSiteImplementation(object):
         self.site_comm.register_function(self.set_groups, "set_groups")
         self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
         self.site_comm.register_function(self.trigger_register_command, "trigger_register_command")
+        self.site_comm.register_function(self.project_commands_finished, "project_commands_finished")
 
     def engine_startup_error(self, error, tb=None):
         """ Handle an error starting up the engine for the app proxy. """
@@ -160,6 +161,16 @@ class DesktopEngineSiteImplementation(object):
             self.desktop_window._project_command_model.add_command(
                 name, button_name, menu_name, icon, command_tooltip, groups)
             self.desktop_window._project_command_proxy.invalidate()
+
+    def project_commands_finished(self, project_commands):
+        """
+        Invoked when all commands found for a project have been registered.
+
+        :param list project_commands: Registered command information for
+                                      the current project.
+        """
+        # Let the desktop window know all commands for the project have been registered.
+        self.desktop_window.on_project_commands_finished(project_commands)
 
     def _handle_button_command_triggered(self, group, name):
         """ Button clicked from a registered command. """

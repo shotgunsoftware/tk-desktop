@@ -32,6 +32,7 @@ from .console import Console
 from .console import ConsoleLogHandler
 from .systray import SystrayWindow
 from .about_screen import AboutScreen
+from .install_apps import InstallApps
 from .setup_project import SetupProject
 from .setup_new_os import SetupNewOS
 from .project_model import SgProjectModel
@@ -75,6 +76,7 @@ class DesktopWindow(SystrayWindow):
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
         self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
+        self.install_apps_widget = InstallApps(self.ui.project_commands)
         self.setup_project_widget = SetupProject(self.ui.project_commands)
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
         self.update_project_config_widget = UpdateProjectConfig(self.ui.project_commands)
@@ -411,6 +413,29 @@ class DesktopWindow(SystrayWindow):
         engine.refresh_user_credentials()
         engine.site_comm.call_no_response("open_project_locations")
 
+    def on_project_commands_finished(self, project_commands):
+        """
+        Invoked when all commands found for a project have been registered.
+
+        :param list project_commands: Registered command information for
+                                      the current project.
+        """
+        # Break up the input list of project commands into commands that
+        # were created as buttons on the project_commands widget and commands
+        # that were added to the context menu.
+        button_commands = []
+        menu_commands = []
+        for project_command in project_commands:
+            if project_command["properties"].get("type") == "context_menu":
+                menu_commands.append(project_command)
+            else:
+                button_commands.append(project_command)
+
+        if not button_commands:
+            # Show the UI that indicates no launch commands have been configured
+            self.install_apps_widget.build(self.current_project)
+            self.install_apps_widget.show()
+
     def sign_out(self):
         engine = sgtk.platform.current_engine()
 
@@ -508,6 +533,7 @@ class DesktopWindow(SystrayWindow):
         self.setup_project_widget.hide()
         self.update_project_config_widget.hide()
         self.setup_new_os_widget.hide()
+        self.install_apps_widget.hide()
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)

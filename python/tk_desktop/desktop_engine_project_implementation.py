@@ -114,6 +114,9 @@ class DesktopEngineProjectImplementation(object):
         self._project_comm.call("set_collapse_rules", collapse_rules)
 
     def _register_commands(self):
+        # Keep track of all commands registered for this project.
+        project_commands = []
+
         # send the commands over to the proxy
         for name, command_info in self._engine.commands.iteritems():
             self.__callback_map[("__commands", name)] = command_info["callback"]
@@ -131,6 +134,13 @@ class DesktopEngineProjectImplementation(object):
                 time.sleep(0.5)
 
             self._project_comm.call("trigger_register_command", name, gui_properties, groups)
+            project_command = {"name": name}
+            project_command.update(command_info)
+            project_commands.append(project_command)
+
+        # Let the proxy know command registration is complete and which
+        # commands were registered for this project.
+        self._project_comm.call_no_response("project_commands_finished", project_commands)
 
     def destroy_engine(self):
         """
