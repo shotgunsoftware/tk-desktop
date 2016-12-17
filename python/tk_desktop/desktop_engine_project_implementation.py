@@ -135,7 +135,7 @@ class DesktopEngineProjectImplementation(object):
 
             self._project_comm.call("trigger_register_command", name, gui_properties, groups)
             project_command = {"name": name}
-            project_command.update(command_info)
+            project_command.update(gui_properties)
             project_commands.append(project_command)
 
         # Let the proxy know command registration is complete and which

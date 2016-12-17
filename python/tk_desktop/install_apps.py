@@ -66,19 +66,14 @@ class InstallApps(QtGui.QWidget):
         be the same from project to project, or can change
         if Software entities are reconfigured in Shotgun.
         """
-        # Define a function to recursively parse a
-        # layout for widgets to delete.
-         def _delete_items(qt_layout):
-             if qt_layout is not None:
-                 while qt_layout.count():
-                     qt_item = qt_layout.takeAt(0)
-                     qt_widget = qt_item.widget()
-                     if qt_widget is not None:
-                         qt_widget.deleteLater()
-                     else:
-                         _delete_items(qt_item.layout())
-                qt_layout.deleteLater()
-         _delete_items(self.ui.icon_rows)
+        while self.ui.icon_rows.count():
+            qt_layout = self.ui.icon_rows.takeAt(0)
+            while qt_layout.count():
+                qt_item = qt_layout.takeAt(0)
+                qt_widget = qt_item.widget()
+                if qt_widget is not None:
+                    qt_widget.deleteLater()
+            qt_layout.deleteLater()
 
     def _load_software_icons(self, engine, project=None):
         """
@@ -94,7 +89,7 @@ class InstallApps(QtGui.QWidget):
             return
 
         # Clear out any existing icons
-        self._clear_icons(engine)
+        self._clear_icons()
 
         # Arrange the icons in a grid with self._icon_column_count
         # columns and N rows based on the total number of icons

@@ -417,8 +417,8 @@ class DesktopWindow(SystrayWindow):
         """
         Invoked when all commands found for a project have been registered.
 
-        :param list project_commands: Registered command information for
-                                      the current project.
+        :param list project_commands: Gui information for all commands
+                                      registered for the current project.
         """
         # Break up the input list of project commands into commands that
         # were created as buttons on the project_commands widget and commands
@@ -426,7 +426,7 @@ class DesktopWindow(SystrayWindow):
         button_commands = []
         menu_commands = []
         for project_command in project_commands:
-            if project_command["properties"].get("type") == "context_menu":
+            if project_command.get("type") == "context_menu":
                 menu_commands.append(project_command)
             else:
                 button_commands.append(project_command)

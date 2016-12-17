@@ -166,8 +166,8 @@ class DesktopEngineSiteImplementation(object):
         """
         Invoked when all commands found for a project have been registered.
 
-        :param list project_commands: Registered command information for
-                                      the current project.
+        :param list project_commands: Gui information for all commands
+                                      registered for the current project.
         """
         # Let the desktop window know all commands for the project have been registered.
         self.desktop_window.on_project_commands_finished(project_commands)
