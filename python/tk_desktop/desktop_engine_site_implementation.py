@@ -19,6 +19,7 @@ import collections
 from sgtk.errors import TankEngineInitError
 
 from . import rpc
+from . import assign_users_to_template_project_command
 from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
@@ -28,6 +29,11 @@ from .site_communication import SiteCommunication
 
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+
+
+# Property with the permission name
+_PERMISSION_RULE_SET = "permission_rule_set"
+_ADMIN_RULE_SET = "Admin"
 
 
 class DesktopEngineSiteImplementation(object):
@@ -210,8 +216,24 @@ class DesktopEngineSiteImplementation(object):
         self._current_login = self._engine.sgtk.shotgun.find_one(
             "HumanUser",
             [["login", "is", human_user.login]],
-            ["id", "login"]
+            ["id", "login", "permission_rule_set"]
         )
+
+        # We've retrieved the permission rule set for immediate consumption, so
+        # copy the value and remove it from the user dictionary.
+        permission_rule_set = self._current_login[_PERMISSION_RULE_SET]
+        del self._current_login[_PERMISSION_RULE_SET]
+
+        # If the permission rule set is for the admin, we'll register a few
+        # commands.
+        if permission_rule_set["name"] == _ADMIN_RULE_SET:
+            # Some commands are available only under certain conditions.
+            if assign_users_to_template_project_command.is_available(self._engine):
+                self._engine.register_command(
+                    assign_users_to_template_project_command.name,
+                    assign_users_to_template_project_command.callback,
+                    assign_users_to_template_project_command.properties
+                )
 
         # Initialize Qt app
         from tank.platform.qt import QtGui
