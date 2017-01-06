@@ -53,9 +53,6 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         # Get a handle to the current engine, which is primarily
         # used for logging purposes.
         engine = sgtk.platform.current_engine()
-        #if not engine:
-        #    return
-
         self._load_software_icons(engine, project)
         self._set_configuration_link(engine)
 
