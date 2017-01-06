@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>InstallApps</class>
- <widget class="QWidget" name="InstallApps">
+ <class>NoAppsInstalledOverlay</class>
+ <widget class="QWidget" name="NoAppsInstalledOverlay">
   <property name="geometry">
    <rect>
     <x>0</x>

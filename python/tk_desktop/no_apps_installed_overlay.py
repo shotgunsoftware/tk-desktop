@@ -15,11 +15,11 @@ import sgtk
 from sgtk.platform.qt import QtCore
 from sgtk.platform.qt import QtGui
 
-from .ui import install_apps
+from .ui import no_apps_installed_overlay
 
 shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
 
-class InstallApps(QtGui.QWidget):
+class NoAppsInstalledOverlay(QtGui.QWidget):
     """
     Widget displayed in the desktop Window's project_commands wiget when no
     "button" commands are found for the current project. Displays site
@@ -29,7 +29,7 @@ class InstallApps(QtGui.QWidget):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
-        self.ui = install_apps.Ui_InstallApps()
+        self.ui = no_apps_installed_overlay.Ui_NoAppsInstalledOverlay()
         self.ui.setupUi(self)
 
         # Assign magic numbers and such
@@ -43,18 +43,18 @@ class InstallApps(QtGui.QWidget):
         # Hide this widget by default.
         self.setVisible(False)
 
-    def build(self, project=None):
+    def build_software_entity_config_widget(self, project):
         """
         Query Shotgun for a list of Software images to display and
         set the Software configuration link value
 
         :param project: Current Shotgun Project instance (dict)
         """
-        # Make sure we can get a handle to the current engine.
-        # This is primarily used for logging purposes.
+        # Get a handle to the current engine, which is primarily
+        # used for logging purposes.
         engine = sgtk.platform.current_engine()
-        if not engine:
-            return
+        #if not engine:
+        #    return
 
         self._load_software_icons(engine, project)
         self._set_configuration_link(engine)
@@ -112,7 +112,9 @@ class InstallApps(QtGui.QWidget):
             # thumbnail scaled to self._icon_size.
             qt_label = QtGui.QLabel(self)
             qt_label.setPixmap(
-                QtGui.QPixmap(sg_icon).scaled(self._icon_size)
+                QtGui.QPixmap(sg_icon).scaled(
+                    self._icon_size, mode=QtCore.Qt.SmoothTransformation
+                )
             )
 
             # Add the label to this widget, constructing necessary

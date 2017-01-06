@@ -158,19 +158,16 @@ class DesktopEngineSiteImplementation(object):
                     button_name = string.Template(collapse_rule["button_label"]).safe_substitute(match)
                     break
 
-            self.desktop_window._project_command_model.add_command(
-                name, button_name, menu_name, icon, command_tooltip, groups)
-            self.desktop_window._project_command_proxy.invalidate()
+            self.desktop_window.add_project_command(
+                name, button_name, menu_name, icon, command_tooltip, groups
+            )
 
-    def project_commands_finished(self, project_commands):
+    def project_commands_finished(self):
         """
         Invoked when all commands found for a project have been registered.
-
-        :param list project_commands: Gui information for all commands
-                                      registered for the current project.
         """
         # Let the desktop window know all commands for the project have been registered.
-        self.desktop_window.on_project_commands_finished(project_commands)
+        self.desktop_window.on_project_commands_finished()
 
     def _handle_button_command_triggered(self, group, name):
         """ Button clicked from a registered command. """

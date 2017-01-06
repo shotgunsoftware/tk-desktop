@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'install_apps.ui'
+# Form implementation generated from reading ui file 'no_apps_installed_overlay.ui'
 #
 #      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
@@ -8,16 +8,16 @@
 
 from sgtk.platform.qt import QtCore, QtGui
 
-class Ui_InstallApps(object):
-    def setupUi(self, InstallApps):
-        InstallApps.setObjectName("InstallApps")
-        InstallApps.resize(425, 540)
+class Ui_NoAppsInstalledOverlay(object):
+    def setupUi(self, NoAppsInstalledOverlay):
+        NoAppsInstalledOverlay.setObjectName("NoAppsInstalledOverlay")
+        NoAppsInstalledOverlay.resize(425, 540)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(InstallApps.sizePolicy().hasHeightForWidth())
-        InstallApps.setSizePolicy(sizePolicy)
-        self.horizontalLayout = QtGui.QHBoxLayout(InstallApps)
+        sizePolicy.setHeightForWidth(NoAppsInstalledOverlay.sizePolicy().hasHeightForWidth())
+        NoAppsInstalledOverlay.setSizePolicy(sizePolicy)
+        self.horizontalLayout = QtGui.QHBoxLayout(NoAppsInstalledOverlay)
         self.horizontalLayout.setObjectName("horizontalLayout")
         spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem)
@@ -31,7 +31,7 @@ class Ui_InstallApps(object):
         self.verticalLayout.addLayout(self.icon_rows)
         spacerItem2 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
         self.verticalLayout.addItem(spacerItem2)
-        self.main_label = QtGui.QLabel(InstallApps)
+        self.main_label = QtGui.QLabel(NoAppsInstalledOverlay)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -44,7 +44,7 @@ class Ui_InstallApps(object):
         self.verticalLayout_2 = QtGui.QVBoxLayout()
         self.verticalLayout_2.setSpacing(3)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.sub_label_1 = QtGui.QLabel(InstallApps)
+        self.sub_label_1 = QtGui.QLabel(NoAppsInstalledOverlay)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -54,7 +54,7 @@ class Ui_InstallApps(object):
         self.sub_label_1.setAlignment(QtCore.Qt.AlignCenter)
         self.sub_label_1.setObjectName("sub_label_1")
         self.verticalLayout_2.addWidget(self.sub_label_1)
-        self.sub_label_2 = QtGui.QLabel(InstallApps)
+        self.sub_label_2 = QtGui.QLabel(NoAppsInstalledOverlay)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -69,7 +69,7 @@ class Ui_InstallApps(object):
         self.verticalLayout.addItem(spacerItem3)
         self.verticalLayout_3 = QtGui.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.link_label = QtGui.QLabel(InstallApps)
+        self.link_label = QtGui.QLabel(NoAppsInstalledOverlay)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -84,14 +84,14 @@ class Ui_InstallApps(object):
         spacerItem4 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem4)
 
-        self.retranslateUi(InstallApps)
-        QtCore.QMetaObject.connectSlotsByName(InstallApps)
+        self.retranslateUi(NoAppsInstalledOverlay)
+        QtCore.QMetaObject.connectSlotsByName(NoAppsInstalledOverlay)
 
-    def retranslateUi(self, InstallApps):
-        InstallApps.setWindowTitle(QtGui.QApplication.translate("InstallApps", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.main_label.setText(QtGui.QApplication.translate("InstallApps", "We couldn\'t find anything to launch.", None, QtGui.QApplication.UnicodeUTF8))
-        self.sub_label_1.setText(QtGui.QApplication.translate("InstallApps", "Install a supported", None, QtGui.QApplication.UnicodeUTF8))
-        self.sub_label_2.setText(QtGui.QApplication.translate("InstallApps", "application to start using it with Shotgun.", None, QtGui.QApplication.UnicodeUTF8))
-        self.link_label.setText(QtGui.QApplication.translate("InstallApps", "Click here to find out how to configure this screen.", None, QtGui.QApplication.UnicodeUTF8))
+    def retranslateUi(self, NoAppsInstalledOverlay):
+        NoAppsInstalledOverlay.setWindowTitle(QtGui.QApplication.translate("NoAppsInstalledOverlay", "Form", None, QtGui.QApplication.UnicodeUTF8))
+        self.main_label.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "We couldn\'t find anything to launch.", None, QtGui.QApplication.UnicodeUTF8))
+        self.sub_label_1.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "Install a supported", None, QtGui.QApplication.UnicodeUTF8))
+        self.sub_label_2.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "application to start using it with Shotgun.", None, QtGui.QApplication.UnicodeUTF8))
+        self.link_label.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "Click here to find out how to configure this screen.", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
