@@ -8,8 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import urlparse
-import urllib
 import pprint
 
 import sgtk
@@ -96,23 +94,15 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         icon_row_layout = None
         last_software = len(sg_softwares) - 1
         for i in range(len(sg_softwares)):
-            # Download the thumbnail from Shotgun. To preserve transparency,
-            # construct the URL that references the original file uploaded
-            # to Shotgun instead of using the transcoded jpeg stored in the
-            # "image" field of the Software entity.
-            sw_full_thumb_url = urlparse.urlunparse((
-                engine.shotgun.config.scheme, engine.shotgun.config.server,
-                "/thumbnail/full/%s/%s" % (urllib.quote(str(sg_softwares[i]["type"])),
-                urllib.quote(str(sg_softwares[i]["id"]))), None, None, None
-            ))
-            engine.logger.debug("Downloading thumbnail URL: %s" % sw_full_thumb_url)
-            sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail(
-                sw_full_thumb_url, engine
+            # Download the thumbnail source file from Shotgun, which preserves
+            # transparency and alpha values.
+            sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail_source(
+                sg_softwares[i]["type"], sg_softwares[i]["id"], engine
             )
             if not sg_icon:
                 engine.logger.warning(
-                    "Could not download thumbnail for Software image : %s" %
-                    sw_full_thumb_url
+                    "Could not download thumbnail for %s entity [%s]" %
+                    (sg_softwares[i]["type"], sg_softwares[i]["id"])
                 )
                 continue
 
