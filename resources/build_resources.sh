@@ -11,7 +11,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 # The path to where the PySide binaries are installed
-PYTHON_BASE="/Applications/Shotgun.app/Contents/Frameworks/Python"
+PYTHON_BASE="/Applications/Shotgun.app/Contents/Resources/Python"
 PYTHON_LIB="${PYTHON_BASE}/lib/python2.7"
 
 # The path to output all built .py files to:

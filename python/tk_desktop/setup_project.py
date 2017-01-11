@@ -42,12 +42,16 @@ class SetupProject(QtGui.QWidget):
         self.setVisible(False)
 
     def do_setup(self):
-        # Only toggle top window if it used to be off (to avoid un-necessary window flicker in case it was already off) 
+        # Only toggle top window if it used to be off (to avoid un-necessary window
+        # flicker in case it was already off)
         is_on_top = self._is_on_top()
 
         try:
             if is_on_top: 
                 self._set_top_window_on_top(False)
+
+            # First check to see if the current user
+            self.validate_user_permissions()
 
             setup = adminui.SetupProjectWizard(self.project, self)
 
@@ -62,9 +66,33 @@ class SetupProject(QtGui.QWidget):
                                        "and delete all pipeline configurations for your project.")
             ret = error_dialog.exec_()
 
+        except TankUserPermissionsError, e:
+            error_dialog = ErrorDialog("Toolkit Setup Error",
+                                       "You do not have adequate permission to setup Toolkit for\n"
+                                       "project %s. Contact a site administrator for assistance." %
+                                        self.project["name"]
+            )
+            ret = error_dialog.exec_()
+
         finally:
             if is_on_top: 
                 self._set_top_window_on_top(True)
+
+    def validate_user_permissions(self):
+        """
+        Attempt to modify the Project's tank_name field to determine whether
+        the current user has sufficient permission to setup the Project's
+        pipeline configuration.
+        """
+        try:
+            engine = sgtk.platform.current_engine()
+            engine.shotgun.update("Project", self.project["id"], {"tank_name": "foobar"})
+            engine.shotgun.update("Project", self.project["id"], {"tank_name": ""})
+        except Exception, e:
+            # This acutally raises a 'Fault' defined in the Shotgun Python API, which
+            # is somewhat useless to catch, so key off the error message instead.
+            if "field is not editable for this user" in str(e):
+                raise TankUserPermissionsError(e)
 
     def _is_on_top(self):
         """
@@ -121,3 +149,10 @@ class ResizeEventFilter(QtCore.QObject):
             self.resized.emit()
         # pass it on!
         return False
+
+class TankUserPermissionsError(Exception):
+    """
+    Exception to raise if the current user does not have
+    sufficient permissions to setup a project.
+    """
+    pass

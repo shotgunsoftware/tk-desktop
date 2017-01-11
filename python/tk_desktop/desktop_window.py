@@ -134,10 +134,16 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
         self.user_menu.addAction(self.ui.actionShow_Console)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
+        self.user_menu.addAction(self.ui.actionAdvanced_Project_Setup)
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
+
+        # Initially hide the advance project setup menu item. This menu item
+        # will only be shown for projects that either do not have a pipeline
+        # configuration or the pipeline configuration is blank.
+        self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
         name_action.triggered.connect(self.open_site_in_browser)
         url_action.triggered.connect(self.open_site_in_browser)
@@ -148,6 +154,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
         self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
+        self.ui.actionAdvanced_Project_Setup.triggered.connect(self.handle_advanced_project_setup_action)
         self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
@@ -363,6 +370,19 @@ class DesktopWindow(SystrayWindow):
         else:
             self._project_model._refresh_data()
 
+    def handle_advanced_project_setup_action(self):
+        """
+        Display the classic project setup wizard if the current
+        user appears to have sufficient permissions to actually
+        setup a project. If not, pop up an error dialog informing
+        them of the problem.
+        """
+        self.setup_project_widget.project = self.current_project
+
+        # Bypass the Setup Toolkit overlay of the setup_project_widget
+        # and go straight to the setup wizard window.
+        self.setup_project_widget.do_setup()
+
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):
             # expand
@@ -487,6 +507,7 @@ class DesktopWindow(SystrayWindow):
         # We switching back to the project list, so need to show the
         # "Refresh Projects" once again.
         self.ui.actionRefresh_Projects.setVisible(True)
+        self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
     def set_groups(self, groups, show_recents=True):
         self._project_command_model.set_project(
@@ -672,6 +693,7 @@ class DesktopWindow(SystrayWindow):
             # Always hide the Refresh Projects menu item when launching the project engine
             # since no projects will be displayed in the app launcher pane.
             self.ui.actionRefresh_Projects.setVisible(False)
+            self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
             self.project_overlay.start_spin()
 
@@ -730,10 +752,8 @@ class DesktopWindow(SystrayWindow):
 
             if pipeline_configuration is None:
                 if primary_pipeline_configuration is None:
-                    # Show the Setup Project widget
-                    self.setup_project_widget.project = project
-                    self.setup_project_widget.show()
                     self.project_overlay.hide()
+                    self.ui.actionAdvanced_Project_Setup.setVisible(True)
                     return
                 else:
                     engine.log_warning(
