@@ -32,6 +32,7 @@ from .console import Console
 from .console import ConsoleLogHandler
 from .systray import SystrayWindow
 from .about_screen import AboutScreen
+from .no_apps_installed_overlay import NoAppsInstalledOverlay
 from .setup_project import SetupProject
 from .setup_new_os import SetupNewOS
 from .project_model import SgProjectModel
@@ -75,6 +76,7 @@ class DesktopWindow(SystrayWindow):
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
         self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
+        self.install_apps_widget = NoAppsInstalledOverlay(self.ui.project_commands)
         self.setup_project_widget = SetupProject(self.ui.project_commands)
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
         self.update_project_config_widget = UpdateProjectConfig(self.ui.project_commands)
@@ -155,6 +157,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.user_button.setMenu(self.user_menu)
 
         # Initialize the model to track project commands
+        self._project_command_count = 0
         self._project_command_model = ProjectCommandModel(self)
         self._project_command_proxy = ProjectCommandProxyModel(self)
         self._project_command_proxy.setSourceModel(self._project_command_model)
@@ -411,6 +414,17 @@ class DesktopWindow(SystrayWindow):
         engine.refresh_user_credentials()
         engine.site_comm.call_no_response("open_project_locations")
 
+    def on_project_commands_finished(self):
+        """
+        Invoked when all commands found for a project have been registered.
+        """
+        if self._project_command_count == 0:
+            # Show the UI that indicates no project commands have been configured
+            self.install_apps_widget.build_software_entity_config_widget(
+                self.current_project
+            )
+            self.install_apps_widget.show()
+
     def sign_out(self):
         engine = sgtk.platform.current_engine()
 
@@ -462,7 +476,17 @@ class DesktopWindow(SystrayWindow):
     def add_to_project_menu(self, action):
         self.project_menu.insertAction(self.__pipeline_configuration_separator, action)
 
+    def add_project_command(
+            self, name, button_name, menu_name, icon, command_tooltip, groups
+    ):
+        self._project_command_model.add_command(
+            name, button_name, menu_name, icon, command_tooltip, groups
+        )
+        self._project_command_proxy.invalidate()
+        self._project_command_count += 1
+
     def _handle_project_data_changed(self):
+        self._project_command_count = 0
         self._project_selection_model.clear()
         self._project_proxy.invalidate()
         self._project_proxy.sort(0)
@@ -474,6 +498,7 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
 
+        self._project_command_count = 0
         self._project_selection_model.clear()
         self._project_proxy.invalidate()
         self._project_proxy.sort(0)
@@ -508,6 +533,7 @@ class DesktopWindow(SystrayWindow):
         self.setup_project_widget.hide()
         self.update_project_config_widget.hide()
         self.setup_new_os_widget.hide()
+        self.install_apps_widget.hide()
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)

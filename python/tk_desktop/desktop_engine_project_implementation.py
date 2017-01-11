@@ -132,6 +132,9 @@ class DesktopEngineProjectImplementation(object):
 
             self._project_comm.call("trigger_register_command", name, gui_properties, groups)
 
+        # Let the proxy know command registration is complete
+        self._project_comm.call_no_response("project_commands_finished")
+
     def destroy_engine(self):
         """
         Called when the engine is being torn-down.
