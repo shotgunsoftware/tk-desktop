@@ -94,15 +94,14 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         icon_row_layout = None
         last_software = len(sg_softwares) - 1
         for i in range(len(sg_softwares)):
-            # Download the thumbnail source file from Shotgun, which preserves
-            # transparency and alpha values.
-            sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail_source(
-                sg_softwares[i]["type"], sg_softwares[i]["id"], engine
+            # Download the thumbnail file from Shotgun.
+            sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail(
+                sg_softwares[i]["image"], engine
             )
             if not sg_icon:
                 engine.logger.warning(
-                    "Could not download thumbnail for %s entity [%s]" %
-                    (sg_softwares[i]["type"], sg_softwares[i]["id"])
+                    "Could not download thumbnail for %s entity [%s]: %s" %
+                    (sg_softwares[i]["type"], sg_softwares[i]["id"], sg_softwares[i]["image"])
                 )
                 continue
 
@@ -236,8 +235,8 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             # entities that do not have any Group or User restrictions.
             sw_filters.extend(user_group_filters)
 
-        # Create a placeholder for the list of Software fields to retrieve.
-        sw_fields = []
+        # List of Software fields to retrieve.
+        sw_fields = ["image"]
 
         # Get the list of matching Software entities
         sg_softwares = engine.shotgun.find(sw_entity, sw_filters, sw_fields)
