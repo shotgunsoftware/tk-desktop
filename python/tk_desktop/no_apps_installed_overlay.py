@@ -8,6 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import urlparse
+import urllib
 import pprint
 
 import sgtk
@@ -94,14 +96,23 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         icon_row_layout = None
         last_software = len(sg_softwares) - 1
         for i in range(len(sg_softwares)):
-            # Download the thumbnail from Shotgun
+            # Download the thumbnail from Shotgun. To preserve transparency,
+            # construct the URL that references the original file uploaded
+            # to Shotgun instead of using the transcoded jpeg stored in the
+            # "image" field of the Software entity.
+            sw_full_thumb_url = urlparse.urlunparse((
+                engine.shotgun.config.scheme, engine.shotgun.config.server,
+                "/thumbnail/full/%s/%s" % (urllib.quote(str(sg_softwares[i]["type"])),
+                urllib.quote(str(sg_softwares[i]["id"]))), None, None, None
+            ))
+            engine.logger.debug("Downloading thumbnail URL: %s" % sw_full_thumb_url)
             sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail(
-                sg_softwares[i]["image"], engine
+                sw_full_thumb_url, engine
             )
             if not sg_icon:
                 engine.logger.warning(
                     "Could not download thumbnail for Software image : %s" %
-                    sg_softwares[i]["image"]
+                    sw_full_thumb_url
                 )
                 continue
 
@@ -235,9 +246,10 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             # entities that do not have any Group or User restrictions.
             sw_filters.extend(user_group_filters)
 
-        sw_fields = [
-            "image"
-        ]
+        # Create a placeholder for the list of Software fields to retrieve.
+        sw_fields = []
+
+        # Get the list of matching Software entities
         sg_softwares = engine.shotgun.find(sw_entity, sw_filters, sw_fields)
         engine.logger.debug("Found [%d] Software entities matching filters: %s" %
             (len(sg_softwares), pprint.pformat(sw_filters))
