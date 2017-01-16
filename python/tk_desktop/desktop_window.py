@@ -735,6 +735,8 @@ class DesktopWindow(SystrayWindow):
                     if pipeline_configuration_id == 0:
                         # We'll use it and call it a day!
                         pipeline_configuration = pc
+
+                    if pipeline_configuration:
                         break
 
                 # If we have a non primary pipeline configuration and it matches the one we are looking for.
