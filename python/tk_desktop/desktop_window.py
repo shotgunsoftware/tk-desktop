@@ -20,6 +20,7 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.util import shotgun
+from sgtk.bootstrap import ToolkitManager
 from sgtk import util
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
@@ -71,6 +72,18 @@ class DesktopWindow(SystrayWindow):
         self.__pipeline_configuration_separator = None
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
 
+        engine = sgtk.platform.current_engine()
+
+        self._toolkit_manager = ToolkitManager(engine.get_current_user())
+        self._toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
+        self._toolkit_manager.plugin_id = os.environ.get(
+            "SGTK_DESKTOP_PROJECT_PLUGIN_ID", "config.basic"
+        )
+        self._toolkit_manager.base_configuration = os.environ.get(
+            "SGTK_DESKTOP_PROJECT_DESCRIPTOR_FALLBACK",
+            "sgtk:descriptor:app_store?name=tk-config-basic"
+        )
+
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
@@ -92,8 +105,6 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.setProperty("active", True)
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
-
-        engine = sgtk.platform.current_engine()
 
         connection = engine.get_current_user().create_sg_connection()
 
@@ -664,6 +675,8 @@ class DesktopWindow(SystrayWindow):
             engine = sgtk.platform.current_engine()
             engine.log_debug("launching app proxy for project: %s" % project)
 
+            # Phase 1: Get the UI pretty.
+
             # Make sure that not only the previous proxy is not running anymore
             # but that the UI has been cleared as well.
             engine = sgtk.platform.current_engine()
@@ -681,26 +694,24 @@ class DesktopWindow(SystrayWindow):
             self.__set_project_just_accessed(project)
             QtGui.QApplication.instance().processEvents()
 
-            if sys.platform == "darwin":
-                path_field = "mac_path"
-            elif sys.platform == "win32":
-                path_field = "windows_path"
-            elif sys.platform.startswith("linux"):
-                path_field = "linux_path"
-            else:
-                raise SystemError("Unsupported platform: %s" % sys.platform)
+            # Phase 2: Get information about the pipeline configuration.
 
-            filters = [
-                ["project", "is", project],
-            ]
-
-            fields = [path_field, "users", "code"]
-
+            # First get the legacy pipeline configurations, i.e. those using the *_path fields.
             connection = engine.shotgun
             pipeline_configurations = connection.find(
                 "PipelineConfiguration",
-                filters,
-                fields=fields,
+                [["project", "is", project]],
+                fields=["mac_path", "windows_path", "linux_path", "users", "code"]
+            )
+            # We don't filter in the Shotgun query for the plugin ids because not every site these fields yet.
+            # So if any pipeline configurations with a plugin id was returned, filter them it out.
+            pipeline_configurations = filter(
+                lambda pc: not("sg_plugin_ids" in pc or "plugin_ids" in pc), pipeline_configurations
+            )
+
+            # Gets the pipeline configurations that use plugin ids while respecting the users attribute.
+            pipeline_configurations.extend(
+                list(self._toolkit_manager.enumerate_pipeline_configurations(project))
             )
 
             setting = "pipeline_configuration_for_project_%d" % project["id"]
@@ -715,27 +726,26 @@ class DesktopWindow(SystrayWindow):
             pipeline_configuration = None
             primary_pipeline_configuration = None
             for pc in pipeline_configurations:
+                # If we've stumbled upon the Primary.
                 if pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
                     primary_pipeline_configuration = pc
+                    # And there was no pipeline configuration saved from a last run.
                     if pipeline_configuration_id == 0:
+                        # We'll use it and call it a day!
                         pipeline_configuration = pc
-
-                    if pipeline_configuration is not None:
                         break
 
+                # If we have a non primary pipeline configuration and it matches the one we are looking for.
                 if pipeline_configuration_id != 0 and pc["id"] == pipeline_configuration_id:
                     pipeline_configuration = pc
+                    # If we haven't found the primary yet, keep going, otherwise we're done.
                     if primary_pipeline_configuration is not None:
                         break
 
+            # If we haven't found what we were searching for...
             if pipeline_configuration is None:
-                if primary_pipeline_configuration is None:
-                    # Show the Setup Project widget
-                    self.setup_project_widget.project = project
-                    self.setup_project_widget.show()
-                    self.project_overlay.hide()
-                    return
-                else:
+                # ... but the primary exists, switch to that.
+                if primary_pipeline_configuration is not None:
                     engine.log_warning(
                         "Pipeline configuration id %d not found, "
                         "falling back to primary." % pipeline_configuration_id)
@@ -744,7 +754,25 @@ class DesktopWindow(SystrayWindow):
             # going to launch the configuration, update the project menu if needed
             self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration)
 
-            config_path = pipeline_configuration[path_field]
+            # From this point on, we don't touch the UI anymore.
+
+            # Phase 3: Prepare the pipeline configuration.
+
+            # If no pipeline configuration is in Shotgun, we'll let the bootstrap decide where the config
+            # comes from.
+            if pipeline_configuration is None:
+                self._toolkit_manager.pipeline_configuration = None
+            else:
+                # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
+                self._toolkit_manager.pipeline_configuration = pipeline_configuration["id"]
+
+            def report_progress(percentage, message):
+                print percentage, message
+
+            # Make sure the config is downloaded and the bundles cached.
+            config_path = self._toolkit_manager.update_and_cache_configuration(project, report_progress)
+
+            # Phase 4: Find the interpreter and launch it.
 
             # Now find out the appropriate python to launch
             if sys.platform == "darwin":
@@ -756,27 +784,22 @@ class DesktopWindow(SystrayWindow):
             else:
                 raise RuntimeError("Unknown platform: %s." % sys.platform)
 
-            if config_path is None:
-                engine.log_error("No path set for %s on the Pipeline "
-                                 "Configuration \"%s\" (id %d)." %
-                                 (current_platform,
-                                  pipeline_configuration["code"],
-                                  pipeline_configuration_id))
-
-                raise RuntimeError("The Toolkit configuration path has not\n"
-                                   "been set for your operating system.")
-
-            current_config_path = config_path
+            # FIXME: This logic should probably be built into core and be made public.
+            # Search for the core and interpreter location.
+            # The interpreter is part of the core configuration, but the core itself could be located
+            # outside the configuration, so we'll have to do some digging to find it.
+            current_root_path = config_path
             while True:
-                # First see if we have a local configuration for which interpreter
+
+                # First check inside the configuration's core folder.
                 interpreter_config_file = os.path.join(
-                    current_config_path, "config", "core", "interpreter_%s.cfg" % current_platform)
+                    current_root_path, "config", "core", "interpreter_%s.cfg" % current_platform)
 
                 if os.path.exists(interpreter_config_file):
                     # Found the file that says where the interpreter is
                     with open(interpreter_config_file, "r") as f:
                         path_to_python = f.read().strip()
-                        core_root = current_config_path
+                        core_root = current_root_path
 
                     if not path_to_python or not os.path.exists(path_to_python):
                         # python not specified for this os, show the setup new os widget
@@ -790,19 +813,22 @@ class DesktopWindow(SystrayWindow):
                     # found it
                     break
 
-                # look for a parent config to see if it has an interpreter
+                # We haven't found the interpreter file in the core folder, so it probably means that
+                # we are sharing a core with another configuration. Look inside the install/core folder
+                # for the location of that core.
                 parent_config_file = os.path.join(
-                    current_config_path, "install", "core", "core_%s.cfg" % current_platform)
+                    current_root_path, "install", "core", "core_%s.cfg" % current_platform)
 
+                #
                 if not os.path.exists(parent_config_file):
                     engine.log_error("No parent or interpreter found at '%s'."
-                                     % current_config_path)
+                                     % current_root_path)
                     raise RuntimeError("The Toolkit configuration path points\n"
                                        "to an invalid configuration.")
 
                 # Read the path to the parent configuration
                 with open(parent_config_file, "r") as f:
-                    current_config_path = f.read().strip()
+                    current_root_path = f.read().strip()
         except Exception, error:
             engine.log_exception(str(error))
             message = ("%s"
@@ -837,8 +863,6 @@ class DesktopWindow(SystrayWindow):
         # get the path to the utilities module
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
 
-        # Check if the pipeline configuration is login based.
-        engine.check_login_based(core_root)
         # Make sure the credentials are refreshed so the background process
         # has no problem launching.
         engine.refresh_user_credentials()
