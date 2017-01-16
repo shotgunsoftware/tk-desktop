@@ -76,13 +76,15 @@ class DesktopWindow(SystrayWindow):
 
         self._toolkit_manager = ToolkitManager(engine.get_current_user())
         self._toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
-        self._toolkit_manager.plugin_id = os.environ.get(
-            "SGTK_DESKTOP_PROJECT_PLUGIN_ID", "config.basic"
-        )
-        self._toolkit_manager.base_configuration = os.environ.get(
-            "SGTK_DESKTOP_PROJECT_DESCRIPTOR_FALLBACK",
-            "sgtk:descriptor:app_store?name=tk-config-basic"
-        )
+        self._toolkit_manager.plugin_id = "config.basic"
+        self._toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
+
+        # FIXME: This needs to be replaced when we implement proper progress reporting during
+        # startup.
+        def report_progress(percentage, message):
+            print percentage, message
+
+        self._toolkit_manager.progress_callback = report_progress
 
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
@@ -766,11 +768,8 @@ class DesktopWindow(SystrayWindow):
                 # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
                 self._toolkit_manager.pipeline_configuration = pipeline_configuration["id"]
 
-            def report_progress(percentage, message):
-                print percentage, message
-
             # Make sure the config is downloaded and the bundles cached.
-            config_path = self._toolkit_manager.update_and_cache_configuration(project, report_progress)
+            config_path = self._toolkit_manager.update_and_cache_configuration(project)
 
             # Phase 4: Find the interpreter and launch it.
 
