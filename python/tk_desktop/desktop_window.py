@@ -250,7 +250,7 @@ class DesktopWindow(SystrayWindow):
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
         # always start pinned and hidden
-        self.state = self.STATE_PINNED
+        self.state = self._settings_manager.retrieve("dialog_pinned", self.STATE_PINNED)
 
     def _save_setting(self, key, value, site_specific):
         if site_specific:
@@ -320,6 +320,7 @@ class DesktopWindow(SystrayWindow):
             self.ui.actionPin_to_Menu.setText("Undock from Menu")
         elif state == self.STATE_WINDOWED:
             self.ui.actionPin_to_Menu.setText("Pin to Menu")
+        self._settings_manager.store("dialog_pinned", self.state)
 
     def handle_quit_action(self):
         # disconnect from the current proxy
