@@ -38,6 +38,7 @@ from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
 from .project_delegate import SgProjectDelegate
 from .update_project_config import UpdateProjectConfig
+from .loading_project_widget import LoadingProjectWidget
 
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
@@ -76,7 +77,7 @@ class DesktopWindow(SystrayWindow):
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
-        self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
+        self.project_overlay = LoadingProjectWidget(self.ui.project_commands)
         self.setup_project_widget = SetupProject(self.ui.project_commands)
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
         self.update_project_config_widget = UpdateProjectConfig(self.ui.project_commands)
@@ -832,7 +833,7 @@ class DesktopWindow(SystrayWindow):
 
         t = ConfigSyncThread(mgr)
         t.sync_failed.connect(self._launch_failed)
-        t.report_progress.connect(lambda pct, msg: self.project_overlay.report_progress(pct))
+        t.report_progress.connect(lambda pct, msg: self.project_overlay.report_progress(pct, msg))
         t.sync_success.connect(self._sync_success)
         t.start()
 
