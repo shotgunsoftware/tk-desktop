@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>686</width>
-    <height>683</height>
+    <width>722</width>
+    <height>632</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -34,7 +34,7 @@
     </spacer>
    </item>
    <item>
-    <widget class="ShotgunOverlayWidget" name="shotgun_overlay_widget" native="true">
+    <widget class="ShotgunSpinningWidget" name="shotgun_spinning_widget" native="true">
      <property name="minimumSize">
       <size>
        <width>0</width>
@@ -59,28 +59,52 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <property name="spacing">
-       <number>0</number>
+       <number>-1</number>
       </property>
       <property name="bottomMargin">
        <number>0</number>
       </property>
       <item>
-       <widget class="QPlainTextEdit" name="progress">
+       <widget class="QWidget" name="widget" native="true">
         <property name="sizePolicy">
-         <sizepolicy hsizetype="Expanding" vsizetype="Ignored">
+         <sizepolicy hsizetype="Preferred" vsizetype="Ignored">
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
+        <layout class="QVBoxLayout" name="verticalLayout_3">
+         <property name="margin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QPlainTextEdit" name="progress_output">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </widget>
       </item>
       <item>
-       <widget class="QPushButton" name="more_less_btn">
-        <property name="text">
-         <string>more details...</string>
+       <widget class="QLabel" name="more_or_less_label">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
         </property>
-        <property name="flat">
-         <bool>true</bool>
+        <property name="text">
+         <string>&lt;a href=&quot;#&quot;&gt;more details...&lt;/a&gt;</string>
+        </property>
+        <property name="textFormat">
+         <enum>Qt::AutoText</enum>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
         </property>
        </widget>
       </item>
@@ -91,7 +115,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ShotgunOverlayWidget</class>
+   <class>ShotgunSpinningWidget</class>
    <extends>QWidget</extends>
    <header>..qtwidgets</header>
    <container>1</container>

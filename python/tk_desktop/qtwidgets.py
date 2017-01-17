@@ -17,4 +17,4 @@ import sgtk
 
 # search widget:
 overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
-ShotgunOverlayWidget = overlay_widget.ShotgunSpinningWidget
+ShotgunSpinningWidget = overlay_widget.ShotgunSpinningWidget

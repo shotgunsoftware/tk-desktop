@@ -16,6 +16,9 @@ from .ui.loading_project_widget import Ui_LoadingProjectWidget
 
 class LoadingProjectWidget(QtGui.QWidget):
 
+    _MORE_DETAILS = "more details..."
+    _LESS_DETAILS = "less details..."
+
     def __init__(self, parent=None):
         super(LoadingProjectWidget, self).__init__(parent)
 
@@ -29,10 +32,24 @@ class LoadingProjectWidget(QtGui.QWidget):
         filter.resized.connect(self._on_parent_resized)
         parent.installEventFilter(filter)
 
+        self._message = None
+
+        self._ui.progress_output.hide()
         self.show()
 
-        # make it transparent
-        self.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
+        self._ui.more_or_less_label.linkActivated.connect(self._on_more_less_clicked)
+        self._set_label_text(self._MORE_DETAILS)
+
+    def _set_label_text(self, msg):
+        self._ui.more_or_less_label.setText("<a href='#'>%s</a>" % (msg,))
+
+    def _on_more_less_clicked(self, _):
+        if self._ui.progress_output.isVisible():
+            self._ui.progress_output.setVisible(False)
+            self._set_label_text(self._MORE_DETAILS)
+        else:
+            self._ui.progress_output.setVisible(True)
+            self._set_label_text(self._LESS_DETAILS)
 
     def _on_parent_resized(self):
         """
@@ -43,19 +60,36 @@ class LoadingProjectWidget(QtGui.QWidget):
         self.resize(self.parentWidget().size())
 
     def start_progress(self):
-        self._ui.shotgun_overlay_widget.start_progress()
+        self._ui.shotgun_spinning_widget.start_progress()
         self.setVisible(True)
 
     def report_progress(self, current, msg):
-        self._ui.shotgun_overlay_widget.report_progress(current)
+        self._ui.shotgun_spinning_widget.report_progress(current)
+
+        self._ui.progress_output.appendHtml(msg)
+        cursor = self._ui.progress_output.textCursor()
+        cursor.movePosition(cursor.End)
+        cursor.movePosition(cursor.StartOfLine)
+        self._ui.progress_output.setTextCursor(cursor)
+        self._ui.progress_output.ensureCursorVisible()
 
     def show_error_message(self, msg):
-        self._ui.progress.hide()
-        self._ui.more_less_btn.hide()
-        self._ui.shotgun_overlay_widget.show_error_message(msg)
+        """
+        Enables the overlay and displays an
+        a error message centered in the middle of the overlay.
+
+        :param msg: Message to display
+        """
+        # Hide all widgets
+        self._shotgun_spinning_widget.hide()
+        self._ui.bottom.hide()
+        self._ui.progress_output.hide()
+
+        self.setVisible(True)
+        self._message = msg
+        self.repaint()
 
     def paintEvent(self, event):
-
         painter = QtGui.QPainter()
         painter.begin(self)
         try:
@@ -63,6 +97,14 @@ class LoadingProjectWidget(QtGui.QWidget):
             painter.setBrush(QtGui.QBrush(overlay_color))
             painter.setPen(QtGui.QPen(overlay_color))
             painter.drawRect(0, 0, painter.device().width(), painter.device().height())
+
+            if self._message is not None:
+                # show error text in the center
+                pen = QtGui.QPen(QtGui.QColor("#C8534A"))
+                painter.setPen(pen)
+                text_rect = QtCore.QRect(0, 0, painter.device().width(), painter.device().height())
+                text_flags = QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter | QtCore.Qt.TextWordWrap
+                painter.drawText(text_rect, text_flags, self._message)
         finally:
             painter.end()
 
