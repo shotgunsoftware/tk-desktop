@@ -61,6 +61,9 @@ class LoadingProjectWidget(QtGui.QWidget):
 
     def start_progress(self):
         self._ui.shotgun_spinning_widget.start_progress()
+        self._ui.progress_output.hide()
+        self._set_label_text(self._MORE_DETAILS)
+        self._ui.progress_output.clear()
         self.setVisible(True)
 
     def report_progress(self, current, msg):
