@@ -818,7 +818,6 @@ class DesktopWindow(SystrayWindow):
                 self._toolkit_manager.progress_callback = self._report_progress
 
             def _report_progress(self, pct, msg):
-                print "%s - %s" % (pct, msg)
                 self.report_progress.emit(pct, msg)
 
             def run(self):

@@ -68,13 +68,13 @@ class LoadingProjectWidget(QtGui.QWidget):
 
     def report_progress(self, current, msg):
         self._ui.shotgun_spinning_widget.report_progress(current)
-
-        self._ui.progress_output.appendHtml(msg)
-        cursor = self._ui.progress_output.textCursor()
-        cursor.movePosition(cursor.End)
-        cursor.movePosition(cursor.StartOfLine)
-        self._ui.progress_output.setTextCursor(cursor)
-        self._ui.progress_output.ensureCursorVisible()
+        if msg:
+            self._ui.progress_output.appendHtml(msg)
+            cursor = self._ui.progress_output.textCursor()
+            cursor.movePosition(cursor.End)
+            cursor.movePosition(cursor.StartOfLine)
+            self._ui.progress_output.setTextCursor(cursor)
+            self._ui.progress_output.ensureCursorVisible()
 
     def show_error_message(self, msg):
         """
