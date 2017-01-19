@@ -794,9 +794,6 @@ class DesktopWindow(SystrayWindow):
                 # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
                 toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
 
-            mgr.caching_policy = ToolkitManager.CACHE_FULL
-            mgr.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
-
         except Exception, error:
             engine.log_exception(str(error))
             self._launch_failed(str(error))
@@ -823,14 +820,14 @@ class DesktopWindow(SystrayWindow):
             def run(self):
                 try:
                     # Make sure the config is downloaded and the bundles cached.
-                    config_path = self._toolkit_manager.update_and_cache_configuration(project)
+                    config_path = self._toolkit_manager.precache_engine(project)
                 except Exception as error:
                     engine.log_exception(str(error))
                     self.sync_failed.emit(str(error))
                 else:
                     self.sync_success.emit(config_path)
 
-        t = ConfigSyncThread(mgr)
+        t = ConfigSyncThread(toolkit_manager)
         t.sync_failed.connect(self._launch_failed)
         t.report_progress.connect(lambda pct, msg: self.project_overlay.report_progress(pct, msg))
         t.sync_success.connect(self._sync_success)
