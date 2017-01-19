@@ -74,18 +74,6 @@ class DesktopWindow(SystrayWindow):
 
         engine = sgtk.platform.current_engine()
 
-        self._toolkit_manager = ToolkitManager(engine.get_current_user())
-        self._toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
-        self._toolkit_manager.plugin_id = "config.basic"
-        self._toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
-
-        # FIXME: This needs to be replaced when we implement proper progress reporting during
-        # startup.
-        def report_progress(percentage, message):
-            print percentage, message
-
-        self._toolkit_manager.progress_callback = report_progress
-
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
@@ -541,7 +529,7 @@ class DesktopWindow(SystrayWindow):
         extra_pcs = []
         for pc in pipeline_configurations:
             # track primary separate
-            if pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+            if pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
                 primary_pc = pc
                 continue
 
@@ -569,22 +557,22 @@ class DesktopWindow(SystrayWindow):
         action.setDefaultWidget(label)
         self.project_menu.addAction(action)
 
-        action = self.project_menu.addAction(primary_pc["code"])
+        action = self.project_menu.addAction(primary_pc["name"])
         action.setCheckable(True)
         action.setProperty("project_configuration_id", 0)
         if selected["id"] == primary_pc["id"]:
             action.setChecked(True)
-            self.ui.configuration_name.setText(primary_pc["code"])
+            self.ui.configuration_name.setText(primary_pc["name"])
 
-        extra_pcs.sort(key=lambda pc: pc["code"])
+        extra_pcs.sort(key=lambda pc: pc["name"])
         for pc in extra_pcs:
-            action = self.project_menu.addAction(pc["code"])
+            action = self.project_menu.addAction(pc["name"])
             action.setCheckable(True)
             action.setProperty("project_configuration_id", pc["id"])
             if selected["id"] == pc["id"]:
                 self.ui.configuration_frame.show()
                 action.setChecked(True)
-                self.ui.configuration_name.setText(pc["code"])
+                self.ui.configuration_name.setText(pc["name"])
 
     def __set_project_just_accessed(self, project):
         self._project_model.update_project_accessed_time(project)
@@ -673,6 +661,35 @@ class DesktopWindow(SystrayWindow):
         if success:
             self.__launch_app_proxy_for_project(self.current_project)
 
+    def _get_toolkit_classic_pipeline_configurations(self, connection, project):
+        """
+        Get all the pipeline configurations that are not using plugin ids.
+
+        :param connection: Shotgun connection instance.
+        :param dict project: Project entity link.
+
+        :returns: List of pipeline configuration dictionaries with keys ``mac_path``, ``windows_path``,
+            ``linux_path``, ``users`` and ``name``.
+        """
+        pipeline_configurations = connection.find(
+            "PipelineConfiguration",
+            [["project", "is", project]],
+            fields=["mac_path", "windows_path", "linux_path", "users", "code"]
+        )
+        # Ideally we would filter out in the Shotgun query any entry that has a plugin id set.
+        # Unfortunately, at the time of writing plugin ids are not live on nost Shotgun instances.
+        # So instead of filtering everything in the query, we'll filter out entries locally with the
+        # following.
+        pipeline_configurations = filter(
+            lambda pc: not("sg_plugin_ids" in pc or "plugin_ids" in pc), pipeline_configurations
+        )
+
+        for pc in pipeline_configurations:
+            pc["name"] = pc["code"]
+            del pc["code"]
+
+        return pipeline_configurations
+
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
@@ -698,66 +715,74 @@ class DesktopWindow(SystrayWindow):
             QtGui.QApplication.instance().processEvents()
 
             # Phase 2: Get information about the pipeline configuration.
+            #
+            # This phase is a two step process. First, get all the pipeline configurations that are
+            # not using plugin ids. Those are classic Toolkit pipeline configurations using *_path fields.
+            # Then, fetch the rest using the ToolkitManager, which honors the plugin_id flag.
 
-            # First get the legacy pipeline configurations, i.e. those using the *_path fields.
+            # Step 1: First get the legacy pipeline configurations, i.e. those using the *_path fields.
             connection = engine.shotgun
-            pipeline_configurations = connection.find(
-                "PipelineConfiguration",
-                [["project", "is", project]],
-                fields=["mac_path", "windows_path", "linux_path", "users", "code"]
-            )
-            # We don't filter in the Shotgun query for the plugin ids because not every site these fields yet.
-            # So if any pipeline configurations with a plugin id was returned, filter them it out.
-            pipeline_configurations = filter(
-                lambda pc: not("sg_plugin_ids" in pc or "plugin_ids" in pc), pipeline_configurations
-            )
+            pipeline_configurations = self._get_toolkit_classic_pipeline_configurations(connection, project)
 
-            # Gets the pipeline configurations that use plugin ids while respecting the users attribute.
+            toolkit_manager = ToolkitManager(engine.get_current_user())
+            # We need to cache all environments because we don't know which one the user will require.
+            toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
+            toolkit_manager.plugin_id = "config.basic"
+            toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
+
+            # FIXME: This needs to be replaced when we implement proper progress reporting during
+            # startup.
+            def report_progress(percentage, message):
+                print percentage, message
+
+            toolkit_manager.progress_callback = report_progress
+
+            # Step 2: Retrieves the pipeline configurations that use plugin ids usable by the current user.
             pipeline_configurations.extend(
-                list(self._toolkit_manager.enumerate_pipeline_configurations(project))
+                toolkit_manager.get_pipeline_configurations(project)
             )
 
             setting = "pipeline_configuration_for_project_%d" % project["id"]
             if pipeline_configuration_id is None:
                 # Load up last accessed project if it hasn't been specified
-                pipeline_configuration_id = self._load_setting(setting, 0, site_specific=True)
+                pipeline_configuration_id = self._load_setting(setting, None, site_specific=True)
             else:
                 # Save pipeline_configuration_id as last accessed
                 self._save_setting(setting, pipeline_configuration_id, site_specific=True)
 
             # Find the matching pipeline configuration to launch against
-            pipeline_configuration = None
+            most_recent_pipeline_configuration = None
             primary_pipeline_configuration = None
             for pc in pipeline_configurations:
                 # If we've stumbled upon the Primary.
-                if pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+                if pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
                     primary_pipeline_configuration = pc
                     # And there was no pipeline configuration saved from a last run.
-                    if pipeline_configuration_id == 0:
+                    if pipeline_configuration_id is None:
                         # We'll use it and call it a day!
-                        pipeline_configuration = pc
+                        most_recent_pipeline_configuration = pc
 
-                    if pipeline_configuration:
+                    if most_recent_pipeline_configuration:
                         break
 
                 # If we have a non primary pipeline configuration and it matches the one we are looking for.
-                if pipeline_configuration_id != 0 and pc["id"] == pipeline_configuration_id:
-                    pipeline_configuration = pc
+                if pipeline_configuration_id is not None and pc["id"] == pipeline_configuration_id:
+                    most_recent_pipeline_configuration = pc
                     # If we haven't found the primary yet, keep going, otherwise we're done.
                     if primary_pipeline_configuration is not None:
                         break
 
             # If we haven't found what we were searching for...
-            if pipeline_configuration is None:
+            if most_recent_pipeline_configuration is None:
                 # ... but the primary exists, switch to that.
                 if primary_pipeline_configuration is not None:
                     engine.log_warning(
                         "Pipeline configuration id %d not found, "
                         "falling back to primary." % pipeline_configuration_id)
-                    pipeline_configuration = primary_pipeline_configuration
+                    most_recent_pipeline_configuration = primary_pipeline_configuration
 
             # going to launch the configuration, update the project menu if needed
-            self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration)
+            self.__populate_pipeline_configurations_menu(pipeline_configurations, most_recent_pipeline_configuration)
 
             # From this point on, we don't touch the UI anymore.
 
@@ -765,14 +790,14 @@ class DesktopWindow(SystrayWindow):
 
             # If no pipeline configuration is in Shotgun, we'll let the bootstrap decide where the config
             # comes from.
-            if pipeline_configuration is None:
-                self._toolkit_manager.pipeline_configuration = None
+            if most_recent_pipeline_configuration is None:
+                toolkit_manager.pipeline_configuration = None
             else:
                 # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
-                self._toolkit_manager.pipeline_configuration = pipeline_configuration["id"]
+                toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
 
             # Make sure the config is downloaded and the bundles cached.
-            config_path = self._toolkit_manager.update_and_cache_configuration(project)
+            config_path = toolkit_manager.prepare_engine(None, project)
 
             # Phase 4: Find the interpreter and launch it.
 
