@@ -231,7 +231,7 @@ class DesktopWindow(SystrayWindow):
         QtGui.QApplication.processEvents()
 
         # load up last project
-        project_id = self._settings_manager.retrieve("project_id", 0, self._settings_manager.SCOPE_SITE)
+        project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
         self.__set_project_from_id(project_id)
 
         # settings that apply across any instance (after site specific, so pinned can reset pos)
