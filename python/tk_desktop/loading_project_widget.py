@@ -16,8 +16,8 @@ from .ui.loading_project_widget import Ui_LoadingProjectWidget
 
 class LoadingProjectWidget(QtGui.QWidget):
 
-    _MORE_DETAILS = "more details..."
-    _LESS_DETAILS = "less details..."
+    _SHOW_DETAILS = "show details"
+    _HIDE_DETAILS = "less details"
 
     def __init__(self, parent=None):
         super(LoadingProjectWidget, self).__init__(parent)
@@ -37,19 +37,19 @@ class LoadingProjectWidget(QtGui.QWidget):
         self._ui.progress_output.hide()
         self.show()
 
-        self._ui.more_or_less_label.linkActivated.connect(self._on_more_less_clicked)
-        self._set_label_text(self._MORE_DETAILS)
+        self._ui.show_hide_details.clicked.connect(self._on_more_less_clicked)
+        self._ui.show_hide_details.setText(self._SHOW_DETAILS)
 
-    def _set_label_text(self, msg):
-        self._ui.more_or_less_label.setText("<a href='#'>%s</a>" % (msg,))
-
-    def _on_more_less_clicked(self, _):
+    def _on_more_less_clicked(self):
         if self._ui.progress_output.isVisible():
             self._ui.progress_output.setVisible(False)
-            self._set_label_text(self._MORE_DETAILS)
+            self._ui.show_hide_details.setText(self._SHOW_DETAILS)
         else:
             self._ui.progress_output.setVisible(True)
-            self._set_label_text(self._LESS_DETAILS)
+            self._ui.show_hide_details.setText(self._HIDE_DETAILS)
+
+        # Doesn't look good with the focus.
+        self._ui.show_hide_details.clearFocus()
 
     def _on_parent_resized(self):
         """
@@ -62,7 +62,7 @@ class LoadingProjectWidget(QtGui.QWidget):
     def start_progress(self):
         self._ui.shotgun_spinning_widget.start_progress()
         self._ui.progress_output.hide()
-        self._set_label_text(self._MORE_DETAILS)
+        self._ui.show_hide_details.setText(self._SHOW_DETAILS)
         self._ui.progress_output.clear()
         self.setVisible(True)
 
@@ -84,7 +84,7 @@ class LoadingProjectWidget(QtGui.QWidget):
         :param msg: Message to display
         """
         # Hide all widgets
-        self._shotgun_spinning_widget.hide()
+        self._ui.shotgun_spinning_widget.hide()
         self._ui.bottom.hide()
         self._ui.progress_output.hide()
 

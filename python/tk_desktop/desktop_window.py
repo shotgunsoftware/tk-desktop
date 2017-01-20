@@ -727,7 +727,7 @@ class DesktopWindow(SystrayWindow):
             toolkit_manager = ToolkitManager(engine.get_current_user())
             # We need to cache all environments because we don't know which one the user will require.
             toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
-            toolkit_manager.plugin_id = "config.basic"
+            toolkit_manager.plugin_id = "config.desktop"
             toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
 
             # FIXME: This needs to be replaced when we implement proper progress reporting during
@@ -820,7 +820,7 @@ class DesktopWindow(SystrayWindow):
             def run(self):
                 try:
                     # Make sure the config is downloaded and the bundles cached.
-                    config_path = self._toolkit_manager.precache_engine(project)
+                    config_path = self._toolkit_manager.prepare_engine(None, project)
                 except Exception as error:
                     engine.log_exception(str(error))
                     self.sync_failed.emit(str(error))
