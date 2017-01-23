@@ -20,10 +20,11 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.util import shotgun
+from sgtk.bootstrap import ToolkitManager
 from sgtk import util
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
-from sgtk import pipelineconfig_utils
+from sgtk import TankInvalidInterpreterLocationError
 
 from .ui import resources_rc
 from .ui import desktop_window
@@ -72,6 +73,8 @@ class DesktopWindow(SystrayWindow):
         self.__pipeline_configuration_separator = None
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
 
+        engine = sgtk.platform.current_engine()
+
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
@@ -94,8 +97,6 @@ class DesktopWindow(SystrayWindow):
         self.ui.apps_button.setProperty("active", True)
         self.ui.apps_button.style().unpolish(self.ui.apps_button)
         self.ui.apps_button.style().polish(self.ui.apps_button)
-
-        engine = sgtk.platform.current_engine()
 
         connection = engine.get_current_user().create_sg_connection()
 
@@ -233,14 +234,14 @@ class DesktopWindow(SystrayWindow):
         QtGui.QApplication.processEvents()
 
         # load up last project
-        project_id = self._settings_manager.retrieve("project_id", 0, self._settings_manager.SCOPE_SITE)
+        project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
         self.__set_project_from_id(project_id)
 
         # settings that apply across any instance (after site specific, so pinned can reset pos)
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
         # always start pinned and hidden
-        self.state = self.STATE_PINNED
+        self.state = self._settings_manager.retrieve("dialog_pinned", self.STATE_PINNED)
 
     def _save_setting(self, key, value, site_specific):
         if site_specific:
@@ -310,6 +311,7 @@ class DesktopWindow(SystrayWindow):
             self.ui.actionPin_to_Menu.setText("Undock from Menu")
         elif state == self.STATE_WINDOWED:
             self.ui.actionPin_to_Menu.setText("Pin to Menu")
+        self._settings_manager.store("dialog_pinned", self.state)
 
     def handle_quit_action(self):
         # disconnect from the current proxy
@@ -553,7 +555,7 @@ class DesktopWindow(SystrayWindow):
         extra_pcs = []
         for pc in pipeline_configurations:
             # track primary separate
-            if pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+            if pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
                 primary_pc = pc
                 continue
 
@@ -581,22 +583,22 @@ class DesktopWindow(SystrayWindow):
         action.setDefaultWidget(label)
         self.project_menu.addAction(action)
 
-        action = self.project_menu.addAction(primary_pc["code"])
+        action = self.project_menu.addAction(primary_pc["name"])
         action.setCheckable(True)
         action.setProperty("project_configuration_id", 0)
         if selected["id"] == primary_pc["id"]:
             action.setChecked(True)
-            self.ui.configuration_name.setText(primary_pc["code"])
+            self.ui.configuration_name.setText(primary_pc["name"])
 
-        extra_pcs.sort(key=lambda pc: pc["code"])
+        extra_pcs.sort(key=lambda pc: pc["name"])
         for pc in extra_pcs:
-            action = self.project_menu.addAction(pc["code"])
+            action = self.project_menu.addAction(pc["name"])
             action.setCheckable(True)
             action.setProperty("project_configuration_id", pc["id"])
             if selected["id"] == pc["id"]:
                 self.ui.configuration_frame.show()
                 action.setChecked(True)
-                self.ui.configuration_name.setText(pc["code"])
+                self.ui.configuration_name.setText(pc["name"])
 
     def __set_project_just_accessed(self, project):
         self._project_model.update_project_accessed_time(project)
@@ -685,10 +687,41 @@ class DesktopWindow(SystrayWindow):
         if success:
             self.__launch_app_proxy_for_project(self.current_project)
 
+    def _get_toolkit_classic_pipeline_configurations(self, connection, project):
+        """
+        Get all the pipeline configurations that are not using plugin ids.
+
+        :param connection: Shotgun connection instance.
+        :param dict project: Project entity link.
+
+        :returns: List of pipeline configuration dictionaries with keys ``mac_path``, ``windows_path``,
+            ``linux_path``, ``users`` and ``name``.
+        """
+        pipeline_configurations = connection.find(
+            "PipelineConfiguration",
+            [["project", "is", project]],
+            fields=["mac_path", "windows_path", "linux_path", "users", "code"]
+        )
+        # Ideally we would filter out in the Shotgun query any entry that has a plugin id set.
+        # Unfortunately, at the time of writing plugin ids are not live on nost Shotgun instances.
+        # So instead of filtering everything in the query, we'll filter out entries locally with the
+        # following.
+        pipeline_configurations = filter(
+            lambda pc: not("sg_plugin_ids" in pc or "plugin_ids" in pc), pipeline_configurations
+        )
+
+        for pc in pipeline_configurations:
+            pc["name"] = pc["code"]
+            del pc["code"]
+
+        return pipeline_configurations
+
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
             engine.log_debug("launching app proxy for project: %s" % project)
+
+            # Phase 1: Get the UI pretty.
 
             # Make sure that not only the previous proxy is not running anymore
             # but that the UI has been cleared as well.
@@ -707,128 +740,99 @@ class DesktopWindow(SystrayWindow):
             self.__set_project_just_accessed(project)
             QtGui.QApplication.instance().processEvents()
 
-            if sys.platform == "darwin":
-                path_field = "mac_path"
-            elif sys.platform == "win32":
-                path_field = "windows_path"
-            elif sys.platform.startswith("linux"):
-                path_field = "linux_path"
-            else:
-                raise SystemError("Unsupported platform: %s" % sys.platform)
+            # Phase 2: Get information about the pipeline configuration.
+            #
+            # This phase is a two step process. First, get all the pipeline configurations that are
+            # not using plugin ids. Those are classic Toolkit pipeline configurations using *_path fields.
+            # Then, fetch the rest using the ToolkitManager, which honors the plugin_id flag.
 
-            filters = [
-                ["project", "is", project],
-            ]
-
-            fields = [path_field, "users", "code"]
-
+            # Step 1: First get the legacy pipeline configurations, i.e. those using the *_path fields.
             connection = engine.shotgun
-            pipeline_configurations = connection.find(
-                "PipelineConfiguration",
-                filters,
-                fields=fields,
+            pipeline_configurations = self._get_toolkit_classic_pipeline_configurations(connection, project)
+
+            toolkit_manager = ToolkitManager(engine.get_current_user())
+            # We need to cache all environments because we don't know which one the user will require.
+            toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
+            toolkit_manager.plugin_id = "config.desktop"
+            toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
+
+            # FIXME: This needs to be replaced when we implement proper progress reporting during
+            # startup.
+            def report_progress(percentage, message):
+                print percentage, message
+
+            toolkit_manager.progress_callback = report_progress
+
+            # Step 2: Retrieves the pipeline configurations that use plugin ids usable by the current user.
+            pipeline_configurations.extend(
+                toolkit_manager.get_pipeline_configurations(project)
             )
 
             setting = "pipeline_configuration_for_project_%d" % project["id"]
             if pipeline_configuration_id is None:
                 # Load up last accessed project if it hasn't been specified
-                pipeline_configuration_id = self._load_setting(setting, 0, site_specific=True)
+                pipeline_configuration_id = self._load_setting(setting, None, site_specific=True)
             else:
                 # Save pipeline_configuration_id as last accessed
                 self._save_setting(setting, pipeline_configuration_id, site_specific=True)
 
             # Find the matching pipeline configuration to launch against
-            pipeline_configuration = None
+            most_recent_pipeline_configuration = None
             primary_pipeline_configuration = None
             for pc in pipeline_configurations:
-                if pc["code"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+                # If we've stumbled upon the Primary.
+                if pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
                     primary_pipeline_configuration = pc
-                    if pipeline_configuration_id == 0:
-                        pipeline_configuration = pc
+                    # And there was no pipeline configuration saved from a last run.
+                    if pipeline_configuration_id is None:
+                        # We'll use it and call it a day!
+                        most_recent_pipeline_configuration = pc
 
-                    if pipeline_configuration is not None:
+                    if most_recent_pipeline_configuration:
                         break
 
-                if pipeline_configuration_id != 0 and pc["id"] == pipeline_configuration_id:
-                    pipeline_configuration = pc
+                # If we have a non primary pipeline configuration and it matches the one we are looking for.
+                if pipeline_configuration_id is not None and pc["id"] == pipeline_configuration_id:
+                    most_recent_pipeline_configuration = pc
+                    # If we haven't found the primary yet, keep going, otherwise we're done.
                     if primary_pipeline_configuration is not None:
                         break
 
-            if pipeline_configuration is None:
-                if primary_pipeline_configuration is None:
-                    # Show the Setup Project widget
-                    self.setup_project_widget.project = project
-                    self.setup_project_widget.show()
-                    self.project_overlay.hide()
-                    return
-                else:
+            # If we haven't found what we were searching for...
+            if most_recent_pipeline_configuration is None:
+                # ... but the primary exists, switch to that.
+                if primary_pipeline_configuration is not None:
                     engine.log_warning(
                         "Pipeline configuration id %d not found, "
                         "falling back to primary." % pipeline_configuration_id)
-                    pipeline_configuration = primary_pipeline_configuration
+                    most_recent_pipeline_configuration = primary_pipeline_configuration
 
             # going to launch the configuration, update the project menu if needed
-            self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration)
+            self.__populate_pipeline_configurations_menu(pipeline_configurations, most_recent_pipeline_configuration)
 
-            config_path = pipeline_configuration[path_field]
+            # From this point on, we don't touch the UI anymore.
 
-            # Now find out the appropriate python to launch
-            if sys.platform == "darwin":
-                current_platform = "Darwin"
-            elif sys.platform == "win32":
-                current_platform = "Windows"
-            elif sys.platform.startswith("linux"):
-                current_platform = "Linux"
+            # Phase 3: Prepare the pipeline configuration.
+
+            # If no pipeline configuration is in Shotgun, we'll let the bootstrap decide where the config
+            # comes from.
+            if most_recent_pipeline_configuration is None:
+                toolkit_manager.pipeline_configuration = None
             else:
-                raise RuntimeError("Unknown platform: %s." % sys.platform)
+                # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
+                toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
 
-            if config_path is None:
-                engine.log_error("No path set for %s on the Pipeline "
-                                 "Configuration \"%s\" (id %d)." %
-                                 (current_platform,
-                                  pipeline_configuration["code"],
-                                  pipeline_configuration_id))
+            # Make sure the config is downloaded and the bundles cached.
+            config_path = toolkit_manager.prepare_engine("tk-desktop", project)
 
-                raise RuntimeError("The Toolkit configuration path has not\n"
-                                   "been set for your operating system.")
-
-            current_config_path = config_path
-            while True:
-                # First see if we have a local configuration for which interpreter
-                interpreter_config_file = os.path.join(
-                    current_config_path, "config", "core", "interpreter_%s.cfg" % current_platform)
-
-                if os.path.exists(interpreter_config_file):
-                    # Found the file that says where the interpreter is
-                    with open(interpreter_config_file, "r") as f:
-                        path_to_python = f.read().strip()
-                        core_root = current_config_path
-
-                    if not path_to_python or not os.path.exists(path_to_python):
-                        # python not specified for this os, show the setup new os widget
-                        engine.log_error("Cannot find interpreter '%s' defined in "
-                                         "config file %s. Will show the special "
-                                         "'no python' UI screen." % (path_to_python, interpreter_config_file))
-                        self.setup_new_os_widget.show()
-                        self.project_overlay.hide()
-                        return
-
-                    # found it
-                    break
-
-                # look for a parent config to see if it has an interpreter
-                parent_config_file = os.path.join(
-                    current_config_path, "install", "core", "core_%s.cfg" % current_platform)
-
-                if not os.path.exists(parent_config_file):
-                    engine.log_error("No parent or interpreter found at '%s'."
-                                     % current_config_path)
-                    raise RuntimeError("The Toolkit configuration path points\n"
-                                       "to an invalid configuration.")
-
-                # Read the path to the parent configuration
-                with open(parent_config_file, "r") as f:
-                    current_config_path = f.read().strip()
+            # Phase 4: Find the interpreter and launch it.
+            try:
+                path_to_python = sgtk.get_python_interpreter_for_config(config_path)
+            except TankInvalidInterpreterLocationError:
+                engine.log_exception("Problem locating interpreter file:")
+                self.setup_new_os_widget.show()
+                self.project_overlay.hide()
+                return
         except Exception, error:
             engine.log_exception(str(error))
             message = ("%s"
@@ -838,10 +842,13 @@ class DesktopWindow(SystrayWindow):
             self.project_overlay.show_error_message(message)
             return
 
-        core_python = os.path.join(core_root, "install", "core", "python")
-
         # startup server pipe to listen
         engine.startup_rpc()
+
+        core_python = os.path.join(
+            config_path,
+            "install", "core", "python"
+        )
 
         # pickle up the info needed to bootstrap the project python
         desktop_data = {
@@ -863,8 +870,6 @@ class DesktopWindow(SystrayWindow):
         # get the path to the utilities module
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
 
-        # Check if the pipeline configuration is login based.
-        engine.check_login_based(core_root)
         # Make sure the credentials are refreshed so the background process
         # has no problem launching.
         engine.refresh_user_credentials()
@@ -945,7 +950,7 @@ class DesktopWindow(SystrayWindow):
                 engine.app_version,
                 engine.startup_version,
                 engine.version,
-                pipelineconfig_utils.get_currently_running_api_version())
+                engine.tk.version)
             )
         else:
             about = AboutScreen(parent=self, body="""
@@ -957,6 +962,6 @@ class DesktopWindow(SystrayWindow):
             """ % (
                 engine.app_version,
                 engine.version,
-                pipelineconfig_utils.get_currently_running_api_version())
+                engine.tk.version)
             )
         about.exec_()
