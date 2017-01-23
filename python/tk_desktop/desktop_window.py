@@ -24,7 +24,7 @@ from sgtk.bootstrap import ToolkitManager
 from sgtk import util
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
-from sgtk import pipelineconfig_utils
+from sgtk import TankInvalidInterpreterLocationError
 
 from .ui import resources_rc
 from .ui import desktop_window
@@ -800,62 +800,13 @@ class DesktopWindow(SystrayWindow):
             config_path = toolkit_manager.prepare_engine(None, project)
 
             # Phase 4: Find the interpreter and launch it.
-
-            # Now find out the appropriate python to launch
-            if sys.platform == "darwin":
-                current_platform = "Darwin"
-            elif sys.platform == "win32":
-                current_platform = "Windows"
-            elif sys.platform.startswith("linux"):
-                current_platform = "Linux"
-            else:
-                raise RuntimeError("Unknown platform: %s." % sys.platform)
-
-            # FIXME: This logic should probably be built into core and be made public.
-            # Search for the core and interpreter location.
-            # The interpreter is part of the core configuration, but the core itself could be located
-            # outside the configuration, so we'll have to do some digging to find it.
-            current_root_path = config_path
-            while True:
-
-                # First check inside the configuration's core folder.
-                interpreter_config_file = os.path.join(
-                    current_root_path, "config", "core", "interpreter_%s.cfg" % current_platform)
-
-                if os.path.exists(interpreter_config_file):
-                    # Found the file that says where the interpreter is
-                    with open(interpreter_config_file, "r") as f:
-                        path_to_python = f.read().strip()
-                        core_root = current_root_path
-
-                    if not path_to_python or not os.path.exists(path_to_python):
-                        # python not specified for this os, show the setup new os widget
-                        engine.log_error("Cannot find interpreter '%s' defined in "
-                                         "config file %s. Will show the special "
-                                         "'no python' UI screen." % (path_to_python, interpreter_config_file))
-                        self.setup_new_os_widget.show()
-                        self.project_overlay.hide()
-                        return
-
-                    # found it
-                    break
-
-                # We haven't found the interpreter file in the core folder, so it probably means that
-                # we are sharing a core with another configuration. Look inside the install/core folder
-                # for the location of that core.
-                parent_config_file = os.path.join(
-                    current_root_path, "install", "core", "core_%s.cfg" % current_platform)
-
-                #
-                if not os.path.exists(parent_config_file):
-                    engine.log_error("No parent or interpreter found at '%s'."
-                                     % current_root_path)
-                    raise RuntimeError("The Toolkit configuration path points\n"
-                                       "to an invalid configuration.")
-
-                # Read the path to the parent configuration
-                with open(parent_config_file, "r") as f:
-                    current_root_path = f.read().strip()
+            try:
+                path_to_python = sgtk.get_python_interpreter_for_config(config_path)
+            except TankInvalidInterpreterLocationError:
+                engine.log_exception("Problem locating interpreter file:")
+                self.setup_new_os_widget.show()
+                self.project_overlay.hide()
+                return
         except Exception, error:
             engine.log_exception(str(error))
             message = ("%s"
@@ -865,10 +816,13 @@ class DesktopWindow(SystrayWindow):
             self.project_overlay.show_error_message(message)
             return
 
-        core_python = os.path.join(core_root, "install", "core", "python")
-
         # startup server pipe to listen
         engine.startup_rpc()
+
+        core_python = os.path.join(
+            config_path,
+            "install", "core", "python"
+        )
 
         # pickle up the info needed to bootstrap the project python
         desktop_data = {
@@ -970,7 +924,7 @@ class DesktopWindow(SystrayWindow):
                 engine.app_version,
                 engine.startup_version,
                 engine.version,
-                pipelineconfig_utils.get_currently_running_api_version())
+                engine.tk.version)
             )
         else:
             about = AboutScreen(parent=self, body="""
@@ -982,6 +936,6 @@ class DesktopWindow(SystrayWindow):
             """ % (
                 engine.app_version,
                 engine.version,
-                pipelineconfig_utils.get_currently_running_api_version())
+                engine.tk.version)
             )
         about.exec_()
