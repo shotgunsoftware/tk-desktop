@@ -59,6 +59,7 @@ class DesktopEngineSiteImplementation(object):
         self.site_comm.register_function(self.set_groups, "set_groups")
         self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
         self.site_comm.register_function(self.trigger_register_command, "trigger_register_command")
+        self.site_comm.register_function(self.project_commands_finished, "project_commands_finished")
 
     def engine_startup_error(self, error, tb=None):
         """ Handle an error starting up the engine for the app proxy. """
@@ -157,9 +158,16 @@ class DesktopEngineSiteImplementation(object):
                     button_name = string.Template(collapse_rule["button_label"]).safe_substitute(match)
                     break
 
-            self.desktop_window._project_command_model.add_command(
-                name, button_name, menu_name, icon, command_tooltip, groups)
-            self.desktop_window._project_command_proxy.invalidate()
+            self.desktop_window.add_project_command(
+                name, button_name, menu_name, icon, command_tooltip, groups
+            )
+
+    def project_commands_finished(self):
+        """
+        Invoked when all commands found for a project have been registered.
+        """
+        # Let the desktop window know all commands for the project have been registered.
+        self.desktop_window.on_project_commands_finished()
 
     def _handle_button_command_triggered(self, group, name):
         """ Button clicked from a registered command. """
@@ -355,25 +363,6 @@ class DesktopEngineSiteImplementation(object):
         """
         return self._current_login
 
-    def check_login_based(self, core_path):
-        """
-        Caches whether a pipeline configuration is login based or not.
-
-        :param core_path: Path to the core.
-        """
-        # Look inside the shotgun.yml file if there is a script user. If there isn't
-        # the core is login based and we have to refresh the credentials everytime
-        # we send a command to avoid password prompting in the background process.
-        shotgun_yml_path = os.path.join(core_path, "config", "core", "shotgun.yml")
-        with open(shotgun_yml_path, "r") as shotgun_yaml_file:
-            data = yaml.load(shotgun_yaml_file)
-            # If there are non null values set on both keys, we are not login based.
-            if data.get("api_script") and data.get("api_key"):
-                self._is_login_based = False
-            else:
-                self._is_login_based = True
-        self._engine.log_debug("login based: %s" % self._is_login_based)
-
     def get_current_user(self):
         """
         Returns the current login based user.
@@ -387,8 +376,7 @@ class DesktopEngineSiteImplementation(object):
         Refreshes the human user credentials, potentially prompting for a password, only is
         the desktop project engine is using login based authentication.
         """
-        if self._is_login_based:
-            self._user.refresh_credentials()
+        self._user.refresh_credentials()
 
 
 class KeyedDefaultDict(collections.defaultdict):
