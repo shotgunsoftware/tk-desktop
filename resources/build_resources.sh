@@ -45,6 +45,7 @@ build_ui error_dialog
 build_ui setup_new_os
 build_ui thumb_widget
 build_ui setup_project
+build_ui no_apps_installed_overlay
 build_ui update_project_config
 build_ui loading_project_widget
 
