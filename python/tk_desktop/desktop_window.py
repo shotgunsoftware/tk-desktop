@@ -235,6 +235,7 @@ class DesktopWindow(SystrayWindow):
         # Force update so the project selection happens if the window is shown by default
         QtGui.QApplication.processEvents()
 
+        project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
         # settings that apply across any instance (after site specific, so pinned can reset pos)
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
@@ -810,6 +811,8 @@ class DesktopWindow(SystrayWindow):
             # going to launch the configuration, update the project menu if needed
             self.__populate_pipeline_configurations_menu(pipeline_configurations, most_recent_pipeline_configuration)
 
+            # From this point on, we don't touch the UI anymore.
+
             # Phase 3: Prepare the pipeline configuration.
 
             # If no pipeline configuration is in Shotgun, we'll let the bootstrap decide where the config
@@ -820,32 +823,19 @@ class DesktopWindow(SystrayWindow):
                 # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
                 toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
 
-        except Exception, error:
-            engine.log_exception(str(error))
-            self._launch_failed(str(error))
-            return
+            # Make sure the config is downloaded and the bundles cached.
+            config_path = toolkit_manager.prepare_engine("tk-desktop", project)
 
-        self.project_overlay.start_progress()
-
-        # From this point on, we don't touch the UI anymore.
-
-        class ConfigSyncThread(QtCore.QThread):
-
-            report_progress = QtCore.Signal(float, str)
-            sync_failed = QtCore.Signal(str)
+            # Phase 4: Find the interpreter and launch it.
+            try:
+                path_to_python = sgtk.get_python_interpreter_for_config(config_path)
+            except TankInvalidInterpreterLocationError:
+                engine.log_exception("Problem locating interpreter file:")
+                self.setup_new_os_widget.show()
+                self.project_overlay.hide()
+                return
             sync_success = QtCore.Signal(str)
-
-            def __init__(self, manager):
-                super(ConfigSyncThread, self).__init__()
-                self._toolkit_manager = manager
                 self._toolkit_manager.progress_callback = self._report_progress
-
-            def _report_progress(self, pct, msg):
-                self.report_progress.emit(pct, msg)
-
-            def run(self):
-                try:
-                    # Make sure the config is downloaded and the bundles cached.
                     config_path = self._toolkit_manager.prepare_engine(None, project)
                 except Exception as error:
                     engine.log_exception(str(error))
@@ -871,22 +861,15 @@ class DesktopWindow(SystrayWindow):
 
             engine = sgtk.platform.current_engine()
             # Phase 4: Find the interpreter and launch it.
-            try:
-                path_to_python = sgtk.get_python_interpreter_for_config(config_path)
-            except TankInvalidInterpreterLocationError:
-                engine.log_exception("Problem locating interpreter file:")
-                self.setup_new_os_widget.show()
-                self.project_overlay.hide()
-                return
+            path_to_python = sgtk.get_python_interpreter_for_config(config_path)
 
-            core_python = os.path.join(core_root, "install", "core", "python")
             # startup server pipe to listen
             engine.startup_rpc()
 
-        core_python = os.path.join(
-            config_path,
-            "install", "core", "python"
-        )
+            core_python = os.path.join(
+                config_path,
+                "install", "core", "python"
+            )
 
             # pickle up the info needed to bootstrap the project python
             desktop_data = {
@@ -929,6 +912,11 @@ class DesktopWindow(SystrayWindow):
 
             # and remember it for next time
             self._save_setting("project_id", self.current_project["id"], site_specific=True)
+        except TankInvalidInterpreterLocationError:
+            engine.log_exception("Problem locating interpreter file:")
+            self.setup_new_os_widget.show()
+            self.project_overlay.hide()
+            return
         except Exception as e:
             self.log_exception("Unexpected error while launching Python:")
             self._launch_failed(str(e))
