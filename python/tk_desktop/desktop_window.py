@@ -44,6 +44,7 @@ from .loading_project_widget import LoadingProjectWidget
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
+from .project_synchronization_thread import ProjectSynchronizationThread
 
 try:
     from .extensions import osutils
@@ -72,6 +73,8 @@ class DesktopWindow(SystrayWindow):
         self.__activation_hotkey = None
         self.__pipeline_configuration_separator = None
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
+
+        self._sync_thread = None
 
         engine = sgtk.platform.current_engine()
 
@@ -503,6 +506,9 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
 
+        # This is non-blocking and if the thread has already stopped running it has so side-effect.
+        self._sync_thread.abort()
+
         self._project_command_count = 0
         self._project_selection_model.clear()
         self._project_proxy.invalidate()
@@ -822,32 +828,23 @@ class DesktopWindow(SystrayWindow):
             else:
                 # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
                 toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
+        except Exception as error:
+            engine.log_exception(str(error))
+            message = ("%s"
+                       "\n\nTo resolve this, open Shotgun in your browser\n"
+                       "and check the paths for this Pipeline Configuration."
+                       "\n\nFor more details, see the console." % str(error))
+            self.project_overlay.show_error_message(message)
+            return
 
-            # Make sure the config is downloaded and the bundles cached.
-            config_path = toolkit_manager.prepare_engine("tk-desktop", project)
+        # From this point on, we don't touch the UI anymore.
+        self.project_overlay.start_progress()
 
-            # Phase 4: Find the interpreter and launch it.
-            try:
-                path_to_python = sgtk.get_python_interpreter_for_config(config_path)
-            except TankInvalidInterpreterLocationError:
-                engine.log_exception("Problem locating interpreter file:")
-                self.setup_new_os_widget.show()
-                self.project_overlay.hide()
-                return
-            sync_success = QtCore.Signal(str)
-                self._toolkit_manager.progress_callback = self._report_progress
-                    config_path = self._toolkit_manager.prepare_engine(None, project)
-                except Exception as error:
-                    engine.log_exception(str(error))
-                    self.sync_failed.emit(str(error))
-                else:
-                    self.sync_success.emit(config_path)
-
-        t = ConfigSyncThread(toolkit_manager)
-        t.sync_failed.connect(self._launch_failed)
-        t.report_progress.connect(lambda pct, msg: self.project_overlay.report_progress(pct, msg))
-        t.sync_success.connect(self._sync_success)
-        t.start()
+        self._sync_thread = ProjectSynchronizationThread(toolkit_manager, project)
+        self._sync_thread.sync_failed.connect(self._launch_failed)
+        self._sync_thread.report_progress.connect(lambda pct, msg: self.project_overlay.report_progress(pct, msg))
+        self._sync_thread.sync_success.connect(self._sync_success)
+        self._sync_thread.start()
 
     def _launch_failed(self, message):
         message = ("%s"
