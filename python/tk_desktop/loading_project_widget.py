@@ -15,11 +15,19 @@ from .ui.loading_project_widget import Ui_LoadingProjectWidget
 
 
 class LoadingProjectWidget(QtGui.QWidget):
+    """
+    Shows a Shotgun progress widget with a text box containing details of how
+    far along we are in the bootstrap process. It also supports displaying
+    an error message on top.
+    """
 
     _SHOW_DETAILS = "show details"
     _HIDE_DETAILS = "less details"
 
     def __init__(self, parent=None):
+        """
+        :param parent: Parent widget.
+        """
         super(LoadingProjectWidget, self).__init__(parent)
 
         self._ui = Ui_LoadingProjectWidget()
@@ -41,6 +49,9 @@ class LoadingProjectWidget(QtGui.QWidget):
         self._ui.show_hide_details.setText(self._SHOW_DETAILS)
 
     def _on_more_less_clicked(self):
+        """
+        Toggles the text box visibility.
+        """
         if self._ui.progress_output.isVisible():
             self._ui.progress_output.setVisible(False)
             self._ui.show_hide_details.setText(self._SHOW_DETAILS)
@@ -60,14 +71,26 @@ class LoadingProjectWidget(QtGui.QWidget):
         self.resize(self.parentWidget().size())
 
     def start_progress(self):
+        """
+        Starts the progress reporting.
+        """
         self._ui.shotgun_spinning_widget.start_progress()
+        # Hide details
         self._ui.progress_output.hide()
+        # Reset the button.
         self._ui.show_hide_details.setText(self._SHOW_DETAILS)
+        # Clear the details.
         self._ui.progress_output.clear()
         self.setVisible(True)
 
-    def report_progress(self, current, msg):
-        self._ui.shotgun_spinning_widget.report_progress(current)
+    def report_progress(self, pct, msg):
+        """
+        Updates the widget's progress indicator and detailed area.
+
+        :param float pct: Current progress. Must be between 0 and 1.
+        :param str msg: Message to add to the detailed area.
+        """
+        self._ui.shotgun_spinning_widget.report_progress(pct)
         if msg:
             self._ui.progress_output.appendHtml(msg)
             cursor = self._ui.progress_output.textCursor()
@@ -81,7 +104,7 @@ class LoadingProjectWidget(QtGui.QWidget):
         Enables the overlay and displays an
         a error message centered in the middle of the overlay.
 
-        :param msg: Message to display
+        :param str msg: Message to display
         """
         # Hide all widgets
         self._ui.shotgun_spinning_widget.hide()
@@ -93,6 +116,9 @@ class LoadingProjectWidget(QtGui.QWidget):
         self.repaint()
 
     def paintEvent(self, event):
+        """
+        Draws the overlay.
+        """
         painter = QtGui.QPainter()
         painter.begin(self)
         try:

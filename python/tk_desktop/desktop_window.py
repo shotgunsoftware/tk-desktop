@@ -238,14 +238,14 @@ class DesktopWindow(SystrayWindow):
         # Force update so the project selection happens if the window is shown by default
         QtGui.QApplication.processEvents()
 
-        project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
         # settings that apply across any instance (after site specific, so pinned can reset pos)
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
         # always start pinned and hidden
         self.state = self._settings_manager.retrieve("dialog_pinned", self.STATE_PINNED)
 
-        # Update the project at the very end so the
+        # Update the project at the very end so the Python process is kicked off when everything
+        # is initialized.
         project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
         self.__set_project_from_id(project_id)
 
