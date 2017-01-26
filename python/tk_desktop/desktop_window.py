@@ -23,7 +23,7 @@ from sgtk.util import shotgun
 from sgtk.bootstrap import ToolkitManager
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
-from sgtk import TankInvalidInterpreterLocationError
+from sgtk import TankInvalidInterpreterLocationError, TankFileDoesNotExistError
 
 from .ui import resources_rc # noqa
 from .ui import desktop_window
@@ -909,7 +909,7 @@ class DesktopWindow(SystrayWindow):
 
             # and remember it for next time
             self._save_setting("project_id", self.current_project["id"], site_specific=True)
-        except TankInvalidInterpreterLocationError:
+        except (TankInvalidInterpreterLocationError, TankFileDoesNotExistError) as e:
             engine.log_exception("Problem locating interpreter file:")
             self.setup_new_os_widget.show()
             self.project_overlay.hide()
