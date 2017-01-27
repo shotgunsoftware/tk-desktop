@@ -384,9 +384,21 @@ class DesktopWindow(SystrayWindow):
         """
         self.setup_project_widget.project = self.current_project
 
+        # The first time a user selects the Advanced project setup
+        # menu item, display the Setup Project help popup to provide
+        # more information about this feature.
+        wizard_setting = "advanced_project_setup_launched"
+
+        # TODO: REMOVE FOLLOWING LINE BEFORE CHECKIN!!
+        self._save_setting(wizard_setting, False, False)
+
+        wizard_help_shown = self._load_setting(wizard_setting, False, False)
+        if not wizard_help_shown:
+            self._save_setting(wizard_setting, True, False)
+
         # Bypass the Setup Toolkit overlay of the setup_project_widget
         # and go straight to the setup wizard window.
-        self.setup_project_widget.do_setup()
+        self.setup_project_widget.do_setup(show_help=not(wizard_help_shown))
 
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):

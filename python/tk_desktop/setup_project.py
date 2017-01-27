@@ -41,7 +41,7 @@ class SetupProject(QtGui.QWidget):
 
         self.setVisible(False)
 
-    def do_setup(self):
+    def do_setup(self, show_help=False):
         # Only toggle top window if it used to be off (to avoid un-necessary window flicker in case it was already off)
         is_on_top = self._is_on_top()
 
@@ -50,7 +50,11 @@ class SetupProject(QtGui.QWidget):
                 self._set_top_window_on_top(False)
 
             # First check to see if the current user
-            self.validate_user_permissions()
+            self._validate_user_permissions()
+
+            if show_help:
+                # Display the Help popup if requested.
+                self.show_help_popup()
 
             setup = adminui.SetupProjectWizard(self.project, self)
 
@@ -77,7 +81,14 @@ class SetupProject(QtGui.QWidget):
             if is_on_top: 
                 self._set_top_window_on_top(True)
 
-    def validate_user_permissions(self):
+    def show_help_popup(self):
+        """
+        Display a help screen
+        """
+        # Not sure what to put here.
+        pass
+
+    def _validate_user_permissions(self):
         """
         Attempt to modify the Project's tank_name field to determine whether
         the current user has sufficient permission to setup the Project's
@@ -98,12 +109,15 @@ class SetupProject(QtGui.QWidget):
                 "Project", self.project["id"], {"tank_name": sg_project["tank_name"]}
             )
         except Exception, e:
-            # This acutally raises a 'Fault' defined in the Shotgun Python API, which
-            # is somewhat useless to catch, so key off the error message instead.
+            # Since the 'Fault' raised by the Shotgun Python API is not much more
+            # helpful than the exception, check the error message directly for
+            # the specific problems we want to handle.
+
             if "field is not editable for this user" in str(e):
+                # Insufficient user permissions to setup Toolkit for a project.
                 raise TankUserPermissionsError(e)
 
-            # Simply raise any other exceptions that occur
+            # Raise any other exceptions that occur.
             raise
 
     def _is_on_top(self):
