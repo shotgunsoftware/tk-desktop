@@ -12,6 +12,7 @@ import pprint
 
 import sgtk
 
+from sgtk import TankError
 from sgtk.platform.qt import QtCore
 from sgtk.platform.qt import QtGui
 
@@ -94,11 +95,25 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         icon_row_layout = None
         last_software = len(sg_softwares) - 1
         for i in range(len(sg_softwares)):
-            # Download the thumbnail source file from Shotgun, which preserves
-            # transparency and alpha values.
-            sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail_source(
-                sg_softwares[i]["type"], sg_softwares[i]["id"], engine
-            )
+            try:
+                # Download the thumbnail source file from Shotgun, which preserves
+                # transparency and alpha values.
+                sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail_source(
+                    sg_softwares[i]["type"], sg_softwares[i]["id"], engine
+                )
+
+            except (TankError, AttributeError):
+                # An old version of tk-framework-shotgunutils or tk-core is 
+                # likely in use. Try ShotgunDataRetriever.download_thumbnail() instead.
+                engine.logger.warning(
+                    "ShotgunDataRetriever is unable to download thumbnail source file. "
+                    "Attempting to download thumbnail instead. This issue may be "
+                    "resolved by updating local installations of tk-framework-shotgunutils."
+                )
+                sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail(
+                    sg_softwares[i]["image"], engine
+                )
+
             if not sg_icon:
                 engine.logger.warning(
                     "Could not download thumbnail for %s entity [%s]" %
@@ -236,8 +251,9 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             # entities that do not have any Group or User restrictions.
             sw_filters.extend(user_group_filters)
 
-        # Create a placeholder for the list of Software fields to retrieve.
-        sw_fields = []
+        # Retrieve the Software thumbnail image to use as a back up if the
+        # thumbnail source cannot be downloaded.
+        sw_fields = ["image"]
 
         # Get the list of matching Software entities
         sg_softwares = engine.shotgun.find(sw_entity, sw_filters, sw_fields)
