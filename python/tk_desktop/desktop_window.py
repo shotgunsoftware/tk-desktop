@@ -24,7 +24,7 @@ from sgtk.bootstrap import ToolkitManager
 from sgtk import util
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
-#from sgtk import TankInvalidInterpreterLocationError
+from sgtk import TankInvalidInterpreterLocationError
 
 from .ui import resources_rc
 from .ui import desktop_window
@@ -764,9 +764,9 @@ class DesktopWindow(SystrayWindow):
             toolkit_manager.progress_callback = report_progress
 
             # Step 2: Retrieves the pipeline configurations that use plugin ids usable by the current user.
-            #pipeline_configurations.extend(
-            #    toolkit_manager.get_pipeline_configurations(project)
-            #)
+            pipeline_configurations.extend(
+                toolkit_manager.get_pipeline_configurations(project)
+            )
 
             setting = "pipeline_configuration_for_project_%d" % project["id"]
             if pipeline_configuration_id is None:
@@ -828,7 +828,7 @@ class DesktopWindow(SystrayWindow):
             # Phase 4: Find the interpreter and launch it.
             try:
                 path_to_python = sgtk.get_python_interpreter_for_config(config_path)
-            except: # TankInvalidInterpreterLocationError:
+            except TankInvalidInterpreterLocationError:
                 engine.log_exception("Problem locating interpreter file:")
                 self.setup_new_os_widget.show()
                 self.project_overlay.hide()
