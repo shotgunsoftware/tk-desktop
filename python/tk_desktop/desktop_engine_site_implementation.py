@@ -363,25 +363,6 @@ class DesktopEngineSiteImplementation(object):
         """
         return self._current_login
 
-    def check_login_based(self, core_path):
-        """
-        Caches whether a pipeline configuration is login based or not.
-
-        :param core_path: Path to the core.
-        """
-        # Look inside the shotgun.yml file if there is a script user. If there isn't
-        # the core is login based and we have to refresh the credentials everytime
-        # we send a command to avoid password prompting in the background process.
-        shotgun_yml_path = os.path.join(core_path, "config", "core", "shotgun.yml")
-        with open(shotgun_yml_path, "r") as shotgun_yaml_file:
-            data = yaml.load(shotgun_yaml_file)
-            # If there are non null values set on both keys, we are not login based.
-            if data.get("api_script") and data.get("api_key"):
-                self._is_login_based = False
-            else:
-                self._is_login_based = True
-        self._engine.log_debug("login based: %s" % self._is_login_based)
-
     def get_current_user(self):
         """
         Returns the current login based user.
@@ -395,8 +376,7 @@ class DesktopEngineSiteImplementation(object):
         Refreshes the human user credentials, potentially prompting for a password, only is
         the desktop project engine is using login based authentication.
         """
-        if self._is_login_based:
-            self._user.refresh_credentials()
+        self._user.refresh_credentials()
 
 
 class KeyedDefaultDict(collections.defaultdict):
