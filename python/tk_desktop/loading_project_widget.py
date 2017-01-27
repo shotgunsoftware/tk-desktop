@@ -21,8 +21,8 @@ class LoadingProjectWidget(QtGui.QWidget):
     an error message on top.
     """
 
-    _SHOW_DETAILS = "show details"
-    _HIDE_DETAILS = "less details"
+    _SHOW_DETAILS = "Show Details"
+    _HIDE_DETAILS = "Less Details"
 
     def __init__(self, parent=None):
         """
