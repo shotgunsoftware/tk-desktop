@@ -531,8 +531,9 @@ class DesktopWindow(SystrayWindow):
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
 
-        # We switching back to the project list, so need to show the
-        # "Refresh Projects" once again.
+        # We are switching back to the project list, so need to show the
+        # "Refresh Projects" and hide the "Advanced project Setup" menu
+        # items once again.
         self.ui.actionRefresh_Projects.setVisible(True)
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
@@ -752,7 +753,6 @@ class DesktopWindow(SystrayWindow):
             # Always hide the Refresh Projects menu item when launching the project engine
             # since no projects will be displayed in the app launcher pane.
             self.ui.actionRefresh_Projects.setVisible(False)
-            self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
             self.project_overlay.start_spin()
 

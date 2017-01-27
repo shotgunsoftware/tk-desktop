@@ -42,8 +42,7 @@ class SetupProject(QtGui.QWidget):
         self.setVisible(False)
 
     def do_setup(self):
-        # Only toggle top window if it used to be off (to avoid un-necessary window
-        # flicker in case it was already off)
+        # Only toggle top window if it used to be off (to avoid un-necessary window flicker in case it was already off)
         is_on_top = self._is_on_top()
 
         try:
