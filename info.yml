@@ -134,9 +134,10 @@ description: "The engine that runs inside the Shotgun Desktop Application"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.16.3"
+#requires_core_version: "v0.16.3"
+requires_core_version: "v0.18.54"
 
 frameworks:
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}
-    - {"name": "tk-framework-shotgunutils", "version": "v4.x.x"}
+    - {"name": "tk-framework-shotgunutils", "version": "v5.1.x"}
     - {"name": "tk-framework-adminui", "version": "v0.x.x"}
