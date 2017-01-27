@@ -820,15 +820,6 @@ class DesktopWindow(SystrayWindow):
                     if primary_pipeline_configuration is not None:
                         break
 
-""" NEEDS TO BE MERGED ....
-        
-            if pipeline_configuration is None:
-                if primary_pipeline_configuration is None:
-                    self.project_overlay.hide()
-                    self.ui.actionAdvanced_Project_Setup.setVisible(True)
-                    return
-                else:
-DONE NEEDS TO BE MERGED"""
             # If we haven't found what we were searching for...
             if most_recent_pipeline_configuration is None:
                 # ... but the primary exists, switch to that.
@@ -849,9 +840,15 @@ DONE NEEDS TO BE MERGED"""
             # comes from.
             if most_recent_pipeline_configuration is None:
                 toolkit_manager.pipeline_configuration = None
+
+                # Enable user menu item to launch classic Project Setup wizard
+                self.ui.actionAdvanced_Project_Setup.setVisible(True)
             else:
                 # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
                 toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
+
+                # Disable user menu item that launches classic Project Setup wizard
+                self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
             # Make sure the config is downloaded and the bundles cached.
             config_path = toolkit_manager.prepare_engine("tk-desktop", project)

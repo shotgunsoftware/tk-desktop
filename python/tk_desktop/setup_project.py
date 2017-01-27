@@ -68,8 +68,8 @@ class SetupProject(QtGui.QWidget):
 
         except TankUserPermissionsError, e:
             error_dialog = ErrorDialog("Toolkit Setup Error",
-                                       "You do not have adequate permission to setup Toolkit for\n"
-                                       "project %s. Contact a site administrator for assistance." %
+                                       "You do not have sufficient permissions in Shotgun to setup Toolkit for "
+                                       "project '%s'.\n\nContact a site administrator for assistance." %
                                         self.project["name"]
             )
             ret = error_dialog.exec_()
@@ -85,14 +85,27 @@ class SetupProject(QtGui.QWidget):
         pipeline configuration.
         """
         try:
+            # Try to update the Project's tank_name value in SG to test
+            # whether current user has sufficient permission to setup
+            # Toolkit for a project.
             engine = sgtk.platform.current_engine()
-            engine.shotgun.update("Project", self.project["id"], {"tank_name": "foobar"})
-            engine.shotgun.update("Project", self.project["id"], {"tank_name": ""})
+            sg_project = engine.shotgun.find_one(
+                "Project", [["id", "is", self.project["id"]]], ["tank_name"]
+            )
+            engine.shotgun.update(
+                "Project", self.project["id"], {"tank_name": "foobar"}
+            )
+            engine.shotgun.update(
+                "Project", self.project["id"], {"tank_name": sg_project["tank_name"]}
+            )
         except Exception, e:
             # This acutally raises a 'Fault' defined in the Shotgun Python API, which
             # is somewhat useless to catch, so key off the error message instead.
             if "field is not editable for this user" in str(e):
                 raise TankUserPermissionsError(e)
+
+            # Simply raise any other exceptions that occur
+            raise
 
     def _is_on_top(self):
         """
