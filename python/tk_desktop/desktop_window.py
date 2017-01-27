@@ -388,10 +388,6 @@ class DesktopWindow(SystrayWindow):
         # menu item, display the Setup Project help popup to provide
         # more information about this feature.
         wizard_setting = "advanced_project_setup_launched"
-
-        # TODO: REMOVE FOLLOWING LINE BEFORE CHECKIN!!
-        self._save_setting(wizard_setting, False, False)
-
         wizard_help_shown = self._load_setting(wizard_setting, False, False)
         if not wizard_help_shown:
             self._save_setting(wizard_setting, True, False)
