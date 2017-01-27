@@ -143,9 +143,9 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
 
-        # Initially hide the advance project setup menu item. This menu item
-        # will only be shown for projects that either do not have a pipeline
-        # configuration or the pipeline configuration is blank.
+        # Initially hide the Advanced project setup... menu item. This
+        # menu item will only be displayed for projects that do not have
+        # any pipeline configurations registered in Shotgun.
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
         name_action.triggered.connect(self.open_site_in_browser)
@@ -532,7 +532,7 @@ class DesktopWindow(SystrayWindow):
         self._save_setting("project_id", 0, site_specific=True)
 
         # We are switching back to the project list, so need to show the
-        # "Refresh Projects" and hide the "Advanced project Setup" menu
+        # "Refresh Projects" and hide the "Advanced project setup" menu
         # items once again.
         self.ui.actionRefresh_Projects.setVisible(True)
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
