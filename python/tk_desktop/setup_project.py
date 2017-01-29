@@ -13,6 +13,8 @@ from sgtk.platform.qt import QtCore
 from sgtk import TankErrorProjectIsSetup
 from error_dialog import ErrorDialog
 
+from tank_vendor.shotgun_api3 import Fault
+
 
 from .ui import setup_project
 
@@ -67,7 +69,7 @@ class SetupProject(QtGui.QWidget):
                                        "To re-setup a project, in a terminal window type: tank setup_project --force\n\n"
                                        "Alternatively, you can go into shotgun and clear the Project.tank_name field\n"
                                        "and delete all pipeline configurations for your project.")
-            ret = error_dialog.exec_()
+            error_dialog.exec_()
 
         except TankUserPermissionsError, e:
             error_dialog = ErrorDialog("Toolkit Setup Error",
@@ -75,7 +77,7 @@ class SetupProject(QtGui.QWidget):
                                        "project '%s'.\n\nContact a site administrator for assistance." %
                                         self.project["name"]
             )
-            ret = error_dialog.exec_()
+            error_dialog.exec_()
 
         finally:
             if is_on_top: 
@@ -108,16 +110,16 @@ class SetupProject(QtGui.QWidget):
             engine.shotgun.update(
                 "Project", self.project["id"], {"tank_name": sg_project["tank_name"]}
             )
-        except Exception, e:
+        except Fault, f:
             # Since the 'Fault' raised by the Shotgun Python API is not much more
-            # helpful than the exception, check the error message directly for
+            # helpful than a general Exception, check the error message directly for
             # the specific problems we want to handle.
 
-            if "field is not editable for this user" in str(e):
+            if "field is not editable for this user" in str(f):
                 # Insufficient user permissions to setup Toolkit for a project.
-                raise TankUserPermissionsError(e)
+                raise TankUserPermissionsError(f)
 
-            # Raise any other exceptions that occur.
+            # Raise any other Shotgun API Faults that occur.
             raise
 
     def _is_on_top(self):

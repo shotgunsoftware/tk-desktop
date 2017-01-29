@@ -388,9 +388,13 @@ class DesktopWindow(SystrayWindow):
         # menu item, display the Setup Project help popup to provide
         # more information about this feature.
         wizard_setting = "advanced_project_setup_launched"
-        wizard_help_shown = self._load_setting(wizard_setting, False, False)
+        wizard_help_shown = self._load_setting(
+            wizard_setting, default_value=False, site_specific=False
+        )
         if not wizard_help_shown:
-            self._save_setting(wizard_setting, True, False)
+            self._save_setting(
+                wizard_setting, value=True, site_specific=False
+            )
 
         # Bypass the Setup Toolkit overlay of the setup_project_widget
         # and go straight to the setup wizard window.
@@ -840,23 +844,27 @@ class DesktopWindow(SystrayWindow):
             # going to launch the configuration, update the project menu if needed
             self.__populate_pipeline_configurations_menu(pipeline_configurations, most_recent_pipeline_configuration)
 
+            # If no most_recent_pipeline_configuration could be determined, show the
+            # 'Advanced project setup...' menu item.
+            if most_recent_pipeline_configuration is None:
+                # Enable user menu item to launch classic Project Setup wizard
+                self.ui.actionAdvanced_Project_Setup.setVisible(True)
+            else:
+                # Disable user menu item that launches classic Project Setup wizard
+                self.ui.actionAdvanced_Project_Setup.setVisible(False)
+
             # From this point on, we don't touch the UI anymore.
 
             # Phase 3: Prepare the pipeline configuration.
 
-            # If no pipeline configuration is in Shotgun, we'll let the bootstrap decide where the config
-            # comes from.
+            # If no pipeline configuration is in the user settings, we will let the bootstrap
+            # pick the right pipeline configuration for the first launch.
             if most_recent_pipeline_configuration is None:
                 toolkit_manager.pipeline_configuration = None
-
-                # Enable user menu item to launch classic Project Setup wizard
-                self.ui.actionAdvanced_Project_Setup.setVisible(True)
             else:
-                # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
+                # We've loded this project before and saved its pipeline configuation id, so
+                # reload the same old one.
                 toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
-
-                # Disable user menu item that launches classic Project Setup wizard
-                self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
             # Make sure the config is downloaded and the bundles cached.
             config_path = toolkit_manager.prepare_engine("tk-desktop", project)
