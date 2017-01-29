@@ -106,10 +106,11 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
                 # An old version of tk-framework-shotgunutils or tk-core is 
                 # likely in use. Try ShotgunDataRetriever.download_thumbnail() instead.
                 engine.logger.warning(
-                    "ShotgunDataRetriever is unable to download thumbnail source file. "
-                    "Attempting to download thumbnail instead. This issue may be "
-                    "resolved by updating local installations of tk-framework-shotgunutils "
-                    "and tk-core."
+                    "ShotgunDataRetriever is unable to download thumbnail source "
+                    "file due to out-of-date libraries. Attempting to download jpeg "
+                    "thumbnail instead, which does not preserve transparency. This icon "
+                    "will appear opaque. This issue may be resolved by updating local "
+                    "installations of tk-framework-shotgunutils and tk-core."
                 )
                 sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail(
                     sg_softwares[i]["image"], engine
