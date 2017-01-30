@@ -95,26 +95,11 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         icon_row_layout = None
         last_software = len(sg_softwares) - 1
         for i in range(len(sg_softwares)):
-            try:
-                # Download the thumbnail source file from Shotgun, which preserves
-                # transparency and alpha values.
-                sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail_source(
-                    sg_softwares[i]["type"], sg_softwares[i]["id"], engine
-                )
-
-            except (TankError, AttributeError):
-                # An old version of tk-framework-shotgunutils or tk-core is 
-                # likely in use. Try ShotgunDataRetriever.download_thumbnail() instead.
-                engine.logger.warning(
-                    "ShotgunDataRetriever is unable to download thumbnail source "
-                    "file due to out-of-date libraries. Attempting to download jpeg "
-                    "thumbnail instead, which does not preserve transparency. This icon "
-                    "will appear opaque. This issue may be resolved by updating local "
-                    "installations of tk-framework-shotgunutils and tk-core."
-                )
-                sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail(
-                    sg_softwares[i]["image"], engine
-                )
+            # Download the thumbnail source file from Shotgun, which preserves
+            # transparency and alpha values.
+            sg_icon = shotgun_data.ShotgunDataRetriever.download_thumbnail_source(
+                sg_softwares[i]["type"], sg_softwares[i]["id"], engine
+            )
 
             if not sg_icon:
                 engine.logger.warning(
@@ -253,12 +238,8 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             # entities that do not have any Group or User restrictions.
             sw_filters.extend(user_group_filters)
 
-        # Retrieve the Software thumbnail image to use as a back up if the
-        # thumbnail source cannot be downloaded.
-        sw_fields = ["image"]
-
         # Get the list of matching Software entities
-        sg_softwares = engine.shotgun.find(sw_entity, sw_filters, sw_fields)
+        sg_softwares = engine.shotgun.find(sw_entity, sw_filters)
         engine.logger.debug("Found [%d] Software entities matching filters: %s" %
             (len(sg_softwares), pprint.pformat(sw_filters))
         )
