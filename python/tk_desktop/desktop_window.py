@@ -844,9 +844,9 @@ class DesktopWindow(SystrayWindow):
             # going to launch the configuration, update the project menu if needed
             self.__populate_pipeline_configurations_menu(pipeline_configurations, most_recent_pipeline_configuration)
 
-            # If no most_recent_pipeline_configuration could be determined, show the
+            # If no pipeline configurations were found in Shotgun, show the
             # 'Advanced project setup...' menu item.
-            if most_recent_pipeline_configuration is None:
+            if not pipeline_configurations:
                 # Enable user menu item to launch classic Project Setup wizard
                 self.ui.actionAdvanced_Project_Setup.setVisible(True)
             else:
