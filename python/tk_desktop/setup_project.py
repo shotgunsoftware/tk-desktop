@@ -15,7 +15,6 @@ from error_dialog import ErrorDialog
 
 from tank_vendor.shotgun_api3 import Fault
 
-
 from .ui import setup_project
 
 import sgtk
