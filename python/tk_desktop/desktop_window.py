@@ -21,12 +21,11 @@ from tank.platform.qt import QtCore, QtGui
 import sgtk
 from sgtk.util import shotgun
 from sgtk.bootstrap import ToolkitManager
-from sgtk import util
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
-from sgtk import TankInvalidInterpreterLocationError
+from sgtk import TankInvalidInterpreterLocationError, TankFileDoesNotExistError
 
-from .ui import resources_rc
+from .ui import resources_rc # noqa
 from .ui import desktop_window
 
 from .console import Console
@@ -40,10 +39,12 @@ from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
 from .project_delegate import SgProjectDelegate
 from .update_project_config import UpdateProjectConfig
+from .loading_project_widget import LoadingProjectWidget
 
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
+from .project_synchronization_thread import ProjectSynchronizationThread
 
 try:
     from .extensions import osutils
@@ -73,12 +74,14 @@ class DesktopWindow(SystrayWindow):
         self.__pipeline_configuration_separator = None
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
 
+        self._sync_thread = None
+
         engine = sgtk.platform.current_engine()
 
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
-        self.project_overlay = overlay_widget.ShotgunOverlayWidget(self.ui.project_commands)
+        self.project_overlay = LoadingProjectWidget(self.ui.project_commands)
         self.install_apps_widget = NoAppsInstalledOverlay(self.ui.project_commands)
         self.setup_project_widget = SetupProject(self.ui.project_commands)
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
@@ -224,6 +227,8 @@ class DesktopWindow(SystrayWindow):
 
         self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
 
+        # Do not put anything after this line, this can kick-off a Python process launch, which should
+        # be done only when the dialog is fully initialized.
         self._load_settings()
 
     def _load_settings(self):
@@ -233,15 +238,16 @@ class DesktopWindow(SystrayWindow):
         # Force update so the project selection happens if the window is shown by default
         QtGui.QApplication.processEvents()
 
-        # load up last project
-        project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
-        self.__set_project_from_id(project_id)
-
         # settings that apply across any instance (after site specific, so pinned can reset pos)
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
         # always start pinned and hidden
         self.state = self._settings_manager.retrieve("dialog_pinned", self.STATE_PINNED)
+
+        # Update the project at the very end so the Python process is kicked off when everything
+        # is initialized.
+        project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
+        self.__set_project_from_id(project_id)
 
     def _save_setting(self, key, value, site_specific):
         if site_specific:
@@ -500,6 +506,9 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
 
+        # This is non-blocking and if the thread has already stopped running it has so side-effect.
+        self._sync_thread.abort()
+
         self._project_command_count = 0
         self._project_selection_model.clear()
         self._project_proxy.invalidate()
@@ -732,8 +741,6 @@ class DesktopWindow(SystrayWindow):
             # since no projects will be displayed in the app launcher pane.
             self.ui.actionRefresh_Projects.setVisible(False)
 
-            self.project_overlay.start_spin()
-
             self.current_project = project
 
             # trigger an update to the model to track this project access
@@ -821,19 +828,7 @@ class DesktopWindow(SystrayWindow):
             else:
                 # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
                 toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
-
-            # Make sure the config is downloaded and the bundles cached.
-            config_path = toolkit_manager.prepare_engine("tk-desktop", project)
-
-            # Phase 4: Find the interpreter and launch it.
-            try:
-                path_to_python = sgtk.get_python_interpreter_for_config(config_path)
-            except TankInvalidInterpreterLocationError:
-                engine.log_exception("Problem locating interpreter file:")
-                self.setup_new_os_widget.show()
-                self.project_overlay.hide()
-                return
-        except Exception, error:
+        except Exception as error:
             engine.log_exception(str(error))
             message = ("%s"
                        "\n\nTo resolve this, open Shotgun in your browser\n"
@@ -842,53 +837,86 @@ class DesktopWindow(SystrayWindow):
             self.project_overlay.show_error_message(message)
             return
 
-        # startup server pipe to listen
-        engine.startup_rpc()
+        # From this point on, we don't touch the UI anymore.
+        self.project_overlay.start_progress()
 
-        core_python = os.path.join(
-            config_path,
-            "install", "core", "python"
-        )
+        self._sync_thread = ProjectSynchronizationThread(toolkit_manager, project)
+        self._sync_thread.sync_failed.connect(self._launch_failed)
+        self._sync_thread.report_progress.connect(lambda pct, msg: self.project_overlay.report_progress(pct, msg))
+        self._sync_thread.sync_success.connect(self._sync_success)
+        self._sync_thread.start()
 
-        # pickle up the info needed to bootstrap the project python
-        desktop_data = {
-            "core_python_path": core_python,
-            "config_path": config_path,
-            "project": project,
-            "proxy_data": {
-                "proxy_pipe": engine.site_comm.server_pipe,
-                "proxy_auth": engine.site_comm.server_authkey
+    def _launch_failed(self, message):
+        message = ("%s"
+                   "\n\nTo resolve this, open Shotgun in your browser\n"
+                   "and check the paths for this Pipeline Configuration."
+                   "\n\nFor more details, see the console." % message)
+        self.project_overlay.show_error_message(message)
+
+    def _sync_success(self, config_path):
+        try:
+
+            engine = sgtk.platform.current_engine()
+            # Phase 4: Find the interpreter and launch it.
+            path_to_python = sgtk.get_python_interpreter_for_config(config_path)
+
+            # startup server pipe to listen
+            engine.startup_rpc()
+
+            core_python = os.path.join(
+                config_path,
+                "install", "core", "python"
+            )
+
+            # pickle up the info needed to bootstrap the project python
+            desktop_data = {
+                "core_python_path": core_python,
+                "config_path": config_path,
+                "project": self.current_project,
+                "proxy_data": {
+                    "proxy_pipe": engine.site_comm.server_pipe,
+                    "proxy_auth": engine.site_comm.server_authkey
+                }
             }
-        }
-        (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
-        pickle.dump(desktop_data, open(pickle_data_file, "wb"))
+            (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
+            pickle.dump(desktop_data, open(pickle_data_file, "wb"))
 
-        # update the values on the project updater in case they are needed
-        self.update_project_config_widget.set_project_info(
-            path_to_python, core_python, config_path, project)
+            # update the values on the project updater in case they are needed
+            self.update_project_config_widget.set_project_info(
+                path_to_python, core_python, config_path, self.current_project)
 
-        # get the path to the utilities module
-        utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
+            # get the path to the utilities module
+            utilities_module_path = os.path.realpath(
+                os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py")
+            )
 
-        # Make sure the credentials are refreshed so the background process
-        # has no problem launching.
-        engine.refresh_user_credentials()
+            # Make sure the credentials are refreshed so the background process
+            # has no problem launching.
+            engine.refresh_user_credentials()
 
-        # Ticket 26741: Avoid having odd DLL loading issues on windows
-        self._push_dll_state()
+            # Ticket 26741: Avoid having odd DLL loading issues on windows
+            self._push_dll_state()
 
-        engine.log_info("--- launching python subprocess (%s)" % path_to_python)
-        engine.execute_hook(
-            "hook_launch_python",
-            project_python=path_to_python,
-            pickle_data_path=pickle_data_file,
-            utilities_module_path=utilities_module_path,
-        )
+            engine.log_info("--- launching python subprocess (%s)" % path_to_python)
+            engine.execute_hook(
+                "hook_launch_python",
+                project_python=path_to_python,
+                pickle_data_path=pickle_data_file,
+                utilities_module_path=utilities_module_path,
+            )
 
-        self._pop_dll_state()
+            self._pop_dll_state()
 
-        # and remember it for next time
-        self._save_setting("project_id", self.current_project["id"], site_specific=True)
+            # and remember it for next time
+            self._save_setting("project_id", self.current_project["id"], site_specific=True)
+        except (TankInvalidInterpreterLocationError, TankFileDoesNotExistError) as e:
+            engine.log_exception("Problem locating interpreter file:")
+            self.setup_new_os_widget.show()
+            self.project_overlay.hide()
+            return
+        except Exception as e:
+            self.log_exception("Unexpected error while launching Python:")
+            self._launch_failed(str(e))
 
     def slide_view(self, new_page, from_direction="right"):
         offsetx = self.ui.stack.frameRect().width()
