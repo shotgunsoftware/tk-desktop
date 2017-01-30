@@ -12,7 +12,6 @@ import pprint
 
 import sgtk
 
-from sgtk import TankError
 from sgtk.platform.qt import QtCore
 from sgtk.platform.qt import QtGui
 
