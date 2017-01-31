@@ -929,6 +929,14 @@
     <string>Refreshes the project information.</string>
    </property>
   </action>
+  <action name="actionAdvanced_Project_Setup">
+   <property name="text">
+    <string>Advanced project setup...</string>
+   </property>
+   <property name="toolTip">
+    <string>Launch the classic project setup wizard</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
