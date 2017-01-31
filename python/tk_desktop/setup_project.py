@@ -122,10 +122,10 @@ class SetupProject(QtGui.QWidget):
                 "Project", self.project["id"], {"tank_name": sg_project["tank_name"]}
             )
         except Exception, e:
-            # Not sure why, but attempting to catch an shotgun_api3.Fault here using
-            # 'except Fault:' just passes through, so we need to catch the general
-            # Exception instead and check the error message directly for the specific
-            # problems we want to handle.
+            # Attempting to catch a shotgun_api3.Fault here using 'except Fault:'
+            # just passes through, so we need to catch the general Exception instead
+            # and check the error message directly for the specific problems we want
+            # to handle.
             if "field is not editable for this user" in str(e):
                 # Insufficient user permissions to setup Toolkit for a project.
                 raise TankUserPermissionsError(e)
