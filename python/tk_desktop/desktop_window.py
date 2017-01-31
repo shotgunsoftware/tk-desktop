@@ -862,7 +862,7 @@ class DesktopWindow(SystrayWindow):
             if most_recent_pipeline_configuration is None:
                 toolkit_manager.pipeline_configuration = None
             else:
-                # We've loded this project before and saved its pipeline configuation id, so
+                # We've loaded this project before and saved its pipeline configuation id, so
                 # reload the same old one.
                 toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
 
