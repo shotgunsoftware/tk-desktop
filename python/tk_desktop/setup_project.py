@@ -13,8 +13,6 @@ from sgtk.platform.qt import QtCore
 from sgtk import TankErrorProjectIsSetup
 from error_dialog import ErrorDialog
 
-from tank_vendor.shotgun_api3 import Fault
-
 from .ui import setup_project
 
 import sgtk
@@ -123,16 +121,16 @@ class SetupProject(QtGui.QWidget):
             engine.shotgun.update(
                 "Project", self.project["id"], {"tank_name": sg_project["tank_name"]}
             )
-        except Fault, f:
-            # Since the 'Fault' raised by the Shotgun Python API is not much more
-            # helpful than a general Exception, check the error message directly for
-            # the specific problems we want to handle.
-
-            if "field is not editable for this user" in str(f):
+        except Exception, e:
+            # Attempting to catch a shotgun_api3.Fault here using 'except Fault:'
+            # just passes through, so we need to catch the general Exception instead
+            # and check the error message directly for the specific problems we want
+            # to handle.
+            if "field is not editable for this user" in str(e):
                 # Insufficient user permissions to setup Toolkit for a project.
-                raise TankUserPermissionsError(f)
+                raise TankUserPermissionsError(e)
 
-            # Raise any other Shotgun API Faults that occur.
+            # Raise any other general Exceptions.
             raise
 
     def _is_on_top(self):
