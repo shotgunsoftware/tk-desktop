@@ -86,8 +86,22 @@ class SetupProject(QtGui.QWidget):
         """
         Display a help screen
         """
-        # Not sure what to put here.
-        pass
+        # For the interim, just launch an information MessageBox
+        # that will open a link to the Toolkit Project setup wizard
+        # documentation
+        help_text = ("Find out more about the Setup Project Wizard by "
+                     "clicking 'Open' below.")
+        help_buttons = QtGui.QMessageBox.Open | QtGui.QMessageBox.Cancel
+        user_input = QtGui.QMessageBox.information(
+            self, "Setup Project Help", help_text,
+            help_buttons, QtGui.QMessageBox.Open
+        )
+
+        if user_input == QtGui.QMessageBox.Open:
+            # Go to the Toolkit Project setup wizard documentation
+            help_url = ("https://support.shotgunsoftware.com/hc/en-us/articles/"
+                        "219040668#The%20Toolkit%20Project%20setup%20wizard")
+            QtGui.QDesktopServices.openUrl(help_url)
 
     def _validate_user_permissions(self):
         """
