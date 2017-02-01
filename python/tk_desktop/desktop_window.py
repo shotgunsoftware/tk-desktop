@@ -766,13 +766,6 @@ class DesktopWindow(SystrayWindow):
                 engine.sgtk.bundle_cache_fallback_paths
             )
 
-            # FIXME: This needs to be replaced when we implement proper progress reporting during
-            # startup.
-            def report_progress(percentage, message):
-                print percentage, message
-
-            toolkit_manager.progress_callback = report_progress
-
             # Step 2: Retrieves the pipeline configurations that use plugin ids usable by the current user.
             pipeline_configurations.extend(
                 toolkit_manager.get_pipeline_configurations(project)
