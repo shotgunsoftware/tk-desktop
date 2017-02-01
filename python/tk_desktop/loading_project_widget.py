@@ -74,6 +74,9 @@ class LoadingProjectWidget(QtGui.QWidget):
         """
         Starts the progress reporting.
         """
+        # Reset the message
+        self._message = None
+        self._show_hide_widgets(show=True)
         self._ui.shotgun_spinning_widget.start_progress()
         # Hide details
         self._ui.progress_output.hide()
@@ -107,13 +110,21 @@ class LoadingProjectWidget(QtGui.QWidget):
         :param str msg: Message to display
         """
         # Hide all widgets
-        self._ui.shotgun_spinning_widget.hide()
-        self._ui.bottom.hide()
-        self._ui.progress_output.hide()
+        self._show_hide_widgets(show=False)
 
         self.setVisible(True)
         self._message = msg
         self.repaint()
+
+    def _show_hide_widgets(self, show=False):
+        """
+        Shows or hides the widgets in the UI.
+
+        :param show: If True, shows all the widgets in the UI.
+        """
+        self._ui.shotgun_spinning_widget.setVisible(show)
+        self._ui.bottom.setVisible(show)
+        self._ui.progress_output.setVisible(show)
 
     def paintEvent(self, event):
         """
