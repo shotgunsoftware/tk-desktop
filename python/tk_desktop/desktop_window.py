@@ -1022,7 +1022,7 @@ class DesktopWindow(SystrayWindow):
                 engine.app_version,
                 engine.startup_version,
                 engine.version,
-                engine.tk.version)
+                engine.sgtk.version)
             )
         else:
             about = AboutScreen(parent=self, body="""
@@ -1034,6 +1034,6 @@ class DesktopWindow(SystrayWindow):
             """ % (
                 engine.app_version,
                 engine.version,
-                engine.tk.version)
+                engine.sgtk.version)
             )
         about.exec_()
