@@ -140,10 +140,16 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
         self.user_menu.addAction(self.ui.actionShow_Console)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
+        self.user_menu.addAction(self.ui.actionAdvanced_Project_Setup)
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
+
+        # Initially hide the Advanced project setup... menu item. This
+        # menu item will only be displayed for projects that do not have
+        # any pipeline configurations registered in Shotgun.
+        self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
         name_action.triggered.connect(self.open_site_in_browser)
         url_action.triggered.connect(self.open_site_in_browser)
@@ -154,6 +160,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
         self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
+        self.ui.actionAdvanced_Project_Setup.triggered.connect(self.handle_advanced_project_setup_action)
         self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
@@ -374,6 +381,31 @@ class DesktopWindow(SystrayWindow):
         else:
             self._project_model._refresh_data()
 
+    def handle_advanced_project_setup_action(self):
+        """
+        Display the classic project setup wizard if the current
+        user appears to have sufficient permissions to actually
+        setup a project. If not, pop up an error dialog informing
+        them of the problem.
+        """
+        self.setup_project_widget.project = self.current_project
+
+        # The first time a user selects the Advanced project setup
+        # menu item, display the Setup Project help popup to provide
+        # more information about this feature.
+        wizard_setting = "advanced_project_setup_launched"
+        help_wizard_shown = self._load_setting(
+            wizard_setting, default_value=False, site_specific=False
+        )
+        if not help_wizard_shown:
+            self._save_setting(
+                wizard_setting, value=True, site_specific=False
+            )
+
+        # Bypass the Setup Toolkit overlay of the setup_project_widget
+        # and go straight to the setup wizard window.
+        self.setup_project_widget.do_setup(show_help=not(help_wizard_shown))
+
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):
             # expand
@@ -520,9 +552,11 @@ class DesktopWindow(SystrayWindow):
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
 
-        # We switching back to the project list, so need to show the
-        # "Refresh Projects" once again.
+        # We are switching back to the project list, so need to show the
+        # "Refresh Projects" and hide the "Advanced project setup" menu
+        # items once again.
         self.ui.actionRefresh_Projects.setVisible(True)
+        self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
     def set_groups(self, groups, show_recents=True):
         self._project_command_model.set_project(
@@ -817,16 +851,26 @@ class DesktopWindow(SystrayWindow):
             # going to launch the configuration, update the project menu if needed
             self.__populate_pipeline_configurations_menu(pipeline_configurations, most_recent_pipeline_configuration)
 
+            # If no pipeline configurations were found in Shotgun, show the
+            # 'Advanced project setup...' menu item.
+            if not pipeline_configurations:
+                # Enable user menu item to launch classic Project Setup wizard
+                self.ui.actionAdvanced_Project_Setup.setVisible(True)
+            else:
+                # Disable user menu item that launches classic Project Setup wizard
+                self.ui.actionAdvanced_Project_Setup.setVisible(False)
+
             # From this point on, we don't touch the UI anymore.
 
             # Phase 3: Prepare the pipeline configuration.
 
-            # If no pipeline configuration is in Shotgun, we'll let the bootstrap decide where the config
-            # comes from.
+            # If no pipeline configuration is in the user settings, we will let the bootstrap
+            # pick the right pipeline configuration for the first launch.
             if most_recent_pipeline_configuration is None:
                 toolkit_manager.pipeline_configuration = None
             else:
-                # We did have something in Shotgun that was selected, let's pick that for bootstrapping.
+                # We've loaded this project before and saved its pipeline configuation id, so
+                # reload the same old one.
                 toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
         except Exception as error:
             engine.log_exception(str(error))
