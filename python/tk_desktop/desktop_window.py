@@ -794,7 +794,7 @@ class DesktopWindow(SystrayWindow):
             toolkit_manager = ToolkitManager(engine.get_current_user())
             # We need to cache all environments because we don't know which one the user will require.
             toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
-            toolkit_manager.plugin_id = "config.desktop"
+            toolkit_manager.plugin_id = "basic.desktop"
             toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
 
             # FIXME: This needs to be replaced when we implement proper progress reporting during
