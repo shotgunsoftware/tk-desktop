@@ -253,10 +253,16 @@ class SystrayWindow(QtGui.QMainWindow):
             y = geo.y() + (geo.height() - self.rect().height()) / 2.0
             pos = QtCore.QPoint(geo.x() - self.rect().width(), y)
         elif side == self.DOCK_BOTTOM:
-            x = geo.x() + (geo.width() - self.rect().width()) / 2.0
+            x = geo.x() + (geo.width() - self.geometry().width()) / 2.0
             pos = QtCore.QPoint(x, geo.y() - self.rect().height() - geo.height())
         else:
             raise ValueError("Unknown value for side: %s" % side)
+
+        # if part of the window will be drawn off screen, move the pos.
+        screen_geometry = self._get_systray_screen_geometry()
+        if (pos.x() + self.geometry().width()) > screen_geometry.right():
+            diff = (pos.x() + self.geometry().width()) - screen_geometry.right()
+            pos = QtCore.QPoint(pos.x() - diff, pos.y())
 
         self.move(pos)
 
@@ -290,13 +296,17 @@ class SystrayWindow(QtGui.QMainWindow):
             if osutils is not None:
                 osutils.activate_application()
 
+    def _get_systray_screen_geometry(self):
+        pos = self.systray.geometry().center()
+        desktop = QtGui.QApplication.instance().desktop()
+        return desktop.screenGeometry(pos)
+
     # Update the window mask
     ############################
     def _guess_toolbar_side(self):
         """ guess which side of the screen the toolbar is on """
         pos = self.systray.geometry().center()
-        desktop = QtGui.QApplication.instance().desktop()
-        screen_geometry = desktop.screenGeometry(pos)
+        screen_geometry = self._get_systray_screen_geometry()
 
         # Get dist from each edge of the screen
         top_dist = pos.y() - screen_geometry.top()
@@ -366,7 +376,11 @@ class SystrayWindow(QtGui.QMainWindow):
         if self.state == self.STATE_PINNED:
             # add back in the anchor triangle
             points = []
-            mask_center = mask.center()
+
+            # make sure the triangle is drawn over the tray icon.
+            rel_systray_geo_center = self.mapFromGlobal(self.systray.geometry().center())
+            mask_center = QtCore.QPoint(rel_systray_geo_center.x(), mask.center().y())
+
             if side == self.DOCK_TOP:
                 anchor_pixmap = self.__top_anchor
                 anchor_center = anchor_pixmap.rect().center()
