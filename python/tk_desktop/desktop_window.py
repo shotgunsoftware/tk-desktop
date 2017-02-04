@@ -15,6 +15,8 @@ import sys
 import tempfile
 import subprocess
 import cPickle as pickle
+import pprint
+import itertools
 
 from tank.platform.qt import QtCore, QtGui
 
@@ -594,30 +596,17 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay.hide()
 
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
-        primary_pc = None
-        extra_pcs = []
-        for pc in pipeline_configurations:
-            # track primary separate
-            if pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
-                primary_pc = pc
-                continue
 
-            # add shared pcs
-            if not pc["users"]:
-                extra_pcs.append(pc)
-                continue
+        engine = sgtk.platform.current_engine()
 
-            # add pcs for this user
-            for user in pc["users"]:
-                if self._current_user_id == user["id"]:
-                    extra_pcs.append(pc)
-                    continue
-
-        if not extra_pcs:
+        if len(pipeline_configurations) < 2:
+            engine.logger.debug("Less than two pipeline configurations were found, not building menu.")
             # only one configuration choice
             return
 
-        # Show configuration frame, add a separator, the primary config and then the rest
+        engine.logger.debug("More than one pipeline configuration was found, building menu.")
+
+        # Add a separator that will be above the pipeline configurations. Context menu actions will go over that.
         self.__pipeline_configuration_separator = self.project_menu.addSeparator()
 
         label = QtGui.QLabel("CONFIGURATION")
@@ -626,22 +615,60 @@ class DesktopWindow(SystrayWindow):
         action.setDefaultWidget(label)
         self.project_menu.addAction(action)
 
-        action = self.project_menu.addAction(primary_pc["name"])
-        action.setCheckable(True)
-        action.setProperty("project_configuration_id", 0)
-        if selected["id"] == primary_pc["id"]:
-            action.setChecked(True)
-            self.ui.configuration_name.setText(primary_pc["name"])
+        def comparate_pipeline_configurations(pc_a, pc_b):
+            """
+            Compares two pipeline configurations. Primaries goes first, everything else is sorted
+            alphabetically. When two pipelines have the same name, the one with the lowest id goes
+            first.
+            """
+            # If the names are equal, compare their ids.
+            if pc_a["name"] == pc_b["name"]:
+                return pc_a["id"] < pc_b["id"]
 
-        extra_pcs.sort(key=lambda pc: pc["name"])
-        for pc in extra_pcs:
-            action = self.project_menu.addAction(pc["name"])
-            action.setCheckable(True)
-            action.setProperty("project_configuration_id", pc["id"])
-            if selected["id"] == pc["id"]:
-                self.ui.configuration_frame.show()
-                action.setChecked(True)
-                self.ui.configuration_name.setText(pc["name"])
+            # If the names are different, primary comes first.
+            if pc_a["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+                return -1
+
+            if pc_b["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME:
+                return 1
+
+            # Names are different and not primary, so sort alphabetically.
+            return pc_a["name"] < pc_b["name"]
+
+        # Sort all the pipeline configurations.
+        pipeline_configurations = sorted(pipeline_configurations, comparate_pipeline_configurations)
+
+        # Group every pipeline configuration by their name. Note that group by visits the elements
+        # as they occur in the array. In this case, alphabetically, except for primaries which
+        # are at the beginning.
+        for pc_name, pc_group in itertools.groupby(pipeline_configurations, lambda x: x["name"]):
+
+            pc_group = list(pc_group)
+
+            for pc in pc_group:
+                # If there are more than one pipeline in the group, we'll suffix the pipeline id.
+                if len(pc_group) > 1:
+                    primary_pc_name = "%s (%d)" % (pc_name, pc["id"])
+                else:
+                    primary_pc_name = pc_name
+
+                action = self.project_menu.addAction(primary_pc_name)
+                action.setCheckable(True)
+                action.setProperty("project_configuration_id", pc["id"])
+
+                # If this pipeline is the one that was selected, mark it in the
+                # menu and update the configuration name widget.
+                if selected["id"] == pc["id"]:
+                    action.setChecked(True)
+                    self.ui.configuration_name.setText(primary_pc_name)
+
+                    # If the pipeline is a primary and there are multiple of these, advertise which
+                    # one we are using. Advertise if it isn't a primary as well.
+                    if (
+                        (pc_name == constants.PRIMARY_PIPELINE_CONFIG_NAME and len(pc_group) > 1) or
+                        pc_name != constants.PRIMARY_PIPELINE_CONFIG_NAME
+                    ):
+                        self.ui.configuration_frame.show()
 
     def __set_project_just_accessed(self, project):
         self._project_model.update_project_accessed_time(project)
@@ -740,24 +767,44 @@ class DesktopWindow(SystrayWindow):
         :returns: List of pipeline configuration dictionaries with keys ``mac_path``, ``windows_path``,
             ``linux_path``, ``users`` and ``name``.
         """
-        pipeline_configurations = connection.find(
+        found_pcs = connection.find(
             "PipelineConfiguration",
             [["project", "is", project]],
-            fields=["mac_path", "windows_path", "linux_path", "users", "code"]
-        )
-        # Ideally we would filter out in the Shotgun query any entry that has a plugin id set.
-        # Unfortunately, at the time of writing plugin ids are not live on nost Shotgun instances.
-        # So instead of filtering everything in the query, we'll filter out entries locally with the
-        # following.
-        pipeline_configurations = filter(
-            lambda pc: not("sg_plugin_ids" in pc or "plugin_ids" in pc), pipeline_configurations
+            fields=["mac_path", "windows_path", "linux_path", "users", "code", "sg_plugin_ids", "plugin_ids"]
         )
 
-        for pc in pipeline_configurations:
+        def can_current_user_access_filter(pc):
+            """
+            Looks at a pipeline configuration and determines if the current user should be able to
+            access the pipeline.
+            """
+            # There are users attached to this pipeline configuration.
+            if pc["users"]:
+                # Search for ourselves.
+                for user in pc["users"]:
+                    # We've found ourselves, awesome!
+                    if self._current_user_id == user["id"]:
+                        return True
+                return False
+            else:
+                return True
+
+        # Filter out pipelines that can't be accessed.
+        accessible_pcs = filter(can_current_user_access_filter, found_pcs)
+
+        classic_pcs = []
+        for pc in accessible_pcs:
+
+            # If these are zero-config pipelines, skip them.
+            if pc.get("sg_plugin_ids") or pc.get("plugin_ids"):
+                continue
+
             pc["name"] = pc["code"]
             del pc["code"]
 
-        return pipeline_configurations
+            classic_pcs.append(pc)
+
+        return classic_pcs
 
     def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
         try:
@@ -797,25 +844,26 @@ class DesktopWindow(SystrayWindow):
             toolkit_manager.plugin_id = "basic.desktop"
             toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
 
-            # FIXME: This needs to be replaced when we implement proper progress reporting during
-            # startup.
-            def report_progress(percentage, message):
-                print percentage, message
-
-            toolkit_manager.progress_callback = report_progress
-
             # Step 2: Retrieves the pipeline configurations that use plugin ids usable by the current user.
             pipeline_configurations.extend(
                 toolkit_manager.get_pipeline_configurations(project)
             )
 
+            engine.logger.debug("The following pipeline configurations for this project have been found")
+            engine.logger.debug(pprint.pformat(pipeline_configurations))
+
             setting = "pipeline_configuration_for_project_%d" % project["id"]
+
             if pipeline_configuration_id is None:
+                engine.logger.debug("Searching for the latest config that was used.")
                 # Load up last accessed project if it hasn't been specified
                 pipeline_configuration_id = self._load_setting(setting, None, site_specific=True)
             else:
+                engine.logger.debug("User requested a specific configuration through the menu. Saving.")
                 # Save pipeline_configuration_id as last accessed
                 self._save_setting(setting, pipeline_configuration_id, site_specific=True)
+
+            engine.logger.debug("Looking for pipeline configuration %s.", pipeline_configuration_id)
 
             # Find the matching pipeline configuration to launch against
             most_recent_pipeline_configuration = None
