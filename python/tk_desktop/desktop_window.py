@@ -596,6 +596,18 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay.hide()
 
     def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
+        """
+        This will populate the menu with all the pipeline configurations.
+
+            - It will only be built if two or more configurations are available.
+            - Primaries goes first, then everything else is alphabetical.
+            - If two primaries have the same name, the lowest id comes first.
+            - If more than two pipelines have the same name, their id is suffixed between paratheses.
+
+        :param list pipeline_configurations: List of pipeline configurations link.
+        :param id selected: Id of the pipeline that is currently selected. The selected pipeline
+            will have a marked checked box next to its name.
+        """
 
         engine = sgtk.platform.current_engine()
 
