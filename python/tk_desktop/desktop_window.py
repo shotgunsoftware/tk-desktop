@@ -796,13 +796,9 @@ class DesktopWindow(SystrayWindow):
             toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
             toolkit_manager.plugin_id = "basic.desktop"
             toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
-
-            # FIXME: This needs to be replaced when we implement proper progress reporting during
-            # startup.
-            def report_progress(percentage, message):
-                print percentage, message
-
-            toolkit_manager.progress_callback = report_progress
+            toolkit_manager.bundle_cache_fallback_paths.extend(
+                engine.sgtk.bundle_cache_fallback_paths
+            )
 
             # Step 2: Retrieves the pipeline configurations that use plugin ids usable by the current user.
             pipeline_configurations.extend(
