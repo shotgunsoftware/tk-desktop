@@ -660,11 +660,11 @@ class DesktopWindow(SystrayWindow):
             for pc in pc_group:
                 # If there are more than one pipeline in the group, we'll suffix the pipeline id.
                 if len(pc_group) > 1:
-                    primary_pc_name = "%s (%d)" % (pc_name, pc["id"])
+                    unique_pc_name = "%s (%d)" % (pc_name, pc["id"])
                 else:
-                    primary_pc_name = pc_name
+                    unique_pc_name = pc_name
 
-                action = self.project_menu.addAction(primary_pc_name)
+                action = self.project_menu.addAction(unique_pc_name)
                 action.setCheckable(True)
                 action.setProperty("project_configuration_id", pc["id"])
 
@@ -672,7 +672,7 @@ class DesktopWindow(SystrayWindow):
                 # menu and update the configuration name widget.
                 if selected["id"] == pc["id"]:
                     action.setChecked(True)
-                    self.ui.configuration_name.setText(primary_pc_name)
+                    self.ui.configuration_name.setText(unique_pc_name)
 
                     # If the pipeline is a primary and there are multiple of these, advertise which
                     # one we are using. Advertise if it isn't a primary as well.
