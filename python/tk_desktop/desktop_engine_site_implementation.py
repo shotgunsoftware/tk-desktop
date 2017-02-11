@@ -118,6 +118,8 @@ class DesktopEngineSiteImplementation(object):
 
         icon = None
         if command_icon is not None and command_is_group_default:
+            # Only register an icon for the command if it exists and the command
+            # is the default one for the group.
             if os.path.exists(command_icon):
                 icon = QtGui.QIcon(command_icon)
             else:
@@ -154,6 +156,8 @@ class DesktopEngineSiteImplementation(object):
             button_name = title
             found_collapse_match = False
 
+            # First check for collapse rules specified for this title in the desktop
+            # configuration. These take precedence over the group property.
             for collapse_rule in self._collapse_rules:
                 template = DisplayNameTemplate(collapse_rule["match"])
                 match = template.match(title)
@@ -167,6 +171,8 @@ class DesktopEngineSiteImplementation(object):
                     found_collapse_match = True
                     break
 
+            # If no collapse rules were found for this title, and the group property is
+            # not empty, treat the specified group as if it were a collapse rule.
             if not found_collapse_match and command_group:
                 button_name = command_group
                 menu_name = title
