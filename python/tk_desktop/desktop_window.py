@@ -62,7 +62,7 @@ settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings
 
 ShotgunModel = shotgun_model.ShotgunModel
 
-log = get_logger("desktop_window")
+log = get_logger(__name__)
 
 
 class DesktopWindow(SystrayWindow):
@@ -856,7 +856,7 @@ class DesktopWindow(SystrayWindow):
 
         return classic_pipelines + zero_config_pipelines
 
-    def __launch_app_proxy_for_project(self, project, pipeline_configuration_id=None):
+    def __launch_app_proxy_for_project(self, project, requested_pipeline_id=None):
         try:
             engine = sgtk.platform.current_engine()
             log.debug("launching app proxy for project: %s" % project)
@@ -904,46 +904,10 @@ class DesktopWindow(SystrayWindow):
             log.debug("The following pipeline configurations for this project have been found")
             log.debug(pprint.pformat(pipeline_configurations))
 
-            setting = "pipeline_configuration_for_project_%d" % project["id"]
-
-            if pipeline_configuration_id is None:
-                log.debug("Searching for the latest config that was used.")
-                # Load up last accessed project if it hasn't been specified
-                pipeline_configuration_id = self._load_setting(setting, None, site_specific=True)
-            else:
-                log.debug("User requested a specific configuration through the menu. Saving.")
-                # Save pipeline_configuration_id as last accessed
-                self._save_setting(setting, pipeline_configuration_id, site_specific=True)
-
-            log.debug("Looking for pipeline configuration %s.", pipeline_configuration_id)
-
-            # Find the matching pipeline configuration to launch against
-            most_recent_pipeline_configuration = None
-            primary_pipeline_configuration = None
-            for pc in pipeline_configurations:
-                # If we've stumbled upon the Primary.
-                if self._is_primary_pc(pc):
-                    primary_pipeline_configuration = pc
-
-                # If the current pipeline matches the one we are looking for.
-                if pc["id"] == pipeline_configuration_id:
-                    most_recent_pipeline_configuration = pc
-
-                # If we've found everything, we can stop looking.
-                if primary_pipeline_configuration and most_recent_pipeline_configuration:
-                    break
-
-            # If we haven't found what we were searching for...
-            if most_recent_pipeline_configuration is None:
-                # ... but the primary exists, switch to that.
-                if primary_pipeline_configuration is not None:
-                    log.warning(
-                        "Pipeline configuration id %d not found, "
-                        "falling back to primary." % pipeline_configuration_id)
-                    most_recent_pipeline_configuration = primary_pipeline_configuration
+            pipeline_configuration_to_load = self._pick_pipeline(pipeline_configurations, requested_pipeline_id)
 
             # going to launch the configuration, update the project menu if needed
-            self.__populate_pipeline_configurations_menu(pipeline_configurations, most_recent_pipeline_configuration)
+            self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration_to_load)
 
             # If no pipeline configurations were found in Shotgun, show the
             # 'Advanced project setup...' menu item.
@@ -960,12 +924,12 @@ class DesktopWindow(SystrayWindow):
 
             # If no pipeline configuration is in the user settings, we will let the bootstrap
             # pick the right pipeline configuration for the first launch.
-            if most_recent_pipeline_configuration is None:
+            if pipeline_configuration_to_load is None:
                 toolkit_manager.pipeline_configuration = None
             else:
                 # We've loaded this project before and saved its pipeline configuration id, so
                 # reload the same old one.
-                toolkit_manager.pipeline_configuration = most_recent_pipeline_configuration["id"]
+                toolkit_manager.pipeline_configuration = pipeline_configuration_to_load["id"]
         except Exception as error:
             log.exception(str(error))
             message = ("%s"
@@ -983,6 +947,63 @@ class DesktopWindow(SystrayWindow):
         self._sync_thread.report_progress.connect(lambda pct, msg: self.project_overlay.report_progress(pct, msg))
         self._sync_thread.sync_success.connect(self._sync_success)
         self._sync_thread.start()
+
+    def _pick_pipeline(self, pipeline_configurations, requested_pipeline_id, project):
+        """
+        Picks which pipeline configuration to loaded based on user input or previously used
+        pipeline settings.
+
+        :param list pipeline_configurations: List of dicionaries with keys 'id' and 'code'.
+        :param dict project: Project entity dictionary with key 'id'.
+
+        :returns: The pipeline configuration that should be loaded, or None.
+        :rtype: dict
+        """
+        setting_name = "pipeline_configuration_for_project_%d" % project["id"]
+
+        # No specific pipeline was requested, load the previously used one.
+        if requested_pipeline_id is None:
+            log.debug("Searching for the latest config that was used.")
+            requested_pipeline_id = self._load_setting(setting_name, None, site_specific=True)
+
+        log.debug("Looking for pipeline configuration %s.", requested_pipeline_id)
+
+        # Find the matching pipeline configuration to launch against
+        pipeline_configuration_to_load = None
+        primary_pipeline_configuration = None
+        for pc in pipeline_configurations:
+            # If we've stumbled upon the Primary.
+            if self._is_primary_pc(pc):
+                primary_pipeline_configuration = pc
+
+            # If the current pipeline matches the one we are looking for.
+            if pc["id"] == requested_pipeline_id:
+                pipeline_configuration_to_load = pc
+
+            # If we've found everything, we can stop looking.
+            if primary_pipeline_configuration and pipeline_configuration_to_load:
+                break
+
+        # If we had requested something, but it wasn't found.
+        if requested_pipeline_id and not pipeline_configuration_to_load:
+
+            # If there's a primary available, fall back to that.
+            if primary_pipeline_configuration:
+                log.warning("Pipeline configuration id %s was not found, falling back to primary.")
+                pipeline_configuration_to_load = primary_pipeline_configuration
+            else:
+                log.warning("Pipeline configuration id %s was not found.")
+
+        if pipeline_configuration_to_load is None:
+            log.debug("Updating %s to None.")
+            # Save requested_pipeline_id as last accessed
+            self._save_setting(setting_name, None, site_specific=True)
+        else:
+            log.debug("Updating %s to %d.", setting_name, pipeline_configuration_to_load["id"])
+            # Save requested_pipeline_id as last accessed
+            self._save_setting(setting_name, pipeline_configuration_to_load["id"], site_specific=True)
+
+        return pipeline_configuration_to_load
 
     def _launch_failed(self, message):
         message = ("%s"
