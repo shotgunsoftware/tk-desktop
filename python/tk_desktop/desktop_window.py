@@ -796,42 +796,43 @@ class DesktopWindow(SystrayWindow):
             fields=["mac_path", "windows_path", "linux_path", "users", "code", "sg_plugin_ids", "plugin_ids", "project"]
         )
 
-        def can_current_user_access_filter(pc):
+        def is_pipeline_usable(pc):
             """
-            Looks at a pipeline configuration and determines if the current user should be able to
-            access the pipeline.
+            Ensures that a pipeline is not zero-config based and that it is accessible for the current user.
             """
-            # There are users attached to this pipeline configuration.
-            if pc["users"]:
-                # Search for ourselves.
-                for user in pc["users"]:
-                    # We've found ourselves, awesome!
-                    if self._current_user_id == user["id"]:
-                        return True
-                return False
-            else:
-                return True
-
-        # Filter out pipelines that can't be accessed.
-        accessible_pcs = filter(can_current_user_access_filter, found_pcs)
-
-        classic_pcs = []
-        for pc in accessible_pcs:
-
-            # If these are zero-config pipelines, skip them.
+            # If there is a plugin id, can't use this.
             if pc.get("sg_plugin_ids") or pc.get("plugin_ids"):
-                continue
+                return False
 
             if not ShotgunPath.from_shotgun_dict(pc):
-                log.warning("Skipping Toolkit classic pipeline configuration id %s without any path set." % pc["id"])
-                continue
+                log.warning("Skipping Toolkit Classic pipeline configuration id %s without any path set." % pc["id"])
+                return False
 
+            # If there are no users assigned, this pipeline is accessible from for everyone.
+            if not pc["users"]:
+                return True
+
+            # Search for ourselves.
+            for user in pc["users"]:
+                # We've found ourselves, awesome!
+                if self._current_user_id == user["id"]:
+                    return True
+
+            return False
+
+        # FIXME: We need to discuss what we do with multiple primaries with Toolkit classic. In zero config we keep
+        # the earliest one. It follows that the new desktop should follow the same rules, but the behavior already
+        # exists in the wild, so we may have to keep supporting that one.
+
+        # Filter out pipelines that can't be accessed.
+        accessible_pcs = filter(is_pipeline_usable, found_pcs)
+
+        # Massage the dictionaries keys so it uses the same key names of the zero config pipelines.
+        for pc in accessible_pcs:
             pc["name"] = pc["code"]
             del pc["code"]
 
-            classic_pcs.append(pc)
-
-        return classic_pcs
+        return accessible_pcs
 
     def _is_primary_pc(self, pc):
         """
