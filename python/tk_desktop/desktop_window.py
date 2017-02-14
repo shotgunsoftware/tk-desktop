@@ -17,6 +17,7 @@ import subprocess
 import cPickle as pickle
 import pprint
 import itertools
+from operator import itemgetter
 
 from tank.platform.qt import QtCore, QtGui
 
@@ -621,77 +622,73 @@ class DesktopWindow(SystrayWindow):
         # Add a separator that will be above the pipeline configurations. Context menu actions will go over that.
         self.__pipeline_configuration_separator = self.project_menu.addSeparator()
 
+        # Build the configuration section header.
         label = QtGui.QLabel("CONFIGURATION")
         label.setObjectName("project_menu_configuration_label")
         action = QtGui.QWidgetAction(self)
         action.setDefaultWidget(label)
         self.project_menu.addAction(action)
 
-        def comparate_pipeline_configurations(pc_a, pc_b):
-            """
-            Compares two pipeline configurations. Primaries goes first, everything else is sorted
-            alphabetically. When two pipelines have the same name, the one with the lowest id goes
-            first.
-            """
-            # If the names are the same, we'll need to compare projects.
-            if pc_a["name"] == pc_b["name"]:
-                # If both are project based or site based, sort by id.
-                if pc_a["project"] == pc_b["project"]:
-                    return pc_a["id"] < pc_b["id"]
-                # If site base, go first.
-                if pc_a["project"] is None:
-                    return -1
-                else:
-                    return 1
+        # Now it's time to add entries to the menu.
 
-            # If the names are different, primary comes first.
-            if self._is_primary_pc(pc_a):
-                return -1
+        # Step 1: Extract the primary and add it to the menu.
+        primaries = filter(self._is_primary_pc, pipeline_configurations)
+        if primaries:
+            self._add_pipeline_group_to_menu(primaries, selected)
 
-            if self._is_primary_pc(pc_b):
-                return 1
+        # Step 2: Extract the sandboxes and add them to the menu.
 
-            # Names are different and not primary, so sort alphabetically.
-            return pc_a["name"] < pc_b["name"]
+        # Get all non primary configurations.
+        sandboxes = filter(lambda pc: not self._is_primary_pc(pc), pipeline_configurations)
 
-        # Sort all the pipeline configurations.
-        pipeline_configurations = sorted(pipeline_configurations, comparate_pipeline_configurations)
+        # Sandboxes are sorted alphabetically. When two sandboxes have the same name,
+        # sort on the project field so that site level configurations appear first. If multiple site level
+        # configurations are also available, sort by id.
+        sandboxes = sorted(sandboxes, key=itemgetter("name", "project", "id"))
 
-        # Group every pipeline configuration by their name. Note that group by visits the elements
-        # as they occur in the array. In this case, alphabetically, except for primaries which
-        # are at the beginning.
-        for pc_name, pc_group in itertools.groupby(pipeline_configurations, lambda x: x["name"]):
+        # Group every sandboxes by their name and add pipelines one at a time
+        for pc_name, pc_group in itertools.groupby(sandboxes, lambda x: x["name"]):
+            self._add_pipeline_group_to_menu(list(pc_group), selected)
 
-            pc_group = list(pc_group)
+        # Step 3: Profit!
 
-            for pc in pc_group:
-                # If there are more than one pipeline in the group, we'll suffix the pipeline id.
-                if len(pc_group) > 1:
-                    unique_pc_name = "%s (%d)" % (pc_name, pc["id"])
-                else:
-                    unique_pc_name = pc_name
+    def _add_pipeline_group_to_menu(self, pc_group, selected):
+        """
+        Adds a group of pipelines to the menu.
 
-                # If this is a site level configuration, suffix (site) to it.
-                if pc["project"] is None:
-                    unique_pc_name = "%s (site)" % unique_pc_name
+        Pipelines are assumed to have the same name.
 
-                action = self.project_menu.addAction(unique_pc_name)
-                action.setCheckable(True)
-                action.setProperty("project_configuration_id", pc["id"])
+        :param list pc_group: List of pipeline entities with keys ''id'', ''name'' and ''project''.
+        :param dict selected: Pipeline configuration to select.
+        """
+        for pc in pc_group:
+            parenthesis_arguments = []
+            # If this is a site level configuration, suffix (site) to it.
+            if pc["project"] is None:
+                parenthesis_arguments.append("site")
 
-                # If this pipeline is the one that was selected, mark it in the
-                # menu and update the configuration name widget.
-                if selected["id"] == pc["id"]:
-                    action.setChecked(True)
-                    self.ui.configuration_name.setText(unique_pc_name)
+            # If there are more than one pipeline in the group, we'll suffix the pipeline id.
+            if len(pc_group) > 1:
+                parenthesis_arguments.append("id %d" % pc["id"])
 
-                    # If the pipeline is a primary and there are multiple of these, advertise which
-                    # one we are using. Advertise if it isn't a primary as well.
-                    if (
-                        (pc_name == constants.PRIMARY_PIPELINE_CONFIG_NAME and len(pc_group) > 1) or
-                        pc_name != constants.PRIMARY_PIPELINE_CONFIG_NAME
-                    ):
-                        self.ui.configuration_frame.show()
+            if parenthesis_arguments:
+                unique_pc_name = "%s (%s)" % (pc["name"], ", ".join(parenthesis_arguments))
+            else:
+                unique_pc_name = pc["name"]
+
+            action = self.project_menu.addAction(unique_pc_name)
+            action.setCheckable(True)
+            action.setProperty("project_configuration_id", pc["id"])
+
+            # If this pipeline is the one that was selected, mark it in the
+            # menu and update the configuration name widget.
+            if selected["id"] == pc["id"]:
+                action.setChecked(True)
+                self.ui.configuration_name.setText(unique_pc_name)
+
+                # If we haven't picked a primary, show the sandbox header.
+                if (pc["name"] != constants.PRIMARY_PIPELINE_CONFIG_NAME):
+                    self.ui.configuration_frame.show()
 
     def __set_project_just_accessed(self, project):
         self._project_model.update_project_accessed_time(project)
