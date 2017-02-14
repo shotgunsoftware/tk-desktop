@@ -901,10 +901,12 @@ class DesktopWindow(SystrayWindow):
                 toolkit_manager.get_pipeline_configurations(project)
             )
 
-            log.debug("The following pipeline configurations for this project have been found")
+            log.debug("The following pipeline configurations for this project have been found:")
             log.debug(pprint.pformat(pipeline_configurations))
 
-            pipeline_configuration_to_load = self._pick_pipeline(pipeline_configurations, requested_pipeline_id)
+            pipeline_configuration_to_load = self._pick_pipeline(
+                pipeline_configurations, requested_pipeline_id, project
+            )
 
             # going to launch the configuration, update the project menu if needed
             self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration_to_load)
@@ -989,10 +991,12 @@ class DesktopWindow(SystrayWindow):
 
             # If there's a primary available, fall back to that.
             if primary_pipeline_configuration:
-                log.warning("Pipeline configuration id %s was not found, falling back to primary.")
+                log.warning(
+                    "Pipeline configuration id %s was not found, falling back to primary.", requested_pipeline_id
+                )
                 pipeline_configuration_to_load = primary_pipeline_configuration
             else:
-                log.warning("Pipeline configuration id %s was not found.")
+                log.warning("Pipeline configuration id %s was not found.", requested_pipeline_id)
 
         if pipeline_configuration_to_load is None:
             log.debug("Updating %s to None.")
