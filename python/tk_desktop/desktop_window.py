@@ -71,6 +71,8 @@ class DesktopWindow(SystrayWindow):
 
     ORGANIZATION = "Shotgun Software"
     APPLICATION = "tk-desktop"
+    _BOOTSTRAP_END_RATIO = 0.9
+    _LAUNCHING_PYTHON_RATIO = 0.95
 
     def __init__(self, parent=None):
         SystrayWindow.__init__(self, parent)
@@ -293,7 +295,7 @@ class DesktopWindow(SystrayWindow):
 
                 win32api.SetDllDirectory(None)
             except StandardError:
-                log.warning('Could not push DllDirectory under Windows.')
+                log.warning("Could not push DllDirectory under Windows.")
 
     def _pop_dll_state(self):
         '''
@@ -304,7 +306,7 @@ class DesktopWindow(SystrayWindow):
                 import win32api
                 win32api.SetDllDirectory(self._previous_dll_directory)
             except StandardError:
-                log.warning('Could not restore DllDirectory under Windows.')
+                log.warning("Could not restore DllDirectory under Windows.")
 
     ########################################################################################
     # Event handlers and slots
@@ -682,12 +684,12 @@ class DesktopWindow(SystrayWindow):
 
             # If this pipeline is the one that was selected, mark it in the
             # menu and update the configuration name widget.
-            if selected["id"] == pc["id"]:
+            if selected and selected["id"] == pc["id"]:
                 action.setChecked(True)
                 self.ui.configuration_name.setText(unique_pc_name)
 
                 # If we haven't picked a primary, show the sandbox header.
-                if (pc["name"] != constants.PRIMARY_PIPELINE_CONFIG_NAME):
+                if not self._is_primary_pc(pc):
                     self.ui.configuration_frame.show()
 
     def __set_project_just_accessed(self, project):
@@ -802,7 +804,7 @@ class DesktopWindow(SystrayWindow):
                 return False
 
             if not ShotgunPath.from_shotgun_dict(pc):
-                log.warning("Skipping Toolkit Classic pipeline configuration id %s without any path set." % pc["id"])
+                log.warning("Skipping Toolkit Classic pipeline configuration '%s' without any path set." % pc["id"])
                 return False
 
             # If there are no users assigned, this pipeline is accessible from for everyone.
@@ -841,19 +843,33 @@ class DesktopWindow(SystrayWindow):
         """
         return pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME
 
-    def _merge_pipeline_configuration_lists(self, classic_pipelines, zero_config_pipelines):
+    def _merge_pipeline_configuration_lists(self, classic_pcs, bootstrap_pcs):
+        """
+        Merges the pipeline configurations lists while taking out boostrap pipeline configurations
+        if a Toolkit classic pipeline configuration is also present.
+
+        :param list classic_pcs: List of Toolkit Classic pipeline configuration entity dictionaries.
+        :param list bootstrap_pcs: List of bootstrap pipeline configuration entity dictionaries.
+
+        :returns: Merged list of pipeline configurations entities with a single primary
+            pipeline configuration.
+        :rtype: list
+        """
 
         # Find if there is a primary pipeline configuration in the classic pipelines.
-        has_classic_primary = any(self._is_primary_pc(pc) for pc in classic_pipelines)
-        has_zero_config_primary = any(self._is_primary_pc(pc) for pc in zero_config_pipelines)
+        has_classic_primary = any(self._is_primary_pc(pc) for pc in classic_pcs)
+        has_zero_config_primary = any(self._is_primary_pc(pc) for pc in bootstrap_pcs)
 
         if has_classic_primary and has_zero_config_primary:
-            log.warning("Toolkit Classic Primary overrides zero configuration primary.")
-            zero_config_pipelines = filter(lambda pc: not self._is_primary_pc(pc), zero_config_pipelines)
+            log.warning(
+                "Toolkit Classic 'Primary' pipeline configuration '%d' overrides "
+                "bootstrap 'Primary' pipeline configuration '%d'.")
+            # Only keep non-primaries
+            bootstrap_pcs = filter(lambda pc: not self._is_primary_pc(pc), bootstrap_pcs)
 
-        return classic_pipelines + zero_config_pipelines
+        return classic_pcs + bootstrap_pcs
 
-    def __launch_app_proxy_for_project(self, project, requested_pipeline_id=None):
+    def __launch_app_proxy_for_project(self, project, requested_pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
             log.debug("launching app proxy for project: %s" % project)
@@ -901,8 +917,8 @@ class DesktopWindow(SystrayWindow):
             log.debug("The following pipeline configurations for this project have been found:")
             log.debug(pprint.pformat(pipeline_configurations))
 
-            pipeline_configuration_to_load = self._pick_pipeline(
-                pipeline_configurations, requested_pipeline_id, project
+            pipeline_configuration_to_load = self._pick_pipeline_configuration(
+                pipeline_configurations, requested_pipeline_configuration_id, project
             )
 
             # going to launch the configuration, update the project menu if needed
@@ -943,13 +959,15 @@ class DesktopWindow(SystrayWindow):
 
         self._sync_thread = ProjectSynchronizationThread(toolkit_manager, project)
         self._sync_thread.sync_failed.connect(self._launch_failed)
-        self._sync_thread.report_progress.connect(lambda pct, msg: self.project_overlay.report_progress(pct, msg))
+        self._sync_thread.report_progress.connect(
+            lambda pct, msg: self.project_overlay.report_progress(pct * self._BOOTSTRAP_END_RATIO, msg)
+        )
         self._sync_thread.sync_success.connect(self._sync_success)
         self._sync_thread.start()
 
-    def _pick_pipeline(self, pipeline_configurations, requested_pipeline_id, project):
+    def _pick_pipeline_configuration(self, pipeline_configurations, requested_pipeline_configuration_id, project):
         """
-        Picks which pipeline configuration to loaded based on user input or previously used
+        Picks which pipeline configuration to be loaded based on user input or previously used
         pipeline settings.
 
         :param list pipeline_configurations: List of dicionaries with keys 'id' and 'code'.
@@ -961,11 +979,11 @@ class DesktopWindow(SystrayWindow):
         setting_name = "pipeline_configuration_for_project_%d" % project["id"]
 
         # No specific pipeline was requested, load the previously used one.
-        if requested_pipeline_id is None:
+        if requested_pipeline_configuration_id is None:
             log.debug("Searching for the latest config that was used.")
-            requested_pipeline_id = self._load_setting(setting_name, None, site_specific=True)
+            requested_pipeline_configuration_id = self._load_setting(setting_name, None, site_specific=True)
 
-        log.debug("Looking for pipeline configuration %s.", requested_pipeline_id)
+        log.debug("Looking for pipeline configuration %s.", requested_pipeline_configuration_id)
 
         # Find the matching pipeline configuration to launch against
         pipeline_configuration_to_load = None
@@ -976,7 +994,7 @@ class DesktopWindow(SystrayWindow):
                 primary_pipeline_configuration = pc
 
             # If the current pipeline matches the one we are looking for.
-            if pc["id"] == requested_pipeline_id:
+            if pc["id"] == requested_pipeline_configuration_id:
                 pipeline_configuration_to_load = pc
 
             # If we've found everything, we can stop looking.
@@ -984,24 +1002,25 @@ class DesktopWindow(SystrayWindow):
                 break
 
         # If we had requested something, but it wasn't found.
-        if requested_pipeline_id and not pipeline_configuration_to_load:
+        if requested_pipeline_configuration_id and not pipeline_configuration_to_load:
 
             # If there's a primary available, fall back to that.
             if primary_pipeline_configuration:
                 log.warning(
-                    "Pipeline configuration id %s was not found, falling back to primary.", requested_pipeline_id
+                    "Pipeline configuration id %s was not found, falling back to primary.",
+                    requested_pipeline_configuration_id
                 )
                 pipeline_configuration_to_load = primary_pipeline_configuration
             else:
-                log.warning("Pipeline configuration id %s was not found.", requested_pipeline_id)
+                log.warning("Pipeline configuration id %s was not found.", requested_pipeline_configuration_id)
 
         if pipeline_configuration_to_load is None:
             log.debug("Updating %s to None.")
-            # Save requested_pipeline_id as last accessed
+            # Save requested_pipeline_configuration_id as last accessed
             self._save_setting(setting_name, None, site_specific=True)
         else:
             log.debug("Updating %s to %d.", setting_name, pipeline_configuration_to_load["id"])
-            # Save requested_pipeline_id as last accessed
+            # Save requested_pipeline_configuration_id as last accessed
             self._save_setting(setting_name, pipeline_configuration_to_load["id"], site_specific=True)
 
         return pipeline_configuration_to_load
@@ -1057,6 +1076,10 @@ class DesktopWindow(SystrayWindow):
             # Ticket 26741: Avoid having odd DLL loading issues on windows
             self._push_dll_state()
 
+            self.project_overlay.report_progress(
+                self._LAUNCHING_PYTHON_RATIO,
+                "Launching Python subprocess (%s)" % path_to_python
+            )
             log.info("--- launching python subprocess (%s)" % path_to_python)
             engine.execute_hook(
                 "hook_launch_python",
