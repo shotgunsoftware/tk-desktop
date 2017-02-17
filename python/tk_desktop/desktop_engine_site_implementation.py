@@ -109,9 +109,17 @@ class DesktopEngineSiteImplementation(object):
         command_type = properties.get("type")
         command_icon = properties.get("icon")
         command_tooltip = properties.get("description")
+        command_group = properties.get("group")
+        command_is_group_default = properties.get("group_default")
+        if not command_group:
+            # If no group has been specified,then this command is automatically
+            # the group default.
+            command_is_group_default = True
 
         icon = None
-        if command_icon is not None:
+        if command_icon is not None and command_is_group_default:
+            # Only register an icon for the command if it exists and the command
+            # is the default one for the group.
             if os.path.exists(command_icon):
                 icon = QtGui.QIcon(command_icon)
             else:
@@ -146,6 +154,10 @@ class DesktopEngineSiteImplementation(object):
             # the display name of the command
             menu_name = None
             button_name = title
+            found_collapse_match = False
+
+            # First check for collapse rules specified for this title in the desktop
+            # configuration. These take precedence over the group property.
             for collapse_rule in self._collapse_rules:
                 template = DisplayNameTemplate(collapse_rule["match"])
                 match = template.match(title)
@@ -156,7 +168,14 @@ class DesktopEngineSiteImplementation(object):
                     else:
                         menu_name = string.Template(collapse_rule["menu_label"]).safe_substitute(match)
                     button_name = string.Template(collapse_rule["button_label"]).safe_substitute(match)
+                    found_collapse_match = True
                     break
+
+            # If no collapse rules were found for this title, and the group property is
+            # not empty, treat the specified group as if it were a collapse rule.
+            if not found_collapse_match and command_group:
+                button_name = command_group
+                menu_name = title
 
             self.desktop_window.add_project_command(
                 name, button_name, menu_name, icon, command_tooltip, groups
