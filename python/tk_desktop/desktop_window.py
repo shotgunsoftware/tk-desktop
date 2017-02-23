@@ -517,10 +517,10 @@ class DesktopWindow(SystrayWindow):
         self.project_menu.insertAction(self.__pipeline_configuration_separator, action)
 
     def add_project_command(
-            self, name, button_name, menu_name, icon, command_tooltip, groups
-    ):
+            self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
+        ):
         self._project_command_model.add_command(
-            name, button_name, menu_name, icon, command_tooltip, groups
+            name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
         )
         self._project_command_proxy.invalidate()
         self._project_command_count += 1
