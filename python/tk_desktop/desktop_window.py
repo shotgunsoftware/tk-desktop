@@ -1003,9 +1003,8 @@ class DesktopWindow(SystrayWindow):
             if primary_pipeline_configuration and pipeline_configuration_to_load:
                 break
 
-        # If we had requested something, but it wasn't found.
-        if requested_pipeline_configuration_id and not pipeline_configuration_to_load:
-
+        # If we haven't found something to load.
+        if not pipeline_configuration_to_load:
             # If there's a primary available, fall back to that.
             if primary_pipeline_configuration:
                 log.warning(
@@ -1013,11 +1012,13 @@ class DesktopWindow(SystrayWindow):
                     requested_pipeline_configuration_id
                 )
                 pipeline_configuration_to_load = primary_pipeline_configuration
-            else:
+            elif requested_pipeline_configuration_id:
                 log.warning("Pipeline configuration id %s was not found.", requested_pipeline_configuration_id)
+            else:
+                log.debug("No primary was found nor was a specific pipeline requested.")
 
         if pipeline_configuration_to_load is None:
-            log.debug("Updating %s to None.")
+            log.debug("Updating %s to None.", setting_name)
             # Save requested_pipeline_configuration_id as last accessed
             self._save_setting(setting_name, None, site_specific=True)
         else:
