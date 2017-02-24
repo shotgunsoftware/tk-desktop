@@ -526,6 +526,20 @@ class DesktopWindow(SystrayWindow):
     def add_project_command(
             self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
         ):
+        """
+        Add a button command to the Project dialog. Keeps a running total of how
+        many commands were added. If no commands are added for the Project, the
+        "We couldn't find anything to launch" overlay is displayed.
+
+        :param str name: The name of the command used for internal tracking
+        :param str button_name: The label for the command button.
+        :param str menu_name: The label for the command button's drop-down menu item.
+        :param QtGui.QIcon icon: The icon to display for the command button and RECENT item.
+        :param str command_tooltip: A brief summary of what this command does.
+        :param list groups: The list of Desktop folder groups this command should appear in.
+        :param bool is_menu_default: If this command is a menu item, indicate whether it should
+                                     also be run by the command button.
+        """
         self._project_command_model.add_command(
             name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
         )

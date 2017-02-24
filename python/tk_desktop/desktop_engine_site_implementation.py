@@ -173,7 +173,13 @@ class DesktopEngineSiteImplementation(object):
                 menu_name = title
 
             self.desktop_window.add_project_command(
-                name, button_name, menu_name, icon, command_tooltip, groups, command_is_menu_default
+                name,
+                button_name,
+                menu_name,
+                icon,
+                command_tooltip,
+                groups,
+                command_is_menu_default
             )
 
     def project_commands_finished(self):
