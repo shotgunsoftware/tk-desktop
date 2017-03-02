@@ -112,6 +112,7 @@ class ProjectCommandModel(GroupingModel):
     MENU_NAME_ROLE = QtCore.Qt.UserRole + 2
     COMMAND_ROLE = QtCore.Qt.UserRole + 3
     LAST_LAUNCH_ROLE = QtCore.Qt.UserRole + 4
+    IS_MENU_DEFAULT_ROLE = QtCore.Qt.UserRole + 5
 
     # signal emitted when a command is triggered
     # arguments are the group and the command_name of the triggered command
@@ -139,7 +140,23 @@ class ProjectCommandModel(GroupingModel):
             self.set_group_rank(self.RECENT_GROUP_NAME, 0)
             self.__load_recents()
 
-    def add_command(self, name, button_name, menu_name, icon, command_tooltip, groups):
+    def add_command(
+            self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default=False
+        ):
+        """
+        Create the UI components for a button command for each group specified in ``groups``.
+        If a RECENTS group exists, create a button command for that as well. If a ``menu_name``
+        is specified, the UI components for that will also be created.
+
+        :param str name: The name of the command used for internal tracking
+        :param str button_name: The label for the command button.
+        :param str menu_name: The label for the command button's drop-down menu item.
+        :param QtGui.QIcon icon: The icon to display for the command button and RECENT item.
+        :param str command_tooltip: A brief summary of what this command does.
+        :param list groups: The list of Desktop folder groups this command should appear in.
+        :param bool is_menu_default: If this command is a menu item, indicate whether it should
+                                     also be run by the command button.
+        """
         if self.show_recents and name in self.__recents and not self.__recents[name]["added"]:
             item = QtGui.QStandardItem()
             item.setData(button_name, self.BUTTON_NAME_ROLE)
@@ -186,6 +203,7 @@ class ProjectCommandModel(GroupingModel):
                 menu_item.setData(button_name, self.BUTTON_NAME_ROLE)
                 menu_item.setData(menu_name, self.MENU_NAME_ROLE)
                 menu_item.setData(name, self.COMMAND_ROLE)
+                menu_item.setData(is_menu_default, self.IS_MENU_DEFAULT_ROLE)
                 menu_item.setToolTip(command_tooltip)
                 if icon is not None:
                     menu_item.setIcon(icon)
@@ -193,15 +211,41 @@ class ProjectCommandModel(GroupingModel):
 
     @classmethod
     def get_item_children_in_order(cls, item):
+        """
+        Sort the item's children in reverse 'version' order based on the menu name
+        of the item. Item children whose IS_MENU_DEFAULT_ROLE data value is True
+        will be prepended to the list. Theoretically, there should only be one
+        "default" child in the list of item children, but since this is a human
+        configurable value, there may be more. Rather than raising an error, attempt
+        to handle this case gracefully by keeping track of default and non-default
+        children separately. Sort each list in reverse version number order, then
+        add them together to construct the list of ordered item children to return.
+
+        For example, assume an item has children named Maya4.5, Maya2012, Maya2013,
+        Maya2016, Maya2016.5, and Maya2017. The Maya2013, Maya2016, and Maya2016.5
+        items' IS_MENU_DEFAULT_ROLE is to True, the rest are False. The children
+        returned in sorted order would be:  Maya2016.5, Maya2016, Maya2013, Maya2014,
+        Maya2012, Maya4.5
+
+        Since Desktop uses the first child in this list as the command to run for
+        the item, Maya2016.5 will be launched when this item is selected.
+
+        :param QtGui.QStandardItem item: Input item to sort child items for.
+        :returns: List of items sorted by version and menu default status.
+        """
+        default_children = []
+        other_children = []
         i = 0
-        children = []
         while True:
             child = item.child(i, 0)
             i += 1
             if child is None:
                 break
 
-            children.append(child)
+            if child.data(cls.IS_MENU_DEFAULT_ROLE):
+                default_children.append(child)
+            else:
+                other_children.append(child)
 
         # sort children in reverse version order
         def child_cmp(left, right):
@@ -212,8 +256,12 @@ class ProjectCommandModel(GroupingModel):
             if util.is_version_older(left_version, right_version):
                 return 1
             return 0
-        children.sort(cmp=child_cmp)
-        return children
+
+        # Sort the lists of children
+        default_children.sort(cmp=child_cmp)
+        other_children.sort(cmp=child_cmp)
+
+        return (default_children + other_children)
 
     def _handle_command_triggered(self, item, command_name=None, button_name=None,
                                   menu_name=None, icon=None, tooltip=None):

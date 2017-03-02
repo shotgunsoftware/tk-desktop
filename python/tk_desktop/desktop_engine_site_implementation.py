@@ -110,16 +110,11 @@ class DesktopEngineSiteImplementation(object):
         command_icon = properties.get("icon")
         command_tooltip = properties.get("description")
         command_group = properties.get("group")
-        command_is_group_default = properties.get("group_default")
-        if not command_group:
-            # If no group has been specified,then this command is automatically
-            # the group default.
-            command_is_group_default = True
+        command_is_menu_default = properties.get("group_default") or False
 
         icon = None
-        if command_icon is not None and command_is_group_default:
-            # Only register an icon for the command if it exists and the command
-            # is the default one for the group.
+        if command_icon is not None:
+            # Only register an icon for the command if it exists.
             if os.path.exists(command_icon):
                 icon = QtGui.QIcon(command_icon)
             else:
@@ -178,7 +173,13 @@ class DesktopEngineSiteImplementation(object):
                 menu_name = title
 
             self.desktop_window.add_project_command(
-                name, button_name, menu_name, icon, command_tooltip, groups
+                name,
+                button_name,
+                menu_name,
+                icon,
+                command_tooltip,
+                groups,
+                command_is_menu_default
             )
 
     def project_commands_finished(self):
