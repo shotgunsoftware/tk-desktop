@@ -35,12 +35,12 @@ def start_engine(data):
         current_user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
 
         # If we found no user using the authenticator, we need to use the credentials that
-        # came through the data file.
+        # came through the environment variable.
         # Also, if the credentials are user-based, we need to disregard what we got and use
-        # the credentials from the data file. This is required to solve any issues
+        # the credentials from the environment variable. This is required to solve any issues
         # arising from the changes to the session cache changing place in core 0.18.
         if not current_user or current_user.login:
-            current_user = deserialize_user(data["current_user"])
+            current_user = deserialize_user(os.environ["SHOTGUN_DESKTOP_CURRENT_USER"])
         else:
             # This happens when the user retrieved from the project's core is a script.
             # In that case, we use the script user and disregard who is the current

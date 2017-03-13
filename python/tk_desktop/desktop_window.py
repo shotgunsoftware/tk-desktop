@@ -829,10 +829,7 @@ class DesktopWindow(SystrayWindow):
             "proxy_data": {
                 "proxy_pipe": engine.site_comm.server_pipe,
                 "proxy_auth": engine.site_comm.server_authkey
-            },
-            "current_user": sgtk.authentication.serialize_user(
-                sgtk.get_authenticated_user()
-            )
+            }
         }
         (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
         pickle.dump(desktop_data, open(pickle_data_file, "wb"))
@@ -850,12 +847,18 @@ class DesktopWindow(SystrayWindow):
         self._push_dll_state()
 
         engine.log_info("--- launching python subprocess (%s)" % path_to_python)
-        engine.execute_hook(
-            "hook_launch_python",
-            project_python=path_to_python,
-            pickle_data_path=pickle_data_file,
-            utilities_module_path=utilities_module_path,
+        os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
+            sgtk.get_authenticated_user()
         )
+        try:
+            engine.execute_hook(
+                "hook_launch_python",
+                project_python=path_to_python,
+                pickle_data_path=pickle_data_file,
+                utilities_module_path=utilities_module_path,
+            )
+        finally:
+            del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
 
         self._pop_dll_state()
 
