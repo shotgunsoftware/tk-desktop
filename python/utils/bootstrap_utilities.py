@@ -31,9 +31,23 @@ def start_engine(data):
     # a current user, we have to set the authenticated user.
     if hasattr(sgtk, "set_authenticated_user"):
         # Retrieve the currently authenticated user for this process.
-        from tank_vendor.shotgun_authentication import ShotgunAuthenticator
-        user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
-        sgtk.set_authenticated_user(user)
+        from tank_vendor.shotgun_authentication import ShotgunAuthenticator, deserialize_user
+        current_user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
+
+        # If we found no user using the authenticator, we need to use the credentials that
+        # came through the data file.
+        # Also, if the credentials are user-based, we need to disregard what we got and use
+        # the credentials from the data file. This is required to solve any issues
+        # arising from the changes to the session cache changing place in core 0.18.
+        if not current_user or current_user.login:
+            current_user = deserialize_user(data["current_user"])
+        else:
+            # This happens when the user retrieved from the project's core is a script.
+            # In that case, we use the script user and disregard who is the current
+            # authenticated user at the site level.
+            pass
+
+        sgtk.set_authenticated_user(current_user)
 
     tk = sgtk.sgtk_from_path(data["config_path"])
     tk._desktop_data = data["proxy_data"]
@@ -84,6 +98,7 @@ def start_app(engine):
         # wait for the engine communication channel to shut down
         engine.msg_server.join()
         return 0
+
 
 def handle_error(data):
     """

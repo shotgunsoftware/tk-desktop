@@ -817,6 +817,10 @@ class DesktopWindow(SystrayWindow):
         # startup server pipe to listen
         engine.startup_rpc()
 
+        # Make sure the credentials are refreshed so the background process
+        # has no problem launching.
+        engine.refresh_user_credentials()
+
         # pickle up the info needed to bootstrap the project python
         desktop_data = {
             "core_python_path": core_python,
@@ -825,7 +829,10 @@ class DesktopWindow(SystrayWindow):
             "proxy_data": {
                 "proxy_pipe": engine.site_comm.server_pipe,
                 "proxy_auth": engine.site_comm.server_authkey
-            }
+            },
+            "current_user": sgtk.authentication.serialize_user(
+                sgtk.get_authenticated_user()
+            )
         }
         (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
         pickle.dump(desktop_data, open(pickle_data_file, "wb"))
@@ -839,10 +846,6 @@ class DesktopWindow(SystrayWindow):
 
         # Check if the pipeline configuration is login based.
         engine.check_login_based(core_root)
-        # Make sure the credentials are refreshed so the background process
-        # has no problem launching.
-        engine.refresh_user_credentials()
-
         # Ticket 26741: Avoid having odd DLL loading issues on windows
         self._push_dll_state()
 
