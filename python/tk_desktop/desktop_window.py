@@ -524,8 +524,8 @@ class DesktopWindow(SystrayWindow):
         self.project_menu.insertAction(self.__pipeline_configuration_separator, action)
 
     def add_project_command(
-            self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
-        ):
+        self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
+    ):
         """
         Add a button command to the Project dialog. Keeps a running total of how
         many commands were added. If no commands are added for the Project, the
@@ -1089,7 +1089,6 @@ class DesktopWindow(SystrayWindow):
             # Make sure the credentials are refreshed so the background process
             # has no problem launching.
             engine.refresh_user_credentials()
-
             # Ticket 26741: Avoid having odd DLL loading issues on windows
             self._push_dll_state()
 
@@ -1098,13 +1097,16 @@ class DesktopWindow(SystrayWindow):
                 "Launching Python subprocess (%s)" % path_to_python
             )
             log.info("--- launching python subprocess (%s)" % path_to_python)
+
+            os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
+                sgtk.get_authenticated_user()
+            )
             engine.execute_hook(
                 "hook_launch_python",
                 project_python=path_to_python,
                 pickle_data_path=pickle_data_file,
                 utilities_module_path=utilities_module_path,
             )
-
             self._pop_dll_state()
 
             # and remember it for next time
@@ -1117,6 +1119,9 @@ class DesktopWindow(SystrayWindow):
         except Exception as e:
             self.log_exception("Unexpected error while launching Python:")
             self._launch_failed(str(e))
+        finally:
+            if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:
+                del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
 
     def slide_view(self, new_page, from_direction="right"):
         offsetx = self.ui.stack.frameRect().width()
