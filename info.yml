@@ -6,6 +6,21 @@
 
 # expected fields in the configuration file for this engine
 configuration:
+    # NOTE: The 'sg_software_entity' setting is only temporary and
+    #       will be removed once the Software entity becomes native
+    #       in Shotgun
+    sg_software_entity:
+        type: str
+        description: Shotgun CustomNonProjectEntity designated as the
+                     Software entity until it becomes native.
+        default_value: CustomNonProjectEntity23
+
+    software_entity_config_link:
+        type: str
+        description: Link to a Shotgun Support article detailing how to
+                     configure Software entities for a site.
+        default_value: "https://support.shotgunsoftware.com/entries/95443887#Setting%20up%20Application%20Paths"
+
     debug_logging:
         type: bool
         default_value: false
@@ -119,9 +134,9 @@ description: "The engine that runs inside the Shotgun Desktop Application"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.16.3"
+requires_core_version: "v0.18.54"
 
 frameworks:
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x"}
-    - {"name": "tk-framework-shotgunutils", "version": "v4.x.x"}
+    - {"name": "tk-framework-shotgunutils", "version": "v5.x.x"}
     - {"name": "tk-framework-adminui", "version": "v0.x.x"}

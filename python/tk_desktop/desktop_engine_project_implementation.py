@@ -119,7 +119,7 @@ class DesktopEngineProjectImplementation(object):
             self.__callback_map[("__commands", name)] = command_info["callback"]
             # pull out needed values since this needs to be pickleable
             gui_properties = {}
-            for prop in ["type", "icon", "title", "description"]:
+            for prop in ["type", "icon", "title", "description", "group", "group_default"]:
                 if prop in command_info["properties"]:
                     gui_properties[prop] = command_info["properties"][prop]
             # evaluate groups on the app proxy side
@@ -131,6 +131,9 @@ class DesktopEngineProjectImplementation(object):
                 time.sleep(0.5)
 
             self._project_comm.call("trigger_register_command", name, gui_properties, groups)
+
+        # Let the proxy know command registration is complete
+        self._project_comm.call_no_response("project_commands_finished")
 
     def destroy_engine(self):
         """
