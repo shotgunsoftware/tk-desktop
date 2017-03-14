@@ -817,6 +817,10 @@ class DesktopWindow(SystrayWindow):
         # startup server pipe to listen
         engine.startup_rpc()
 
+        # Make sure the credentials are refreshed so the background process
+        # has no problem launching.
+        engine.refresh_user_credentials()
+
         # pickle up the info needed to bootstrap the project python
         desktop_data = {
             "core_python_path": core_python,
@@ -839,20 +843,22 @@ class DesktopWindow(SystrayWindow):
 
         # Check if the pipeline configuration is login based.
         engine.check_login_based(core_root)
-        # Make sure the credentials are refreshed so the background process
-        # has no problem launching.
-        engine.refresh_user_credentials()
-
         # Ticket 26741: Avoid having odd DLL loading issues on windows
         self._push_dll_state()
 
         engine.log_info("--- launching python subprocess (%s)" % path_to_python)
-        engine.execute_hook(
-            "hook_launch_python",
-            project_python=path_to_python,
-            pickle_data_path=pickle_data_file,
-            utilities_module_path=utilities_module_path,
+        os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
+            sgtk.get_authenticated_user()
         )
+        try:
+            engine.execute_hook(
+                "hook_launch_python",
+                project_python=path_to_python,
+                pickle_data_path=pickle_data_file,
+                utilities_module_path=utilities_module_path,
+            )
+        finally:
+            del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
 
         self._pop_dll_state()
 
