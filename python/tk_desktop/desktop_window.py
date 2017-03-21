@@ -894,9 +894,10 @@ class DesktopWindow(SystrayWindow):
         :rtype: dict
         """
 
+        # No pipeline was found, so nothing to pik.
         if not pipeline_configurations:
             log.debug("No pipeline configuration to choose from.")
-            pass
+            return None
 
         log.debug("Looking for pipeline configuration %s.", requested_pipeline_configuration_id)
 
@@ -906,6 +907,9 @@ class DesktopWindow(SystrayWindow):
             if pc["id"] == requested_pipeline_configuration_id:
                 return pc
 
+        # We know there is at least one pipeline available, so pick the first. If we couldn't
+        # find a given sandbox, this has the benefit of picking the primary, which is sensible
+        # fallback.
         log.debug(
             "Requested pipeline configuration was not found. Falling back on %s",
             pprint.pformat(pipeline_configurations[0])
