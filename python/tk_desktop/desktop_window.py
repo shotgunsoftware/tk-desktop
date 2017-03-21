@@ -649,16 +649,6 @@ class DesktopWindow(SystrayWindow):
         for pc_name, pc_group in itertools.groupby(pipeline_configurations, lambda x: x["name"]):
             self._add_pipeline_group_to_menu(list(pc_group), selected)
 
-    def _is_primary_pc(self, pc):
-        """
-        Tests if a pipeline configuration is a primary.
-
-        :param pc: Pipeline configuration entity with key ``code``.
-
-        :returns: True if the pipeline configuration is a primary, else otherwise.
-        """
-        return pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME
-
     def _add_pipeline_group_to_menu(self, pc_group, selected):
         """
         Adds a group of pipelines to the menu.
@@ -783,6 +773,16 @@ class DesktopWindow(SystrayWindow):
     def _on_update_finished(self, success):
         if success:
             self.__launch_app_proxy_for_project(self.current_project)
+
+    def _is_primary_pc(self, pc):
+        """
+        Tests if a pipeline configuration is a primary.
+
+        :param pc: Pipeline configuration entity with key ``code``.
+
+        :returns: True if the pipeline configuration is a primary, else otherwise.
+        """
+        return pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME
 
     def __launch_app_proxy_for_project(self, project, requested_pipeline_configuration_id=None):
         try:
