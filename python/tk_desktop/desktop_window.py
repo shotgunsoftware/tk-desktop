@@ -847,8 +847,12 @@ class DesktopWindow(SystrayWindow):
         self._push_dll_state()
 
         engine.log_info("--- launching python subprocess (%s)" % path_to_python)
+        # Get the human user we authenticated as. Do not use get_authenticated_user. If the
+        # desktop is running on top of Shotgun Desktop 1.02, then desktop runs in legacy
+        # more where the authenticated user is None. Instead, use engine.get_current_user(),
+        # which knows the user used to actually log into desktop.
         os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
-            sgtk.get_authenticated_user()
+            engine.get_current_user()
         )
         try:
             engine.execute_hook(
