@@ -21,8 +21,12 @@ import fnmatch
 import traceback
 import threading
 
-from .project_communication import ProjectCommunication
+from sgtk import LogManager
 import sgtk
+
+from .project_communication import ProjectCommunication
+
+logger = LogManager.get_logger(__name__)
 
 
 class DesktopEngineProjectImplementation(object):
@@ -145,7 +149,7 @@ class DesktopEngineProjectImplementation(object):
         try:
             callback(*args, **kwargs)
         except Exception:
-            self._engine.log_error("Error calling %s::%s(%s, %s):\n%s" % (
+            logger.error("Error calling %s::%s(%s, %s):\n%s" % (
                 namespace, command, args, kwargs, traceback.format_exc()))
 
     def _signal_disconnect(self):
@@ -168,13 +172,13 @@ class DesktopEngineProjectImplementation(object):
             # closed. So if any top level dialog is visible, wait for it to close.
             opened_windows = filter(lambda w: w.isVisible(), top_level_windows)
             if opened_windows:
-                self._engine.log_debug("The following top level widgets are still visible:")
+                logger.debug("The following top level widgets are still visible:")
                 for w in opened_windows:
-                    self._engine.log_debug(str(w))
-                self._engine.log_debug("Process will quit only when the last window is closed.")
+                    logger.debug(str(w))
+                logger.debug("Process will quit only when the last window is closed.")
                 app.setQuitOnLastWindowClosed(True)
             else:
-                self._engine.log_debug("Quitting on disconnect")
+                logger.debug("Quitting on disconnect")
                 app.quit()
         else:
             self._project_comm.shut_down()
@@ -290,7 +294,7 @@ class DesktopEngineProjectImplementation(object):
 
             exit_code = os.system(cmd)
             if exit_code != 0:
-                self._engine.log_error("Failed to launch '%s'!" % cmd)
+                logger.error("Failed to launch '%s'!" % cmd)
 
     def _get_setting(self, setting_name, default_value=None):
         """
@@ -333,5 +337,5 @@ class DesktopEngineProjectImplementation(object):
         if not matches:
             matches = [default_group]
 
-        self._engine.log_debug("'%s' goes in groups: %s" % (display_name, matches))
+        logger.debug("'%s' goes in groups: %s" % (display_name, matches))
         return matches

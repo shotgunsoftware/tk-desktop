@@ -14,6 +14,10 @@ Implements communication channels between the desktop app and the background pro
 
 from .rpc import RPCServerThread, RPCProxy
 
+from sgtk import LogManager
+
+logger = LogManager.get_logger(__name__)
+
 
 class CommunicationBase(object):
     """
@@ -32,7 +36,7 @@ class CommunicationBase(object):
         """
         Disconnects from the other process and shuts down the local server.
         """
-        self._log_debug("Shutting down communication channel...")
+        logger.debug("Shutting down communication channel...")
 
         # Be super careful when closing the proxy, because it can be in an inconsistent state and
         # throw errors.
@@ -40,16 +44,16 @@ class CommunicationBase(object):
             try:
                 self._notify_proxy_closure()
             except Exception:
-                self._engine.log_exception("Error while destroying app proxy:")
+                logger.exception("Error while destroying app proxy:")
             else:
-                self._engine.log_debug("Destroyed app proxy.")
+                logger.debug("Destroyed app proxy.")
 
             self._destroy_proxy()
 
         # close down our server thread
         if self._msg_server is not None:
             self._msg_server.close()
-            self._engine.log_debug("Closed message server.")
+            logger.debug("Closed message server.")
             self._msg_server = None
 
     def register_function(self, callable, function_name):
@@ -87,15 +91,15 @@ class CommunicationBase(object):
         """
         Connects to the other process's RPC server.
         """
-        self._engine.log_info("Connecting to gui pipe %s" % pipe)
+        logger.info("Connecting to gui pipe %s" % pipe)
         self._proxy = RPCProxy(pipe, authkey)
-        self._log_debug("Connected to the proxy server.")
+        logger.debug("Connected to the proxy server.")
 
     def _create_server(self):
         """
         Launches an RPC server.
         """
-        self._log_debug("Starting RPC server")
+        logger.debug("Starting RPC server")
         self._msg_server = RPCServerThread(self._engine)
         self._msg_server.start()
 
@@ -123,35 +127,8 @@ class CommunicationBase(object):
             try:
                 self._proxy.close()
             except Exception, e:
-                self._log_warning("Error disconnecting from proxy: %s", e)
+                logger.warning("Error disconnecting from proxy: %s", e)
             else:
-                self._log_debug("Disconnected from the proxy.")
+                logger.debug("Disconnected from the proxy.")
             finally:
                 self._proxy = None
-
-    def _log_debug(self, msg, *args):
-        """
-        Writes a message to the debug logger.
-
-        :param msg: Message to log.
-        :param args: Arguments to log.
-        """
-        self._engine.log_debug(msg, *args)
-
-    def _log_warning(self, msg, *args):
-        """
-        Writes a message to the warning logger.
-
-        :param msg: Message to log.
-        :param args: Arguments to log.
-        """
-        self._engine.log_warning(msg, *args)
-
-    def _log_exception(self, msg, *args):
-        """
-        Writes a message to the exception logger.
-
-        :param msg: Message to log.
-        :param args: Arguments to log.
-        """
-        self._engine.log_exception(msg, *args)

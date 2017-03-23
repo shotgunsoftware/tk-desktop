@@ -67,7 +67,7 @@ class DesktopEngine(Engine):
 
     def destroy_engine(self):
         """ Clean up the engine """
-        self.log_debug("destroy_engine")
+        self.logger.debug("destroy_engine")
 
         if hasattr(self.__impl, "destroy_engine"):
             self.__impl.destroy_engine()
@@ -116,7 +116,7 @@ class DesktopEngine(Engine):
             if not hasattr(PySide, "__version__"):
                 PySide.__version__ = "<unknown>"
 
-            self.log_debug("Found PySide '%s' located in %s." % (PySide.__version__, PySide.__file__))
+            self.logger.debug("Found PySide '%s' located in %s." % (PySide.__version__, PySide.__file__))
         except ImportError:
             try:
                 from PyQt4 import QtCore, QtGui
@@ -125,11 +125,11 @@ class DesktopEngine(Engine):
                 QtCore.Slot = QtCore.pyqtSlot
                 QtCore.Property = QtCore.pyqtProperty
 
-                self.log_debug("Found PyQt '%s' located in %s." % (QtCore.PYQT_VERSION_STR, PyQt4.__file__))
+                self.logger.debug("Found PyQt '%s' located in %s." % (QtCore.PYQT_VERSION_STR, PyQt4.__file__))
             except ImportError:
                 return base
         except Exception as e:
-            self.log_exception("Error setting up QT. QT based UI support will not be available: %s" % e)
+            self.logger.exception("Error setting up QT. QT based UI support will not be available: %s" % e)
             return base
 
         # tell QT to interpret C strings as utf-8
