@@ -115,7 +115,7 @@ class DesktopWindow(SystrayWindow):
         # Setup the console
         self.__console = Console()
         self.__console_handler = ConsoleLogHandler(self.__console)
-        engine.add_logging_handler(self.__console_handler)
+        sgtk.LogManager().root_logger.addHandler(self.__console_handler)
 
         # User menu
         ###########################
@@ -1117,7 +1117,7 @@ class DesktopWindow(SystrayWindow):
             self.project_overlay.hide()
             return
         except Exception as e:
-            self.log_exception("Unexpected error while launching Python:")
+            log.exception("Unexpected error while launching Python:")
             self._launch_failed(str(e))
         finally:
             if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:

@@ -13,7 +13,6 @@ import os
 import re
 import sys
 import string
-import logging
 import collections
 
 from sgtk.errors import TankEngineInitError
@@ -367,13 +366,6 @@ class DesktopEngineSiteImplementation(object):
                 # raw http_proxy string.
                 http_proxy=sl._http_proxy
             )
-
-    def _initialize_logging(self):
-        formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")
-        self._engine._handler.setFormatter(formatter)
-
-    def log(self, level, msg, *args):
-        self._engine._logger.log(level, msg, *args)
 
     def get_current_login(self):
         """

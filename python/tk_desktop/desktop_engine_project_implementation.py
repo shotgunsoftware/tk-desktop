@@ -18,7 +18,6 @@ import time
 import os
 import sys
 import fnmatch
-import logging
 import traceback
 import threading
 
@@ -304,11 +303,7 @@ class DesktopEngineProjectImplementation(object):
         """
         return self._engine.get_setting(setting_name, default_value)
 
-    def _initialize_logging(self):
-        formatter = logging.Formatter("%(asctime)s [PROJ   %(levelname) -7s] %(name)s - %(message)s")
-        self._engine._handler.setFormatter(formatter)
-
-    def log(self, level, msg, *args):
+    def _emit_log_message(self, level, msg, *args):
         """
         Logs a message to the site engine if available, otherwise logs to disk.
         """
@@ -321,8 +316,6 @@ class DesktopEngineProjectImplementation(object):
             except Exception:
                 # could not log through the proxy, log to the file
                 pass
-
-        self._engine._logger.log(level, msg, *args)
 
     def _get_groups(self, name, properties):
         display_name = properties.get("title", name)
