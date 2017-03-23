@@ -64,4 +64,8 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         :param msg: Message to log.
         :param args: Arguments to log.
         """
-        logger.log(level, "[PROXY] %s" % msg, *args)
+        try:
+            logger.log(level, "[PROXY] %s" % msg, *args)
+        except Exception as e:
+            logger.exception("Unexpected error when logging proxy message:")
+            raise

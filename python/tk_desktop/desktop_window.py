@@ -115,7 +115,7 @@ class DesktopWindow(SystrayWindow):
         # Setup the console
         self.__console = Console()
         self.__console_handler = ConsoleLogHandler(self.__console)
-        sgtk.LogManager().root_logger.addHandler(self.__console_handler)
+        sgtk.LogManager().initialize_custom_handler(self.__console_handler)
 
         # User menu
         ###########################
