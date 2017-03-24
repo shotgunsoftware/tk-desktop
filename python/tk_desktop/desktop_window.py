@@ -1099,7 +1099,7 @@ class DesktopWindow(SystrayWindow):
             log.info("--- launching python subprocess (%s)" % path_to_python)
 
             os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
-                sgtk.get_authenticated_user()
+                engine.get_current_user()
             )
             engine.execute_hook(
                 "hook_launch_python",
@@ -1117,7 +1117,7 @@ class DesktopWindow(SystrayWindow):
             self.project_overlay.hide()
             return
         except Exception as e:
-            self.log_exception("Unexpected error while launching Python:")
+            engine.log_exception("Unexpected error while launching Python:")
             self._launch_failed(str(e))
         finally:
             if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:

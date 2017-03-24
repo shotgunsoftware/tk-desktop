@@ -38,7 +38,6 @@ class DesktopEngineSiteImplementation(object):
 
         self._engine = engine
         self.app_version = None
-        self._is_login_based = False
 
         # rules that determine how to collapse commands into buttons
         # each rule is a dictionary with keys for match, button_label, and
@@ -51,7 +50,6 @@ class DesktopEngineSiteImplementation(object):
     def destroy_engine(self):
         shotgun_globals.unregister_bg_task_manager(self._task_manager)
         self.site_comm.shut_down()
-        self._is_login_based = False
 
     def startup_rpc(self):
         self.site_comm.start_server()
