@@ -20,7 +20,6 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 from sgtk.util import shotgun
-from sgtk import util
 from sgtk.platform import constants
 from tank_vendor import shotgun_authentication as sg_auth
 from sgtk import pipelineconfig_utils
@@ -817,6 +816,9 @@ class DesktopWindow(SystrayWindow):
         # startup server pipe to listen
         engine.startup_rpc()
 
+        # Check if the pipeline configuration is login based.
+        engine.check_login_based(core_root)
+
         # Make sure the credentials are refreshed so the background process
         # has no problem launching.
         engine.refresh_user_credentials()
@@ -841,8 +843,6 @@ class DesktopWindow(SystrayWindow):
         # get the path to the utilities module
         utilities_module_path = os.path.realpath(os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py"))
 
-        # Check if the pipeline configuration is login based.
-        engine.check_login_based(core_root)
         # Ticket 26741: Avoid having odd DLL loading issues on windows
         self._push_dll_state()
 
@@ -862,7 +862,8 @@ class DesktopWindow(SystrayWindow):
                 utilities_module_path=utilities_module_path,
             )
         finally:
-            del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
+            if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:
+                del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
 
         self._pop_dll_state()
 
