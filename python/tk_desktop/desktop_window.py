@@ -894,7 +894,7 @@ class DesktopWindow(SystrayWindow):
         :rtype: dict
         """
 
-        # No pipeline was found, so nothing to pik.
+        # No pipeline was found, so nothing to pick.
         if not pipeline_configurations:
             log.debug("No pipeline configuration to choose from.")
             return None
