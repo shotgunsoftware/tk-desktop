@@ -17,18 +17,18 @@ import subprocess
 import cPickle as pickle
 import pprint
 import itertools
-from operator import itemgetter
+
 
 from tank.platform.qt import QtCore, QtGui
+from sgtk.platform import constants
 
 import sgtk
 from sgtk.util import shotgun
 from sgtk.bootstrap import ToolkitManager
-from sgtk.platform import constants
+
 from tank_vendor import shotgun_authentication as sg_auth
 from sgtk import TankInvalidInterpreterLocationError, TankFileDoesNotExistError
 from sgtk.platform import get_logger
-from sgtk.util import ShotgunPath
 
 from .ui import resources_rc # noqa
 from .ui import desktop_window
@@ -645,28 +645,9 @@ class DesktopWindow(SystrayWindow):
         action.setDefaultWidget(label)
         self.project_menu.addAction(action)
 
-        # Now it's time to add entries to the menu.
-
-        # Step 1: Extract the primary and add it to the menu.
-        primaries = filter(self._is_primary_pc, pipeline_configurations)
-        if primaries:
-            self._add_pipeline_group_to_menu(primaries, selected)
-
-        # Step 2: Extract the sandboxes and add them to the menu.
-
-        # Get all non primary configurations.
-        sandboxes = filter(lambda pc: not self._is_primary_pc(pc), pipeline_configurations)
-
-        # Sandboxes are sorted alphabetically. When two sandboxes have the same name,
-        # sort on the project field so that site level configurations appear first. If multiple site level
-        # configurations are also available, sort by id.
-        sandboxes = sorted(sandboxes, key=itemgetter("name", "project", "id"))
-
         # Group every sandboxes by their name and add pipelines one at a time
-        for pc_name, pc_group in itertools.groupby(sandboxes, lambda x: x["name"]):
+        for pc_name, pc_group in itertools.groupby(pipeline_configurations, lambda x: x["name"]):
             self._add_pipeline_group_to_menu(list(pc_group), selected)
-
-        # Step 3: Profit!
 
     def _add_pipeline_group_to_menu(self, pc_group, selected):
         """
@@ -793,60 +774,6 @@ class DesktopWindow(SystrayWindow):
         if success:
             self.__launch_app_proxy_for_project(self.current_project)
 
-    def _get_toolkit_classic_pipeline_configurations(self, connection, project):
-        """
-        Get all the pipeline configurations that are not using plugin ids.
-
-        :param connection: Shotgun connection instance.
-        :param dict project: Project entity link.
-
-        :returns: List of pipeline configuration dictionaries with keys ``mac_path``, ``windows_path``,
-            ``linux_path``, ``users`` and ``name``
-        """
-        found_pcs = connection.find(
-            "PipelineConfiguration",
-            [["project", "is", project]],
-            fields=["mac_path", "windows_path", "linux_path", "users", "code", "sg_plugin_ids", "plugin_ids", "project"]
-        )
-
-        def is_pipeline_usable(pc):
-            """
-            Ensures that a pipeline is not zero-config based and that it is accessible for the current user.
-            """
-            # If there is a plugin id, can't use this.
-            if pc.get("sg_plugin_ids") or pc.get("plugin_ids"):
-                return False
-
-            if not ShotgunPath.from_shotgun_dict(pc):
-                log.warning("Skipping Toolkit Classic pipeline configuration '%s' without any path set." % pc["id"])
-                return False
-
-            # If there are no users assigned, this pipeline is accessible from for everyone.
-            if not pc["users"]:
-                return True
-
-            # Search for ourselves.
-            for user in pc["users"]:
-                # We've found ourselves, awesome!
-                if self._current_user_id == user["id"]:
-                    return True
-
-            return False
-
-        # FIXME: We need to discuss what we do with multiple primaries with Toolkit classic. In zero config we keep
-        # the earliest one. It follows that the new desktop should follow the same rules, but the behavior already
-        # exists in the wild, so we may have to keep supporting that one.
-
-        # Filter out pipelines that can't be accessed.
-        accessible_pcs = filter(is_pipeline_usable, found_pcs)
-
-        # Massage the dictionaries keys so it uses the same key names of the zero config pipelines.
-        for pc in accessible_pcs:
-            pc["name"] = pc["code"]
-            del pc["code"]
-
-        return accessible_pcs
-
     def _is_primary_pc(self, pc):
         """
         Tests if a pipeline configuration is a primary.
@@ -857,37 +784,12 @@ class DesktopWindow(SystrayWindow):
         """
         return pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME
 
-    def _merge_pipeline_configuration_lists(self, classic_pcs, bootstrap_pcs):
-        """
-        Merges the pipeline configurations lists while taking out boostrap pipeline configurations
-        if a Toolkit classic pipeline configuration is also present.
-
-        :param list classic_pcs: List of Toolkit Classic pipeline configuration entity dictionaries.
-        :param list bootstrap_pcs: List of bootstrap pipeline configuration entity dictionaries.
-
-        :returns: Merged list of pipeline configurations entities with a single primary
-            pipeline configuration.
-        :rtype: list
-        """
-
-        # Find if there is a primary pipeline configuration in the classic pipelines.
-        has_classic_primary = any(self._is_primary_pc(pc) for pc in classic_pcs)
-        has_zero_config_primary = any(self._is_primary_pc(pc) for pc in bootstrap_pcs)
-
-        if has_classic_primary and has_zero_config_primary:
-            log.warning(
-                "Toolkit Classic 'Primary' pipeline configuration '%d' overrides "
-                "bootstrap 'Primary' pipeline configuration '%d'.")
-            # Only keep non-primaries
-            bootstrap_pcs = filter(lambda pc: not self._is_primary_pc(pc), bootstrap_pcs)
-
-        return classic_pcs + bootstrap_pcs
-
     def __launch_app_proxy_for_project(self, project, requested_pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
             log.debug("launching app proxy for project: %s" % project)
 
+            #############################
             # Phase 1: Get the UI pretty.
 
             # Make sure that not only the previous proxy is not running anymore
@@ -905,15 +807,8 @@ class DesktopWindow(SystrayWindow):
             self.__set_project_just_accessed(project)
             QtGui.QApplication.instance().processEvents()
 
+            ############################################################
             # Phase 2: Get information about the pipeline configuration.
-            #
-            # This phase is a two step process. First, get all the pipeline configurations that are
-            # not using plugin ids. Those are classic Toolkit pipeline configurations using *_path fields.
-            # Then, fetch the rest using the ToolkitManager, which honors the plugin_id flag.
-
-            # Step 1: First get the legacy pipeline configurations, i.e. those using the *_path fields.
-            connection = engine.shotgun
-            pipeline_configurations = self._get_toolkit_classic_pipeline_configurations(connection, project)
 
             toolkit_manager = ToolkitManager(engine.get_current_user())
             # We need to cache all environments because we don't know which one the user will require.
@@ -923,38 +818,44 @@ class DesktopWindow(SystrayWindow):
             toolkit_manager.bundle_cache_fallback_paths.extend(
                 engine.sgtk.bundle_cache_fallback_paths
             )
-            # Step 2: Retrieves the pipeline configurations that use plugin ids usable by the current user.
-            # and merge that list with the toolkit classic ones.
-            pipeline_configurations = self._merge_pipeline_configuration_lists(
-                pipeline_configurations,
-                toolkit_manager.get_pipeline_configurations(project)
-            )
+            pipeline_configurations = toolkit_manager.get_pipeline_configurations(project)
 
             log.debug("The following pipeline configurations for this project have been found:")
             log.debug(pprint.pformat(pipeline_configurations))
 
+            # No specific pipeline was requested, load the previously used one.
+            setting_name = "pipeline_configuration_for_project_%d" % project["id"]
+            if requested_pipeline_configuration_id is None:
+                log.debug("Searching for the latest config that was used.")
+                requested_pipeline_configuration_id = self._load_setting(setting_name, None, site_specific=True)
+
+            # Pick a pipeline configuration from the list to use.
             pipeline_configuration_to_load = self._pick_pipeline_configuration(
                 pipeline_configurations, requested_pipeline_configuration_id, project
             )
 
-            # going to launch the configuration, update the project menu if needed
+            # If we've found what we should be loading.
+            if pipeline_configuration_to_load:
+                # Remember what we just picked so we pick the same thing next time we launch the app.
+                log.debug("Updating %s to %d.", setting_name, pipeline_configuration_to_load["id"])
+                self._save_setting(setting_name, pipeline_configuration_to_load["id"], site_specific=True)
+
+            # Add all the pipeline configurations to the menu.
             self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration_to_load)
 
             # If no pipeline configurations were found in Shotgun, show the
             # 'Advanced project setup...' menu item.
             if not pipeline_configurations:
-                # Enable user menu item to launch classic Project Setup wizard
                 self.ui.actionAdvanced_Project_Setup.setVisible(True)
             else:
-                # Disable user menu item that launches classic Project Setup wizard
                 self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
             # From this point on, we don't touch the UI anymore.
 
+            ##############################################
             # Phase 3: Prepare the pipeline configuration.
 
-            # If no pipeline configuration is in the user settings, we will let the bootstrap
-            # pick the right pipeline configuration for the first launch.
+            # Bootstrap into the requested pipeline configuration or using the fallback.
             if pipeline_configuration_to_load is None:
                 toolkit_manager.pipeline_configuration = None
             else:
@@ -992,55 +893,28 @@ class DesktopWindow(SystrayWindow):
         :returns: The pipeline configuration that should be loaded, or None.
         :rtype: dict
         """
-        setting_name = "pipeline_configuration_for_project_%d" % project["id"]
 
-        # No specific pipeline was requested, load the previously used one.
-        if requested_pipeline_configuration_id is None:
-            log.debug("Searching for the latest config that was used.")
-            requested_pipeline_configuration_id = self._load_setting(setting_name, None, site_specific=True)
+        # No pipeline was found, so nothing to pick.
+        if not pipeline_configurations:
+            log.debug("No pipeline configuration to choose from.")
+            return None
 
         log.debug("Looking for pipeline configuration %s.", requested_pipeline_configuration_id)
 
         # Find the matching pipeline configuration to launch against
-        pipeline_configuration_to_load = None
-        primary_pipeline_configuration = None
         for pc in pipeline_configurations:
-            # If we've stumbled upon the Primary.
-            if self._is_primary_pc(pc):
-                primary_pipeline_configuration = pc
-
             # If the current pipeline matches the one we are looking for.
             if pc["id"] == requested_pipeline_configuration_id:
-                pipeline_configuration_to_load = pc
+                return pc
 
-            # If we've found everything, we can stop looking.
-            if primary_pipeline_configuration and pipeline_configuration_to_load:
-                break
-
-        # If we haven't found something to load.
-        if not pipeline_configuration_to_load:
-            # If there's a primary available, fall back to that.
-            if primary_pipeline_configuration:
-                log.warning(
-                    "Pipeline configuration id %s was not found, falling back to primary.",
-                    requested_pipeline_configuration_id
-                )
-                pipeline_configuration_to_load = primary_pipeline_configuration
-            elif requested_pipeline_configuration_id:
-                log.warning("Pipeline configuration id %s was not found.", requested_pipeline_configuration_id)
-            else:
-                log.debug("No primary was found nor was a specific pipeline requested.")
-
-        if pipeline_configuration_to_load is None:
-            log.debug("Updating %s to None.", setting_name)
-            # Save requested_pipeline_configuration_id as last accessed
-            self._save_setting(setting_name, None, site_specific=True)
-        else:
-            log.debug("Updating %s to %d.", setting_name, pipeline_configuration_to_load["id"])
-            # Save requested_pipeline_configuration_id as last accessed
-            self._save_setting(setting_name, pipeline_configuration_to_load["id"], site_specific=True)
-
-        return pipeline_configuration_to_load
+        # We know there is at least one pipeline available, so pick the first. If we couldn't
+        # find a given sandbox, this has the benefit of picking the primary, which is sensible
+        # fallback.
+        log.debug(
+            "Requested pipeline configuration was not found. Falling back on %s",
+            pprint.pformat(pipeline_configurations[0])
+        )
+        return pipeline_configurations[0]
 
     def _launch_failed(self, message):
         message = ("%s"
@@ -1053,7 +927,8 @@ class DesktopWindow(SystrayWindow):
         try:
 
             engine = sgtk.platform.current_engine()
-            # Phase 4: Find the interpreter and launch it.
+
+            # Find where Python is installed so we can launch an interpreter.
             path_to_python = sgtk.get_python_interpreter_for_config(config_path)
 
             # startup server pipe to listen
