@@ -8,11 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import os
 import sys
-import logging
-import traceback
-import logging.handlers
 
 import sgtk
 from sgtk.platform import Engine
@@ -23,9 +19,6 @@ class DesktopEngine(Engine):
         """ Constructor """
         self.__impl = None
 
-        # Need to init logging before init_engine to satisfy logging from framework setup
-        self._initialize_logging()
-
         # Now continue with the standard initialization
         Engine.__init__(self, tk, *args, **kwargs)
 
@@ -33,11 +26,6 @@ class DesktopEngine(Engine):
     # Engine methods
     def init_engine(self):
         """ Initialize the engine """
-        # set logging to the proper level from settings
-        if self.get_setting("debug_logging", False):
-            self._logger.setLevel(logging.DEBUG)
-        else:
-            self._logger.setLevel(logging.INFO)
 
         # Figure out which implementation we will use.  If the tk instance
         # has the proxy connection information in it, then we are running
@@ -72,10 +60,6 @@ class DesktopEngine(Engine):
         if hasattr(self.__impl, "init_engine"):
             self.__impl.init_engine()
 
-        # give the implementation a chance to update logging
-        if hasattr(self.__impl, "_initialize_logging"):
-            self.__impl._initialize_logging()
-
     def post_app_init(self):
         """ Called after all the apps have been initialized """
         if hasattr(self.__impl, "post_app_init"):
@@ -83,10 +67,7 @@ class DesktopEngine(Engine):
 
     def destroy_engine(self):
         """ Clean up the engine """
-        self.log_debug("destroy_engine")
-
-        # clean up our logging setup
-        self._tear_down_logging()
+        self.logger.debug("destroy_engine")
 
         if hasattr(self.__impl, "destroy_engine"):
             self.__impl.destroy_engine()
@@ -97,77 +78,6 @@ class DesktopEngine(Engine):
         if self.__impl is not None:
             return getattr(self.__impl, attr)
         raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
-
-    ############################################################################
-    # Logging
-    def _initialize_logging(self):
-        # platform specific locations for the log file
-        if sys.platform == "darwin":
-            fname = os.path.join(os.path.expanduser("~"), "Library", "Logs", "Shotgun", "tk-desktop.log")
-        elif sys.platform == "win32":
-            fname = os.path.join(os.environ.get("APPDATA", "APPDATA_NOT_SET"), "Shotgun", "tk-desktop.log")
-        elif sys.platform.startswith("linux"):
-            fname = os.path.join(os.path.expanduser("~"), ".shotgun", "logs", "tk-desktop.log")
-        else:
-            raise NotImplementedError("Unknown platform: %s" % sys.platform)
-
-        # create the directory for the log file
-        log_dir = os.path.dirname(fname)
-        if not os.path.exists(log_dir):
-            os.makedirs(log_dir)
-
-        # setup default logger, used in the new default exception hook
-        self._logger = logging.getLogger("tk-desktop")
-        self._handler = logging.handlers.RotatingFileHandler(fname, maxBytes=1024*1024, backupCount=5)
-        formatter = logging.Formatter("%(asctime)s [%(process) -5d %(levelname) -7s] %(name)s - %(message)s")
-        self._handler.setFormatter(formatter)
-        self._logger.addHandler(self._handler)
-
-        # We allow other handlers to be added to the logger (the GUI console for example).
-        # Track them so we can clean them up when we clean up logging
-        self.__extra_handlers = []
-
-    def _tear_down_logging(self):
-        # clear the handlers so we don't end up with duplicate messages
-        self._logger.removeHandler(self._handler)
-        while (self.__extra_handlers):
-            self._logger.removeHandler(self.__extra_handlers.pop())
-
-    def log(self, level, msg, *args):
-        if self.__impl is None:
-            # implementation has not been setup yet, log directly to the logger
-            self._logger.log(level, msg, *args)
-        else:
-            # implementation has been setup, let it handle the logging
-            self.__impl.log(level, msg, *args)
-
-    def log_debug(self, msg, *args):
-        self.log(logging.DEBUG, msg, *args)
-
-    def log_info(self, msg, *args):
-        self.log(logging.INFO, msg, *args)
-
-    def log_warning(self, msg, *args):
-        self.log(logging.WARNING, msg, *args)
-
-    def log_error(self, msg, *args):
-        self.log(logging.ERROR, msg, *args)
-
-    def log_exception(self, msg, *args):
-        if self.__impl is None:
-            # implementation has not been setup yet, log directly to the logger
-            self._logger.exception(msg, *args)
-        else:
-            if msg is not None:
-                # implementation has been setup, let it handle the logging
-                exception_msg = str(msg) + "\n" + traceback.format_exc()
-            else:
-                exception_msg = traceback.format_exc()
-            self.__impl.log(logging.ERROR, exception_msg, *args)
-
-    def add_logging_handler(self, handler):
-        self._logger.addHandler(handler)
-        self.__extra_handlers.append(handler)
 
     ##########################################################################################
     # pyside / qt
@@ -206,7 +116,7 @@ class DesktopEngine(Engine):
             if not hasattr(PySide, "__version__"):
                 PySide.__version__ = "<unknown>"
 
-            self.log_debug("Found PySide '%s' located in %s." % (PySide.__version__, PySide.__file__))
+            self.logger.debug("Found PySide '%s' located in %s." % (PySide.__version__, PySide.__file__))
         except ImportError:
             try:
                 from PyQt4 import QtCore, QtGui
@@ -215,11 +125,11 @@ class DesktopEngine(Engine):
                 QtCore.Slot = QtCore.pyqtSlot
                 QtCore.Property = QtCore.pyqtProperty
 
-                self.log_debug("Found PyQt '%s' located in %s." % (QtCore.PYQT_VERSION_STR, PyQt4.__file__))
+                self.logger.debug("Found PyQt '%s' located in %s." % (QtCore.PYQT_VERSION_STR, PyQt4.__file__))
             except ImportError:
                 return base
-        except Exception:
-            self.log_exception("Error setting up QT. QT based UI support will not be available: %s" % e)
+        except Exception as e:
+            self.logger.exception("Error setting up QT. QT based UI support will not be available: %s" % e)
             return base
 
         # tell QT to interpret C strings as utf-8

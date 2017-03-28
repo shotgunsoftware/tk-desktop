@@ -13,21 +13,21 @@ import os
 import re
 import sys
 import string
-import logging
 import collections
 
 from sgtk.errors import TankEngineInitError
 
-from . import rpc
 from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
-from tank_vendor import yaml
+
+from sgtk import LogManager
 
 from .site_communication import SiteCommunication
 
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+logger = LogManager.get_logger(__name__)
 
 
 class DesktopEngineSiteImplementation(object):
@@ -83,7 +83,7 @@ class DesktopEngineSiteImplementation(object):
             # add the traceback if available
             if tb is not None:
                 message += "\n\n%s" % tb
-            self._engine.log_error(message)
+            logger.error(message)
 
     def _on_proxy_closing(self):
         """
@@ -102,7 +102,7 @@ class DesktopEngineSiteImplementation(object):
         """ GUI side handler for the add_command call. """
         from tank.platform.qt import QtGui
 
-        self._engine.log_debug("register_command(%s, %s)", name, properties)
+        logger.debug("register_command(%s, %s)", name, properties)
 
         command_type = properties.get("type")
         command_icon = properties.get("icon")
@@ -116,7 +116,7 @@ class DesktopEngineSiteImplementation(object):
             if os.path.exists(command_icon):
                 icon = QtGui.QIcon(command_icon)
             else:
-                self._engine.log_error(
+                logger.error(
                     "Icon for command '%s' not found: '%s'" % (name, command_icon))
 
         title = properties.get("title", name)
@@ -155,7 +155,7 @@ class DesktopEngineSiteImplementation(object):
                 template = DisplayNameTemplate(collapse_rule["match"])
                 match = template.match(title)
                 if match is not None:
-                    self._engine.log_debug("matching %s against %s" % (title, collapse_rule["match"]))
+                    logger.debug("matching %s against %s" % (title, collapse_rule["match"]))
                     if collapse_rule["menu_label"] == "None":
                         menu_name = None
                     else:
@@ -209,12 +209,6 @@ class DesktopEngineSiteImplementation(object):
         # Startup version will not be set if we have an old installer invoking
         # this engine.
         self.startup_version = kwargs.get("startup_version")
-
-        server = kwargs.get("server")
-        # If the startup has a websocket server.
-        if server:
-            # Make sure that the websocket server logs go the Desktop logs.
-            server.get_logger().addHandler(self._engine._handler)
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()
@@ -323,7 +317,7 @@ class DesktopEngineSiteImplementation(object):
         try:
             from python import ShotgunLogin
         except ImportError:
-            self._engine.log_exception("Could not import tk-framework-login")
+            logger.exception("Could not import tk-framework-login")
             raise
         else:
             return ShotgunLogin.get_instance_for_namespace("tk-desktop")
@@ -365,13 +359,6 @@ class DesktopEngineSiteImplementation(object):
                 # raw http_proxy string.
                 http_proxy=sl._http_proxy
             )
-
-    def _initialize_logging(self):
-        formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")
-        self._engine._handler.setFormatter(formatter)
-
-    def log(self, level, msg, *args):
-        self._engine._logger.log(level, msg, *args)
 
     def get_current_login(self):
         """

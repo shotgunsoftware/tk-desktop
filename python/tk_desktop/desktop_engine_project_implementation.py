@@ -18,12 +18,15 @@ import time
 import os
 import sys
 import fnmatch
-import logging
 import traceback
 import threading
 
-from .project_communication import ProjectCommunication
+from sgtk import LogManager
 import sgtk
+
+from .project_communication import ProjectCommunication
+
+logger = LogManager.get_logger(__name__)
 
 
 class DesktopEngineProjectImplementation(object):
@@ -91,6 +94,9 @@ class DesktopEngineProjectImplementation(object):
         proxy_auth = bootstrap_data["proxy_auth"]
 
         self._project_comm.connect_to_server(proxy_pipe, proxy_auth, self._signal_disconnect)
+        # Stop logging to disk
+        sgtk.LogManager().uninitialize_base_file_handler()
+        logger.debug("Project-level tk-desktop engine has now switched back to proxy based logging.")
 
         self._project_comm.register_function(self._trigger_callback, "trigger_callback")
         self._project_comm.register_function(self._test_project_locations, "test_project_locations")
@@ -139,6 +145,8 @@ class DesktopEngineProjectImplementation(object):
         """
         Called when the engine is being torn-down.
         """
+        # We're about to disconenct from the server, reenable file based logging.
+        self._enable_file_based_logging()
         self._project_comm.shut_down()
 
     def _trigger_callback(self, namespace, command, *args, **kwargs):
@@ -146,10 +154,26 @@ class DesktopEngineProjectImplementation(object):
         try:
             callback(*args, **kwargs)
         except Exception:
-            self._engine.log_error("Error calling %s::%s(%s, %s):\n%s" % (
+            logger.error("Error calling %s::%s(%s, %s):\n%s" % (
                 namespace, command, args, kwargs, traceback.format_exc()))
 
+    def _enable_file_based_logging(self):
+        """
+        Enables file based logging to the tk-desktop log file.
+        """
+        # We're about to disconnect from the site engine, restore our own logging system. It is possible that it has
+        # already been re-enabled already however. This happens when the desktop site engine disconnects from us and
+        # triggers _signal_disconnect, which re-enables logging while we are still running some UIs, in which case
+        # the engine will be destroyed only when the last dialog will be closed. At that point, we don't need to
+        # initialize the base file handler. Ensuring that it is not enabled means there won't be spurious log
+        # messages about switching handlers in the log files.
+        if not sgtk.LogManager().base_file_handler:
+            logger.debug("Project-level tk-desktop engine will now switch back to file based logging.")
+            sgtk.LogManager().initialize_base_file_handler("tk-desktop")
+
     def _signal_disconnect(self):
+        # We were disconnected from the server, restore file-based logging.
+        self._enable_file_based_logging()
         # If the user is quick enough and steps out of the project right after launching it, the engine
         # will be initialized but the app won't be.
         with self._lock:
@@ -169,13 +193,13 @@ class DesktopEngineProjectImplementation(object):
             # closed. So if any top level dialog is visible, wait for it to close.
             opened_windows = filter(lambda w: w.isVisible(), top_level_windows)
             if opened_windows:
-                self._engine.log_debug("The following top level widgets are still visible:")
+                logger.debug("The following top level widgets are still visible:")
                 for w in opened_windows:
-                    self._engine.log_debug(str(w))
-                self._engine.log_debug("Process will quit only when the last window is closed.")
+                    logger.debug(str(w))
+                logger.debug("Process will quit only when the last window is closed.")
                 app.setQuitOnLastWindowClosed(True)
             else:
-                self._engine.log_debug("Quitting on disconnect")
+                logger.debug("Quitting on disconnect")
                 app.quit()
         else:
             self._project_comm.shut_down()
@@ -291,7 +315,7 @@ class DesktopEngineProjectImplementation(object):
 
             exit_code = os.system(cmd)
             if exit_code != 0:
-                self._engine.log_error("Failed to launch '%s'!" % cmd)
+                logger.error("Failed to launch '%s'!" % cmd)
 
     def _get_setting(self, setting_name, default_value=None):
         """
@@ -304,25 +328,20 @@ class DesktopEngineProjectImplementation(object):
         """
         return self._engine.get_setting(setting_name, default_value)
 
-    def _initialize_logging(self):
-        formatter = logging.Formatter("%(asctime)s [PROJ   %(levelname) -7s] %(name)s - %(message)s")
-        self._engine._handler.setFormatter(formatter)
-
-    def log(self, level, msg, *args):
+    def _emit_log_message(self, level, msg, *args):
         """
         Logs a message to the site engine if available, otherwise logs to disk.
         """
-        if self._project_comm.connected:
+        # If there is no file logger, attempt to send the message to the proxy server.
+        if not sgtk.LogManager().base_file_handler:
             # If we can log through the proxy, only do that to avoid
             # duplicate entries in the log file
             try:
                 self._project_comm.call_no_response("proxy_log", level, msg, args)
                 return
             except Exception:
-                # could not log through the proxy, log to the file
+                # could not log through to the proxy and there is no base file handler. bummer...
                 pass
-
-        self._engine._logger.log(level, msg, *args)
 
     def _get_groups(self, name, properties):
         display_name = properties.get("title", name)
@@ -340,5 +359,5 @@ class DesktopEngineProjectImplementation(object):
         if not matches:
             matches = [default_group]
 
-        self._engine.log_debug("'%s' goes in groups: %s" % (display_name, matches))
+        logger.debug("'%s' goes in groups: %s" % (display_name, matches))
         return matches

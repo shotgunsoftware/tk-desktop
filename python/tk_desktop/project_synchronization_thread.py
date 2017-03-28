@@ -12,6 +12,10 @@
 from sgtk.platform.qt import QtCore
 import sgtk
 
+from sgtk import LogManager
+
+logger = LogManager.get_logger(__name__)
+
 
 class ProjectSyncingCancelledError(Exception):
     """
@@ -49,7 +53,7 @@ class ProjectSynchronizationThread(QtCore.QThread):
         :param msg: Current action taking place.
         """
         if self._abort:
-            self._engine.log_debug("About to raise ProjectSyncingCancelledError")
+            logger.debug("About to raise ProjectSyncingCancelledError")
             # This exception will fall through to this class' run method, which will catch the
             # error.
             raise ProjectSyncingCancelledError()
@@ -64,20 +68,20 @@ class ProjectSynchronizationThread(QtCore.QThread):
             # Make sure the config is downloaded and the bundles cached.
             config_path = self._toolkit_manager.prepare_engine(None, self._project)
         except ProjectSyncingCancelledError:
-            self._engine.log_debug("Caught ProjectSyncingCancelledError.")
+            logger.debug("Caught ProjectSyncingCancelledError.")
             # Someone has canceled the syncing. Simply abort. No need to emit anything, abort is fire
             # and forget.
             pass
         except Exception as error:
-            self._engine.log_exception(str(error))
+            logger.exception(str(error))
             self.sync_failed.emit(str(error))
         else:
-            self._engine.log_debug("Syncing completed successfully.")
+            logger.debug("Syncing completed successfully.")
             self.sync_success.emit(config_path)
 
     def abort(self):
         """
         Raises a flag indicating we want to abort the syncing process.
         """
-        self._engine.log_debug("Setting abort flag.")
+        logger.debug("Setting abort flag.")
         self._abort = True
