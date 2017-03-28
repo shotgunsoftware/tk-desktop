@@ -25,24 +25,6 @@ import cPickle as pickle
 import logging
 
 
-class ProjectEngineDeferredLogHandler(logging.Handler):
-    """
-    Accumulates logs on the logger.
-    """
-
-    def __init__(self):
-        logging.Handler.__init__(self)
-        self._logs = []
-
-    @property
-    def logs(self):
-        return self._logs
-
-    def emit(self, record):
-        data = (record.levelno, record.msg, record.args)
-        self._logs.append(data)
-
-
 def start_engine(data):
     """
     Start the tk-desktop engine given a data dictionary like the one passed
@@ -58,11 +40,8 @@ def start_engine(data):
 
     # Initialize logging right away instead of waiting for the engine if we're using a 0.18 based-core.
     # This will also ensure that a crash will be tracked
-    deferred_logger = None
     if hasattr(sgtk, "LogManager"):
         sgtk.LogManager().initialize_base_file_handler("tk-desktop")
-        deferred_logger = ProjectEngineDeferredLogHandler()
-        sgtk.LogManager().initialize_custom_handler(deferred_logger)
 
     # If the core supports the shotgun_authentication module and the pickle has
     # a current user, we have to set the authenticated user.
@@ -90,10 +69,6 @@ def start_engine(data):
     tk._desktop_data = data["proxy_data"]
     ctx = tk.context_from_entity("Project", data["project"]["id"])
     engine = sgtk.platform.start_engine("tk-desktop", tk, ctx)
-
-    # Engine doesn't support deferred logging, so remove the handler so we don't keep accumulating logs.
-    if deferred_logger and not hasattr(engine, "supports_deferred_logging"):
-        sgtk.LogManager().root_logger.removeHandler(deferred_logger)
 
     return engine
 

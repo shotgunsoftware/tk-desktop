@@ -43,8 +43,6 @@ class DesktopEngineProjectImplementation(object):
         self.__callback_map = {}
         self._lock = threading.Lock()
 
-    supports_deferred_logging = True
-
     def post_app_init(self):
         """
         Initializes the connection with the site engine and registers all callbacks.
@@ -96,33 +94,14 @@ class DesktopEngineProjectImplementation(object):
         proxy_auth = bootstrap_data["proxy_auth"]
 
         self._project_comm.connect_to_server(proxy_pipe, proxy_auth, self._signal_disconnect)
-        self._flush_deferred_logs()
         # Stop logging to disk
         sgtk.LogManager().uninitialize_base_file_handler()
+        logger.debug("Project-level tk-desktop engine has now switched back to proxy based logging.")
 
         self._project_comm.register_function(self._trigger_callback, "trigger_callback")
         self._project_comm.register_function(self._test_project_locations, "test_project_locations")
         self._project_comm.register_function(self._open_project_locations, "open_project_locations")
         self._project_comm.register_function(self._get_setting, "get_setting")
-
-    def _flush_deferred_logs(self):
-        """
-        Flushes every logging attempt done while the engine was starting up
-        """
-        # Check if the startup that launched us installed a deferred logger.
-        for h in sgtk.LogManager().root_logger.handlers:
-            # We've got one!
-            if h.__class__.__name__ == "ProjectEngineDeferredLogHandler":
-                try:
-                    # Push everything to the desktop app.
-                    for level, msg, args in h.logs:
-                        self._project_comm.call_no_response("proxy_log", level, msg, args)
-                except Exception:
-                    # Something went wrong sending the deferred logs...
-                    pass
-                finally:
-                    sgtk.LogManager().root_logger.removeHandler(h)
-                    return
 
     def _register_groups(self):
         # get the list of configured groups
@@ -166,7 +145,8 @@ class DesktopEngineProjectImplementation(object):
         """
         Called when the engine is being torn-down.
         """
-        sgtk.LogManager().initialize_base_file_handler("tk-desktop")
+        # We're about to disconenct from the server, reenable file based logging.
+        self._enable_file_based_logging()
         self._project_comm.shut_down()
 
     def _trigger_callback(self, namespace, command, *args, **kwargs):
@@ -177,7 +157,23 @@ class DesktopEngineProjectImplementation(object):
             logger.error("Error calling %s::%s(%s, %s):\n%s" % (
                 namespace, command, args, kwargs, traceback.format_exc()))
 
+    def _enable_file_based_logging(self):
+        """
+        Enables file based logging to the tk-desktop log file.
+        """
+        # We're about to disconnect from the site engine, restore our own logging system. It is possible that it has
+        # already been re-enabled already however. This happens when the desktop site engine disconnects from us and
+        # triggers _signal_disconnect, which re-enables logging while we are still running some UIs, in which case
+        # the engine will be destroyed only when the last dialog will be closed. At that point, we don't need to
+        # initialize the base file handler. Ensuring that it is not enabled means there won't be spurious log
+        # messages about switching handlers in the log files.
+        if not sgtk.LogManager().base_file_handler:
+            logger.debug("Project-level tk-desktop engine will now switch back to file based logging.")
+            sgtk.LogManager().initialize_base_file_handler("tk-desktop")
+
     def _signal_disconnect(self):
+        # We were disconnected from the server, restore file-based logging.
+        self._enable_file_based_logging()
         # If the user is quick enough and steps out of the project right after launching it, the engine
         # will be initialized but the app won't be.
         with self._lock:
@@ -336,7 +332,7 @@ class DesktopEngineProjectImplementation(object):
         """
         Logs a message to the site engine if available, otherwise logs to disk.
         """
-        # If there is no logger, attemp to send the message to the proxy server.
+        # If there is no file logger, attempt to send the message to the proxy server.
         if not sgtk.LogManager().base_file_handler:
             # If we can log through the proxy, only do that to avoid
             # duplicate entries in the log file
