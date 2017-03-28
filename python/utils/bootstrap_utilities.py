@@ -8,6 +8,16 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+"""
+Bootstrap utilities for the Project-level tk-desktop engine.
+
+While this file gets executed by the background process running the desktop engine,
+the path to this file is actually passed as an argument to the background process. The
+path is actually to a file that is package with the site-level tk-desktop engine.
+As such, the site-level engine has control over how the project-level tk-desktop
+engine is bootstrapped and finalized.
+"""
+
 import os
 import sys
 import traceback
