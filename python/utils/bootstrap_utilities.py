@@ -32,7 +32,7 @@ def start_engine(data):
     """
     sys.path.append(data["core_python_path"])
 
-    # make sure we don't inherit tohe GUI's pipeline configuration
+    # make sure we don't inherit the GUI's pipeline configuration
     os.environ["TANK_CURRENT_PC"] = data["config_path"]
 
     import sgtk
