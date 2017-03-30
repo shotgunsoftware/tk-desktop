@@ -18,7 +18,6 @@ import cPickle as pickle
 import pprint
 import itertools
 
-
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
 
@@ -559,8 +558,10 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
 
-        # This is non-blocking and if the thread has already stopped running it has so side-effect.
-        self._sync_thread.abort()
+        # If we were in zero config mode, we need to abort the syncing.
+        if self._sync_thread:
+            # This is non-blocking and if the thread has already stopped running it has no side-effect.
+            self._sync_thread.abort()
 
         self._project_command_count = 0
         self._project_selection_model.clear()
@@ -600,6 +601,7 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.hide()
         self.setup_new_os_widget.hide()
         self.install_apps_widget.hide()
+        self.project_overlay.hide()
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)
@@ -784,6 +786,20 @@ class DesktopWindow(SystrayWindow):
         """
         return pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME
 
+    def _get_server_version(self, connection):
+        """
+        Retrieves the server version from the connection.
+
+        :param connection: Connection we want the server version from.
+
+        :returns: Tuple of (major, minor) versions.
+        """
+        sg_major_ver = connection.server_info["version"][0]
+        sg_minor_ver = connection.server_info["version"][1]
+        sg_patch_ver = connection.server_info["version"][2]
+
+        return sg_major_ver, sg_minor_ver, sg_patch_ver
+
     def __launch_app_proxy_for_project(self, project, requested_pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
@@ -846,7 +862,16 @@ class DesktopWindow(SystrayWindow):
             # If no pipeline configurations were found in Shotgun, show the
             # 'Advanced project setup...' menu item.
             if not pipeline_configurations:
-                self.ui.actionAdvanced_Project_Setup.setVisible(True)
+                # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
+                if self._get_server_version(engine.shotgun) >= (7, 1, 0):
+                    self.ui.actionAdvanced_Project_Setup.setVisible(True)
+                else:
+                    # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
+                    # bootstrap.
+                    self.ui.actionAdvanced_Project_Setup.setVisible(False)
+                    self.setup_project_widget.project = project
+                    self.setup_project_widget.show()
+                    return
             else:
                 self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
