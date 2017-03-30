@@ -871,6 +871,7 @@ class DesktopWindow(SystrayWindow):
                     self.ui.actionAdvanced_Project_Setup.setVisible(False)
                     self.setup_project_widget.project = project
                     self.setup_project_widget.show()
+                    # Stop here, we don't want to launch Python at this point.
                     return
             else:
                 self.ui.actionAdvanced_Project_Setup.setVisible(False)
