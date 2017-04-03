@@ -196,7 +196,6 @@ class RPCProxy(object):
     LISTEN_TIMEOUT = 2
 
     def __init__(self, pipe, authkey):
-        logger = logging.getLogger("tk-desktop.rpc")
         self._closed = False
 
         # connect to the server via the pipe using authkey for authentication

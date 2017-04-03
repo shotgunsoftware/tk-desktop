@@ -11,9 +11,9 @@
 from __future__ import absolute_import
 
 import sys
-import logging
 
-from tank.platform.qt import QtCore, QtGui
+import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 
 from .ui import resources_rc
 
@@ -23,6 +23,9 @@ try:
     from .extensions import osutils
 except Exception:
     osutils = None
+
+
+logger = sgtk.platform.get_logger(__name__)
 
 
 class SystrayWindow(QtGui.QMainWindow):
@@ -59,7 +62,6 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
-        self.__logger = logging.getLogger("tk-desktop.systray")
 
         if sys.platform == "darwin":
             self.setAttribute(QtCore.Qt.WA_MacNoShadow)
@@ -158,7 +160,7 @@ class SystrayWindow(QtGui.QMainWindow):
         QtGui.QApplication.instance().processEvents()
         systray_geo = self.systray.geometry()
 
-        self.__logger.debug("systray_geo: %s" % systray_geo)
+        logger.debug("systray_geo: %s", systray_geo)
 
         if animated:
             final = QtCore.QRect(systray_geo.center().x(), systray_geo.bottom(), 5, 5)
@@ -235,7 +237,7 @@ class SystrayWindow(QtGui.QMainWindow):
     def __move_to_systray(self):
         """ update the window position to be centered under the system tray icon """
         geo = self.systray.geometry()
-        self.__logger.debug("__move_to_systray: systray_geo: %s" % geo)
+        logger.debug("__move_to_systray: systray_geo: %s" % geo)
 
         side = self._guess_toolbar_side()
 
