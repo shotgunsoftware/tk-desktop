@@ -48,9 +48,6 @@ class DesktopEngineSiteImplementation(object):
         self._task_manager = task_manager.BackgroundTaskManager(parent=None)
         shotgun_globals.register_bg_task_manager(self._task_manager)
 
-    def post_app_init(self):
-        desktop_server_framework.init_desktop_server()
-
     def destroy_engine(self):
         shotgun_globals.unregister_bg_task_manager(self._task_manager)
         self.site_comm.shut_down()
@@ -266,6 +263,18 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
+        # Initialize all of this after the style-sheet has been applied to any prompt are also
+        # styled after the Shotgun Desktop's visual-style.
+        splash.set_message("Initializing browser integration.")
+        try:
+            desktop_server_framework.launch_desktop_server()
+        except Exception:
+            logger.exception("Unexpected error while trying to launch the browser integration:")
+
+        # hide the splash if it exists
+        if splash is not None:
+            splash.hide()
+
         # desktop_window needs to import shotgun_authentication globally. However, doing so
         # can cause a crash when running Shotgun Desktop installer 1.02 code. We used to
         # not restart Desktop when upgrading the core, which caused the older version of core
@@ -283,10 +292,6 @@ class DesktopEngineSiteImplementation(object):
 
         # make sure we close down our rpc threads
         app.aboutToQuit.connect(self._engine.destroy_engine)
-
-        # hide the splash if it exists
-        if splash is not None:
-            splash.hide()
 
         # and run the app
         result = app.exec_()
