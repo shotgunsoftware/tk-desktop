@@ -14,7 +14,6 @@ import logging
 
 from tank.platform.qt import QtCore, QtGui
 
-
 from .ui import preferences
 
 logger = logging.getLogger("tk-desktop.preferences")
