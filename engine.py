@@ -154,6 +154,7 @@ class DesktopEngine(Engine):
                     d.show()
                     d.activateWindow()
                     d.raise_()
+                    d.close()
                     d.deleteLater()
                     self._requires_visibility_hack = False
 
