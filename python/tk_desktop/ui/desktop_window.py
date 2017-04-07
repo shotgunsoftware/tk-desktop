@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'desktop_window.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.4
+#      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -359,8 +359,6 @@ class Ui_DesktopWindow(object):
         self.actionKeep_on_Top.setObjectName("actionKeep_on_Top")
         self.actionProject_Filesystem_Folder = QtGui.QAction(DesktopWindow)
         self.actionProject_Filesystem_Folder.setObjectName("actionProject_Filesystem_Folder")
-        self.actionPreferences = QtGui.QAction(DesktopWindow)
-        self.actionPreferences.setObjectName("actionPreferences")
         self.actionShow_Console = QtGui.QAction(DesktopWindow)
         self.actionShow_Console.setObjectName("actionShow_Console")
         self.actionRefresh_Projects = QtGui.QAction(DesktopWindow)
@@ -399,8 +397,6 @@ class Ui_DesktopWindow(object):
         self.actionSign_Out.setText(QtGui.QApplication.translate("DesktopWindow", "Sign Out", None, QtGui.QApplication.UnicodeUTF8))
         self.actionKeep_on_Top.setText(QtGui.QApplication.translate("DesktopWindow", "Keep on Top", None, QtGui.QApplication.UnicodeUTF8))
         self.actionProject_Filesystem_Folder.setText(QtGui.QApplication.translate("DesktopWindow", "Project Filesystem Folder", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionPreferences.setText(QtGui.QApplication.translate("DesktopWindow", "Preferences...", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionPreferences.setShortcut(QtGui.QApplication.translate("DesktopWindow", "Ctrl+,", None, QtGui.QApplication.UnicodeUTF8))
         self.actionShow_Console.setText(QtGui.QApplication.translate("DesktopWindow", "Show Console", None, QtGui.QApplication.UnicodeUTF8))
         self.actionShow_Console.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Show the logging console.", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRefresh_Projects.setText(QtGui.QApplication.translate("DesktopWindow", "Refresh Projects", None, QtGui.QApplication.UnicodeUTF8))

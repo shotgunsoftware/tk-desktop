@@ -65,15 +65,14 @@ if __name__ == "__main__":
         "It appears there was a request coming from <b>{0}</b>, but you "
         "are currently logged into <b>{1}</b>.<br/><br/>"
         "You need restart the Shotgun Desktop and connect to <b>{0}</b> in "
-        "order to answer requests from that site.<br/><br/>"
-        "What would you like to do?".format(
+        "order to answer requests from that site.".format(
             "abc.shotgunstudio.com",
             "xyz.shotgunstudio.com"
         )
     )
     dlg.exec_()
     if dlg.result() == dlg.Accepted:
-        print "Accepted"
+        print "Restart"
     elif dlg.result() == dlg.Ignore:
         print "Ignore"
     else:

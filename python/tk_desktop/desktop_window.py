@@ -554,8 +554,7 @@ class DesktopWindow(SystrayWindow):
                 "It appears there was a request coming from <b>{0}</b>, but you "
                 "are currently logged into <b>{1}</b>.<br/><br/>"
                 "You need restart the Shotgun Desktop and connect to <b>{0}</b> in "
-                "order to answer requests from that site.<br/><br/>"
-                "What would you like to do?".format(
+                "order to answer requests from that site.".format(
                     urlparse.urlparse(site).netloc,
                     urlparse.urlparse(current_site).netloc
                 )
@@ -567,8 +566,7 @@ class DesktopWindow(SystrayWindow):
                 "which was made with the user <b>{0}</b>, but the user <b>{1}</b> "
                 "is currently logged into the Shotgun Desktop.<br/><br/>"
                 "You need to restart the Shotgun Desktop in order to answer "
-                "requests from user <b>{0}</b>.<br/><br/>"
-                "What would you like to do?".format(
+                "requests from user <b>{0}</b>.".format(
                     user_login, engine.get_current_user().login
                 )
             )
