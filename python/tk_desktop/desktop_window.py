@@ -19,7 +19,6 @@ import pprint
 import itertools
 import urlparse
 
-
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
 
@@ -660,8 +659,10 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
 
-        # This is non-blocking and if the thread has already stopped running it has so side-effect.
-        self._sync_thread.abort()
+        # If we were in zero config mode, we need to abort the syncing.
+        if self._sync_thread:
+            # This is non-blocking and if the thread has already stopped running it has no side-effect.
+            self._sync_thread.abort()
 
         self._project_command_count = 0
         self._project_selection_model.clear()
@@ -701,6 +702,7 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.hide()
         self.setup_new_os_widget.hide()
         self.install_apps_widget.hide()
+        self.project_overlay.hide()
 
         # clear the project specific menu
         self.project_menu = QtGui.QMenu(self)
@@ -947,7 +949,17 @@ class DesktopWindow(SystrayWindow):
             # If no pipeline configurations were found in Shotgun, show the
             # 'Advanced project setup...' menu item.
             if not pipeline_configurations:
-                self.ui.actionAdvanced_Project_Setup.setVisible(True)
+                # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
+                if engine.shotgun.server_info >= (7, 1, 0):
+                    self.ui.actionAdvanced_Project_Setup.setVisible(True)
+                else:
+                    # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
+                    # bootstrap.
+                    self.ui.actionAdvanced_Project_Setup.setVisible(False)
+                    self.setup_project_widget.project = project
+                    self.setup_project_widget.show()
+                    # Stop here, we don't want to launch Python at this point.
+                    return
             else:
                 self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
