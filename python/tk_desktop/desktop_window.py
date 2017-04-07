@@ -251,6 +251,8 @@ class DesktopWindow(SystrayWindow):
         # Set of sites that are being ignored when browser integration requests happen. This set is not
         # persisted when the desktop is closed.
         self._ignored_sites = set()
+        # Flag indicating if we are currently handling a switch user request from the browser integration.
+        self._is_handling_switch_request = False
 
         # Do not put anything after this line, this can kick-off a Python process launch, which should
         # be done only when the dialog is fully initialized.
@@ -541,45 +543,55 @@ class DesktopWindow(SystrayWindow):
 
     def _on_different_user(self, site, user_login):
 
-        engine = sgtk.platform.current_engine()
-        current_site = engine.get_current_user().host
-
-        if site.lower() in self._ignored_sites:
-            log.info("Request ignored for site '%s' and user '%s'", site, user_login)
+        # Makes sure that if the user is browsing multiples pages before coming back to the Desktop,
+        # only the first request will generate a pop-up. Note that if requests comes from different users and/or sites,
+        # only the first one will be acknoledged. This is to avoid having multiple modal dialogs popping up.
+        if self._is_handling_switch_request:
             return
+        self._is_handling_switch_request = True
 
-        # Figure out if we need to restart because of a different site or simply a different user.
-        if site.lower() != current_site.lower():
-            msg = (
-                "It appears there was a request coming from <b>{0}</b>, but you "
-                "are currently logged into <b>{1}</b>.<br/><br/>"
-                "You need restart the Shotgun Desktop and connect to <b>{0}</b> in "
-                "order to answer requests from that site.".format(
-                    urlparse.urlparse(site).netloc,
-                    urlparse.urlparse(current_site).netloc
+        try:
+            engine = sgtk.platform.current_engine()
+            current_site = engine.get_current_user().host
+
+            if site.lower() in self._ignored_sites:
+                log.info("Request ignored for site '%s' and user '%s'", site, user_login)
+                return
+
+            # Figure out if we need to restart because of a different site or simply a different user.
+            if site.lower() != current_site.lower():
+                msg = (
+                    "It appears there was a request coming from <b>{0}</b>, but you "
+                    "are currently logged into <b>{1}</b>.<br/><br/>"
+                    "You need to restart the Shotgun Desktop and connect to <b>{0}</b> in "
+                    "order to answer requests from that site.".format(
+                        urlparse.urlparse(site).netloc,
+                        urlparse.urlparse(current_site).netloc
+                    )
                 )
-            )
-            new_site = site
-        else:
-            msg = (
-                "It appears there was a request coming from the Shotgun website "
-                "which was made with the user <b>{0}</b>, but the user <b>{1}</b> "
-                "is currently logged into the Shotgun Desktop.<br/><br/>"
-                "You need to restart the Shotgun Desktop in order to answer "
-                "requests from user <b>{0}</b>.".format(
-                    user_login, engine.get_current_user().login
+                new_site = site
+            else:
+                msg = (
+                    "It appears there was a request coming from the Shotgun website "
+                    "which was made with the user <b>{0}</b>, but the user <b>{1}</b> "
+                    "is currently logged into the Shotgun Desktop.<br/><br/>"
+                    "You need to restart the Shotgun Desktop in order to answer "
+                    "requests from user <b>{0}</b>.".format(
+                        user_login, engine.get_current_user().login
+                    )
                 )
-            )
-            new_site = None
+                new_site = None
 
-        dialog = BrowserIntegrationUserSwitchDialog(msg, self)
-        dialog.exec_()
+            dialog = BrowserIntegrationUserSwitchDialog(msg, self)
+            dialog.exec_()
 
-        if dialog.result() == dialog.Restart:
-            self._switch_current_user(new_site, user_login)
-            self._restart_desktop()
-        elif dialog.result() == dialog.IgnorePermanently:
-            self._ignored_sites.add(site.lower())
+            if dialog.result() == dialog.Restart:
+                self._switch_current_user(new_site, user_login)
+                self._restart_desktop()
+            elif dialog.result() == dialog.IgnorePermanently:
+                self._ignored_sites.add(site.lower())
+        finally:
+            self._is_handling_switch_request = False
 
     def is_on_top(self):
         return (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
