@@ -786,6 +786,18 @@ class DesktopWindow(SystrayWindow):
         """
         return pc["name"] == constants.PRIMARY_PIPELINE_CONFIG_NAME
 
+    def __get_server_version(self, connection):
+        """
+        Retrieves the server version from the connection.
+
+        :param connection: Shotgun connection we want the server version from.
+        :returns: Tuple of (major, minor, patch) versions.
+        """
+        sg_major_ver = connection.server_info["version"][0]
+        sg_minor_ver = connection.server_info["version"][1]
+        sg_patch_ver = connection.server_info["version"][2]
+        return sg_major_ver, sg_minor_ver, sg_patch_ver
+
     def __launch_app_proxy_for_project(self, project, requested_pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
@@ -849,7 +861,7 @@ class DesktopWindow(SystrayWindow):
             # 'Advanced project setup...' menu item.
             if not pipeline_configurations:
                 # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
-                if engine.shotgun.server_info >= (7, 1, 0):
+                if self.__get_server_version(engine.shotgun) >= (7, 1, 0):
                     self.ui.actionAdvanced_Project_Setup.setVisible(True)
                 else:
                     # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
