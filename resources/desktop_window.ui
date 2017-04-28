@@ -44,6 +44,9 @@
      <number>0</number>
     </property>
     <item>
+     <widget class="BannerWidget" name="banner" native="true"/>
+    </item>
+    <item>
      <widget class="QFrame" name="header">
       <property name="frameShape">
        <enum>QFrame::NoFrame</enum>
@@ -929,6 +932,14 @@
     <string>Launch the classic project setup wizard</string>
    </property>
   </action>
+  <action name="actionReset_Banner_Messages">
+   <property name="text">
+    <string>Reset Banner Messages</string>
+   </property>
+   <property name="toolTip">
+    <string>Resets all banner warnings</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -940,6 +951,12 @@
    <class>ActionListView</class>
    <extends>QListView</extends>
    <header>..action_list_view.h</header>
+  </customwidget>
+  <customwidget>
+   <class>BannerWidget</class>
+   <extends>QWidget</extends>
+   <header>..banner_widget</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <tabstops>

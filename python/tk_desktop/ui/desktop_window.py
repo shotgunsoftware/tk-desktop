@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'desktop_window.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.4
+#      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -30,6 +30,9 @@ class Ui_DesktopWindow(object):
         self.border_layout.setSpacing(0)
         self.border_layout.setContentsMargins(0, 0, 0, 0)
         self.border_layout.setObjectName("border_layout")
+        self.banner = BannerWidget(self.center)
+        self.banner.setObjectName("banner")
+        self.border_layout.addWidget(self.banner)
         self.header = QtGui.QFrame(self.center)
         self.header.setFrameShape(QtGui.QFrame.NoFrame)
         self.header.setFrameShadow(QtGui.QFrame.Raised)
@@ -359,14 +362,14 @@ class Ui_DesktopWindow(object):
         self.actionKeep_on_Top.setObjectName("actionKeep_on_Top")
         self.actionProject_Filesystem_Folder = QtGui.QAction(DesktopWindow)
         self.actionProject_Filesystem_Folder.setObjectName("actionProject_Filesystem_Folder")
-        self.actionPreferences = QtGui.QAction(DesktopWindow)
-        self.actionPreferences.setObjectName("actionPreferences")
         self.actionShow_Console = QtGui.QAction(DesktopWindow)
         self.actionShow_Console.setObjectName("actionShow_Console")
         self.actionRefresh_Projects = QtGui.QAction(DesktopWindow)
         self.actionRefresh_Projects.setObjectName("actionRefresh_Projects")
         self.actionAdvanced_Project_Setup = QtGui.QAction(DesktopWindow)
         self.actionAdvanced_Project_Setup.setObjectName("actionAdvanced_Project_Setup")
+        self.actionReset_Banner_Messages = QtGui.QAction(DesktopWindow)
+        self.actionReset_Banner_Messages.setObjectName("actionReset_Banner_Messages")
 
         self.retranslateUi(DesktopWindow)
         self.stack.setCurrentIndex(0)
@@ -399,15 +402,16 @@ class Ui_DesktopWindow(object):
         self.actionSign_Out.setText(QtGui.QApplication.translate("DesktopWindow", "Sign Out", None, QtGui.QApplication.UnicodeUTF8))
         self.actionKeep_on_Top.setText(QtGui.QApplication.translate("DesktopWindow", "Keep on Top", None, QtGui.QApplication.UnicodeUTF8))
         self.actionProject_Filesystem_Folder.setText(QtGui.QApplication.translate("DesktopWindow", "Project Filesystem Folder", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionPreferences.setText(QtGui.QApplication.translate("DesktopWindow", "Preferences...", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionPreferences.setShortcut(QtGui.QApplication.translate("DesktopWindow", "Ctrl+,", None, QtGui.QApplication.UnicodeUTF8))
         self.actionShow_Console.setText(QtGui.QApplication.translate("DesktopWindow", "Show Console", None, QtGui.QApplication.UnicodeUTF8))
         self.actionShow_Console.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Show the logging console.", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRefresh_Projects.setText(QtGui.QApplication.translate("DesktopWindow", "Refresh Projects", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRefresh_Projects.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Refreshes the project information.", None, QtGui.QApplication.UnicodeUTF8))
         self.actionAdvanced_Project_Setup.setText(QtGui.QApplication.translate("DesktopWindow", "Advanced project setup...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionAdvanced_Project_Setup.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Launch the classic project setup wizard", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionReset_Banner_Messages.setText(QtGui.QApplication.translate("DesktopWindow", "Reset Banner Messages", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionReset_Banner_Messages.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Resets all banner warnings", None, QtGui.QApplication.UnicodeUTF8))
 
+from ..banner_widget import BannerWidget
 from ..action_list_view import ActionListView
 from ..grouping_list_view import GroupingListView
 from . import resources_rc

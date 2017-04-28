@@ -97,8 +97,11 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.update_finished.connect(self._on_update_finished)
         self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
 
+        self.ui.banner.set_settings_manager(self._settings_manager)
+        self.ui.banner.show_next_message()
+
         # setup systray behavior
-        self.set_content_layout(self.ui.border_layout)
+        self.set_content_layout(self.ui.center)
         self.set_drag_widgets([self.ui.header, self.ui.footer])
 
         self.systray_state_changed.connect(self.handle_systray_state_changed)
@@ -149,10 +152,12 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionShow_Console)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
         self.user_menu.addAction(self.ui.actionAdvanced_Project_Setup)
+        self.user_menu.addAction(self.ui.actionReset_Banner_Messages)
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
+
 
         # Initially hide the Advanced project setup... menu item. This
         # menu item will only be displayed for projects that do not have
@@ -170,6 +175,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
         self.ui.actionAdvanced_Project_Setup.triggered.connect(self.handle_advanced_project_setup_action)
         self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
+        self.ui.actionReset_Banner_Messages.triggered.connect(self.reset_banners)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
 
@@ -311,6 +317,10 @@ class DesktopWindow(SystrayWindow):
     # Event handlers and slots
     def contextMenuEvent(self, event):
         self.user_menu.exec_(event.globalPos())
+
+    def reset_banners(self):
+        self.ui.banner.reset_banners()
+        self.ui.banner.show_next_message()
 
     def handle_project_command_expanded_changed(self, group_key, expanded):
         expanded_state = self._project_command_model.get_expanded_state()
