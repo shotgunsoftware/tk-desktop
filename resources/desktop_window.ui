@@ -44,7 +44,16 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="BannerWidget" name="banner_widget" native="true"/>
+     <widget class="QWidget" name="banners" native="true">
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="margin">
+        <number>0</number>
+       </property>
+      </layout>
+     </widget>
     </item>
     <item>
      <widget class="QFrame" name="header">
@@ -951,12 +960,6 @@
    <class>ActionListView</class>
    <extends>QListView</extends>
    <header>..action_list_view.h</header>
-  </customwidget>
-  <customwidget>
-   <class>BannerWidget</class>
-   <extends>QWidget</extends>
-   <header>..banner_widget</header>
-   <container>1</container>
   </customwidget>
  </customwidgets>
  <tabstops>

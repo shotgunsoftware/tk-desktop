@@ -25,7 +25,7 @@ class NotificationsManager(object):
     def get_notifications(self):
         banner_settings = self._get_banner_settings()
 
-        first_launch_notif = FirstLaunchNotification.create(banner_settings)
+        first_launch_notif = None # FirstLaunchNotification.create(banner_settings)
         config_update_notif = ConfigurationUpdateNotification.create(banner_settings, self._descriptor)
         startup_update_notif = StartupUpdateNotification.create(banner_settings, self._engine)
 

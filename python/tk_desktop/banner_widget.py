@@ -18,7 +18,7 @@ logger = sgtk.platform.get_logger(__name__)
 
 class BannerWidget(QtGui.QWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, mgr, notif, parent=None):
         super(BannerWidget, self).__init__(parent)
 
         self.ui = Ui_BannerWidget()
@@ -30,34 +30,17 @@ class BannerWidget(QtGui.QWidget):
 
         self._current_message_id = None
 
-        self.ui.close_button.clicked.connect(self._on_dismiss_message)
-        self.ui.message.linkActivated.connect(self._on_link_clicked)
-
-    def show_next_message(self):
-        notifs = list(self._notifications_manager.get_notifications())
-
-        if not notifs:
-            self.hide()
-            return
-
-        notif = notifs.pop(0)
-
+        self.ui.message.setText(notif.message)
+        self._mgr = mgr
         self._notif = notif
 
-        self.ui.message.setText(notif.message)
-        self.show()
+        self.ui.close_button.clicked.connect(self._on_dismiss_message)
+        self.ui.message.linkActivated.connect(self._on_link_clicked)
 
     def _on_link_clicked(self, url):
         QtGui.QDesktopServices.openUrl(url)
         self._on_dismiss_message()
 
     def _on_dismiss_message(self):
-        self._notifications_manager.dismiss(self._notif)
-        # Check if there is a new message to show.
-        self.show_next_message()
-
-    def reset_banners(self):
-        self._notifications_manager.reset()
-
-    def set_settings_manager(self, notifications_manager):
-        self._notifications_manager = notifications_manager
+        self._mgr.dismiss(self._notif)
+        self.hide()

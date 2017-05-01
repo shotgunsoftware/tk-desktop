@@ -30,9 +30,14 @@ class Ui_DesktopWindow(object):
         self.border_layout.setSpacing(0)
         self.border_layout.setContentsMargins(0, 0, 0, 0)
         self.border_layout.setObjectName("border_layout")
-        self.banner_widget = BannerWidget(self.center)
-        self.banner_widget.setObjectName("banner_widget")
-        self.border_layout.addWidget(self.banner_widget)
+        self.banners = QtGui.QWidget(self.center)
+        self.banners.setObjectName("banners")
+        self.verticalLayout_4 = QtGui.QVBoxLayout(self.banners)
+        self.verticalLayout_4.setSpacing(0)
+        self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_4.setObjectName("verticalLayout_4")
+        self.border_layout.addWidget(self.banners)
         self.header = QtGui.QFrame(self.center)
         self.header.setFrameShape(QtGui.QFrame.NoFrame)
         self.header.setFrameShadow(QtGui.QFrame.Raised)
@@ -411,7 +416,6 @@ class Ui_DesktopWindow(object):
         self.actionReset_Banner_Messages.setText(QtGui.QApplication.translate("DesktopWindow", "Reset Banner Messages", None, QtGui.QApplication.UnicodeUTF8))
         self.actionReset_Banner_Messages.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Resets all banner warnings", None, QtGui.QApplication.UnicodeUTF8))
 
-from ..banner_widget import BannerWidget
 from ..action_list_view import ActionListView
 from ..grouping_list_view import GroupingListView
 from . import resources_rc

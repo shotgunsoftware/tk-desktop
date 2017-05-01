@@ -45,6 +45,7 @@ from .project_model import SgProjectModelProxy
 from .project_delegate import SgProjectDelegate
 from .update_project_config import UpdateProjectConfig
 from .loading_project_widget import LoadingProjectWidget
+from .banner_widget import BannerWidget
 
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
@@ -108,15 +109,13 @@ class DesktopWindow(SystrayWindow):
             def get_uri(self):
                 return "abbababa"
 
-        self.ui.banner_widget.set_settings_manager(
-            NotificationsManager(
-                self._settings_manager,
-                Descriptor(),
-                engine
-            )
+        self._notifs_mgr = NotificationsManager(
+            self._settings_manager,
+            Descriptor(),
+            engine
         )
 
-        self.ui.banner_widget.show_next_message()
+        self._setup_banners()
 
         # setup systray behavior
         self.set_content_layout(self.ui.center)
@@ -269,6 +268,10 @@ class DesktopWindow(SystrayWindow):
         # be done only when the dialog is fully initialized.
         self._load_settings()
 
+    def _setup_banners(self):
+        for notif in self._notifs_mgr.get_notifications():
+            self.ui.banners.layout().addWidget(BannerWidget(self._notifs_mgr, notif))
+
     def _load_settings(self):
         # last window position
         pos = self._settings_manager.retrieve("pos", QtCore.QPoint(200, 200), self._settings_manager.SCOPE_SITE)
@@ -336,8 +339,8 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.exec_(event.globalPos())
 
     def reset_banners(self):
-        self.ui.banner_widget.reset_banners()
-        self.ui.banner_widget.show_next_message()
+        self._notifs_mgr.reset()
+        self._setup_banners()
 
     def handle_project_command_expanded_changed(self, group_key, expanded):
         expanded_state = self._project_command_model.get_expanded_state()
