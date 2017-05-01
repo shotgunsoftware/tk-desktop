@@ -17,6 +17,7 @@ import subprocess
 import cPickle as pickle
 import pprint
 import itertools
+from collections import OrderedDict
 
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
@@ -49,6 +50,8 @@ from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
 from .project_synchronization_thread import ProjectSynchronizationThread
+
+from .notifications import NotificationsManager
 
 try:
     from .extensions import osutils
@@ -97,7 +100,22 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.update_finished.connect(self._on_update_finished)
         self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
 
-        self.ui.banner_widget.set_settings_manager(self._settings_manager)
+        class Descriptor(object):
+            @property
+            def changelog(self):
+                return (None, "https://github.com/shotgunsoftware/tk-config-basic/wiki/Release-Notes#v0138")
+
+            def get_uri(self):
+                return "abbababa"
+
+        self.ui.banner_widget.set_settings_manager(
+            NotificationsManager(
+                self._settings_manager,
+                Descriptor(),
+                engine
+            )
+        )
+
         self.ui.banner_widget.show_next_message()
 
         # setup systray behavior
@@ -157,7 +175,6 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
-
 
         # Initially hide the Advanced project setup... menu item. This
         # menu item will only be displayed for projects that do not have
@@ -1068,30 +1085,25 @@ class DesktopWindow(SystrayWindow):
         # If a Startup version was specified when engine.run was invoked
         # it's because we're running the new installer code and therefore
         # we have a startup version to show.
+
+        versions = OrderedDict()
+        versions["App Version"] = engine.app_version
+
         if engine.startup_version:
-            about = AboutScreen(parent=self, body="""
-                <center>
-                    App Version %s<br/>
-                    Startup Version %s<br/>
-                    Engine Version %s<br/>
-                    Core Version %s
-                </center>
-            """ % (
-                engine.app_version,
-                engine.startup_version,
-                engine.version,
-                engine.sgtk.version)
-            )
-        else:
-            about = AboutScreen(parent=self, body="""
-                <center>
-                    App Version %s<br/>
-                    Engine Version %s<br/>
-                    Core Version %s
-                </center>
-            """ % (
-                engine.app_version,
-                engine.version,
-                engine.sgtk.version)
-            )
+            versions["Startup Version"] = engine.startup_version
+
+        versions["Engine Version"] = engine.version
+        versions["Core"] = engine.sgtk.version
+
+        if engine.sgtk.configuration_descriptor:
+            versions[
+                engine.sgtk.configuration_descriptor.display_name
+            ] = engine.sgtk.configuration_descriptor.version
+
+        body = "<center>"
+        for name, version in versions.iteritems():
+            body += "    {0} {1}<br/>".format(name, version)
+        body += "</center>"
+
+        about = AboutScreen(parent=self, body=body)
         about.exec_()

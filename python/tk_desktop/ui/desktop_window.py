@@ -372,7 +372,7 @@ class Ui_DesktopWindow(object):
         self.actionReset_Banner_Messages.setObjectName("actionReset_Banner_Messages")
 
         self.retranslateUi(DesktopWindow)
-        self.stack.setCurrentIndex(1)
+        self.stack.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(DesktopWindow)
         DesktopWindow.setTabOrder(self.projects, self.user_button)
         DesktopWindow.setTabOrder(self.user_button, self.search_button)

@@ -1,0 +1,50 @@
+# Copyright (c) 2017 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+
+from .notification import Notification
+
+
+class StartupUpdateNotification(Notification):
+
+    _DESKTOPSTARTUP_UPDATES_ID = "desktop-startup.updates"
+
+    def __init__(self, engine):
+        self._engine = engine
+
+    @classmethod
+    def create(cls, banner_settings, engine):
+        if not engine.startup_descriptor:
+            return None
+
+        if not engine.startup_descriptor.version:
+            return None
+
+        if not engine.startup_descriptor.changelog[1]:
+            return None
+
+        if banner_settings.get(
+            cls._DESKTOPSTARTUP_UPDATES_ID, {}
+        ).get(engine.startup_version, False):
+            return None
+        else:
+
+            return StartupUpdateNotification(engine)
+
+    @property
+    def message(self):
+        return (
+            "<b>Shotgun Desktop</b> has been updated. "
+            "<a href='{0}'>Click here</a> to learn more."
+        ).format(self._engine.startup_descriptor.changelog[1])
+
+    def _dismiss(self, banner_settings):
+        banner_settings.setdefault(
+            self._DESKTOPSTARTUP_UPDATES_ID, {}
+        )[self._engine.startup_version] = True

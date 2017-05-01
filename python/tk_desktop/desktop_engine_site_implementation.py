@@ -204,12 +204,14 @@ class DesktopEngineSiteImplementation(object):
         :param splash: Splash screen widget we can display messages on.
         :param version: Version of the Shotgun Desktop installer code.
         :param startup_version: Version of the Desktop Startup code.
+        :param startup_descriptor: Descriptor of the Desktop Startup code.
         """
         self.app_version = version
 
         # Startup version will not be set if we have an old installer invoking
         # this engine.
         self.startup_version = kwargs.get("startup_version")
+        self.startup_descriptor = kwargs.get("startup_descriptor")
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()

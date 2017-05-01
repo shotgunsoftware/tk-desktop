@@ -18,13 +18,6 @@ logger = sgtk.platform.get_logger(__name__)
 
 class BannerWidget(QtGui.QWidget):
 
-    _BANNERS = "banners"
-    _FIRST_LAUNCH_BANNER_VIEWED_ID = "first_desktop_launch_banner_viewed"
-    _SHOTGUN_DESKTOP_SUPPORT_PAGE_URL = (
-        "https://support.shotgunsoftware.com/hc/en-us/articles/219040668-"
-        "Shotgun-Desktop-Download-and-Setup#The%20Toolkit%20Project%20setup%20wizard"
-    )
-
     def __init__(self, parent=None):
         super(BannerWidget, self).__init__(parent)
 
@@ -41,45 +34,30 @@ class BannerWidget(QtGui.QWidget):
         self.ui.message.linkActivated.connect(self._on_link_clicked)
 
     def show_next_message(self):
+        notifs = list(self._notifications_manager.get_notifications())
 
-        banner_ids = self._settings_manager.retrieve(self._BANNERS, {})
-
-        if not banner_ids.get(self._FIRST_LAUNCH_BANNER_VIEWED_ID, False):
-            logger.debug("First launch message shown.")
-            self.show()
-            self._current_message_id = self._FIRST_LAUNCH_BANNER_VIEWED_ID
-
-            self.ui.message.setText(
-                "Welcome to the <b>Shotgun Desktop</b>. Please <a href='%s'>click here</a> to learn more!" %
-                self._SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
-            )
+        if not notifs:
+            self.hide()
             return
 
-        bundle = sgtk.platform.current_bundle()
-        banner_id = bundle.get_setting("banner_id")
-        if not banner_ids.get(banner_id, False):
-            logger.debug("banner_id '%s' shown.", banner_id)
-            self.show()
-            self._current_message_id = banner_id
-            self.ui.message.setText(bundle.get_setting("banner_message"))
-            return
+        notif = notifs.pop(0)
 
-        self.hide()
+        self._notif = notif
+
+        self.ui.message.setText(notif.message)
+        self.show()
 
     def _on_link_clicked(self, url):
         QtGui.QDesktopServices.openUrl(url)
         self._on_dismiss_message()
 
     def _on_dismiss_message(self):
-        banner_ids = self._settings_manager.retrieve(self._BANNERS, {})
-        banner_ids[self._current_message_id] = True
-        self._settings_manager.store(self._BANNERS, banner_ids)
-
+        self._notifications_manager.dismiss(self._notif)
         # Check if there is a new message to show.
         self.show_next_message()
 
     def reset_banners(self):
-        self._settings_manager.store(self._BANNERS, {})
+        self._notifications_manager.reset()
 
-    def set_settings_manager(self, settings_manager):
-        self._settings_manager = settings_manager
+    def set_settings_manager(self, notifications_manager):
+        self._notifications_manager = notifications_manager
