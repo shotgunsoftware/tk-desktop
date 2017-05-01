@@ -12,12 +12,10 @@ class Ui_BannerWidget(object):
     def setupUi(self, BannerWidget):
         BannerWidget.setObjectName("BannerWidget")
         BannerWidget.resize(414, 51)
-        BannerWidget.setStyleSheet("background-color: rgb(25, 146, 204);")
         self.horizontalLayout = QtGui.QHBoxLayout(BannerWidget)
         self.horizontalLayout.setContentsMargins(6, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.message = QtGui.QLabel(BannerWidget)
-        self.message.setStyleSheet("color: rgb(255, 255, 255);")
         self.message.setWordWrap(True)
         self.message.setOpenExternalLinks(False)
         self.message.setObjectName("message")

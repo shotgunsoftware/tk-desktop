@@ -44,7 +44,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="BannerWidget" name="banner" native="true"/>
+     <widget class="BannerWidget" name="banner_widget" native="true"/>
     </item>
     <item>
      <widget class="QFrame" name="header">

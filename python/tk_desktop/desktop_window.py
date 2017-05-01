@@ -97,8 +97,8 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.update_finished.connect(self._on_update_finished)
         self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
 
-        self.ui.banner.set_settings_manager(self._settings_manager)
-        self.ui.banner.show_next_message()
+        self.ui.banner_widget.set_settings_manager(self._settings_manager)
+        self.ui.banner_widget.show_next_message()
 
         # setup systray behavior
         self.set_content_layout(self.ui.center)
@@ -319,8 +319,8 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.exec_(event.globalPos())
 
     def reset_banners(self):
-        self.ui.banner.reset_banners()
-        self.ui.banner.show_next_message()
+        self.ui.banner_widget.reset_banners()
+        self.ui.banner_widget.show_next_message()
 
     def handle_project_command_expanded_changed(self, group_key, expanded):
         expanded_state = self._project_command_model.get_expanded_state()
