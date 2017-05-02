@@ -17,8 +17,16 @@ logger = sgtk.platform.get_logger(__name__)
 
 
 class BannerWidget(QtGui.QWidget):
+    """
+    Shows a notification in the banner.
+    """
 
-    def __init__(self, mgr, notif, parent=None):
+    def __init__(self, mgr, notif, is_last, parent=None):
+        """
+        :param mgr: ``NotificationsManager`` instance.
+        :param notif: ``Notification`` instance to display.
+        :
+        """
         super(BannerWidget, self).__init__(parent)
 
         self.ui = Ui_BannerWidget()
@@ -37,10 +45,23 @@ class BannerWidget(QtGui.QWidget):
         self.ui.close_button.clicked.connect(self._on_dismiss_message)
         self.ui.message.linkActivated.connect(self._on_link_clicked)
 
+        if is_last:
+            self.ui.line.hide()
+        else:
+            self.ui.line.show()
+
     def _on_link_clicked(self, url):
-        QtGui.QDesktopServices.openUrl(url)
+        """
+        Opens the URL when clicked, launches it in the browser and dismisses the
+        message.
+        """
+        if url:
+            QtGui.QDesktopServices.openUrl(url)
         self._on_dismiss_message()
 
     def _on_dismiss_message(self):
+        """
+        Dismisses the message and hides the banner.
+        """
         self._mgr.dismiss(self._notif)
         self.hide()

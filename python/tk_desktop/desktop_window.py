@@ -269,8 +269,11 @@ class DesktopWindow(SystrayWindow):
         self._load_settings()
 
     def _setup_banners(self):
-        for notif in self._notifs_mgr.get_notifications():
-            self.ui.banners.layout().addWidget(BannerWidget(self._notifs_mgr, notif))
+
+        notifs = list(self._notifs_mgr.get_notifications())
+        for notif in notifs:
+            banner = BannerWidget(self._notifs_mgr, notif, is_last=(notifs[-1] == notif))
+            self.ui.banners.layout().addWidget(banner)
 
     def _load_settings(self):
         # last window position

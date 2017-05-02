@@ -15,15 +15,31 @@ from .startup_update_notification import StartupUpdateNotification
 
 
 class NotificationsManager(object):
+    """
+    Allows to retrieve and dismiss notifications for the Shotgun Desktop.
+    """
 
     _BANNERS = "banners"
 
     def __init__(self, user_settings, descriptor, engine):
+        """
+        :param user_settings. ``UserSettings`` instance.
+        :param descriptor: Descriptor obtained from the pipeline configuration.
+        :param engine: tk-desktop engine instance.
+        """
         self._user_settings = user_settings
         self._descriptor = descriptor
         self._engine = engine
 
     def get_notifications(self):
+        """
+        Yields a list of notifications.
+
+        If the FirstLaunchNotitification hasn't been dismissed yet, every other notification
+        will be dismissed.
+
+        :returns: An array on :class:``Notification`` objects.
+        """
         banner_settings = self._get_banner_settings()
 
         first_launch_notif = FirstLaunchNotification.create(banner_settings)
@@ -51,12 +67,23 @@ class NotificationsManager(object):
                 yield desktop_notif
 
     def dismiss(self, notification):
+        """
+        Marks a notification as dismiss to that it is not shown in the future.
+        """
         settings  = self._get_banner_settings()
         notification._dismiss(settings)
         self._user_settings.store(self._BANNERS, settings)
 
     def reset(self):
+        """
+        Undismisses all the notifications.
+        """
         self._user_settings.store(self._BANNERS, {})
 
     def _get_banner_settings(self):
+        """
+        Retrieves the banner settings section from the ``UserSettings``.
+
+        :returns: Dictionary of settings.
+        """
         return self._user_settings.retrieve(self._BANNERS) or {}

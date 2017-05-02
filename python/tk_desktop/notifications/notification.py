@@ -12,11 +12,22 @@ from abc import abstractproperty, abstractmethod
 
 
 class Notification(object):
+    """
+    Base class for Notification classes.
+
+    Requires the implementation of the ``message`` property and ``_dismiss`` method.
+    """
 
     @abstractproperty
     def message(self):
-        pass
+        """
+        Message to display.
+        """
 
     @abstractmethod
     def _dismiss(self):
-        pass
+        """
+        Updates the ``banner_settings`` so this notification does not come back in the future.
+
+        :param banner_settings: Dictionary of the banners settings.
+        """
