@@ -8,6 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from .desktop_notification import DesktopNotification
 from .configuration_update_notification import ConfigurationUpdateNotification
 from .first_launch_notification import FirstLaunchNotification
 from .startup_update_notification import StartupUpdateNotification
@@ -25,9 +26,10 @@ class NotificationsManager(object):
     def get_notifications(self):
         banner_settings = self._get_banner_settings()
 
-        first_launch_notif = None # FirstLaunchNotification.create(banner_settings)
+        first_launch_notif = FirstLaunchNotification.create(banner_settings)
         config_update_notif = ConfigurationUpdateNotification.create(banner_settings, self._descriptor)
         startup_update_notif = StartupUpdateNotification.create(banner_settings, self._engine)
+        desktop_notif = DesktopNotification.create(banner_settings, self._engine)
 
         if first_launch_notif:
             # Skip the config and startup updates on first launch.
@@ -35,6 +37,8 @@ class NotificationsManager(object):
                 self.dismiss(config_update_notif)
             if startup_update_notif:
                 self.dismiss(startup_update_notif)
+            if desktop_notif:
+                self.dismiss(desktop_notif)
 
             yield first_launch_notif
         else:
@@ -43,6 +47,8 @@ class NotificationsManager(object):
                 yield config_update_notif
             if startup_update_notif:
                 yield startup_update_notif
+            if desktop_notif:
+                yield desktop_notif
 
     def dismiss(self, notification):
         settings  = self._get_banner_settings()

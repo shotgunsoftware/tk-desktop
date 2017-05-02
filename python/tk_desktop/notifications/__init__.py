@@ -11,4 +11,5 @@
 from .startup_update_notification import StartupUpdateNotification # noqa
 from .configuration_update_notification import ConfigurationUpdateNotification # noqa
 from .first_launch_notification import FirstLaunchNotification # noqa
+from .desktop_notification import DesktopNotification # noqa
 from .notification_manager import NotificationsManager # noqa

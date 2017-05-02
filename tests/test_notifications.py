@@ -54,8 +54,8 @@ class TestNotifications(TankTestBase):
         self._get_uri_mock.return_value = "uvw"
 
         self._mock_engine = SealedMock(
-            startup_version=None,
-            startup_descriptor=None
+            startup_descriptor=None,
+            get_setting=self._get_setting_mock
         )
 
         self._notification_manager = notifications.NotificationsManager(
@@ -63,6 +63,16 @@ class TestNotifications(TankTestBase):
             self._mock_descriptor,
             self._mock_engine
         )
+
+        self._banner_id = "banner_id"
+        self._banner_message = "banner_message"
+
+    def _get_setting_mock(self, name, _=None):
+        self.assertIn(name, ["banner_id", "banner_message"])
+        if name == "banner_id":
+            return self._banner_id
+        else:
+            return self._banner_message
 
     def _dismiss_first_launch(self):
 
@@ -133,8 +143,7 @@ class TestNotifications(TankTestBase):
         Test the configuration update notification when no release url is available.
         """
         self._dismiss_first_launch()
-        self._mock_engine.startup_version = "v0.0.0"
-        self._mock_engine.startup_descriptor = SealedMock(changelog=(None, "https://foo.bar"))
+        self._mock_engine.startup_descriptor = SealedMock(version="v0.0.0", changelog=(None, "https://foo.bar"))
 
         self._mock_descriptor.changelog = (None, None)
 
@@ -142,5 +151,20 @@ class TestNotifications(TankTestBase):
         self.assertEqual(len(notifs), 1)
         self.assertEqual(
             isinstance(notifs[0], notifications.StartupUpdateNotification),
+            True
+        )
+
+    def test_desktop_notifs(self):
+        """
+        Test notifications that are stored as engine settings.
+        """
+        self._dismiss_first_launch()
+
+        self._banner_id = "another_banner_id"
+
+        notifs = list(self._notification_manager.get_notifications())
+        self.assertEqual(len(notifs), 1)
+        self.assertEqual(
+            isinstance(notifs[0], notifications.DesktopNotification),
             True
         )

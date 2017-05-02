@@ -9,6 +9,9 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .notification import Notification
+import sgtk
+
+logger = sgtk.platform.get_logger(__name__)
 
 
 class StartupUpdateNotification(Notification):
@@ -21,20 +24,33 @@ class StartupUpdateNotification(Notification):
     @classmethod
     def create(cls, banner_settings, engine):
         if not engine.startup_descriptor:
+            logger.debug("Version of startup code doesn't provide descriptor.")
             return None
 
         if not engine.startup_descriptor.version:
+            logger.debug("Startup descriptor doesn't provide a version")
+            return None
+
+        if engine.startup_descriptor.version.lower() in ["undefined", "head"]:
+            logger.debug(
+                "Startup descriptor version is '%s', skipping.", engine.startup_descriptor.version
+            )
             return None
 
         if not engine.startup_descriptor.changelog[1]:
+            logger.debug(
+                "Startup descriptor doesn't have a release url."
+            )
             return None
 
         if banner_settings.get(
             cls._DESKTOPSTARTUP_UPDATES_ID, {}
-        ).get(engine.startup_version, False):
+        ).get(engine.startup_descriptor.version, False):
+            logger.debug(
+                "This release has already been dismissed."
+            )
             return None
         else:
-
             return StartupUpdateNotification(engine)
 
     @property
