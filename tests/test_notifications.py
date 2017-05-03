@@ -45,19 +45,24 @@ class TestNotifications(TankTestBase):
     def setUp(self):
         super(TestNotifications, self).setUp()
 
+        # Mocks ShotgunUtils UserSettings class.
         self._user_settings = MockUserSettings()
+
+        # Mocks the descriptor class.
         self._mock_descriptor = SealedMock(
             changelog=("Text", "http://foo.bar"),
             get_uri=SealedMock()
         )
+        # Later tests will set the get_uri mock's return_value.
         self._get_uri_mock = self._mock_descriptor.get_uri
-        self._get_uri_mock.return_value = "uvw"
 
+        # Mocks the parts of the engine required by the notification system.
         self._mock_engine = SealedMock(
             startup_descriptor=None,
             get_setting=self._get_setting_mock
         )
 
+        # Create the manager.
         self._notification_manager = notifications.NotificationsManager(
             self._user_settings,
             self._mock_descriptor,
@@ -65,17 +70,27 @@ class TestNotifications(TankTestBase):
             self._mock_engine
         )
 
-        self._banner_id = "banner_id"
-        self._banner_message = "banner_message"
+        # Will be used by the _get_setting_mock method to mock engine settings.
+        self._banner_id = None
+        self._banner_message = None
 
     def _get_setting_mock(self, name, _=None):
+        """
+        Mocks the engine's get_setting method.
+        """
+        # Make sure we're not asking for something unexpected.
         self.assertIn(name, ["banner_id", "banner_message"])
+
         if name == "banner_id":
             return self._banner_id
         else:
             return self._banner_message
 
     def _dismiss_first_launch(self):
+        """
+        Because the user settings are clean at the start of each test, we need to dismiss
+        the start notification.
+        """
         # Make sure there's only one notif and its the first launch one.
         notifs = self._notification_manager.get_notifications()
         self.assertEqual(len(notifs), 1)
@@ -83,6 +98,12 @@ class TestNotifications(TankTestBase):
 
         # Dismiss it!
         self._notification_manager.dismiss(notifs[0])
+
+        # Should be empty now.
+        self.assertListEqual(
+            self._notification_manager.get_notifications(),
+            []
+        )
 
     def test_first_launch_notifs(self):
         """
@@ -99,8 +120,10 @@ class TestNotifications(TankTestBase):
         self._notification_manager.dismiss(notifs[0])
 
         # Now there should be no more current notifications.
-        notifs = self._notification_manager.get_notifications()
-        self.assertEqual(len(notifs), 0)
+        self.assertListEqual(
+            self._notification_manager.get_notifications(),
+            []
+        )
 
     def test_configuration_update_notifs(self):
         """
@@ -119,11 +142,14 @@ class TestNotifications(TankTestBase):
         self.assertEqual(len(notifs), 1)
         self.assertEqual(isinstance(notifs[0], notifications.ConfigurationUpdateNotification), True)
 
+        # Dismiss the notification.
         self._notification_manager.dismiss(notifs[0])
 
-        notifs = self._notification_manager.get_notifications()
-
-        self.assertEqual(len(notifs), 0)
+        # Now there should be no more current notifications.
+        self.assertListEqual(
+            self._notification_manager.get_notifications(),
+            []
+        )
 
     def test_no_config_update_notifs_on_missing_doc(self):
         """
@@ -154,17 +180,36 @@ class TestNotifications(TankTestBase):
             True
         )
 
+        # Dismiss the notification.
+        self._notification_manager.dismiss(notifs[0])
+
+        # Now there should be no more current notifications.
+        self.assertListEqual(
+            self._notification_manager.get_notifications(),
+            []
+        )
+
     def test_desktop_notifs(self):
         """
         Test notifications that are stored as engine settings.
         """
         self._dismiss_first_launch()
 
-        self._banner_id = "another_banner_id"
+        self._banner_id = "banner_id"
+        self._banner_message = "banner_message"
 
         notifs = self._notification_manager.get_notifications()
         self.assertEqual(len(notifs), 1)
         self.assertEqual(
             isinstance(notifs[0], notifications.DesktopNotification),
             True
+        )
+
+        # Dismiss the notification.
+        self._notification_manager.dismiss(notifs[0])
+
+        # Now there should be no more current notifications.
+        self.assertListEqual(
+            self._notification_manager.get_notifications(),
+            []
         )

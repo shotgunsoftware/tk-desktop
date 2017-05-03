@@ -91,7 +91,7 @@ class StartupUpdateNotification(Notification):
         """
         Returns the unique identifier of a notification.
         """
-        return self._DESKTOPSTARTUP_UPDATES_ID + self._engine.startup_ddescriptor.version
+        return self._DESKTOPSTARTUP_UPDATES_ID + self._engine.startup_descriptor.version
 
     def _dismiss(self, banner_settings):
         """
@@ -101,4 +101,4 @@ class StartupUpdateNotification(Notification):
         """
         banner_settings.setdefault(
             self._DESKTOPSTARTUP_UPDATES_ID, {}
-        )[self._engine.startup_ddescriptor.version] = True
+        )[self._engine.startup_descriptor.version] = True
