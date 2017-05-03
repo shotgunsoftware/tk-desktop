@@ -105,7 +105,7 @@ class DesktopWindow(SystrayWindow):
 
         self.ui.banners.setAttribute(QtCore.Qt.WA_StyledBackground, True)
 
-        self._setup_banners()
+        self._update_banners()
 
         # setup systray behavior
         self.set_content_layout(self.ui.center)
@@ -256,7 +256,7 @@ class DesktopWindow(SystrayWindow):
         # be done only when the dialog is fully initialized.
         self._load_settings()
 
-    def _setup_banners(self):
+    def _update_banners(self):
         """
         Displays the notifications retrieved from the ``NotificationsManager``.
         """
@@ -601,7 +601,7 @@ class DesktopWindow(SystrayWindow):
         engine.site_comm.shut_down()
 
         self._current_pipeline_descriptor = None
-        self._setup_banners()
+        self._update_banners()
 
         # If we were in zero config mode, we need to abort the syncing.
         if self._sync_thread:
@@ -986,7 +986,7 @@ class DesktopWindow(SystrayWindow):
             self._current_pipeline_descriptor = descriptor
             # Banners might need to be updated, we might have picked a configuration that has been
             # updated.
-            self._setup_banners()
+            self._update_banners()
 
             engine = sgtk.platform.current_engine()
 
