@@ -111,6 +111,8 @@ class DesktopWindow(SystrayWindow):
 
         self._current_pipeline_descriptor = None
 
+        self.ui.banners.setAttribute(QtCore.Qt.WA_StyledBackground, True)
+
         self._setup_banners()
 
         # setup systray behavior
@@ -266,10 +268,19 @@ class DesktopWindow(SystrayWindow):
         """
         Clears the current banners and lays them out.
         """
+        class Descriptor(object):
+
+            def get_uri(self):
+                return "abababa"
+
+            @property
+            def changelog(self):
+                return (None, "https://foo.bar")
+
         engine = sgtk.platform.current_engine()
         self._notifs_mgr = NotificationsManager(
             self._settings_manager,
-            engine.sgtk.configuration_descriptor,
+            Descriptor(), # engine.sgtk.configuration_descriptor,
             self._current_pipeline_descriptor,
             engine
         )
@@ -282,7 +293,7 @@ class DesktopWindow(SystrayWindow):
 
         notifs = self._notifs_mgr.get_notifications()
         for notif in notifs:
-            banner = BannerWidget(self._notifs_mgr, notif, has_seperator=(notif != notifs[-1]), parent=self)
+            banner = BannerWidget(self._notifs_mgr, notif, parent=self)
             # Each time a banner is dismissed, we'll rebuild them all instead of updating them and their
             # separators.
             banner.dismissed.connect(self._setup_banners)

@@ -25,11 +25,10 @@ class BannerWidget(QtGui.QWidget):
 
     dismissed = QtCore.Signal()
 
-    def __init__(self, mgr, notif, has_seperator, parent=None):
+    def __init__(self, mgr, notif, parent=None):
         """
         :param mgr: ``NotificationsManager`` instance.
         :param notif: ``Notification`` instance to display.
-        :param has_seperator: If ``True``, a separator will be drawn under the widget.
         :param parent: Parent widget
         """
         super(BannerWidget, self).__init__(parent)
@@ -42,7 +41,6 @@ class BannerWidget(QtGui.QWidget):
         self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
 
         self._current_message_id = None
-        self._has_seperator = has_seperator
 
         self.ui.message.setText(notif.message)
         self._mgr = mgr
@@ -66,19 +64,3 @@ class BannerWidget(QtGui.QWidget):
         """
         self._mgr.dismiss(self._notif)
         self.dismissed.emit()
-
-    def paintEvent(self, paint_event):
-        """
-        Draws a black line at the bottom of the widget if required.
-        """
-        super(BannerWidget, self).paintEvent(paint_event)
-
-        if self._has_seperator:
-            p = QtGui.QPainter(self)
-            size = self.size()
-            old_pen = p.pen()
-            try:
-                p.setPen(QtGui.QColor(0, 0, 0))
-                p.drawLine(0, size.height() - 1, size.width(), size.height() - 1)
-            finally:
-                p.setPen(old_pen)

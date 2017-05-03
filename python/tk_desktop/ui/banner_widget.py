@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_BannerWidget(object):
     def setupUi(self, BannerWidget):
         BannerWidget.setObjectName("BannerWidget")
-        BannerWidget.resize(567, 35)
+        BannerWidget.resize(618, 71)
         self.horizontalLayout = QtGui.QHBoxLayout(BannerWidget)
         self.horizontalLayout.setContentsMargins(6, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
