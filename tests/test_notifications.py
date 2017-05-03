@@ -77,7 +77,7 @@ class TestNotifications(TankTestBase):
     def _dismiss_first_launch(self):
 
         # Make sure there's only one notif and its the first launch one.
-        notifs = list(self._notification_manager.get_notifications())
+        notifs = self._notification_manager.get_notifications()
         self.assertEqual(len(notifs), 1)
         self.assertEqual(isinstance(notifs[0], notifications.FirstLaunchNotification), True)
 
@@ -88,7 +88,7 @@ class TestNotifications(TankTestBase):
         """
         Test the first launch notification message.
         """
-        notifs = list(self._notification_manager.get_notifications())
+        notifs = self._notification_manager.get_notifications()
 
         # Make sure there's only one notification the first time you launch the desktop. We don't
         # want to know about a configuration update.
@@ -99,7 +99,7 @@ class TestNotifications(TankTestBase):
         self._notification_manager.dismiss(notifs[0])
 
         # Now there should be no more current notifications.
-        notifs = list(self._notification_manager.get_notifications())
+        notifs = self._notification_manager.get_notifications()
         self.assertEqual(len(notifs), 0)
 
     def test_configuration_update_notifs(self):
@@ -114,14 +114,14 @@ class TestNotifications(TankTestBase):
         self._get_uri_mock.return_value = "xyz"
 
         # Now there should be an extra event.
-        notifs = list(self._notification_manager.get_notifications())
+        notifs = self._notification_manager.get_notifications()
 
         self.assertEqual(len(notifs), 1)
         self.assertEqual(isinstance(notifs[0], notifications.ConfigurationUpdateNotification), True)
 
         self._notification_manager.dismiss(notifs[0])
 
-        notifs = list(self._notification_manager.get_notifications())
+        notifs = self._notification_manager.get_notifications()
 
         self.assertEqual(len(notifs), 0)
 
@@ -134,7 +134,7 @@ class TestNotifications(TankTestBase):
 
         self._mock_descriptor.changelog = (None, None)
 
-        notifs = list(self._notification_manager.get_notifications())
+        notifs = self._notification_manager.get_notifications()
 
         self.assertEqual(len(notifs), 0)
 
@@ -147,7 +147,7 @@ class TestNotifications(TankTestBase):
 
         self._mock_descriptor.changelog = (None, None)
 
-        notifs = list(self._notification_manager.get_notifications())
+        notifs = self._notification_manager.get_notifications()
         self.assertEqual(len(notifs), 1)
         self.assertEqual(
             isinstance(notifs[0], notifications.StartupUpdateNotification),
@@ -162,7 +162,7 @@ class TestNotifications(TankTestBase):
 
         self._banner_id = "another_banner_id"
 
-        notifs = list(self._notification_manager.get_notifications())
+        notifs = self._notification_manager.get_notifications()
         self.assertEqual(len(notifs), 1)
         self.assertEqual(
             isinstance(notifs[0], notifications.DesktopNotification),

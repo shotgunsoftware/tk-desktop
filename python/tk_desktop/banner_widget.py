@@ -19,13 +19,18 @@ logger = sgtk.platform.get_logger(__name__)
 class BannerWidget(QtGui.QWidget):
     """
     Shows a notification in the banner.
+
+    :signals: dismissed() Invoked when the banner is dismissed by the user.
     """
 
-    def __init__(self, mgr, notif, is_last, parent=None):
+    dismissed = QtCore.Signal()
+
+    def __init__(self, mgr, notif, has_seperator, parent=None):
         """
         :param mgr: ``NotificationsManager`` instance.
         :param notif: ``Notification`` instance to display.
-        :
+        :param has_seperator: If ``True``, a separator will be drawn under the widget.
+        :param parent: Parent widget
         """
         super(BannerWidget, self).__init__(parent)
 
@@ -37,6 +42,7 @@ class BannerWidget(QtGui.QWidget):
         self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
 
         self._current_message_id = None
+        self._has_seperator = has_seperator
 
         self.ui.message.setText(notif.message)
         self._mgr = mgr
@@ -44,11 +50,6 @@ class BannerWidget(QtGui.QWidget):
 
         self.ui.close_button.clicked.connect(self._on_dismiss_message)
         self.ui.message.linkActivated.connect(self._on_link_clicked)
-
-        if is_last:
-            self.ui.line.hide()
-        else:
-            self.ui.line.show()
 
     def _on_link_clicked(self, url):
         """
@@ -64,4 +65,20 @@ class BannerWidget(QtGui.QWidget):
         Dismisses the message and hides the banner.
         """
         self._mgr.dismiss(self._notif)
-        self.hide()
+        self.dismissed.emit()
+
+    def paintEvent(self, paint_event):
+        """
+        Draws a black line at the bottom of the widget if required.
+        """
+        super(BannerWidget, self).paintEvent(paint_event)
+
+        if self._has_seperator:
+            p = QtGui.QPainter(self)
+            size = self.size()
+            old_pen = p.pen()
+            try:
+                p.setPen(QtGui.QColor(0, 0, 0))
+                p.drawLine(0, size.height() - 1, size.width(), size.height() - 1)
+            finally:
+                p.setPen(old_pen)

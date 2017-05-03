@@ -33,7 +33,7 @@ class NotificationsManager(object):
 
     def get_notifications(self):
         """
-        Yields a list of notifications.
+        Returns a list of notifications.
 
         If the FirstLaunchNotitification hasn't been dismissed yet, every other notification
         will be dismissed.
@@ -42,29 +42,27 @@ class NotificationsManager(object):
         """
         banner_settings = self._get_banner_settings()
 
+        # Check if this is the first launch.
         first_launch_notif = FirstLaunchNotification.create(banner_settings)
-        config_update_notif = ConfigurationUpdateNotification.create(banner_settings, self._descriptor)
-        startup_update_notif = StartupUpdateNotification.create(banner_settings, self._engine)
-        desktop_notif = DesktopNotification.create(banner_settings, self._engine)
 
+        # Get all other notification types. Filter out those who are not set.
+        other_notifs = filter(
+            None,
+            [
+                ConfigurationUpdateNotification.create(banner_settings, self._descriptor),
+                StartupUpdateNotification.create(banner_settings, self._engine),
+                DesktopNotification.create(banner_settings, self._engine)
+            ]
+        )
+
+        # If this is the first launch, suppress all other notifications and return only the first
+        # launch one.
         if first_launch_notif:
-            # Skip the config and startup updates on first launch.
-            if config_update_notif:
-                self.dismiss(config_update_notif)
-            if startup_update_notif:
-                self.dismiss(startup_update_notif)
-            if desktop_notif:
-                self.dismiss(desktop_notif)
-
-            yield first_launch_notif
+            for notif in other_notifs:
+                self.dismiss(notif)
+            return [first_launch_notif]
         else:
-            # Report any updates that are relevant.
-            if config_update_notif:
-                yield config_update_notif
-            if startup_update_notif:
-                yield startup_update_notif
-            if desktop_notif:
-                yield desktop_notif
+            return other_notifs
 
     def dismiss(self, notification):
         """

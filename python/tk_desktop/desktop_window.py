@@ -269,11 +269,23 @@ class DesktopWindow(SystrayWindow):
         self._load_settings()
 
     def _setup_banners(self):
+        """
+        Clears the current banners and lays them out.
+        """
 
-        notifs = list(self._notifs_mgr.get_notifications())
+        # Remove all items from the layout
+        banner_layout = self.ui.banners.layout()
+        while banner_layout.count() != 0:
+            # calling deleterLater in addition to takeAt due to PySide-based paranoia.
+            banner_layout.takeAt(0).widget().deleteLater()
+
+        notifs = self._notifs_mgr.get_notifications()
         for notif in notifs:
-            banner = BannerWidget(self._notifs_mgr, notif, is_last=(notifs[-1] == notif))
-            self.ui.banners.layout().addWidget(banner)
+            banner = BannerWidget(self._notifs_mgr, notif, has_seperator=(notif != notifs[-1]), parent=self)
+            # Each time a banner is dismissed, we'll rebuild them all instead of updating them and their
+            # separators.
+            banner.dismissed.connect(self._setup_banners)
+            banner_layout.addWidget(banner)
 
     def _load_settings(self):
         # last window position
