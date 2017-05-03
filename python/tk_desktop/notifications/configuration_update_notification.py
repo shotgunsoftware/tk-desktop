@@ -71,6 +71,13 @@ class ConfigurationUpdateNotification(Notification):
             self._descriptor.changelog[1]
         )
 
+    @property
+    def unique_id(self):
+        """
+        Returns the unique identifier of a notification.
+        """
+        return self._CONFIG_UPDATES + self._descriptor.get_uri()
+
     def _dismiss(self, banner_settings):
         """
         Updates the ``banner_settings`` so this notification does not come back in the future.

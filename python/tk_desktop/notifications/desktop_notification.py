@@ -72,6 +72,13 @@ class DesktopNotification(Notification):
         """
         return self._engine.get_setting("banner_message")
 
+    @property
+    def unique_id(self):
+        """
+        Returns the unique identifier of a notification.
+        """
+        return self._DESKTOP_NOTIFICATIONS + self._engine.get_setting("banner_id")
+
     def _dismiss(self, banner_settings):
         """
         Updates the ``banner_settings`` so this notification does not come back in the future.

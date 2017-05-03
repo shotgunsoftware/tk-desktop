@@ -101,14 +101,6 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.update_finished.connect(self._on_update_finished)
         self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
 
-        class Descriptor(object):
-            @property
-            def changelog(self):
-                return (None, "https://github.com/shotgunsoftware/tk-config-basic/wiki/Release-Notes#v0138")
-
-            def get_uri(self):
-                return "abbababa"
-
         self._current_pipeline_descriptor = None
 
         self.ui.banners.setAttribute(QtCore.Qt.WA_StyledBackground, True)
@@ -266,38 +258,35 @@ class DesktopWindow(SystrayWindow):
 
     def _setup_banners(self):
         """
-        Clears the current banners and lays them out.
+        Displays the notifications retrieved from the ``NotificationsManager``.
         """
-        class Descriptor(object):
-
-            def get_uri(self):
-                return "abababa"
-
-            @property
-            def changelog(self):
-                return (None, "https://foo.bar")
-
         engine = sgtk.platform.current_engine()
         self._notifs_mgr = NotificationsManager(
             self._settings_manager,
-            Descriptor(), # engine.sgtk.configuration_descriptor,
+            engine.sgtk.configuration_descriptor,
             self._current_pipeline_descriptor,
             engine
         )
 
         # Remove all items from the layout
         banner_layout = self.ui.banners.layout()
-        while banner_layout.count() != 0:
-            # calling deleterLater in addition to takeAt due to PySide-based paranoia.
-            banner_layout.takeAt(0).widget().deleteLater()
+
+        # Find all the current banners.
+        current_banners = {banner_layout.itemAt(0).widget().unique_id for i in range(banner_layout.count())}
 
         notifs = self._notifs_mgr.get_notifications()
         for notif in notifs:
-            banner = BannerWidget(self._notifs_mgr, notif, parent=self)
-            # Each time a banner is dismissed, we'll rebuild them all instead of updating them and their
-            # separators.
-            banner.dismissed.connect(self._setup_banners)
-            banner_layout.addWidget(banner)
+            if notif.unique_id not in current_banners:
+                banner = BannerWidget(self._notifs_mgr, notif, parent=self)
+                # Each time a banner is dismissed, we'll rebuild them all.
+                banner.dismissed.connect(self._banner_dismissed)
+                banner_layout.addWidget(banner)
+
+    def _banner_dismissed(self, banner):
+        """
+        Removes the banner from the layout once it is dismissed.
+        """
+        self.ui.banners.layout().removeWidget(banner)
 
     def _load_settings(self):
         # last window position

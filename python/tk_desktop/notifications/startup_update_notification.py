@@ -72,7 +72,7 @@ class StartupUpdateNotification(Notification):
             return None
         else:
             logger.debug(
-                "Startup update available."
+                "Startup update available: %s", engine.startup_descriptor
             )
             return StartupUpdateNotification(engine)
 
@@ -86,6 +86,13 @@ class StartupUpdateNotification(Notification):
             "<a href='{0}'>Click here</a> to learn more."
         ).format(self._engine.startup_descriptor.changelog[1])
 
+    @property
+    def unique_id(self):
+        """
+        Returns the unique identifier of a notification.
+        """
+        return self._DESKTOPSTARTUP_UPDATES_ID + self._engine.startup_ddescriptor.version
+
     def _dismiss(self, banner_settings):
         """
         Updates the ``banner_settings`` so this notification does not come back in the future.
@@ -94,4 +101,4 @@ class StartupUpdateNotification(Notification):
         """
         banner_settings.setdefault(
             self._DESKTOPSTARTUP_UPDATES_ID, {}
-        )[self._engine.startup_version] = True
+        )[self._engine.startup_ddescriptor.version] = True

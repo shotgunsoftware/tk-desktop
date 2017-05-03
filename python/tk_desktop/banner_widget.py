@@ -23,7 +23,7 @@ class BannerWidget(QtGui.QWidget):
     :signals: dismissed() Invoked when the banner is dismissed by the user.
     """
 
-    dismissed = QtCore.Signal()
+    dismissed = QtCore.Signal(object)
 
     def __init__(self, mgr, notif, parent=None):
         """
@@ -58,9 +58,16 @@ class BannerWidget(QtGui.QWidget):
             QtGui.QDesktopServices.openUrl(url)
         self._on_dismiss_message()
 
+    @property
+    def unique_id(self):
+        """
+        Returns the unique identifier of a notification.
+        """
+        return self._notif.unique_id
+
     def _on_dismiss_message(self):
         """
         Dismisses the message and hides the banner.
         """
         self._mgr.dismiss(self._notif)
-        self.dismissed.emit()
+        self.dismissed.emit(self)

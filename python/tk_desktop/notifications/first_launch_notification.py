@@ -55,6 +55,13 @@ class FirstLaunchNotification(Notification):
             self._SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
         )
 
+    @property
+    def unique_id(self):
+        """
+        Returns the unique identifier of a notification.
+        """
+        return self._FIRST_LAUNCH_BANNER_VIEWED_ID
+
     def _dismiss(self, banner_settings):
         """
         Updates the ``banner_settings`` so this notification does not come back in the future.
