@@ -109,11 +109,7 @@ class DesktopWindow(SystrayWindow):
             def get_uri(self):
                 return "abbababa"
 
-        self._notifs_mgr = NotificationsManager(
-            self._settings_manager,
-            Descriptor(),
-            engine
-        )
+        self._current_pipeline_descriptor = None
 
         self._setup_banners()
 
@@ -169,7 +165,6 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionShow_Console)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
         self.user_menu.addAction(self.ui.actionAdvanced_Project_Setup)
-        self.user_menu.addAction(self.ui.actionReset_Banner_Messages)
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionSign_Out)
@@ -191,7 +186,6 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
         self.ui.actionAdvanced_Project_Setup.triggered.connect(self.handle_advanced_project_setup_action)
         self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
-        self.ui.actionReset_Banner_Messages.triggered.connect(self.reset_banners)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
 
@@ -272,6 +266,13 @@ class DesktopWindow(SystrayWindow):
         """
         Clears the current banners and lays them out.
         """
+        engine = sgtk.platform.current_engine()
+        self._notifs_mgr = NotificationsManager(
+            self._settings_manager,
+            engine.sgtk.configuration_descriptor,
+            self._current_pipeline_descriptor,
+            engine
+        )
 
         # Remove all items from the layout
         banner_layout = self.ui.banners.layout()
@@ -352,10 +353,6 @@ class DesktopWindow(SystrayWindow):
     # Event handlers and slots
     def contextMenuEvent(self, event):
         self.user_menu.exec_(event.globalPos())
-
-    def reset_banners(self):
-        self._notifs_mgr.reset()
-        self._setup_banners()
 
     def handle_project_command_expanded_changed(self, group_key, expanded):
         expanded_state = self._project_command_model.get_expanded_state()
@@ -602,6 +599,9 @@ class DesktopWindow(SystrayWindow):
         """
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
+
+        self._current_pipeline_descriptor = None
+        self._setup_banners()
 
         # If we were in zero config mode, we need to abort the syncing.
         if self._sync_thread:
@@ -974,14 +974,19 @@ class DesktopWindow(SystrayWindow):
         return pipeline_configurations[0]
 
     def _launch_failed(self, message):
+        self._current_pipeline_descriptor = None
         message = ("%s"
                    "\n\nTo resolve this, open Shotgun in your browser\n"
                    "and check the paths for this Pipeline Configuration."
                    "\n\nFor more details, see the console." % message)
         self.project_overlay.show_error_message(message)
 
-    def _sync_success(self, config_path):
+    def _sync_success(self, config_path, descriptor):
         try:
+            self._current_pipeline_descriptor = descriptor
+            # Banners might need to be updated, we might have picked a configuration that has been
+            # updated.
+            self._setup_banners()
 
             engine = sgtk.platform.current_engine()
 

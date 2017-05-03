@@ -16,6 +16,8 @@ class Ui_BannerWidget(object):
         self.horizontalLayout.setContentsMargins(6, 0, 0, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
         self.message = QtGui.QLabel(BannerWidget)
+        self.message.setStyleSheet("border-style: outset;\n"
+"border-color: rgb(0, 0, 0);")
         self.message.setWordWrap(True)
         self.message.setOpenExternalLinks(False)
         self.message.setObjectName("message")

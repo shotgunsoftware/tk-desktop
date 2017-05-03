@@ -61,6 +61,7 @@ class TestNotifications(TankTestBase):
         self._notification_manager = notifications.NotificationsManager(
             self._user_settings,
             self._mock_descriptor,
+            self._mock_descriptor,
             self._mock_engine
         )
 
@@ -75,7 +76,6 @@ class TestNotifications(TankTestBase):
             return self._banner_message
 
     def _dismiss_first_launch(self):
-
         # Make sure there's only one notif and its the first launch one.
         notifs = self._notification_manager.get_notifications()
         self.assertEqual(len(notifs), 1)

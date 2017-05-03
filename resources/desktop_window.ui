@@ -941,14 +941,6 @@
     <string>Launch the classic project setup wizard</string>
    </property>
   </action>
-  <action name="actionReset_Banner_Messages">
-   <property name="text">
-    <string>Reset Banner Messages</string>
-   </property>
-   <property name="toolTip">
-    <string>Resets all banner warnings</string>
-   </property>
-  </action>
  </widget>
  <customwidgets>
   <customwidget>
