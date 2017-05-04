@@ -17,6 +17,7 @@ import subprocess
 import cPickle as pickle
 import pprint
 import itertools
+import urlparse
 from collections import OrderedDict
 
 from tank.platform.qt import QtCore, QtGui
@@ -582,7 +583,6 @@ class DesktopWindow(SystrayWindow):
         return mb, restart_button
 
     def _on_different_user(self, site, user_id):
-        print "on different user", site, user_id
         # Makes sure that if the user is browsing multiples pages before coming back to the Desktop,
         # only the first request will generate a pop-up. Note that if requests comes from different users and/or sites,
         # only the first one will be acknoledged. This is to avoid having multiple modal dialogs popping up.
@@ -592,24 +592,24 @@ class DesktopWindow(SystrayWindow):
 
         bundle = sgtk.platform.current_bundle()
 
-        user = bundle.shotgun.find_one("HumanUser", [["id", "is", user_id]], ["login"])
-        # If for some reason we can't see the user (permissions might be the cause), use the <unknown> string.
-        if user is None or not user.get("login"):
-            user_login = "<unknown>"
-        else:
-            user_login = user["login"]
-
         try:
             current_site = bundle.get_current_user().host
 
             if site.lower() in self._ignored_sites:
-                log.info("Request ignored for site '%s' and user '%s'", site, user_login)
+                log.info("Request ignored for '%s'.", site)
                 return
+
+            user = bundle.shotgun.find_one("HumanUser", [["id", "is", user_id]], ["login"])
+            # If for some reason we can't see the user (permissions might be the cause), use the <unknown> string.
+            if user is None or not user.get("login"):
+                user_login = "<unknown>"
+            else:
+                user_login = user["login"]
 
             # Figure out if we need to restart because of a different site or simply a different user.
             if site.lower() != current_site.lower():
                 msg = (
-                    "A request from the browser for <b>{0}</b> was made, but you "
+                    "A request originated from <b>{0}</b>, but you "
                     "are currently logged into <b>{1}</b>.<br/><br/>"
                     "If you would like to respond to requests from the other site, use the "
                     "<b>Restart</b> button below to restart Shotgun Desktop and log into <b>{0}</b>.".format(
@@ -620,8 +620,8 @@ class DesktopWindow(SystrayWindow):
                 new_site = site
             else:
                 msg = (
-                    "A request from the browser for <b>{0}</b> was made "
-                    "but <b>{1}</b> is currently logged into the Shotgun Desktop.<br/><br/>"
+                    "A request from <b>{0}</b> was made, but you are currently "
+                    "signed in as <b>{1}</b> in the Shotgun Desktop.<br/><br/>"
                     "If you would like to respond to requests from this user, use the "
                     "<b>Restart</b> button below to restart Shotgun Desktop and log as <b>{0}</b>.".format(
                         user_login, bundle.get_current_user().login
@@ -629,6 +629,7 @@ class DesktopWindow(SystrayWindow):
                 )
                 new_site = None
 
+            self.activate()
             dialog = BrowserIntegrationUserSwitchDialog(msg, self)
             dialog.exec_()
 

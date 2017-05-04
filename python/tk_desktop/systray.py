@@ -272,12 +272,8 @@ class SystrayWindow(QtGui.QMainWindow):
         """ handler for single click on the system tray """
         self.toggle_activate()
 
-    def toggle_activate(self):
-        # toggle visibility when clicked
-        active = self.isActiveWindow() or (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
-        hidden = self.isHidden()
-
-        if hidden:
+    def activate(self):
+        if self.isHidden():
             # hidden, show and bring to the top
             if self.state == self.STATE_PINNED:
                 self.__move_to_systray()
@@ -286,17 +282,25 @@ class SystrayWindow(QtGui.QMainWindow):
             self.activateWindow()
             if osutils is not None:
                 osutils.make_app_foreground()
-        elif active:
-            # shown and topmost, hide
-            self.hide()
-            if osutils is not None:
-                osutils.make_app_background()
+            return True
         else:
             # shown and not topmost, just bring to the top
             self.raise_()
             self.activateWindow()
             if osutils is not None:
                 osutils.activate_application()
+            return False
+
+    def toggle_activate(self):
+        # toggle visibility when clicked
+        active = self.isActiveWindow() or (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
+        if active:
+            # shown and topmost, hide
+            self.hide()
+            if osutils is not None:
+                osutils.make_app_background()
+        else:
+            self.activate()
 
     def _get_systray_screen_geometry(self):
         pos = self.systray.geometry().center()
