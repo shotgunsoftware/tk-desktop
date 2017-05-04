@@ -268,7 +268,7 @@ class DesktopEngineSiteImplementation(object):
         # styled after the Shotgun Desktop's visual-style.
         splash.set_message("Initializing browser integration.")
         try:
-            desktop_server_framework.launch_desktop_server(self._user)
+            desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
         except Exception:
             logger.exception("Unexpected error while trying to launch the browser integration:")
 
