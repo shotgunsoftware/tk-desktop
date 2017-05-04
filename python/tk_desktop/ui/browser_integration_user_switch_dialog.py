@@ -11,6 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_BrowserIntegrationUserSwitchDialog(object):
     def setupUi(self, BrowserIntegrationUserSwitchDialog):
         BrowserIntegrationUserSwitchDialog.setObjectName("BrowserIntegrationUserSwitchDialog")
+        BrowserIntegrationUserSwitchDialog.resize(430, 141)
         self.verticalLayout = QtGui.QVBoxLayout(BrowserIntegrationUserSwitchDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.reason_label = QtGui.QLabel(BrowserIntegrationUserSwitchDialog)
@@ -71,5 +72,5 @@ class Ui_BrowserIntegrationUserSwitchDialog(object):
         self.ignore_checkbox.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Ignore requests from this site until the next restart", None, QtGui.QApplication.UnicodeUTF8))
         self.restart_button.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Restart", None, QtGui.QApplication.UnicodeUTF8))
         self.ignore_button.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Ignore", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "<a href=\"https://support.shotgunsoftware.com/hc/en-us/articles/219030858-Desktop-integration-from-the-browser\">Why is a restart required?</a>", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "<a href=\"https://support.shotgunsoftware.com/hc/en-us/articles/115000068574#The%20Browser%20Integration\">Why is a restart required?</a>", None, QtGui.QApplication.UnicodeUTF8))
 

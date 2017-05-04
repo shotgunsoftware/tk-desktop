@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>BrowserIntegrationUserSwitchDialog</class>
  <widget class="QDialog" name="BrowserIntegrationUserSwitchDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>430</width>
+    <height>141</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>Shotgun browser integration</string>
   </property>
@@ -102,7 +110,7 @@
    <item>
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>&lt;a href=&quot;https://support.shotgunsoftware.com/hc/en-us/articles/219030858-Desktop-integration-from-the-browser&quot;&gt;Why is a restart required?&lt;/a&gt;</string>
+      <string>&lt;a href=&quot;https://support.shotgunsoftware.com/hc/en-us/articles/115000068574#The%20Browser%20Integration&quot;&gt;Why is a restart required?&lt;/a&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
