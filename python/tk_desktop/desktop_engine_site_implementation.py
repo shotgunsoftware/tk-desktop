@@ -28,6 +28,7 @@ from .site_communication import SiteCommunication
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
 desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+
 logger = LogManager.get_logger(__name__)
 
 
@@ -269,7 +270,7 @@ class DesktopEngineSiteImplementation(object):
         # styled after the Shotgun Desktop's visual-style.
         splash.set_message("Initializing browser integration.")
         try:
-            desktop_server_framework.launch_desktop_server()
+            desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
         except Exception:
             logger.exception("Unexpected error while trying to launch the browser integration:")
 
