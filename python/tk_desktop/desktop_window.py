@@ -600,7 +600,8 @@ class DesktopWindow(SystrayWindow):
                 return
 
             user = bundle.shotgun.find_one("HumanUser", [["id", "is", user_id]], ["login"])
-            # If for some reason we can't see the user (permissions might be the cause), use the <unknown> string.
+            # If for some reason we can't see the user (permissions might be the cause),
+            # use the <unknown> string.
             if user is None or not user.get("login"):
                 user_login = "<unknown>"
             else:
@@ -611,7 +612,7 @@ class DesktopWindow(SystrayWindow):
                 msg = (
                     "A request originated from <b>{0}</b>, but you "
                     "are currently logged into <b>{1}</b>.<br/><br/>"
-                    "If you would like to respond to requests from the other site, use the "
+                    "If you would like to respond to requests from the other site, click the "
                     "<b>Restart</b> button below to restart Shotgun Desktop and log into <b>{0}</b>.".format(
                         urlparse.urlparse(site).netloc,
                         urlparse.urlparse(current_site).netloc
@@ -622,7 +623,7 @@ class DesktopWindow(SystrayWindow):
                 msg = (
                     "A request from <b>{0}</b> was made, but you are currently "
                     "signed in as <b>{1}</b> in the Shotgun Desktop.<br/><br/>"
-                    "If you would like to respond to requests from this user, use the "
+                    "If you would like to respond to requests from this user, click the "
                     "<b>Restart</b> button below to restart Shotgun Desktop and log as <b>{0}</b>.".format(
                         user_login, bundle.get_current_user().login
                     )
