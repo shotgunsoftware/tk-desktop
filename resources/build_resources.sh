@@ -48,6 +48,7 @@ build_ui no_apps_installed_overlay
 build_ui update_project_config
 build_ui loading_project_widget
 build_ui browser_integration_user_switch_dialog
+build_ui banner_widget
 
 # build resources
 echo "building resources..."
