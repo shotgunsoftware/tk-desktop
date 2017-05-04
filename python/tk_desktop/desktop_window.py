@@ -540,9 +540,16 @@ class DesktopWindow(SystrayWindow):
             return False
 
     def _switch_current_user(self, new_host, new_user):
+        """
+        Changes the default host and login.
+
+        :param str new_host: URL of the new host.
+        :param str new_user: Login of the new user.
+        """
 
         engine = sgtk.platform.current_engine()
 
+        # This is for ye-olde Shotgun Desktop < 1.1
         if engine.uses_legacy_authentication():
             login_framework = engine.create_legacy_login_instance()
             if new_user:
@@ -562,6 +569,9 @@ class DesktopWindow(SystrayWindow):
         self._restart_desktop()
 
     def _restart_desktop(self):
+        """
+        Restarts the Shotgun Desktop application.
+        """
         # restart the application
         self.handle_quit_action()
         # Very important to set close_fds otherwise the websocket server file descriptor
@@ -571,18 +581,13 @@ class DesktopWindow(SystrayWindow):
         # Also tell the new shotgun to skip the tray and go directly to the login.
         subprocess.Popen(sys.argv, close_fds=True)
 
-    def _create_message_box(self, msg):
-        mb = QtGui.QMessageBox(self)
-        mb.setIcon(QtGui.QMessageBox.Information)
-        restart_button = mb.addButton("Restart", QtGui.QMessageBox.AcceptRole)
-        mb.addButton("Ignore", QtGui.QMessageBox.RejectRole)
-
-        mb.setWindowTitle("Shotgun browser integration")
-        mb.setText(msg)
-
-        return mb, restart_button
-
     def _on_different_user(self, site, user_id):
+        """
+        Invoked when a request coming from a different site and/or user comes through.
+
+        :param str site: URL of the site making the request.
+        :param int user_id: User id of the HumanUser attempting the request.
+        """
         # Makes sure that if the user is browsing multiples pages before coming back to the Desktop,
         # only the first request will generate a pop-up. Note that if requests comes from different users and/or sites,
         # only the first one will be acknoledged. This is to avoid having multiple modal dialogs popping up.
@@ -603,7 +608,7 @@ class DesktopWindow(SystrayWindow):
             # If for some reason we can't see the user (permissions might be the cause),
             # use the <unknown> string.
             if user is None or not user.get("login"):
-                user_login = "<unknown>"
+                user_login = None
             else:
                 user_login = user["login"]
 
@@ -625,7 +630,7 @@ class DesktopWindow(SystrayWindow):
                     "signed in as <b>{1}</b> in the Shotgun Desktop.<br/><br/>"
                     "If you would like to respond to requests from this user, click the "
                     "<b>Restart</b> button below to restart Shotgun Desktop and log as <b>{0}</b>.".format(
-                        user_login, bundle.get_current_user().login
+                        user_login if user_login else "<unknown>", bundle.get_current_user().login
                     )
                 )
                 new_site = None

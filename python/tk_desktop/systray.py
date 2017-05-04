@@ -273,6 +273,9 @@ class SystrayWindow(QtGui.QMainWindow):
         self.toggle_activate()
 
     def activate(self):
+        """
+        Ensures the Desktop's dialog is visible and on top of other windows.
+        """
         if self.isHidden():
             # hidden, show and bring to the top
             if self.state == self.STATE_PINNED:
@@ -292,7 +295,9 @@ class SystrayWindow(QtGui.QMainWindow):
             return False
 
     def toggle_activate(self):
-        # toggle visibility when clicked
+        """
+        Toggles visibility when systray icon is clicked.
+        """
         active = self.isActiveWindow() or (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
         if active:
             # shown and topmost, hide
