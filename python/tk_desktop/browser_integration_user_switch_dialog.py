@@ -18,9 +18,9 @@ class BrowserIntegrationUserSwitchDialog(QtGui.QDialog):
     the request.
     """
 
-    Restart = QtGui.QDialog.Accepted
-    Ignore = QtGui.QDialog.Rejected
-    IgnorePermanently = Restart + Ignore + 1
+    RESTART = QtGui.QDialog.Accepted
+    IGNORE = QtGui.QDialog.Rejected
+    IGNOREPERMANENTLY = RESTART + IGNORE + 1
 
     def __init__(self, message, parent=None):
         """
@@ -50,7 +50,7 @@ class BrowserIntegrationUserSwitchDialog(QtGui.QDialog):
         """
         Dismisses the dialog with the the Restart code.
         """
-        self.done(self.Restart)
+        self.done(self.RESTART)
 
     def _on_ignore_clicked(self):
         """
@@ -58,6 +58,6 @@ class BrowserIntegrationUserSwitchDialog(QtGui.QDialog):
         depending on the state of the checkbox.
         """
         if self.ui.ignore_checkbox.isChecked():
-            self.done(self.IgnorePermanently)
+            self.done(self.IGNOREPERMANENTLY)
         else:
-            self.done(self.Ignore)
+            self.done(self.IGNORE)

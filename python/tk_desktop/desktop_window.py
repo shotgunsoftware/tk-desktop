@@ -590,7 +590,7 @@ class DesktopWindow(SystrayWindow):
         """
         # Makes sure that if the user is browsing multiples pages before coming back to the Desktop,
         # only the first request will generate a pop-up. Note that if requests comes from different users and/or sites,
-        # only the first one will be acknoledged. This is to avoid having multiple modal dialogs popping up.
+        # only the first one will be acknowledged. This is to avoid having multiple modal dialogs popping up.
         if self._is_handling_switch_request:
             return
         self._is_handling_switch_request = True
@@ -639,10 +639,10 @@ class DesktopWindow(SystrayWindow):
             dialog = BrowserIntegrationUserSwitchDialog(msg, self)
             dialog.exec_()
 
-            if dialog.result() == dialog.Restart:
+            if dialog.result() == dialog.RESTART:
                 self._switch_current_user(new_site, user_login)
                 self._restart_desktop()
-            elif dialog.result() == dialog.IgnorePermanently:
+            elif dialog.result() == dialog.IGNOREPERMANENTLY:
                 self._ignored_sites.add(site.lower())
         finally:
             self._is_handling_switch_request = False
