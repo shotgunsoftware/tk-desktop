@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'desktop_window.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.1
+#      by: pyside-uic 0.2.15 running on PySide 1.2.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -365,6 +365,8 @@ class Ui_DesktopWindow(object):
         self.actionShow_Console.setObjectName("actionShow_Console")
         self.actionRefresh_Projects = QtGui.QAction(DesktopWindow)
         self.actionRefresh_Projects.setObjectName("actionRefresh_Projects")
+        self.actionAdvanced_Project_Setup = QtGui.QAction(DesktopWindow)
+        self.actionAdvanced_Project_Setup.setObjectName("actionAdvanced_Project_Setup")
 
         self.retranslateUi(DesktopWindow)
         self.stack.setCurrentIndex(0)
@@ -403,6 +405,8 @@ class Ui_DesktopWindow(object):
         self.actionShow_Console.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Show the logging console.", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRefresh_Projects.setText(QtGui.QApplication.translate("DesktopWindow", "Refresh Projects", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRefresh_Projects.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Refreshes the project information.", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionAdvanced_Project_Setup.setText(QtGui.QApplication.translate("DesktopWindow", "Advanced project setup...", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionAdvanced_Project_Setup.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Launch the classic project setup wizard", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..action_list_view import ActionListView
 from ..grouping_list_view import GroupingListView

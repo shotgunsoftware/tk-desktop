@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2017 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -8,18 +8,13 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-
-from tank_test.tank_test_base import TankTestBase
-from tank_test.tank_test_base import setUpModule # noqa
+"""
+Wrapper for the various widgets used from frameworks so that they can be used
+easily from within Qt Designer
+"""
 
 import sgtk
 
-
-class TestTest(TankTestBase):
-    """
-    Tests the startup logic for Nuke.
-    """
-
-    def test_test(self):
-        sgtk
-        pass
+# search widget:
+overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
+ShotgunSpinningWidget = overlay_widget.ShotgunSpinningWidget

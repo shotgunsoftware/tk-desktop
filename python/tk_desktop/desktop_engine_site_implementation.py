@@ -13,21 +13,22 @@ import os
 import re
 import sys
 import string
-import logging
 import collections
 
 from sgtk.errors import TankEngineInitError
 
-from . import rpc
 from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
-from tank_vendor import yaml
+
+from sgtk import LogManager
 
 from .site_communication import SiteCommunication
 
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+logger = LogManager.get_logger(__name__)
 
 
 class DesktopEngineSiteImplementation(object):
@@ -38,7 +39,6 @@ class DesktopEngineSiteImplementation(object):
 
         self._engine = engine
         self.app_version = None
-        self._is_login_based = False
 
         # rules that determine how to collapse commands into buttons
         # each rule is a dictionary with keys for match, button_label, and
@@ -51,7 +51,6 @@ class DesktopEngineSiteImplementation(object):
     def destroy_engine(self):
         shotgun_globals.unregister_bg_task_manager(self._task_manager)
         self.site_comm.shut_down()
-        self._is_login_based = False
 
     def startup_rpc(self):
         self.site_comm.start_server()
@@ -59,6 +58,7 @@ class DesktopEngineSiteImplementation(object):
         self.site_comm.register_function(self.set_groups, "set_groups")
         self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
         self.site_comm.register_function(self.trigger_register_command, "trigger_register_command")
+        self.site_comm.register_function(self.project_commands_finished, "project_commands_finished")
 
     def engine_startup_error(self, error, tb=None):
         """ Handle an error starting up the engine for the app proxy. """
@@ -84,7 +84,7 @@ class DesktopEngineSiteImplementation(object):
             # add the traceback if available
             if tb is not None:
                 message += "\n\n%s" % tb
-            self._engine.log_error(message)
+            logger.error(message)
 
     def _on_proxy_closing(self):
         """
@@ -103,18 +103,21 @@ class DesktopEngineSiteImplementation(object):
         """ GUI side handler for the add_command call. """
         from tank.platform.qt import QtGui
 
-        self._engine.log_debug("register_command(%s, %s)", name, properties)
+        logger.debug("register_command(%s, %s)", name, properties)
 
         command_type = properties.get("type")
         command_icon = properties.get("icon")
         command_tooltip = properties.get("description")
+        command_group = properties.get("group")
+        command_is_menu_default = properties.get("group_default") or False
 
         icon = None
         if command_icon is not None:
+            # Only register an icon for the command if it exists.
             if os.path.exists(command_icon):
                 icon = QtGui.QIcon(command_icon)
             else:
-                self._engine.log_error(
+                logger.error(
                     "Icon for command '%s' not found: '%s'" % (name, command_icon))
 
         title = properties.get("title", name)
@@ -145,21 +148,45 @@ class DesktopEngineSiteImplementation(object):
             # the display name of the command
             menu_name = None
             button_name = title
+            found_collapse_match = False
+
+            # First check for collapse rules specified for this title in the desktop
+            # configuration. These take precedence over the group property.
             for collapse_rule in self._collapse_rules:
                 template = DisplayNameTemplate(collapse_rule["match"])
                 match = template.match(title)
                 if match is not None:
-                    self._engine.log_debug("matching %s against %s" % (title, collapse_rule["match"]))
+                    logger.debug("matching %s against %s" % (title, collapse_rule["match"]))
                     if collapse_rule["menu_label"] == "None":
                         menu_name = None
                     else:
                         menu_name = string.Template(collapse_rule["menu_label"]).safe_substitute(match)
                     button_name = string.Template(collapse_rule["button_label"]).safe_substitute(match)
+                    found_collapse_match = True
                     break
 
-            self.desktop_window._project_command_model.add_command(
-                name, button_name, menu_name, icon, command_tooltip, groups)
-            self.desktop_window._project_command_proxy.invalidate()
+            # If no collapse rules were found for this title, and the group property is
+            # not empty, treat the specified group as if it were a collapse rule.
+            if not found_collapse_match and command_group:
+                button_name = command_group
+                menu_name = title
+
+            self.desktop_window.add_project_command(
+                name,
+                button_name,
+                menu_name,
+                icon,
+                command_tooltip,
+                groups,
+                command_is_menu_default
+            )
+
+    def project_commands_finished(self):
+        """
+        Invoked when all commands found for a project have been registered.
+        """
+        # Let the desktop window know all commands for the project have been registered.
+        self.desktop_window.on_project_commands_finished()
 
     def _handle_button_command_triggered(self, group, name):
         """ Button clicked from a registered command. """
@@ -183,12 +210,6 @@ class DesktopEngineSiteImplementation(object):
         # Startup version will not be set if we have an old installer invoking
         # this engine.
         self.startup_version = kwargs.get("startup_version")
-
-        server = kwargs.get("server")
-        # If the startup has a websocket server.
-        if server:
-            # Make sure that the websocket server logs go the Desktop logs.
-            server.get_logger().addHandler(self._engine._handler)
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()
@@ -242,6 +263,18 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
+        # Initialize all of this after the style-sheet has been applied to any prompt are also
+        # styled after the Shotgun Desktop's visual-style.
+        splash.set_message("Initializing browser integration.")
+        try:
+            desktop_server_framework.launch_desktop_server()
+        except Exception:
+            logger.exception("Unexpected error while trying to launch the browser integration:")
+
+        # hide the splash if it exists
+        if splash is not None:
+            splash.hide()
+
         # desktop_window needs to import shotgun_authentication globally. However, doing so
         # can cause a crash when running Shotgun Desktop installer 1.02 code. We used to
         # not restart Desktop when upgrading the core, which caused the older version of core
@@ -259,10 +292,6 @@ class DesktopEngineSiteImplementation(object):
 
         # make sure we close down our rpc threads
         app.aboutToQuit.connect(self._engine.destroy_engine)
-
-        # hide the splash if it exists
-        if splash is not None:
-            splash.hide()
 
         # and run the app
         result = app.exec_()
@@ -297,7 +326,7 @@ class DesktopEngineSiteImplementation(object):
         try:
             from python import ShotgunLogin
         except ImportError:
-            self._engine.log_exception("Could not import tk-framework-login")
+            logger.exception("Could not import tk-framework-login")
             raise
         else:
             return ShotgunLogin.get_instance_for_namespace("tk-desktop")
@@ -340,13 +369,6 @@ class DesktopEngineSiteImplementation(object):
                 http_proxy=sl._http_proxy
             )
 
-    def _initialize_logging(self):
-        formatter = logging.Formatter("%(asctime)s [SITE   %(levelname) -7s] %(name)s - %(message)s")
-        self._engine._handler.setFormatter(formatter)
-
-    def log(self, level, msg, *args):
-        self._engine._logger.log(level, msg, *args)
-
     def get_current_login(self):
         """
         Returns the user's id and login.
@@ -354,25 +376,6 @@ class DesktopEngineSiteImplementation(object):
         :returns: Dictionary with keys id and login.
         """
         return self._current_login
-
-    def check_login_based(self, core_path):
-        """
-        Caches whether a pipeline configuration is login based or not.
-
-        :param core_path: Path to the core.
-        """
-        # Look inside the shotgun.yml file if there is a script user. If there isn't
-        # the core is login based and we have to refresh the credentials everytime
-        # we send a command to avoid password prompting in the background process.
-        shotgun_yml_path = os.path.join(core_path, "config", "core", "shotgun.yml")
-        with open(shotgun_yml_path, "r") as shotgun_yaml_file:
-            data = yaml.load(shotgun_yaml_file)
-            # If there are non null values set on both keys, we are not login based.
-            if data.get("api_script") and data.get("api_key"):
-                self._is_login_based = False
-            else:
-                self._is_login_based = True
-        self._engine.log_debug("login based: %s" % self._is_login_based)
 
     def get_current_user(self):
         """
@@ -387,8 +390,7 @@ class DesktopEngineSiteImplementation(object):
         Refreshes the human user credentials, potentially prompting for a password, only is
         the desktop project engine is using login based authentication.
         """
-        if self._is_login_based:
-            self._user.refresh_credentials()
+        self._user.refresh_credentials()
 
 
 class KeyedDefaultDict(collections.defaultdict):

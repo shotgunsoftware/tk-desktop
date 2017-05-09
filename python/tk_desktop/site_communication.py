@@ -15,6 +15,10 @@ Implements communication channels between the desktop app and the background pro
 from sgtk.platform.qt import QtCore
 from .communication_base import CommunicationBase
 
+from sgtk import LogManager
+
+logger = LogManager.get_logger(__name__)
+
 
 class SiteCommunication(QtCore.QObject, CommunicationBase):
     """
@@ -48,9 +52,9 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         try:
             self.call_no_response("signal_disconnect")
         except Exception, e:
-            self._log_warning("Error while sending signal to proxy to disconnect: %s", e)
+            logger.warning("Error while sending signal to proxy to disconnect: %s", e)
         else:
-            self._log_debug("Proxy was signaled that we are disconnecting.")
+            logger.debug("Proxy was signaled that we are disconnecting.")
 
     def _proxy_log(self, level, msg, args):
         """
@@ -60,4 +64,8 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         :param msg: Message to log.
         :param args: Arguments to log.
         """
-        self._engine._logger.log(level, "[PROXY] %s" % msg, *args)
+        try:
+            logger.log(level, "[PROXY] %s" % msg, *args)
+        except Exception as e:
+            logger.exception("Unexpected error when logging proxy message:")
+            raise

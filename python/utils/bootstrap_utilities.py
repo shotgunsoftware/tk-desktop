@@ -8,10 +8,21 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+"""
+Bootstrap utilities for the Project-level tk-desktop engine.
+
+While this file gets executed by the background process running the desktop engine,
+the path to this file is actually passed as an argument to the background process. The
+path is actually to a file that is package with the site-level tk-desktop engine.
+As such, the site-level engine has control over how the project-level tk-desktop
+engine is bootstrapped and finalized.
+"""
+
 import os
 import sys
 import traceback
 import cPickle as pickle
+import logging
 
 
 def start_engine(data):
@@ -26,6 +37,11 @@ def start_engine(data):
 
     import sgtk
     sgtk.util.append_path_to_env_var("PYTHONPATH", data["core_python_path"])
+
+    # Initialize logging right away instead of waiting for the engine if we're using a 0.18 based-core.
+    # This will also ensure that a crash will be tracked
+    if hasattr(sgtk, "LogManager"):
+        sgtk.LogManager().initialize_base_file_handler("tk-desktop")
 
     # If the core supports the shotgun_authentication module and the pickle has
     # a current user, we have to set the authenticated user.
@@ -52,7 +68,9 @@ def start_engine(data):
     tk = sgtk.sgtk_from_path(data["config_path"])
     tk._desktop_data = data["proxy_data"]
     ctx = tk.context_from_entity("Project", data["project"]["id"])
-    return sgtk.platform.start_engine("tk-desktop", tk, ctx)
+    engine = sgtk.platform.start_engine("tk-desktop", tk, ctx)
+
+    return engine
 
 
 def start_app(engine):

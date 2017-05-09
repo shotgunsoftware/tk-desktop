@@ -905,14 +905,6 @@
     <string>Project Filesystem Folder</string>
    </property>
   </action>
-  <action name="actionPreferences">
-   <property name="text">
-    <string>Preferences...</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+,</string>
-   </property>
-  </action>
   <action name="actionShow_Console">
    <property name="text">
     <string>Show Console</string>
@@ -927,6 +919,14 @@
    </property>
    <property name="toolTip">
     <string>Refreshes the project information.</string>
+   </property>
+  </action>
+  <action name="actionAdvanced_Project_Setup">
+   <property name="text">
+    <string>Advanced project setup...</string>
+   </property>
+   <property name="toolTip">
+    <string>Launch the classic project setup wizard</string>
    </property>
   </action>
  </widget>
