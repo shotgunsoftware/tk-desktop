@@ -44,6 +44,21 @@
      <number>0</number>
     </property>
     <item>
+     <widget class="QWidget" name="banners" native="true">
+      <property name="autoFillBackground">
+       <bool>true</bool>
+      </property>
+      <layout class="QVBoxLayout" name="verticalLayout_4">
+       <property name="spacing">
+        <number>1</number>
+       </property>
+       <property name="margin">
+        <number>0</number>
+       </property>
+      </layout>
+     </widget>
+    </item>
+    <item>
      <widget class="QFrame" name="header">
       <property name="frameShape">
        <enum>QFrame::NoFrame</enum>

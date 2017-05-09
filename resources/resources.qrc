@@ -27,5 +27,6 @@
     <file>shotgun_logo.png</file>
     <file>gear.png</file>
     <file>default_systray_icon.png</file>
+    <file>cross.png</file>
   </qresource>
 </RCC>
