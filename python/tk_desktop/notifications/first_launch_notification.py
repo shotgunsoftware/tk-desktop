@@ -21,7 +21,8 @@ class FirstLaunchNotification(Notification):
 
     _FIRST_LAUNCH_BANNER_VIEWED_ID = "first_desktop_launch_banner_viewed"
     _SHOTGUN_DESKTOP_SUPPORT_PAGE_URL = (
-        "https://support.shotgunsoftware.com/hc/en-us/articles/115000068574"
+        r"https://support.shotgunsoftware.com/hc/en-us/articles/219040668-"
+        "Shotgun-Desktop-Download-and-Setup#The%20Toolkit%20Project%20setup%20wizard"
     )
 
     @classmethod
