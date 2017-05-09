@@ -6,7 +6,7 @@ python:
 # Ideally we would be pip installing tk-core, but we need the testing framework from core,
 # so we will clone the repo install to a known location and run the tests there.
 install:
-    - git clone --depth 1 --branch develop/zero_config https://github.com/shotgunsoftware/tk-core /tmp/tk-core 
+    - git clone --depth 1 https://github.com/shotgunsoftware/tk-core /tmp/tk-core
 
 # command to run tests
 script: cd tests && ./run_travis_tests.sh
