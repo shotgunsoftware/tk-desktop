@@ -17,6 +17,7 @@ import subprocess
 import cPickle as pickle
 import pprint
 import itertools
+from collections import OrderedDict
 
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
@@ -44,11 +45,14 @@ from .project_model import SgProjectModelProxy
 from .project_delegate import SgProjectDelegate
 from .update_project_config import UpdateProjectConfig
 from .loading_project_widget import LoadingProjectWidget
+from .banner_widget import BannerWidget
 
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
 from .project_synchronization_thread import ProjectSynchronizationThread
+
+from .notifications import NotificationsManager
 
 try:
     from .extensions import osutils
@@ -97,8 +101,14 @@ class DesktopWindow(SystrayWindow):
         self.update_project_config_widget.update_finished.connect(self._on_update_finished)
         self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
 
+        self._current_pipeline_descriptor = None
+
+        self.ui.banners.setAttribute(QtCore.Qt.WA_StyledBackground, True)
+
+        self._update_banners()
+
         # setup systray behavior
-        self.set_content_layout(self.ui.border_layout)
+        self.set_content_layout(self.ui.center)
         self.set_drag_widgets([self.ui.header, self.ui.footer])
 
         self.systray_state_changed.connect(self.handle_systray_state_changed)
@@ -245,6 +255,38 @@ class DesktopWindow(SystrayWindow):
         # Do not put anything after this line, this can kick-off a Python process launch, which should
         # be done only when the dialog is fully initialized.
         self._load_settings()
+
+    def _update_banners(self):
+        """
+        Displays the notifications retrieved from the ``NotificationsManager``.
+        """
+        engine = sgtk.platform.current_engine()
+        self._notifs_mgr = NotificationsManager(
+            self._settings_manager,
+            engine.sgtk.configuration_descriptor,
+            self._current_pipeline_descriptor,
+            engine
+        )
+
+        # Remove all items from the layout
+        banner_layout = self.ui.banners.layout()
+
+        # Find all the current banners.
+        current_banners = {banner_layout.itemAt(0).widget().unique_id for i in range(banner_layout.count())}
+
+        notifs = self._notifs_mgr.get_notifications()
+        for notif in notifs:
+            if notif.unique_id not in current_banners:
+                banner = BannerWidget(self._notifs_mgr, notif, parent=self)
+                # Each time a banner is dismissed, we'll rebuild them all.
+                banner.dismissed.connect(self._banner_dismissed)
+                banner_layout.addWidget(banner)
+
+    def _banner_dismissed(self, banner):
+        """
+        Removes the banner from the layout once it is dismissed.
+        """
+        self.ui.banners.layout().removeWidget(banner)
 
     def _load_settings(self):
         # last window position
@@ -557,6 +599,9 @@ class DesktopWindow(SystrayWindow):
         """
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
+
+        self._current_pipeline_descriptor = None
+        self._update_banners()
 
         # If we were in zero config mode, we need to abort the syncing.
         if self._sync_thread:
@@ -941,14 +986,19 @@ class DesktopWindow(SystrayWindow):
         return pipeline_configurations[0]
 
     def _launch_failed(self, message):
+        self._current_pipeline_descriptor = None
         message = ("%s"
                    "\n\nTo resolve this, open Shotgun in your browser\n"
                    "and check the paths for this Pipeline Configuration."
                    "\n\nFor more details, see the console." % message)
         self.project_overlay.show_error_message(message)
 
-    def _sync_success(self, config_path):
+    def _sync_success(self, config_path, descriptor):
         try:
+            self._current_pipeline_descriptor = descriptor
+            # Banners might need to be updated, we might have picked a configuration that has been
+            # updated.
+            self._update_banners()
 
             engine = sgtk.platform.current_engine()
 
@@ -1070,30 +1120,25 @@ class DesktopWindow(SystrayWindow):
         # If a Startup version was specified when engine.run was invoked
         # it's because we're running the new installer code and therefore
         # we have a startup version to show.
+
+        versions = OrderedDict()
+        versions["App Version"] = engine.app_version
+
         if engine.startup_version:
-            about = AboutScreen(parent=self, body="""
-                <center>
-                    App Version %s<br/>
-                    Startup Version %s<br/>
-                    Engine Version %s<br/>
-                    Core Version %s
-                </center>
-            """ % (
-                engine.app_version,
-                engine.startup_version,
-                engine.version,
-                engine.sgtk.version)
-            )
-        else:
-            about = AboutScreen(parent=self, body="""
-                <center>
-                    App Version %s<br/>
-                    Engine Version %s<br/>
-                    Core Version %s
-                </center>
-            """ % (
-                engine.app_version,
-                engine.version,
-                engine.sgtk.version)
-            )
+            versions["Startup Version"] = engine.startup_version
+
+        versions["Engine Version"] = engine.version
+        versions["Core"] = engine.sgtk.version
+
+        if engine.sgtk.configuration_descriptor:
+            versions[
+                engine.sgtk.configuration_descriptor.display_name
+            ] = engine.sgtk.configuration_descriptor.version
+
+        body = "<center>"
+        for name, version in versions.iteritems():
+            body += "    {0} {1}<br/>".format(name, version)
+        body += "</center>"
+
+        about = AboutScreen(parent=self, body=body)
         about.exec_()

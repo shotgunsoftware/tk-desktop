@@ -31,7 +31,7 @@ class ProjectSynchronizationThread(QtCore.QThread):
 
     report_progress = QtCore.Signal(float, str)
     sync_failed = QtCore.Signal(str)
-    sync_success = QtCore.Signal(str)
+    sync_success = QtCore.Signal(str, object)
 
     def __init__(self, manager, project):
         """
@@ -66,7 +66,7 @@ class ProjectSynchronizationThread(QtCore.QThread):
         """
         try:
             # Make sure the config is downloaded and the bundles cached.
-            config_path = self._toolkit_manager.prepare_engine(None, self._project)
+            config_path, descriptor = self._toolkit_manager.prepare_engine(None, self._project)
         except ProjectSyncingCancelledError:
             logger.debug("Caught ProjectSyncingCancelledError.")
             # Someone has canceled the syncing. Simply abort. No need to emit anything, abort is fire
@@ -77,7 +77,7 @@ class ProjectSynchronizationThread(QtCore.QThread):
             self.sync_failed.emit(str(error))
         else:
             logger.debug("Syncing completed successfully.")
-            self.sync_success.emit(config_path)
+            self.sync_success.emit(config_path, descriptor)
 
     def abort(self):
         """

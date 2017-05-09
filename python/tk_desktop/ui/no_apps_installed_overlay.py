@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'no_apps_installed_overlay.ui'
 #
-#      by: pyside-uic 0.2.15 running on PySide 1.2.4
+#      by: pyside-uic 0.2.15 running on PySide 1.2.2
 #
 # WARNING! All changes made in this file will be lost!
 
