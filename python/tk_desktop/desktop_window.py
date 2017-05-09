@@ -558,7 +558,6 @@ class DesktopWindow(SystrayWindow):
                 login_framework.set_default_login(new_user)
 
         dm = sg_auth.DefaultsManager()
-        print new_host, new_user
         if new_host:
             dm.set_host(new_host)
 
