@@ -255,7 +255,7 @@ class DesktopWindow(SystrayWindow):
 
         self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
 
-        desktop_server_framework.add_diffrent_user_requested_callback(self._on_different_user)
+        desktop_server_framework.add_different_user_requested_callback(self._on_different_user)
 
         # Set of sites that are being ignored when browser integration requests happen. This set is not
         # persisted when the desktop is closed.
