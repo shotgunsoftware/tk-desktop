@@ -25,10 +25,10 @@ class BannerWidget(QtGui.QWidget):
 
     dismissed = QtCore.Signal(object)
 
-    def __init__(self, mgr, notif, parent=None):
+    def __init__(self, notifications_mgr, notification, parent=None):
         """
-        :param mgr: ``NotificationsManager`` instance.
-        :param notif: ``Notification`` instance to display.
+        :param notifications_mgr: ``NotificationsManager`` instance.
+        :param notification: ``Notification`` instance to display.
         :param parent: Parent widget
         """
         super(BannerWidget, self).__init__(parent)
@@ -42,9 +42,9 @@ class BannerWidget(QtGui.QWidget):
 
         self._current_message_id = None
 
-        self.ui.message.setText(notif.message)
-        self._mgr = mgr
-        self._notif = notif
+        self.ui.message.setText(notification.message)
+        self._notifications_mgr = notifications_mgr
+        self._notification = notification
 
         self.ui.close_button.clicked.connect(self._on_dismiss_message)
         self.ui.message.linkActivated.connect(self._on_link_clicked)
@@ -63,11 +63,11 @@ class BannerWidget(QtGui.QWidget):
         """
         Returns the unique identifier of a notification.
         """
-        return self._notif.unique_id
+        return self._notification.unique_id
 
     def _on_dismiss_message(self):
         """
         Dismisses the message and hides the banner.
         """
-        self._mgr.dismiss(self._notif)
+        self._notifications_mgr.dismiss(self._notification)
         self.dismissed.emit(self)
