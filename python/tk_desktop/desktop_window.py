@@ -17,6 +17,7 @@ import subprocess
 import cPickle as pickle
 import pprint
 import itertools
+import urlparse
 from collections import OrderedDict
 
 from tank.platform.qt import QtCore, QtGui
@@ -45,6 +46,7 @@ from .project_model import SgProjectModelProxy
 from .project_delegate import SgProjectDelegate
 from .update_project_config import UpdateProjectConfig
 from .loading_project_widget import LoadingProjectWidget
+from .browser_integration_user_switch_dialog import BrowserIntegrationUserSwitchDialog
 from .banner_widget import BannerWidget
 
 from .project_commands_model import ProjectCommandModel
@@ -63,6 +65,7 @@ except Exception:
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
+desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 ShotgunModel = shotgun_model.ShotgunModel
 
@@ -251,6 +254,14 @@ class DesktopWindow(SystrayWindow):
         self.ui.shotgun_button.setToolTip("Open Shotgun in browser.\n%s" % connection.base_url)
 
         self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
+
+        desktop_server_framework.add_different_user_requested_callback(self._on_different_user)
+
+        # Set of sites that are being ignored when browser integration requests happen. This set is not
+        # persisted when the desktop is closed.
+        self._ignored_sites = set()
+        # Flag indicating if we are currently handling a switch user request from the browser integration.
+        self._is_handling_switch_request = False
 
         # Do not put anything after this line, this can kick-off a Python process launch, which should
         # be done only when the dialog is fully initialized.
@@ -513,17 +524,54 @@ class DesktopWindow(SystrayWindow):
             )
             self.install_apps_widget.show()
 
-    def sign_out(self):
+    def _logout_current_user(self):
+        """
+        Logs current user out.
+        """
         engine = sgtk.platform.current_engine()
-
         try:
             sg_auth.ShotgunAuthenticator().clear_default_user()
             if engine.uses_legacy_authentication():
                 engine.create_legacy_login_instance().logout()
+            return True
         except Exception:
             # if logout raises an exception, just log and don't crash
             log.exception("Error logging out.")
+            return False
 
+    def _switch_current_user(self, new_host, new_user):
+        """
+        Changes the default host and login.
+
+        :param str new_host: URL of the new host.
+        :param str new_user: Login of the new user.
+        """
+
+        engine = sgtk.platform.current_engine()
+
+        # This is for ye-olde Shotgun Desktop < 1.1
+        if engine.uses_legacy_authentication():
+            login_framework = engine.create_legacy_login_instance()
+            if new_user:
+                login_framework.set_default_login(new_user)
+            if new_host:
+                login_framework.set_default_host(new_host)
+
+        dm = sg_auth.DefaultsManager()
+        if new_user:
+            dm.set_login(new_user)
+
+        if new_host:
+            dm.set_host(new_host)
+
+    def sign_out(self):
+        self._logout_current_user()
+        self._restart_desktop()
+
+    def _restart_desktop(self):
+        """
+        Restarts the Shotgun Desktop application.
+        """
         # restart the application
         self.handle_quit_action()
         # Very important to set close_fds otherwise the websocket server file descriptor
@@ -531,7 +579,73 @@ class DesktopWindow(SystrayWindow):
         # after the process closes.
         # Solution was found here: http://stackoverflow.com/a/13593715
         # Also tell the new shotgun to skip the tray and go directly to the login.
-        subprocess.Popen(sys.argv + ["--show-login"], close_fds=True)
+        subprocess.Popen(sys.argv, close_fds=True)
+
+    def _on_different_user(self, site, user_id):
+        """
+        Invoked when a request coming from a different site and/or user comes through.
+
+        :param str site: URL of the site making the request.
+        :param int user_id: User id of the HumanUser attempting the request.
+        """
+        # Makes sure that if the user is browsing multiples pages before coming back to the Desktop,
+        # only the first request will generate a pop-up. Note that if requests comes from different users and/or sites,
+        # only the first one will be acknowledged. This is to avoid having multiple modal dialogs popping up.
+        if self._is_handling_switch_request:
+            return
+        self._is_handling_switch_request = True
+
+        bundle = sgtk.platform.current_bundle()
+
+        try:
+            current_site = bundle.get_current_user().host
+
+            if site.lower() in self._ignored_sites:
+                log.info("Request ignored for '%s'.", site)
+                return
+
+            user = bundle.shotgun.find_one("HumanUser", [["id", "is", user_id]], ["login"])
+            # If for some reason we can't see the user (permissions might be the cause),
+            # use the <unknown> string.
+            if user is None or not user.get("login"):
+                user_login = None
+            else:
+                user_login = user["login"]
+
+            # Figure out if we need to restart because of a different site or simply a different user.
+            if site.lower() != current_site.lower():
+                msg = (
+                    "A request originated from <b>{0}</b>, but you "
+                    "are currently logged into <b>{1}</b>.<br/><br/>"
+                    "If you would like to respond to requests from the other site, click the "
+                    "<b>Restart</b> button below to restart Shotgun Desktop and log into <b>{0}</b>.".format(
+                        urlparse.urlparse(site).netloc,
+                        urlparse.urlparse(current_site).netloc
+                    )
+                )
+                new_site = site
+            else:
+                msg = (
+                    "A request from <b>{0}</b> was made, but you are currently "
+                    "signed in as <b>{1}</b> in the Shotgun Desktop.<br/><br/>"
+                    "If you would like to respond to requests from this user, click the "
+                    "<b>Restart</b> button below to restart Shotgun Desktop and log as <b>{0}</b>.".format(
+                        user_login if user_login else "<unknown>", bundle.get_current_user().login
+                    )
+                )
+                new_site = None
+
+            self.activate()
+            dialog = BrowserIntegrationUserSwitchDialog(msg, self)
+            dialog.exec_()
+
+            if dialog.result() == dialog.RESTART:
+                self._switch_current_user(new_site, user_login)
+                self._restart_desktop()
+            elif dialog.result() == dialog.IGNOREPERMANENTLY:
+                self._ignored_sites.add(site.lower())
+        finally:
+            self._is_handling_switch_request = False
 
     def is_on_top(self):
         return (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
