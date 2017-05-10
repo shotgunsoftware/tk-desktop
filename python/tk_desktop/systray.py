@@ -15,7 +15,7 @@ import sys
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-from .ui import resources_rc
+from .ui import resources_rc # noqa
 
 from .systray_icon import ShotgunSystemTrayIcon
 
@@ -296,7 +296,7 @@ class SystrayWindow(QtGui.QMainWindow):
         """
         Toggles visibility when systray icon is clicked.
         """
-        active = self.isActiveWindow() or (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
+        active = self.isActiveWindow()
         if active:
             # shown and topmost, hide
             self.hide()
