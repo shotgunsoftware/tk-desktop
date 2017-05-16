@@ -265,9 +265,14 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
+        # If server is passed down to this method, it means we are running an older version of the
+        # desktop startup code, which runs its own browser integration.
+        #
         # Sadly, we can't tear down the previous server and restart it. Attempting to tear_down() and
         # instantiate a new server will raise an error.ReactorNotRestartable exception. So we'll start
         # our websocket integration only if there is no server running from the desktop startup.
+        # Note that the server argument is set regardless of whether the server launched or crashed,
+        # so we have to actually get its value instead of merely checking for existence.
         if kwargs.get("server") is None:
             # Initialize all of this after the style-sheet has been applied so any prompt are also
             # styled after the Shotgun Desktop's visual-style.
@@ -277,6 +282,8 @@ class DesktopEngineSiteImplementation(object):
                 desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
             except Exception:
                 logger.exception("Unexpected error while trying to launch the browser integration:")
+            else:
+                logger.debug("Browser integration was launched successfully.")
 
         # hide the splash if it exists
         if splash is not None:
