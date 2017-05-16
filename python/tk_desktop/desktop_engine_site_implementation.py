@@ -265,11 +265,10 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
-        # If the desktop startup is not running a websocket server, then start the builtin one.
-        # The latest version of the desktop startup does not run the server anymore, but the
-        # original one did and if the desktop engine gets updated but not the startup then we are
-        # forced to let the other one run.
-        if "server" not in kwargs:
+        # Sadly, we can't tear down the previous server and restart it. Attempting to tear_down() and
+        # instantiate a new server will raise an error.ReactorNotRestartable exception. So we'll start
+        # our websocket integration only if there is no server running from the desktop startup.
+        if kwargs.get("server") is None:
             # Initialize all of this after the style-sheet has been applied so any prompt are also
             # styled after the Shotgun Desktop's visual-style.
             splash.set_message("Initializing browser integration.")
@@ -299,7 +298,7 @@ class DesktopEngineSiteImplementation(object):
         self.desktop_window = desktop_window.DesktopWindow()
 
         # We need for the dialog to exist for messages to get to the UI console.
-        if "server" in kwargs:
+        if kwargs.get("server") is not None:
             logger.warning(
                 "You are running an older version of the Shotgun Desktop which is not fully compatible "
                 "with the Shotgun Integrations. Please install the latest version."
