@@ -265,8 +265,12 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
+        # If the desktop startup is not running a websocket server, then start the builtin one.
+        # The latest version of the desktop startup does not run the server anymore, but the
+        # original one did and if the desktop engine gets updated but not the startup then we are
+        # forced to let the other one run.
         if "server" not in kwargs:
-            # Initialize all of this after the style-sheet has been applied to any prompt are also
+            # Initialize all of this after the style-sheet has been applied so any prompt are also
             # styled after the Shotgun Desktop's visual-style.
             splash.set_message("Initializing browser integration.")
             try:
@@ -274,10 +278,6 @@ class DesktopEngineSiteImplementation(object):
                 desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
             except Exception:
                 logger.exception("Unexpected error while trying to launch the browser integration:")
-        else:
-            logger.debug(
-                "Engine-based browser integration is disabled because legacy server is running."
-            )
 
         # hide the splash if it exists
         if splash is not None:
@@ -297,6 +297,14 @@ class DesktopEngineSiteImplementation(object):
 
         # initialize System Tray
         self.desktop_window = desktop_window.DesktopWindow()
+
+        # We need for the dialog to exist for messages to get to the UI console.
+        if "server" in kwargs:
+            logger.warning(
+                "You are running an older version of the Shotgun Desktop which is not fully compatible "
+                "with the Shotgun Integrations. Please install the latest version."
+
+            )
 
         # make sure we close down our rpc threads
         app.aboutToQuit.connect(self._engine.destroy_engine)
