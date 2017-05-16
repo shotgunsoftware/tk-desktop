@@ -27,7 +27,6 @@ from .site_communication import SiteCommunication
 
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
-desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 logger = LogManager.get_logger(__name__)
 
@@ -266,13 +265,25 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
-        # Initialize all of this after the style-sheet has been applied to any prompt are also
-        # styled after the Shotgun Desktop's visual-style.
-        splash.set_message("Initializing browser integration.")
-        try:
-            desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
-        except Exception:
-            logger.exception("Unexpected error while trying to launch the browser integration:")
+        # If server is passed down to this method, it means we are running an older version of the
+        # desktop startup code, which runs its own browser integration.
+        #
+        # Sadly, we can't tear down the previous server and restart it. Attempting to tear_down() and
+        # instantiate a new server will raise an error.ReactorNotRestartable exception. So we'll start
+        # our websocket integration only if there is no server running from the desktop startup.
+        # Note that the server argument is set regardless of whether the server launched or crashed,
+        # so we have to actually get its value instead of merely checking for existence.
+        if kwargs.get("server") is None:
+            # Initialize all of this after the style-sheet has been applied so any prompt are also
+            # styled after the Shotgun Desktop's visual-style.
+            splash.set_message("Initializing browser integration.")
+            try:
+                desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+                desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
+            except Exception:
+                logger.exception("Unexpected error while trying to launch the browser integration:")
+            else:
+                logger.debug("Browser integration was launched successfully.")
 
         # hide the splash if it exists
         if splash is not None:
@@ -292,6 +303,14 @@ class DesktopEngineSiteImplementation(object):
 
         # initialize System Tray
         self.desktop_window = desktop_window.DesktopWindow()
+
+        # We need for the dialog to exist for messages to get to the UI console.
+        if kwargs.get("server") is not None:
+            logger.warning(
+                "You are running an older version of the Shotgun Desktop which is not fully compatible "
+                "with the Shotgun Integrations. Please install the latest version."
+
+            )
 
         # make sure we close down our rpc threads
         app.aboutToQuit.connect(self._engine.destroy_engine)
