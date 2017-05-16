@@ -27,7 +27,6 @@ from .site_communication import SiteCommunication
 
 shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
 task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
-desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 logger = LogManager.get_logger(__name__)
 
@@ -266,13 +265,19 @@ class DesktopEngineSiteImplementation(object):
         f.close()
         app.setStyleSheet(css)
 
-        # Initialize all of this after the style-sheet has been applied to any prompt are also
-        # styled after the Shotgun Desktop's visual-style.
-        splash.set_message("Initializing browser integration.")
-        try:
-            desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
-        except Exception:
-            logger.exception("Unexpected error while trying to launch the browser integration:")
+        if "server" not in kwargs:
+            # Initialize all of this after the style-sheet has been applied to any prompt are also
+            # styled after the Shotgun Desktop's visual-style.
+            splash.set_message("Initializing browser integration.")
+            try:
+                desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+                desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
+            except Exception:
+                logger.exception("Unexpected error while trying to launch the browser integration:")
+        else:
+            logger.debug(
+                "Engine-based browser integration is disabled because legacy server is running."
+            )
 
         # hide the splash if it exists
         if splash is not None:
