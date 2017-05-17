@@ -1024,7 +1024,7 @@ class DesktopWindow(SystrayWindow):
             # 'Advanced project setup...' menu item.
             if not pipeline_configurations:
                 # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
-                if self.__get_server_version(engine.shotgun) >= (7, 1, 0):
+                if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
                     self.ui.actionAdvanced_Project_Setup.setVisible(True)
                 else:
                     # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
