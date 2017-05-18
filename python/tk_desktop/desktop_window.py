@@ -1122,14 +1122,10 @@ class DesktopWindow(SystrayWindow):
 
             # Find where Python is installed so we can launch an interpreter.
             path_to_python = sgtk.get_python_interpreter_for_config(config_path)
+            core_python = sgtk.get_core_python_path_for_config(config_path)
 
             # startup server pipe to listen
             engine.startup_rpc()
-
-            core_python = os.path.join(
-                config_path,
-                "install", "core", "python"
-            )
 
             # pickle up the info needed to bootstrap the project python
             desktop_data = {
