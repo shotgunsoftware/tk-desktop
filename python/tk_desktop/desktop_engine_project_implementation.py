@@ -328,7 +328,7 @@ class DesktopEngineProjectImplementation(object):
         """
         return self._engine.get_setting(setting_name, default_value)
 
-    def _emit_log_message(self, level, msg, *args):
+    def _emit_log_message(self, handle, record):
         """
         Logs a message to the site engine if available, otherwise logs to disk.
         """
@@ -337,7 +337,9 @@ class DesktopEngineProjectImplementation(object):
             # If we can log through the proxy, only do that to avoid
             # duplicate entries in the log file
             try:
-                self._project_comm.call_no_response("proxy_log", level, msg, args)
+                self._project_comm.call_no_response(
+                    "proxy_log", record.levelno, record.msg, record.args
+                )
                 return
             except Exception:
                 # could not log through to the proxy and there is no base file handler. bummer...
