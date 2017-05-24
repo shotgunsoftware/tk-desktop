@@ -374,6 +374,8 @@ class Ui_DesktopWindow(object):
         self.actionRefresh_Projects.setObjectName("actionRefresh_Projects")
         self.actionAdvanced_Project_Setup = QtGui.QAction(DesktopWindow)
         self.actionAdvanced_Project_Setup.setObjectName("actionAdvanced_Project_Setup")
+        self.actionHelp = QtGui.QAction(DesktopWindow)
+        self.actionHelp.setObjectName("actionHelp")
 
         self.retranslateUi(DesktopWindow)
         self.stack.setCurrentIndex(0)
@@ -412,6 +414,7 @@ class Ui_DesktopWindow(object):
         self.actionRefresh_Projects.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Refreshes the project information.", None, QtGui.QApplication.UnicodeUTF8))
         self.actionAdvanced_Project_Setup.setText(QtGui.QApplication.translate("DesktopWindow", "Advanced project setup...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionAdvanced_Project_Setup.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Launch the classic project setup wizard", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionHelp.setText(QtGui.QApplication.translate("DesktopWindow", "Help", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..action_list_view import ActionListView
 from ..grouping_list_view import GroupingListView

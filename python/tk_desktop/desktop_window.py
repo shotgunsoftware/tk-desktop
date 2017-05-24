@@ -54,7 +54,7 @@ from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
 from .project_synchronization_thread import ProjectSynchronizationThread
 
-from .notifications import NotificationsManager
+from .notifications import NotificationsManager, FirstLaunchNotification
 
 try:
     from .extensions import osutils
@@ -157,6 +157,7 @@ class DesktopWindow(SystrayWindow):
         name_action = self.user_menu.addAction(current_user["name"])
         url_action = self.user_menu.addAction(connection.base_url.split("://")[1])
         self.user_menu.addSeparator()
+        self.user_menu.addAction(self.ui.actionHelp)
         self.user_menu.addAction(self.ui.actionPin_to_Menu)
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
         self.user_menu.addAction(self.ui.actionShow_Console)
@@ -185,6 +186,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
+        self.ui.actionHelp.triggered.connect(self.handle_help)
 
         self.ui.user_button.setMenu(self.user_menu)
 
@@ -266,6 +268,14 @@ class DesktopWindow(SystrayWindow):
         # Do not put anything after this line, this can kick-off a Python process launch, which should
         # be done only when the dialog is fully initialized.
         self._load_settings()
+
+    def handle_help(self):
+        """
+        Jumps to the help page of the Shotgun Desktop.
+        """
+        QtGui.QDesktopServices.openUrl(
+            FirstLaunchNotification.SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
+        )
 
     def _update_banners(self):
         """

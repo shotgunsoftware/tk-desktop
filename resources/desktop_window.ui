@@ -944,6 +944,11 @@
     <string>Launch the classic project setup wizard</string>
    </property>
   </action>
+  <action name="actionHelp">
+   <property name="text">
+    <string>Help</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
