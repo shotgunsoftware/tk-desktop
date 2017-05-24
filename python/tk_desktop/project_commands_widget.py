@@ -162,7 +162,7 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         if menu_name is None:
             return button_name
         else:
-            return "%s\n%s" % (button_name, menu_name)
+            return menu_name
 
     def _configure_widget(self, widget, item, style_options):
         widget.text_label.setText(self._text_for_item(item))
