@@ -54,10 +54,20 @@ class SystrayWindow(QtGui.QMainWindow):
 
         def eventFilter(self, obj, event):
             if event.type() == QtCore.QEvent.ApplicationDeactivate:
+                # When the app loses focus and is in pinned mode, we hide the dialog automatically
+                # and move the app to the background so there's no more icon in the tray.
                 if self._window.state == SystrayWindow.STATE_PINNED:
                     self._window.hide()
                     if osutils is not None:
                         osutils.make_app_background()
+            elif event.type() == QtCore.QEvent.ApplicationActivate:
+                # When the app gains focus and is in pinned mode, we bring the app to the background.
+                # Note that we are not showing the main dialog because there are multiple top levels
+                # windows that would have cause the application to activate.
+                if self._window.state == SystrayWindow.STATE_PINNED:
+                    if osutils is not None:
+                        osutils.make_app_foreground()
+
             return QtCore.QObject.eventFilter(self, obj, event)
 
     def __init__(self, parent=None):
@@ -271,6 +281,12 @@ class SystrayWindow(QtGui.QMainWindow):
     def systray_clicked(self):
         """ handler for single click on the system tray """
         self.toggle_activate()
+
+    def is_pinned(self):
+        """
+        :returns: True if the dialog is pinned, false otherwise.
+        """
+        return self.state == self.STATE_PINNED
 
     def activate(self):
         """

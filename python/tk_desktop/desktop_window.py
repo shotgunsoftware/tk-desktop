@@ -639,8 +639,15 @@ class DesktopWindow(SystrayWindow):
                 )
                 new_site = None
 
-            self.activate()
             dialog = BrowserIntegrationUserSwitchDialog(msg, self)
+
+            # The following applies to macOS only and has no side-effect on other plaforms.
+            # If the dialog is pinned, it means it is also in background. We'll bring the app to the foreground
+            # so keyboard focus is granted automatically to the BrowserIntegrationUserSwitchDialog instead
+            # of being unfocussed.
+            if self.is_pinned() and osutils:
+                osutils.make_app_foreground()
+
             dialog.exec_()
 
             if dialog.result() == dialog.RESTART:
