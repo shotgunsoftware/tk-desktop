@@ -169,7 +169,11 @@ class TestNotifications(TankTestBase):
         Test the configuration update notification when no release url is available.
         """
         self._dismiss_first_launch()
-        self._mock_engine.startup_descriptor = SealedMock(version="v0.0.0", changelog=(None, "https://foo.bar"))
+        self._mock_engine.startup_descriptor = SealedMock(
+            version="v0.0.0",
+            changelog=(None, "https://foo.bar"),
+            has_remote_access=SealedMock(return_value=True)
+        )
 
         self._mock_descriptor.changelog = (None, None)
 
