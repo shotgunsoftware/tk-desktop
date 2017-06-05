@@ -1127,6 +1127,11 @@ class DesktopWindow(SystrayWindow):
 
             engine = sgtk.platform.current_engine()
 
+            # Signals from PySide return unicode strings, even if the signal is a string,
+            # so re-encode the string as utf8. If we don't well start spreading unicode through
+            # Toolkit, including some environment variables, which will cause issues on Windows.
+            config_path = config_path.encode("utf8")
+
             # Find where Python is installed so we can launch an interpreter.
             path_to_python = sgtk.get_python_interpreter_for_config(config_path)
             core_python = sgtk.get_core_python_path_for_config(config_path)
