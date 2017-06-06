@@ -118,10 +118,6 @@ class DesktopWindow(SystrayWindow):
         QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
         # Setup header buttons
-        #self.ui.apps_button.setProperty("active", True)
-        #self.ui.apps_button.style().unpolish(self.ui.apps_button)
-        #self.ui.apps_button.style().polish(self.ui.apps_button)
-
         engine = sgtk.platform.current_engine()
         connection = engine.get_current_user().create_sg_connection()
 
