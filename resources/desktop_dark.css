@@ -146,3 +146,18 @@ QWidget
     border: 1px solid rgb(67, 131, 168);
     border-radius: 3px;
 }
+
+/***************
+ * Banner widget
+ ***************/
+
+#BannerWidget
+{
+    background-color: rgb(67, 131, 168);
+    color: rgb(255, 255, 255);
+}
+
+#banners
+{
+    background-color: rgb(34, 65, 84);
+}

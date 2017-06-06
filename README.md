@@ -1,3 +1,5 @@
+[![Build Status](https://secure.travis-ci.org/shotgunsoftware/tk-desktop.png?branch=master)](http://travis-ci.org/shotgunsoftware/tk-desktop)
+
 ## Documentation
 This repository is a part of the Shotgun Pipeline Toolkit.
 

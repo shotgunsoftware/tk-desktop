@@ -11,11 +11,11 @@
 from __future__ import absolute_import
 
 import sys
-import logging
 
-from tank.platform.qt import QtCore, QtGui
+import sgtk
+from sgtk.platform.qt import QtCore, QtGui
 
-from .ui import resources_rc
+from .ui import resources_rc # noqa
 
 from .systray_icon import ShotgunSystemTrayIcon
 
@@ -23,6 +23,9 @@ try:
     from .extensions import osutils
 except Exception:
     osutils = None
+
+
+logger = sgtk.platform.get_logger(__name__)
 
 
 class SystrayWindow(QtGui.QMainWindow):
@@ -51,15 +54,24 @@ class SystrayWindow(QtGui.QMainWindow):
 
         def eventFilter(self, obj, event):
             if event.type() == QtCore.QEvent.ApplicationDeactivate:
+                # When the app loses focus and is in pinned mode, we hide the dialog automatically
+                # and move the app to the background so there's no more icon in the tray.
                 if self._window.state == SystrayWindow.STATE_PINNED:
                     self._window.hide()
                     if osutils is not None:
                         osutils.make_app_background()
+            elif event.type() == QtCore.QEvent.ApplicationActivate:
+                # When the app gains focus and is in pinned mode, we bring the app to the background.
+                # Note that we are not showing the main dialog because there are multiple top levels
+                # windows that would have cause the application to activate.
+                if self._window.state == SystrayWindow.STATE_PINNED:
+                    if osutils is not None:
+                        osutils.make_app_foreground()
+
             return QtCore.QObject.eventFilter(self, obj, event)
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
-        self.__logger = logging.getLogger("tk-desktop.systray")
 
         if sys.platform == "darwin":
             self.setAttribute(QtCore.Qt.WA_MacNoShadow)
@@ -158,7 +170,7 @@ class SystrayWindow(QtGui.QMainWindow):
         QtGui.QApplication.instance().processEvents()
         systray_geo = self.systray.geometry()
 
-        self.__logger.debug("systray_geo: %s" % systray_geo)
+        logger.debug("systray_geo: %s", systray_geo)
 
         if animated:
             final = QtCore.QRect(systray_geo.center().x(), systray_geo.bottom(), 5, 5)
@@ -235,7 +247,7 @@ class SystrayWindow(QtGui.QMainWindow):
     def __move_to_systray(self):
         """ update the window position to be centered under the system tray icon """
         geo = self.systray.geometry()
-        self.__logger.debug("__move_to_systray: systray_geo: %s" % geo)
+        logger.debug("__move_to_systray: systray_geo: %s" % geo)
 
         side = self._guess_toolbar_side()
 
@@ -253,10 +265,16 @@ class SystrayWindow(QtGui.QMainWindow):
             y = geo.y() + (geo.height() - self.rect().height()) / 2.0
             pos = QtCore.QPoint(geo.x() - self.rect().width(), y)
         elif side == self.DOCK_BOTTOM:
-            x = geo.x() + (geo.width() - self.rect().width()) / 2.0
+            x = geo.x() + (geo.width() - self.geometry().width()) / 2.0
             pos = QtCore.QPoint(x, geo.y() - self.rect().height() - geo.height())
         else:
             raise ValueError("Unknown value for side: %s" % side)
+
+        # if part of the window will be drawn off screen, move the pos.
+        screen_geometry = self._get_systray_screen_geometry()
+        if (pos.x() + self.geometry().width()) > screen_geometry.right():
+            diff = (pos.x() + self.geometry().width()) - screen_geometry.right()
+            pos = QtCore.QPoint(pos.x() - diff, pos.y())
 
         self.move(pos)
 
@@ -264,12 +282,17 @@ class SystrayWindow(QtGui.QMainWindow):
         """ handler for single click on the system tray """
         self.toggle_activate()
 
-    def toggle_activate(self):
-        # toggle visibility when clicked
-        active = self.isActiveWindow() or (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
-        hidden = self.isHidden()
+    def is_pinned(self):
+        """
+        :returns: True if the dialog is pinned, false otherwise.
+        """
+        return self.state == self.STATE_PINNED
 
-        if hidden:
+    def activate(self):
+        """
+        Ensures the Desktop's dialog is visible and on top of other windows.
+        """
+        if self.isHidden():
             # hidden, show and bring to the top
             if self.state == self.STATE_PINNED:
                 self.__move_to_systray()
@@ -278,11 +301,6 @@ class SystrayWindow(QtGui.QMainWindow):
             self.activateWindow()
             if osutils is not None:
                 osutils.make_app_foreground()
-        elif active:
-            # shown and topmost, hide
-            self.hide()
-            if osutils is not None:
-                osutils.make_app_background()
         else:
             # shown and not topmost, just bring to the top
             self.raise_()
@@ -290,13 +308,30 @@ class SystrayWindow(QtGui.QMainWindow):
             if osutils is not None:
                 osutils.activate_application()
 
+    def toggle_activate(self):
+        """
+        Toggles visibility when systray icon is clicked.
+        """
+        active = self.isActiveWindow()
+        if active:
+            # shown and topmost, hide
+            self.hide()
+            if osutils is not None:
+                osutils.make_app_background()
+        else:
+            self.activate()
+
+    def _get_systray_screen_geometry(self):
+        pos = self.systray.geometry().center()
+        desktop = QtGui.QApplication.instance().desktop()
+        return desktop.screenGeometry(pos)
+
     # Update the window mask
     ############################
     def _guess_toolbar_side(self):
         """ guess which side of the screen the toolbar is on """
         pos = self.systray.geometry().center()
-        desktop = QtGui.QApplication.instance().desktop()
-        screen_geometry = desktop.screenGeometry(pos)
+        screen_geometry = self._get_systray_screen_geometry()
 
         # Get dist from each edge of the screen
         top_dist = pos.y() - screen_geometry.top()
@@ -366,7 +401,11 @@ class SystrayWindow(QtGui.QMainWindow):
         if self.state == self.STATE_PINNED:
             # add back in the anchor triangle
             points = []
-            mask_center = mask.center()
+
+            # make sure the triangle is drawn over the tray icon.
+            rel_systray_geo_center = self.mapFromGlobal(self.systray.geometry().center())
+            mask_center = QtCore.QPoint(rel_systray_geo_center.x(), mask.center().y())
+
             if side == self.DOCK_TOP:
                 anchor_pixmap = self.__top_anchor
                 anchor_center = anchor_pixmap.rect().center()

@@ -35,14 +35,14 @@ class LaunchPython(Hook):
 
         # run hidden on windows
         startupinfo = None
-        if sys.platform == "win32":
+        if sys.platform == "win32" and not os.environ.get("SGTK_DESKTOP_BACKGROUND_CONSOLE"):
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.wShowWindow = subprocess.SW_HIDE
 
         # launch, running the bootstrap and passing through the startup data
         args = [project_python, bootstrap, "-d", pickle_data_path, "-u", utilities_module_path]
-        self.parent.log_debug("launching %s" % " ".join(["'%s'" % arg for arg in args]))
+        self.parent.logger.debug("launching %s", " ".join(["'%s'" % arg for arg in args]))
 
         # Very important to set close_fds otherwise the websocket server file descriptor
         # will be shared with the child process and it prevent restarting the server

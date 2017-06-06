@@ -19,7 +19,7 @@ import sgtk
 
 from .project_commands_model import ProjectCommandModel
 
-shotgun_view = sgtk.platform.import_framework("tk-framework-qtwidgets", "shotgun_view")
+views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
 
 HOVER_STYLE = """
 QPushButton, QToolButton {
@@ -54,11 +54,10 @@ QToolButton::menu-button  {
 """
 
 
-class AbstractCommandDelegate(shotgun_view.WidgetDelegate):
+class AbstractCommandDelegate(views.EditSelectedWidgetDelegate):
     def __init__(self, view):
-        self.view = view
         view.entered.connect(self._handle_entered)
-        shotgun_view.WidgetDelegate.__init__(self, view)
+        views.EditSelectedWidgetDelegate.__init__(self, view)
 
     def _handle_entered(self, index):
         if index is None:

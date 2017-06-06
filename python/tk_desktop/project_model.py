@@ -16,7 +16,6 @@ import datetime
 from tank.platform.qt import QtCore, QtGui
 
 import sgtk
-from sgtk.util import login
 
 shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
 
@@ -206,8 +205,6 @@ class SgProjectModel(ShotgunModel):
     """
     This model represents the data which is displayed in the projects list view
     """
-    PROJECT_LAUNCH_EVENT_TYPE = "Toolkit_Desktop_ProjectLaunch"
-
     DISPLAY_NAME_ROLE = QtCore.Qt.UserRole + 101
 
     thumbnail_updated = QtCore.Signal(QtGui.QStandardItem)
@@ -216,18 +213,19 @@ class SgProjectModel(ShotgunModel):
     _supports_project_templates = None
 
     @classmethod
-    def supports_project_templates(cls, connection):
+    def supports_project_templates(cls):
         """
         Tests if Shotgun 6.0 Project Templates are supported on the server. If
         this method has never been called, the server will be contacted
         synchronously and the result will be cached so subsequent calls are
         faster.
 
-        :param connection: A Shotgun connection instance.
-
         :returns: True if the server supports Shotgun 6.0 Project Templates,
                   False otherwise.
         """
+
+        connection = sgtk.platform.current_engine().shotgun
+
         # If we haven't checked on the server yet.
         if cls._supports_project_templates is None:
             try:
@@ -244,10 +242,6 @@ class SgProjectModel(ShotgunModel):
         """ Constructor """
         ShotgunModel.__init__(self, parent, download_thumbs=True)
 
-        engine = sgtk.platform.current_engine()
-        connection = engine.get_current_user().create_sg_connection()
-        self.set_shotgun_connection(connection)
-
         # load up the thumbnail to use when there is none set in Shotgun
         self._missing_thumbnail_project = QtGui.QPixmap(":/tk-desktop/missing_thumbnail_project.png")
 
@@ -258,7 +252,7 @@ class SgProjectModel(ShotgunModel):
         ]
         # Template projects is a Shotgun 6.0 feature, so make sure it exists
         # on the server before filtering on that value.
-        if SgProjectModel.supports_project_templates(connection):
+        if SgProjectModel.supports_project_templates():
             filters.append(["is_template", "is_not", True])
 
         interesting_fields = [
@@ -280,114 +274,25 @@ class SgProjectModel(ShotgunModel):
         # and force a refresh of the data from Shotgun
         self._refresh_data()
 
-    def _before_data_processing(self, sg_data_list):
-        # merge in timestamps from project launch events if they are newer than
-        # the last access timestamps from Shotgun
-
-        engine = sgtk.platform.current_engine()
-        # pull down matching events for the current user
-        filters = [
-            ["user", "is", engine.get_current_login()],
-            ["event_type", "is", self.PROJECT_LAUNCH_EVENT_TYPE],
-        ]
-
-        # execute the Shotgun summarize command
-        # get one group per project with a summary of the latest created_at
-        connection = engine.shotgun
-
-        start_time = time.time()
-        summary = connection.summarize(
-            entity_type="EventLogEntry",
-            filters=filters,
-            summary_fields=[{"field": "created_at", "type": "latest"}],
-            grouping=[{"field": "project", "type": "exact", "direction": "asc"}],
-        )
-        end_time = time.time()
-        call_duration = end_time-start_time
-        engine.log_debug("Project Launch events summarized (%.3f s)" % call_duration)
-
-        # parse the results
-        # convert all last accessed timestamps to naive datetime objects in UTC time
-        # this makes sure that the event times and Shotgun times can be directly
-        # compared
-        launches_by_project_id = {}
-        for group in summary["groups"]:
-
-            # ignore empty summaries reported by the Shotgun API
-            # these are on the form
-            # {'group_name': '',
-            #  'group_value': None,
-            #   'summaries': {'created_at': '2014-08-07 12:19:23 UTC'}}
-            if group["group_value"] is None:
-                continue
-
-            # convert the text representation of created_at to a UTC based timetuple
-            text_stamp = group["summaries"]["created_at"]
-            time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
-            launches_by_project_id[group["group_value"]["id"]] = time_stamp.utctimetuple()
-
-        for project in sg_data_list:
-            if project["last_accessed_by_current_user"] is None:
-                # never accessed in shotgun
-                if project["id"] in launches_by_project_id:
-                    # but is has been launched from the desktop
-                    launch_date = launches_by_project_id[project["id"]]
-                    # set last accessed on the project in UTC
-                    project["last_accessed_by_current_user"] = \
-                        datetime.datetime.fromtimestamp(time.mktime(launch_date))
-                continue
-
-            # grab the shotgun time as a UTC based timetuple
-            shotgun_date = project["last_accessed_by_current_user"].utctimetuple()
-
-            # set the non-overridden one to avoid timezone issues being
-            # introduced by the shotgun model time conversion
-            project["last_accessed_by_current_user"] = \
-                datetime.datetime.fromtimestamp(time.mktime(shotgun_date))
-
-            # if there are desktop launches for this project
-            if project["id"] in launches_by_project_id:
-                launch_date = launches_by_project_id[project["id"]]
-                if launch_date > shotgun_date:
-                    # desktop launch is newer, swap in the event time
-                    project["last_accessed_by_current_user"] = \
-                        datetime.datetime.fromtimestamp(time.mktime(launch_date))
-
-        return sg_data_list
-
     def update_project_accessed_time(self, project):
         """
-        Set the last accessed time for the given project.
+        Set the current user's last-accessed time for the given project.
 
-        This will update the value in the model and create a tracking event
-        in Shotgun.
+        This will update the value in the model and in Shotgun.
         """
-        # use toolkit connection to get ApiUser permissions for event creation
+        if project is None:
+            return
+
+        # Update Project.last_accessed_by_current_user in Shotgun
         engine = sgtk.platform.current_engine()
-        data = {
-            "description": "Project launch from tk-desktop",
-            "event_type": self.PROJECT_LAUNCH_EVENT_TYPE,
-            "project": project,
-            "meta": {"version": engine.version},
-            "user": engine.get_current_login()
-        }
+        engine.shotgun.update_project_last_accessed(project, engine.get_current_login())
 
-        start_time = time.time()
-        engine.shotgun.create("EventLogEntry", data)
-        end_time = time.time()
-        call_duration = end_time-start_time
-
-        engine.log_debug("Registering project launch event (%.3f s): %s" % (call_duration, data))
-
-        # update the data in the model
+        # Update the data in the model
         item = self.item_from_entity("Project", project["id"])
-        project = item.data(ShotgunModel.SG_DATA_ROLE)
-
-        if project is not None:
-            # set to unix seconds rather than datetime to be compatible with shotgun model
-            utc_now = time.mktime(datetime.datetime.utcnow().utctimetuple())
-            project["last_accessed_by_current_user"] = utc_now
-            item.setData(project, ShotgunModel.SG_DATA_ROLE)
+        # set to unix seconds rather than datetime to be compatible with Shotgun model
+        utc_now_epoch = time.mktime(datetime.datetime.utcnow().utctimetuple())
+        project["last_accessed_by_current_user"] = utc_now_epoch
+        item.setData(project, ShotgunModel.SG_DATA_ROLE)
 
         self.project_launched.emit()
 

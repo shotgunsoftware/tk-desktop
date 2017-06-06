@@ -8,9 +8,9 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import re
-import time
 import datetime
+import time
+import re
 
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -112,6 +112,7 @@ class ProjectCommandModel(GroupingModel):
     MENU_NAME_ROLE = QtCore.Qt.UserRole + 2
     COMMAND_ROLE = QtCore.Qt.UserRole + 3
     LAST_LAUNCH_ROLE = QtCore.Qt.UserRole + 4
+    IS_MENU_DEFAULT_ROLE = QtCore.Qt.UserRole + 5
 
     # signal emitted when a command is triggered
     # arguments are the group and the command_name of the triggered command
@@ -137,10 +138,26 @@ class ProjectCommandModel(GroupingModel):
         if self.show_recents:
             (header, _) = self.create_group(self.RECENT_GROUP_NAME)
             self.set_group_rank(self.RECENT_GROUP_NAME, 0)
-            self.__initialize_recents()
+            self.__load_recents()
 
-    def add_command(self, name, button_name, menu_name, icon, command_tooltip, groups):
-        if name in self.__recents and not self.__recents[name]["added"]:
+    def add_command(
+            self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default=False
+        ):
+        """
+        Create the UI components for a button command for each group specified in ``groups``.
+        If a RECENTS group exists, create a button command for that as well. If a ``menu_name``
+        is specified, the UI components for that will also be created.
+
+        :param str name: The name of the command used for internal tracking
+        :param str button_name: The label for the command button.
+        :param str menu_name: The label for the command button's drop-down menu item.
+        :param QtGui.QIcon icon: The icon to display for the command button and RECENT item.
+        :param str command_tooltip: A brief summary of what this command does.
+        :param list groups: The list of Desktop folder groups this command should appear in.
+        :param bool is_menu_default: If this command is a menu item, indicate whether it should
+                                     also be run by the command button.
+        """
+        if self.show_recents and name in self.__recents and not self.__recents[name]["added"]:
             item = QtGui.QStandardItem()
             item.setData(button_name, self.BUTTON_NAME_ROLE)
             item.setData(menu_name, self.MENU_NAME_ROLE)
@@ -186,6 +203,7 @@ class ProjectCommandModel(GroupingModel):
                 menu_item.setData(button_name, self.BUTTON_NAME_ROLE)
                 menu_item.setData(menu_name, self.MENU_NAME_ROLE)
                 menu_item.setData(name, self.COMMAND_ROLE)
+                menu_item.setData(is_menu_default, self.IS_MENU_DEFAULT_ROLE)
                 menu_item.setToolTip(command_tooltip)
                 if icon is not None:
                     menu_item.setIcon(icon)
@@ -193,15 +211,41 @@ class ProjectCommandModel(GroupingModel):
 
     @classmethod
     def get_item_children_in_order(cls, item):
+        """
+        Sort the item's children in reverse 'version' order based on the menu name
+        of the item. Item children whose IS_MENU_DEFAULT_ROLE data value is True
+        will be prepended to the list. Theoretically, there should only be one
+        "default" child in the list of item children, but since this is a human
+        configurable value, there may be more. Rather than raising an error, attempt
+        to handle this case gracefully by keeping track of default and non-default
+        children separately. Sort each list in reverse version number order, then
+        add them together to construct the list of ordered item children to return.
+
+        For example, assume an item has children named Maya4.5, Maya2012, Maya2013,
+        Maya2016, Maya2016.5, and Maya2017. The Maya2013, Maya2016, and Maya2016.5
+        items' IS_MENU_DEFAULT_ROLE is to True, the rest are False. The children
+        returned in sorted order would be:  Maya2016.5, Maya2016, Maya2013, Maya2014,
+        Maya2012, Maya4.5
+
+        Since Desktop uses the first child in this list as the command to run for
+        the item, Maya2016.5 will be launched when this item is selected.
+
+        :param QtGui.QStandardItem item: Input item to sort child items for.
+        :returns: List of items sorted by version and menu default status.
+        """
+        default_children = []
+        other_children = []
         i = 0
-        children = []
         while True:
             child = item.child(i, 0)
             i += 1
             if child is None:
                 break
 
-            children.append(child)
+            if child.data(cls.IS_MENU_DEFAULT_ROLE):
+                default_children.append(child)
+            else:
+                other_children.append(child)
 
         # sort children in reverse version order
         def child_cmp(left, right):
@@ -212,15 +256,15 @@ class ProjectCommandModel(GroupingModel):
             if util.is_version_older(left_version, right_version):
                 return 1
             return 0
-        children.sort(cmp=child_cmp)
-        return children
+
+        # Sort the lists of children
+        default_children.sort(cmp=child_cmp)
+        other_children.sort(cmp=child_cmp)
+
+        return (default_children + other_children)
 
     def _handle_command_triggered(self, item, command_name=None, button_name=None,
                                   menu_name=None, icon=None, tooltip=None):
-        # Create an event log entry to track app launches
-        engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
-
         # get the info for the command
         # if the info was explicit use that, otherwise if the item has children
         # use the info from the first one after sorting, otherwise use the item's
@@ -253,33 +297,16 @@ class ProjectCommandModel(GroupingModel):
             else:
                 tooltip = item.toolTip()
 
-        data = {
-            # recent is populated by grouping on description, so it needs
-            # to be the same for each event created for a given name, but
-            # different for different names
-            #
-            # this is parsed when populating the recents menu
-            "description": "App '%s' launched from tk-desktop-engine" % command_name,
-            "event_type": self.APP_LAUNCH_EVENT_TYPE,
-            "project": self.__project,
-            "meta": {"name": command_name, "group": group_name},
-            "user": engine.get_current_login(),
-        }
-
-        # use toolkit connection to get ApiUser permissions for event creation
-        start_time = time.time()
-
-        connection.create("EventLogEntry", data)
-
-        end_time = time.time()
-        call_duration = end_time-start_time
-        engine.log_debug("Registering app launch event (%.3f s): %s" % (call_duration, data))
+        # save app launch in recent settings
+        self.__recents[command_name] = {"timestamp": datetime.datetime.utcnow(), "added": False}
+        self.__store_recents()
 
         if self.show_recents:
             # find the corresponding recent if it exists
             start = self.index(0, 0)
             match_flags = QtCore.Qt.MatchExactly
-            indexes_in_recent = self.match(start, self.GROUP_ROLE, self.RECENT_GROUP_NAME, -1, match_flags)
+            indexes_in_recent = self.match(start, self.GROUP_ROLE, self.RECENT_GROUP_NAME, -1,
+                                           match_flags)
 
             recent_item = None
             for index in indexes_in_recent:
@@ -306,52 +333,29 @@ class ProjectCommandModel(GroupingModel):
         # and notify that the command was triggered
         self.command_triggered.emit(group_name, command_name)
 
-    def __initialize_recents(self):
+    def __store_recents(self):
         """
-        Pull down the information from Shotgun for what the recent command
-        launches have been.  Needed to track which ones are still registered.
+        Stores a list of recently launched apps in the user settings. Resets the "added" key so
+        when the settings are loaded again, each item will be added to the list. They are stored as
+        a dictionary in the following format::
+
+            self.__recents = {
+                'launch_nuke': {
+                    'timestamp': datetime.datetime(2016, 5, 20, 21, 48, 17, 495234),
+                    'added': False},
+                ...
+            }
         """
-        # dictionary to keep track of the commands launched with recency information
-        # each command name keeps track of a timestamp of when it was last launched
-        # and a boolean saying whether the corresponding command has been registered
-        self.__recents = {}
+        recents = {}
+        for name, details in self.__recents.iteritems():
+            recents[name] = {"timestamp": details["timestamp"], "added": False}
+        key = "project_recent_apps.%d" % self.__project["id"]
+        self.parent()._save_setting(key, recents, site_specific=True)
 
-        # pull down matching invents for the current project for the current user
-        filters = [
-            ["user", "is", sgtk.platform.current_engine().get_current_login()],
-            ["project", "is", self.__project],
-            ["event_type", "is", self.APP_LAUNCH_EVENT_TYPE],
-        ]
-
-        # execute the Shotgun summarize command
-        # get one group per description with a summary of the latest created_at
-        engine = sgtk.platform.current_engine()
-        connection = engine.shotgun
-        start_time = time.time()
-        summary = connection.summarize(
-            entity_type="EventLogEntry",
-            filters=filters,
-            summary_fields=[{"field": "created_at", "type": "latest"}],
-            grouping=[{"field": "description", "type": "exact", "direction": "desc"}],
-        )
-        end_time = time.time()
-        call_duration = end_time-start_time
-        engine.log_debug("App Launches summarized (%.3f s)" % call_duration)
-
-        # parse the results
-        for group in summary["groups"]:
-            # convert the text representation of created_at to a datetime
-            text_stamp = group["summaries"]["created_at"]
-            time_stamp = datetime.datetime.strptime(text_stamp, "%Y-%m-%d %H:%M:%S %Z")
-
-            # pull the command name from the description
-            description = group["group_name"]
-            match = re.search("'(?P<name>.+)'", description)
-            if match is not None:
-                name = match.group("name")
-
-                # if multiple descriptions end up with the same name use the most recent one
-                existing_info = self.__recents.setdefault(
-                    name, {"timestamp": time_stamp, "added": False})
-                if existing_info["timestamp"] < time_stamp:
-                    self.__recents[name]["timestamp"] = time_stamp
+    def __load_recents(self):
+        """
+        Loads recently launched apps from the user settings and returns them in a dict. See above
+        for the format.
+        """
+        key = "project_recent_apps.%d" % self.__project["id"]
+        self.__recents = self.parent()._load_setting(key, None, True) or {}

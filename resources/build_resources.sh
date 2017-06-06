@@ -11,7 +11,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 # The path to where the PySide binaries are installed
-PYTHON_BASE="/Applications/Shotgun.app/Contents/Frameworks/Python"
+PYTHON_BASE="/Applications/Shotgun.app/Contents/Resources/Python"
 PYTHON_LIB="${PYTHON_BASE}/lib/python2.7"
 
 # The path to output all built .py files to:
@@ -39,13 +39,16 @@ function build_res {
 echo "building user interfaces..."
 build_ui desktop_window
 build_ui wait_screen
-build_ui preferences
 build_ui about_screen
 build_ui error_dialog
 build_ui setup_new_os
 build_ui thumb_widget
 build_ui setup_project
+build_ui no_apps_installed_overlay
 build_ui update_project_config
+build_ui loading_project_widget
+build_ui browser_integration_user_switch_dialog
+build_ui banner_widget
 
 # build resources
 echo "building resources..."
