@@ -157,15 +157,18 @@ class DesktopWindow(SystrayWindow):
         name_action = self.user_menu.addAction(current_user["name"])
         url_action = self.user_menu.addAction(connection.base_url.split("://")[1])
         self.user_menu.addSeparator()
+        advanced_menu = self.user_menu.addMenu("Advanced")
         self.user_menu.addAction(self.ui.actionPin_to_Menu)
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
-        self.user_menu.addAction(self.ui.actionShow_Console)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
         self.user_menu.addAction(self.ui.actionAdvanced_Project_Setup)
         about_action = self.user_menu.addAction("About...")
         self.user_menu.addSeparator()
         self.user_menu.addAction(self.ui.actionSign_Out)
         self.user_menu.addAction(self.ui.actionQuit)
+
+        advanced_menu.addAction(self.ui.actionShow_Console)
+        advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
 
         # Initially hide the Advanced project setup... menu item. This
         # menu item will only be displayed for projects that do not have
@@ -185,6 +188,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
+        self.ui.actionRegenerate_Certificates.triggered.connect(self.handle_regen_certs)
 
         self.ui.user_button.setMenu(self.user_menu)
 
@@ -364,6 +368,69 @@ class DesktopWindow(SystrayWindow):
     # Event handlers and slots
     def contextMenuEvent(self, event):
         self.user_menu.exec_(event.globalPos())
+
+    def _show_rich_message_box(self, icon, title, message, buttons=[]):
+        message_box = QtGui.QMessageBox(self)
+        message_box.setIcon(icon)
+        message_box.setTextFormat(QtCore.Qt.RichText)
+        message_box.setWindowTitle(title)
+        message_box.setText(message)
+        for button in buttons:
+            message_box.addButton(button)
+        return message_box.exec_()
+
+    def handle_regen_certs(self):
+
+        # Need to create the message box by hand to have rich text format, hence
+        # clickable Urls.
+        choice = self._show_rich_message_box(
+            QtGui.QMessageBox.Information,
+            "Shotgun browser integration",
+            "Regenerating the Shotgun Desktop's browser integration certificates should "
+            "only be done if you have issues with the browser integration.<br/>"
+            "<br/>"
+            "If you are unsure how to proceed, we recommend you visit our support page "
+            "to troubleshoot connections with <a href='%s'>Chrome</a> or "
+            "<a href='%s'>Firefox</a>.<br/>"
+            "<br/>"
+            "Would you like to continue?" % (
+                "https://support.shotgunsoftware.com/hc/en-us/articles/114094536273",
+                "https://support.shotgunsoftware.com/hc/en-us/articles/115000054954"
+            ),
+            [QtGui.QMessageBox.Yes, QtGui.QMessageBox.No]
+        )
+
+        if choice != QtGui.QMessageBox.Yes:
+            return
+
+        try:
+            desktop_server_framework.regenerate_certificates(self)
+        except Exception:
+            log.exception("Unexpected error while regenerating certificates:")
+            self._show_rich_message_box(
+                QtGui.QMessageBox.Critical,
+                "Shotgun browser integration",
+                "It appears there are an issue while regenerating the certificates."
+                "\n"
+                "Please contact <a href='{0}'>our support team</a> "
+                "if you need assistance resolving this issue. Make sure to attach the logs found "
+                "at <a href='file://{1}'>{1}</a>.".format(
+                    "mailto:support@shotgunsoftware.com",
+                    sgtk.LogManager().base_file_handler.baseFilename
+                )
+            )
+        else:
+            result = QtGui.QMessageBox.question(
+                self,
+                "Shotgun browser integration",
+                "The Shotgun Desktop needs to restart for the certificate changes "
+                "to take effect.\n"
+                "\n"
+                "Would you like to restart?",
+                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+            )
+            if result == QtGui.QMessageBox.Yes:
+                self._restart_desktop()
 
     def handle_project_command_expanded_changed(self, group_key, expanded):
         expanded_state = self._project_command_model.get_expanded_state()
