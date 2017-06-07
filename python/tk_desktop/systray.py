@@ -51,24 +51,34 @@ class SystrayWindow(QtGui.QMainWindow):
         def __init__(self, window, parent=None):
             QtCore.QObject.__init__(self, parent)
             self._window = window
+            self._deactivate = False
 
         def eventFilter(self, obj, event):
-            if event.type() == QtCore.QEvent.ApplicationDeactivate:
-                # When the app loses focus and is in pinned mode, we hide the dialog automatically
-                # and move the app to the background so there's no more icon in the tray.
-                if self._window.state == SystrayWindow.STATE_PINNED:
-                    self._window.hide()
-                    if osutils is not None:
-                        osutils.make_app_background()
-            elif event.type() == QtCore.QEvent.ApplicationActivate:
-                # When the app gains focus and is in pinned mode, we bring the app to the background.
-                # Note that we are not showing the main dialog because there are multiple top levels
-                # windows that would have cause the application to activate.
-                if self._window.state == SystrayWindow.STATE_PINNED:
-                    if osutils is not None:
-                        osutils.make_app_foreground()
+            if not self._deactivate:
+                if event.type() == QtCore.QEvent.ApplicationDeactivate:
+                    # When the app loses focus and is in pinned mode, we hide the dialog automatically
+                    # and move the app to the background so there's no more icon in the tray.
+                    if self._window.state == SystrayWindow.STATE_PINNED:
+                        self._window.hide()
+                        if osutils is not None:
+                            osutils.make_app_background()
+                elif event.type() == QtCore.QEvent.ApplicationActivate:
+                    # When the app gains focus and is in pinned mode, we bring the app to the background.
+                    # Note that we are not showing the main dialog because there are multiple top levels
+                    # windows that would have cause the application to activate.
+                    if self._window.state == SystrayWindow.STATE_PINNED:
+                        if osutils is not None:
+                            osutils.make_app_foreground()
 
             return QtCore.QObject.eventFilter(self, obj, event)
+
+        def deactivate(self, deactivate):
+            """
+            Allows to deactivate the event filter.
+
+            :param deactivate: If ``True``, events will not be filtered anymore.
+            """
+            self._deactivate = deactivate
 
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
@@ -157,6 +167,16 @@ class SystrayWindow(QtGui.QMainWindow):
             raise ValueError("Unknown value for state: %s" % value)
 
         self.systray_state_changed.emit(self.__state)
+
+    def deactivate_auto_hide(self, deactivate):
+        """
+        Used to temporarily disable the auto-hide behaviour of pinned dialogs. This does not alter
+        the visual state of the dialog or the state of the ``state`` property.
+
+        :param deactivate: If ``True``, a pinned dialog will temporarily stay visible when losing
+            focus. Invoke a second time with ``False`` to restore the normal behaviour.
+        """
+        self.filter.deactivate(deactivate)
 
     def toggle_pinned(self):
         if self.state == self.STATE_PINNED:
