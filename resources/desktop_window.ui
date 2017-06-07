@@ -944,6 +944,14 @@
     <string>Launch the classic project setup wizard</string>
    </property>
   </action>
+  <action name="actionRegenerate_Certificates">
+   <property name="text">
+    <string>Regenerate Certificates</string>
+   </property>
+   <property name="toolTip">
+    <string>Regenerates browser integration certificates</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
