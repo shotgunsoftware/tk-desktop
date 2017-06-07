@@ -370,6 +370,18 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.exec_(event.globalPos())
 
     def _show_rich_message_box(self, icon, title, message, buttons=[]):
+        """
+        Shows a QMessageBox that supports HTML formatting.
+
+        :param icon: Icon to use.
+        :type icon: ``QtGui.QMessageBox.Icon``
+        :param str title: Title of the dialog.
+        :param str message: Message to display.
+        :param list buttons: List of `QtGui.QMessageBox.StandardButton` to display.
+
+        :returns: `QtGui.QMessageBox.StandardButton` value associated with the button
+            that was pressed.
+        """
         message_box = QtGui.QMessageBox(self)
         message_box.setIcon(icon)
         message_box.setTextFormat(QtCore.Qt.RichText)
@@ -380,6 +392,10 @@ class DesktopWindow(SystrayWindow):
         return message_box.exec_()
 
     def handle_regen_certs(self):
+        """
+        Regenerates the certificates if the user is certain and restarts the Shotgun Desktop on
+        demand.
+        """
 
         # Need to create the message box by hand to have rich text format, hence
         # clickable Urls.
@@ -420,7 +436,7 @@ class DesktopWindow(SystrayWindow):
                 )
             )
         else:
-            result = QtGui.QMessageBox.question(
+            choice = QtGui.QMessageBox.question(
                 self,
                 "Shotgun browser integration",
                 "The Shotgun Desktop needs to restart for the certificate changes "
@@ -429,7 +445,7 @@ class DesktopWindow(SystrayWindow):
                 "Would you like to restart?",
                 QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
             )
-            if result == QtGui.QMessageBox.Yes:
+            if choice == QtGui.QMessageBox.Yes:
                 self._restart_desktop()
 
     def handle_project_command_expanded_changed(self, group_key, expanded):
