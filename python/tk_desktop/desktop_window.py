@@ -170,7 +170,9 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionQuit)
 
         advanced_menu.addAction(self.ui.actionShow_Console)
-        advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
+
+        if desktop_server_framework.can_run_server():
+            advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
 
         # Initially hide the Advanced project setup... menu item. This
         # menu item will only be displayed for projects that do not have
