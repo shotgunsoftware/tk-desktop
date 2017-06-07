@@ -400,54 +400,59 @@ class DesktopWindow(SystrayWindow):
         """
         # Need to create the message box by hand to have rich text format, hence
         # clickable Urls.
-        choice = self._show_rich_message_box(
-            QtGui.QMessageBox.Information,
-            "Shotgun browser integration",
-            "Regenerating the Shotgun Desktop's browser integration certificates should "
-            "only be done if you have issues with the browser integration.<br/>"
-            "<br/>"
-            "If you are unsure how to proceed, we recommend you visit our support page "
-            "to troubleshoot connections with <a href='%s'>Chrome</a> or "
-            "<a href='%s'>Firefox</a>.<br/>"
-            "<br/>"
-            "Would you like to continue?" % (
-                self._CHROME_SUPPORT_URL,
-                self._FIREFOX_SUPPORT_URL
-            ),
-            [QtGui.QMessageBox.Yes, QtGui.QMessageBox.No]
-        )
 
-        if choice != QtGui.QMessageBox.Yes:
-            return
-
-        try:
-            desktop_server_framework.regenerate_certificates(self)
-        except Exception:
-            log.exception("Unexpected error while regenerating certificates:")
-            self._show_rich_message_box(
-                QtGui.QMessageBox.Critical,
+        # Deactivate the auto-hide behaviour of the desktop in pinned mode when it loses focus.
+        # since we're about to be prompted by the OS, which will make our app lose focus and
+        # hide our dialogs.
+        with self.deactivate_auto_hide():
+            choice = self._show_rich_message_box(
+                QtGui.QMessageBox.Information,
                 "Shotgun browser integration",
-                "It appears there are an issue while regenerating the certificates."
-                "\n"
-                "Please contact <a href='{0}'>our support team</a> "
-                "if you need assistance resolving this issue. Make sure to zip the logs folder "
-                "at <a href='file://{1}'>{1}</a> and send it to us.".format(
-                    "mailto:support@shotgunsoftware.com",
-                    sgtk.LogManager().log_folder
+                "Regenerating the Shotgun Desktop's browser integration certificates should "
+                "only be done if you have issues with the browser integration.<br/>"
+                "<br/>"
+                "If you are unsure how to proceed, we recommend you visit our support page "
+                "to troubleshoot connections with <a href='%s'>Chrome</a> or "
+                "<a href='%s'>Firefox</a>.<br/>"
+                "<br/>"
+                "Would you like to continue?" % (
+                    self._CHROME_SUPPORT_URL,
+                    self._FIREFOX_SUPPORT_URL
+                ),
+                [QtGui.QMessageBox.Yes, QtGui.QMessageBox.No]
+            )
+
+            if choice != QtGui.QMessageBox.Yes:
+                return
+
+            try:
+                desktop_server_framework.regenerate_certificates(self)
+            except Exception:
+                log.exception("Unexpected error while regenerating certificates:")
+                self._show_rich_message_box(
+                    QtGui.QMessageBox.Critical,
+                    "Shotgun browser integration",
+                    "It appears there are an issue while regenerating the certificates."
+                    "\n"
+                    "Please contact <a href='{0}'>our support team</a> "
+                    "if you need assistance resolving this issue. Make sure to zip the logs folder "
+                    "at <a href='file://{1}'>{1}</a> and send it to us.".format(
+                        "mailto:support@shotgunsoftware.com",
+                        sgtk.LogManager().log_folder
+                    )
                 )
-            )
-        else:
-            choice = QtGui.QMessageBox.question(
-                self,
-                "Shotgun browser integration",
-                "The Shotgun Desktop needs to restart for the certificate changes "
-                "to take effect.\n"
-                "\n"
-                "Would you like to restart?",
-                QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
-            )
-            if choice == QtGui.QMessageBox.Yes:
-                self._restart_desktop()
+            else:
+                choice = QtGui.QMessageBox.question(
+                    self,
+                    "Shotgun browser integration",
+                    "The Shotgun Desktop needs to restart for the certificate changes "
+                    "to take effect.\n"
+                    "\n"
+                    "Would you like to restart?",
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+                )
+                if choice == QtGui.QMessageBox.Yes:
+                    self._restart_desktop()
 
     def handle_project_command_expanded_changed(self, group_key, expanded):
         expanded_state = self._project_command_model.get_expanded_state()
