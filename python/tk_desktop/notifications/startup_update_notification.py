@@ -47,6 +47,20 @@ class StartupUpdateNotification(Notification):
             logger.debug("Version of startup code doesn't provide descriptor.")
             return None
 
+        # FIXME: Quickfix before the release.
+        # The desktop startup is cached outside of the bundle cache. Therefore,
+        # when we launch the Shotgun Desktop for the first time, the bundle is
+        # loaded in the bundle cache by the  call to changelog (it downloads the
+        # bundle). However, doing so means that if you don't have internet
+        # access the download will fail and this code crash. Ideally, we would
+        # bundle the desktop startup code in the bundle cache and have the
+        # desktop be more clever about how it bundles the desktop startup code.
+        # Unfortunately, we don't have the time to fix this for this release
+        # so we'll stop right here.
+        if not engine.startup_descriptor.has_remote_access():
+            logger.debug("No remote access. Can't guarantee changelog is availble.")
+            return None
+
         if not engine.startup_descriptor.version:
             logger.debug("Startup descriptor doesn't provide a version")
             return None

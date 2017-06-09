@@ -201,10 +201,10 @@ class DesktopEngineSiteImplementation(object):
         This method is called from the GUI bootstrap to setup the application
         and to run the Qt event loop.
 
-        :param splash: Splash screen widget we can display messages on.
+        :param splash: Splash screen widget we can display messages on. Can be ``None``
         :param version: Version of the Shotgun Desktop installer code.
-        :param startup_version: Version of the Desktop Startup code.
-        :param startup_descriptor: Descriptor of the Desktop Startup code.
+        :param startup_version: Version of the Desktop Startup code. Can be omitted.
+        :param startup_descriptor: Descriptor of the Desktop Startup code. Can be omitted.
         """
         self.app_version = version
 
@@ -247,7 +247,8 @@ class DesktopEngineSiteImplementation(object):
         icon = QtGui.QIcon(":tk-desktop/default_systray_icon")
         app.setWindowIcon(icon)
 
-        splash.set_message("Building UI")
+        if splash:
+            splash.set_message("Building UI")
 
         # setup the global look and feel
         self._engine._initialize_dark_look_and_feel()
@@ -276,10 +277,13 @@ class DesktopEngineSiteImplementation(object):
         if kwargs.get("server") is None:
             # Initialize all of this after the style-sheet has been applied so any prompt are also
             # styled after the Shotgun Desktop's visual-style.
-            splash.set_message("Initializing browser integration.")
+            if splash:
+                splash.set_message("Initializing browser integration.")
             try:
                 desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
-                desktop_server_framework.launch_desktop_server(self._user.host, self._current_login["id"])
+                desktop_server_framework.launch_desktop_server(
+                    self._user.host, self._current_login["id"], parent=splash
+                )
             except Exception:
                 logger.exception("Unexpected error while trying to launch the browser integration:")
             else:
