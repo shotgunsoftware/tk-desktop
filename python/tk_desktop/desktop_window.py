@@ -18,6 +18,7 @@ import cPickle as pickle
 import pprint
 import itertools
 import urlparse
+import inspect
 from collections import OrderedDict
 
 from tank.platform.qt import QtCore, QtGui
@@ -1130,7 +1131,8 @@ class DesktopWindow(SystrayWindow):
 
             # If no pipeline configurations were found in Shotgun, show the
             # 'Advanced project setup...' menu item.
-            if not pipeline_configurations:
+            # If there is no pipeline configuration set for the current project, add the Advanced Project Setup menu.
+            if not any(True if pc["project"] else False for pc in pipeline_configurations):
                 # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
                 if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
                     self.ui.actionAdvanced_Project_Setup.setVisible(True)
@@ -1185,6 +1187,8 @@ class DesktopWindow(SystrayWindow):
             # pickle up the info needed to bootstrap the project python
             desktop_data = {
                 "core_python_path": core_python,
+                # Every settings that were used for discovering the pipeline configuration must be
+                # passed down to the next process so it can launch the same pipeline.
                 "manager_settings": {
                     "caching_policy": toolkit_manager.caching_policy,
                     "plugin_id": toolkit_manager.plugin_id,
@@ -1192,8 +1196,15 @@ class DesktopWindow(SystrayWindow):
                     "bundle_cache_fallback_paths": toolkit_manager.bundle_cache_fallback_paths,
                     "pipeline_configuration": toolkit_manager.pipeline_configuration
                 },
-                "rpc_lib_path": rpc.__file__,
+                # We're passing down our implementation of the RPC module since the process
+                # will want to communicate back with us during bootstrapping.
+                # Get the source file, not __file__, since the background process will use imp.load_source
+                # This is important because if we used __file__ we would need to call imp.load_compiled,
+                # which will fail if the bytecode magic number is different between this process's
+                # python and the one for the pipeline configuration.
+                "rpc_lib_path": inspect.getsourcefile(rpc),
                 "project": self.current_project,
+                # Authentication credentials to connect back to this process.
                 "proxy_data": {
                     "proxy_pipe": engine.site_comm.server_pipe,
                     "proxy_auth": engine.site_comm.server_authkey

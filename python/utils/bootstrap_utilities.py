@@ -22,77 +22,147 @@ import os
 import sys
 import traceback
 import cPickle as pickle
-import multiprocessing.connection
+import imp
+import logging
 
-logger = None
 
-
-class LameRPCProxy(object):
+class ProxyLoggingHandler(logging.Handler):
     """
-    Client side for an RPC Server.
-
-    Return attributes on the object as methods that will result in an RPC call
-    whose results are returned as the return value of the method.
+    Logs messages through the proxy.
     """
-    # timeout in seconds to wait for a response
-    LISTEN_TIMEOUT = 2
 
-    def __init__(self, pipe, authkey):
-        self._closed = False
+    def __init__(self, proxy):
+        """
+        :param proxy: Connection to the main process.
+        :type proxy: rpc.RPCProxy
+        """
+        super(ProxyLoggingHandler, self).__init__()
+        self._proxy = proxy
 
-        # connect to the server via the pipe using authkey for authentication
-        if sys.platform == "win32":
-            family = "AF_PIPE"
-        else:
-            family = "AF_UNIX"
-        logger.debug("client connecting to to %s", pipe)
-        self._connection = multiprocessing.connection.Client(
-            address=pipe, family=family, authkey=authkey)
-        logger.debug("client connected to %s", pipe)
+    def emit(self, record):
+        """
+        Emits a log back to the host.
+        """
+        # Do not send logs if the connection is closed!
+        if self._proxy.is_closed():
+            return
 
-    def call_no_response(self, name, *args, **kwargs):
-        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
-        if self._closed:
-            raise EOFError("closed " + msg)
-        # send the call through with args and kwargs
-        logger.debug(msg)
-        self._connection.send(pickle.dumps((False, name, args, kwargs)))
+        try:
+            self._proxy.call_no_response(
+                "proxy_log", record.levelno, record.msg, record.args
+            )
+        except pickle.PicklingError:
+            # If something couldn't be pickled, don't fret too much about it,
+            # we'll format it ourselves instead.
+            self._proxy.call_no_response(
+                "proxy_log", record.levelno, (record.msg % record.args), []
+            )
 
-    def call(self, name, *args, **kwargs):
-        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
-        if self._closed:
-            raise EOFError("closed " + msg)
-        # send the call through with args and kwargs
-        logger.debug(msg)
-        self._connection.send(pickle.dumps((True, name, args, kwargs)))
 
-        # wait until there is a result, pause to check if we have been closed
-        while True:
-            if self._connection.poll(self.LISTEN_TIMEOUT):
-                # have a response waiting, grab it
-                break
-            else:
-                # no response waiting, see if we need to stop the client
-                if self._closed:
-                    raise EOFError("client closed while waiting for a response")
-                continue
-        # read the result
-        result = pickle.loads(self._connection.recv())
-        logger.debug("client got result '%s'" % result)
-        # if an exception was returned raise it on the client side
-        if isinstance(result, Exception):
-            raise result
-        # return the result as our own
-        return result
+class Bootstrap(object):
+    """
+    Bootstraps the tk-desktop engine.
+    """
 
-    def is_closed(self):
-        return self._closed
+    def __init__(self, data):
+        """
+        :param data: Dictionary of data passed down from the main desktop process.
+        """
+        # Extract the relevant information from the data
+        self._proxy_data = data["proxy_data"]
+        self._manager_settings = data["manager_settings"]
+        self._project = data["project"]
+        self._core_python_path = data["core_python_path"]
+        self._rpc_lib_path = data["rpc_lib_path"]
 
-    def close(self):
-        # close down the client connection
-        logger.debug("closing connection")
-        self._connection.close()
-        self._closed = True
+        self._proxy = None
+        self._handler = None
+        self._user = None
+
+    def start_engine(self):
+        """
+        Bootstraps the engine and launches it.
+        """
+        # Import Toolkit, but make sure we're not inheriting the parent process's current
+        # pipeline configuration.
+        sys.path.append(self._core_python_path)
+        import sgtk
+        del os.environ["TANK_CURRENT_PC"]
+
+        # Connect to the main desktop process so we can send updates to it.
+        # We're not guanranteed if the py or pyc file will be passed back to us
+        # from the desktop due to write permissions on the folder.
+        rpc_lib = imp.load_source("rpc", self._rpc_lib_path)
+        self._proxy = rpc_lib.RPCProxy(
+            self._proxy_data["proxy_pipe"],
+            self._proxy_data["proxy_auth"]
+        )
+        try:
+            # Set up logging with the rpc.
+            self._handler = ProxyLoggingHandler(self._proxy)
+            sgtk.LogManager().root_logger.addHandler(self._handler)
+
+            # Get the user we should be running as.
+            self._user = sgtk.authentication.deserialize_user(
+                os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
+            )
+
+            # Prepare the manager based on everything the bootstrap manager expected of us.
+            manager = sgtk.bootstrap.ToolkitManager(self._user)
+            manager.caching_policy = self._manager_settings["caching_policy"]
+            manager.plugin_id = self._manager_settings["plugin_id"]
+            manager.base_configuration = self._manager_settings["base_configuration"]
+            manager.bundle_cache_fallback_paths = self._manager_settings["bundle_cache_fallback_paths"]
+            manager.pipeline_configuration = self._manager_settings["pipeline_configuration"]
+
+            manager.pre_engine_start_callback = self._pre_engine_start_callback
+            manager.progress_callback = self._progress_callback
+
+            # We're now ready to start the engine.
+            return manager.bootstrap_engine("tk-desktop", self._project)
+        finally:
+            # Make sure we're closing our proxy so the error reporting,
+            # which also creates a proxy, can create its own. If there's an
+            # error, make sure we catch it and ignore it. Then the finally
+            # can  do its job and propagate the real error if there was one.
+            try:
+                self._proxy.close()
+            except:
+                pass
+
+    def _pre_engine_start_callback(self, ctx):
+        """
+        Called before the engine is started. Closes the proxy connection and removes out log handle.
+        """
+        import sgtk
+        # At this point we need to close the proxy because we can't have two proxies connected
+        # at the same sime, especially for logging, to the server.
+        # When the engine starts it will set up its own logging.
+        self._proxy.close()
+        sgtk.LogManager().root_logger.removeHandler(self._handler)
+
+        # The desktop engine expects the sgtk instance to have the _desktop_data attribute with
+        # the proxy credentials in it.
+        ctx.sgtk._desktop_data = self._proxy_data
+
+    def _progress_callback(self, value, msg):
+        """
+        Reports bootstrap progress back to the main process.
+        """
+        # If the proxy hasn't been closed, report our progress.
+        # Note here that is we haven't closed the proxy ourselves in pre_engine_start_callback,
+        # but the main process has closed our connection, this code will raise an error.
+        # This is great because if the host has closed the connection it means at their the process
+        # crashes (yikes!) or that the user backed out of the project. In any case, it means
+        # we can stop bootstrapping. This exception will then bubble all the way up and back outside
+        # this file and we'll jump into "handle_error" at the bottom of this file. Jump over thread
+        # to understand more what is going on.
+        if self._proxy.is_closed():
+            return
+
+        self._proxy.call_no_response(
+            "bootstrap_progress", value, msg
+        )
 
 
 def start_engine(data):
@@ -100,49 +170,7 @@ def start_engine(data):
     Start the tk-desktop engine given a data dictionary like the one passed
     to the launch_python hook.
     """
-    sys.path.append(data["core_python_path"])
-
-    # make sure we don't inherit the GUI's pipeline configuration
-    del os.environ["TANK_CURRENT_PC"]
-
-    import sgtk
-    sgtk.LogManager().initialize_base_file_handler("tk-desktop")
-
-    global logger
-    logger = sgtk.LogManager.get_logger(__name__)
-
-    from sgtk.authentication import deserialize_user
-
-    user = deserialize_user(os.environ["SHOTGUN_DESKTOP_CURRENT_USER"])
-
-    manager_settings = data["manager_settings"]
-
-    def pre_engine_start_callback(ctx):
-        proxy.close()
-        ctx.sgtk._desktop_data = data["proxy_data"]
-
-    proxy = LameRPCProxy(
-        data["proxy_data"]["proxy_pipe"],
-        data["proxy_data"]["proxy_auth"]
-    )
-
-    def progress_callback(value, msg):
-        if not proxy.is_closed():
-            proxy.call_no_response(
-                "bootstrap_progress", value, msg
-            )
-
-    manager = sgtk.bootstrap.ToolkitManager(user)
-    manager.pre_engine_start_callback = pre_engine_start_callback
-    manager.caching_policy = manager_settings["caching_policy"]
-    manager.plugin_id = manager_settings["plugin_id"]
-    manager.base_configuration = manager_settings["base_configuration"]
-    manager.bundle_cache_fallback_paths = manager_settings["bundle_cache_fallback_paths"]
-    manager.pipeline_configuration = manager_settings["pipeline_configuration"]
-    manager.progress_callback = progress_callback
-
-    engine = manager.bootstrap_engine("tk-desktop", data["project"])
-    return engine
+    return Bootstrap(data).start_engine()
 
 
 def start_app(engine):
@@ -193,8 +221,12 @@ def start_app(engine):
 def handle_error(data):
     """
     Attempt to communicate the error back to the GUI proxy given a data
-    dictionary like the one passed to the launch_python hook.
+    dictionary like the one passed to the launch_python hook. Note that
+    if the server has already been closed (process crashes or user left the
+    project) this will actually fail silently, which is alright as the main
+    process doesnt't care about this one anymore.
     """
+
     from multiprocessing.connection import Client
     if sys.platform == "win32":
         family = "AF_PIPE"
@@ -209,6 +241,7 @@ def handle_error(data):
 
     # build a message for the GUI signaling that an error occurred
     exc_type, exc_value, exc_traceback = sys.exc_info()
+
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
     msg = pickle.dumps((False, "engine_startup_error", [exc_value, ''.join(lines)], {}))
     connection.send(msg)
