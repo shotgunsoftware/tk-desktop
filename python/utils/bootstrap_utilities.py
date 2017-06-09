@@ -22,7 +22,77 @@ import os
 import sys
 import traceback
 import cPickle as pickle
-import logging
+import multiprocessing.connection
+
+logger = None
+
+
+class LameRPCProxy(object):
+    """
+    Client side for an RPC Server.
+
+    Return attributes on the object as methods that will result in an RPC call
+    whose results are returned as the return value of the method.
+    """
+    # timeout in seconds to wait for a response
+    LISTEN_TIMEOUT = 2
+
+    def __init__(self, pipe, authkey):
+        self._closed = False
+
+        # connect to the server via the pipe using authkey for authentication
+        if sys.platform == "win32":
+            family = "AF_PIPE"
+        else:
+            family = "AF_UNIX"
+        logger.debug("client connecting to to %s", pipe)
+        self._connection = multiprocessing.connection.Client(
+            address=pipe, family=family, authkey=authkey)
+        logger.debug("client connected to %s", pipe)
+
+    def call_no_response(self, name, *args, **kwargs):
+        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
+        if self._closed:
+            raise EOFError("closed " + msg)
+        # send the call through with args and kwargs
+        logger.debug(msg)
+        self._connection.send(pickle.dumps((False, name, args, kwargs)))
+
+    def call(self, name, *args, **kwargs):
+        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
+        if self._closed:
+            raise EOFError("closed " + msg)
+        # send the call through with args and kwargs
+        logger.debug(msg)
+        self._connection.send(pickle.dumps((True, name, args, kwargs)))
+
+        # wait until there is a result, pause to check if we have been closed
+        while True:
+            if self._connection.poll(self.LISTEN_TIMEOUT):
+                # have a response waiting, grab it
+                break
+            else:
+                # no response waiting, see if we need to stop the client
+                if self._closed:
+                    raise EOFError("client closed while waiting for a response")
+                continue
+        # read the result
+        result = pickle.loads(self._connection.recv())
+        logger.debug("client got result '%s'" % result)
+        # if an exception was returned raise it on the client side
+        if isinstance(result, Exception):
+            raise result
+        # return the result as our own
+        return result
+
+    def is_closed(self):
+        return self._closed
+
+    def close(self):
+        # close down the client connection
+        logger.debug("closing connection")
+        self._connection.close()
+        self._closed = True
 
 
 def start_engine(data):
@@ -33,43 +103,45 @@ def start_engine(data):
     sys.path.append(data["core_python_path"])
 
     # make sure we don't inherit the GUI's pipeline configuration
-    os.environ["TANK_CURRENT_PC"] = data["config_path"]
+    del os.environ["TANK_CURRENT_PC"]
 
     import sgtk
-    sgtk.util.append_path_to_env_var("PYTHONPATH", data["core_python_path"])
+    sgtk.LogManager().initialize_base_file_handler("tk-desktop")
 
-    # Initialize logging right away instead of waiting for the engine if we're using a 0.18 based-core.
-    # This will also ensure that a crash will be tracked
-    if hasattr(sgtk, "LogManager"):
-        sgtk.LogManager().initialize_base_file_handler("tk-desktop")
+    global logger
+    logger = sgtk.LogManager.get_logger(__name__)
 
-    # If the core supports the shotgun_authentication module and the pickle has
-    # a current user, we have to set the authenticated user.
-    if hasattr(sgtk, "set_authenticated_user"):
-        # Retrieve the currently authenticated user for this process.
-        from tank_vendor.shotgun_authentication import ShotgunAuthenticator, deserialize_user
-        current_user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
+    from sgtk.authentication import deserialize_user
 
-        # If we found no user using the authenticator, we need to use the credentials that
-        # came through the environment variable.
-        # Also, if the credentials are user-based, we need to disregard what we got and use
-        # the credentials from the environment variable. This is required to solve any issues
-        # arising from the changes to the session cache changing place in core 0.18.
-        if not current_user or current_user.login:
-            current_user = deserialize_user(os.environ["SHOTGUN_DESKTOP_CURRENT_USER"])
-        else:
-            # This happens when the user retrieved from the project's core is a script.
-            # In that case, we use the script user and disregard who is the current
-            # authenticated user at the site level.
-            pass
+    user = deserialize_user(os.environ["SHOTGUN_DESKTOP_CURRENT_USER"])
 
-        sgtk.set_authenticated_user(current_user)
+    manager_settings = data["manager_settings"]
 
-    tk = sgtk.sgtk_from_path(data["config_path"])
-    tk._desktop_data = data["proxy_data"]
-    ctx = tk.context_from_entity("Project", data["project"]["id"])
-    engine = sgtk.platform.start_engine("tk-desktop", tk, ctx)
+    def pre_engine_start_callback(ctx):
+        proxy.close()
+        ctx.sgtk._desktop_data = data["proxy_data"]
 
+    proxy = LameRPCProxy(
+        data["proxy_data"]["proxy_pipe"],
+        data["proxy_data"]["proxy_auth"]
+    )
+
+    def progress_callback(value, msg):
+        if not proxy.is_closed():
+            proxy.call_no_response(
+                "bootstrap_progress", value, msg
+            )
+
+    manager = sgtk.bootstrap.ToolkitManager(user)
+    manager.pre_engine_start_callback = pre_engine_start_callback
+    manager.caching_policy = manager_settings["caching_policy"]
+    manager.plugin_id = manager_settings["plugin_id"]
+    manager.base_configuration = manager_settings["base_configuration"]
+    manager.bundle_cache_fallback_paths = manager_settings["bundle_cache_fallback_paths"]
+    manager.pipeline_configuration = manager_settings["pipeline_configuration"]
+    manager.progress_callback = progress_callback
+
+    engine = manager.bootstrap_engine("tk-desktop", data["project"])
     return engine
 
 

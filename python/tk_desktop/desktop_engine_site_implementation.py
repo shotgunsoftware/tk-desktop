@@ -54,6 +54,7 @@ class DesktopEngineSiteImplementation(object):
 
     def startup_rpc(self):
         self.site_comm.start_server()
+        self.site_comm.register_function(self.bootstrap_progress_callback, "bootstrap_progress")
         self.site_comm.register_function(self.engine_startup_error, "engine_startup_error")
         self.site_comm.register_function(self.set_groups, "set_groups")
         self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
@@ -85,6 +86,16 @@ class DesktopEngineSiteImplementation(object):
             if tb is not None:
                 message += "\n\n%s" % tb
             logger.error(message)
+
+    def bootstrap_progress_callback(self, value, msg):
+        """
+        Called by the bootstrap to report progress.
+
+        :param value: Value between 0 and 1 indicating how far along we are into
+            bootstrapping.
+        :param msg: Message to print.
+        """
+        self.desktop_window.bootstrap_progress_callback(value, msg)
 
     def _on_proxy_closing(self):
         """

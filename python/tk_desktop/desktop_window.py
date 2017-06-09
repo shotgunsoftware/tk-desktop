@@ -52,7 +52,7 @@ from .banner_widget import BannerWidget
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
-from .project_synchronization_thread import ProjectSynchronizationThread
+from . import rpc
 
 from .notifications import NotificationsManager, FirstLaunchNotification
 
@@ -301,7 +301,7 @@ class DesktopWindow(SystrayWindow):
         banner_layout = self.ui.banners.layout()
 
         # Find all the current banners.
-        current_banners = {banner_layout.itemAt(0).widget().unique_id for i in range(banner_layout.count())}
+        current_banners = {banner_layout.itemAt(i).widget().unique_id for i in range(banner_layout.count())}
 
         notifs = self._notifs_mgr.get_notifications()
         for notif in notifs:
@@ -1169,13 +1169,81 @@ class DesktopWindow(SystrayWindow):
         # From this point on, we don't touch the UI anymore.
         self.project_overlay.start_progress()
 
-        self._sync_thread = ProjectSynchronizationThread(toolkit_manager, project)
-        self._sync_thread.sync_failed.connect(self._launch_failed)
-        self._sync_thread.report_progress.connect(
-            lambda pct, msg: self.project_overlay.report_progress(pct * self._BOOTSTRAP_END_RATIO, msg)
-        )
-        self._sync_thread.sync_success.connect(self._sync_success)
-        self._sync_thread.start()
+        # self._current_pipeline_descriptor = descriptor
+        # Banners might need to be updated, we might have picked a configuration that has been
+        # updated.
+        # self._update_banners()
+        try:
+            # FIXME: We're not launching with the right python here!
+            config_path = engine.sgtk.pipeline_configuration.get_path()
+            path_to_python = sgtk.get_python_interpreter_for_config(config_path)
+            core_python = sgtk.get_core_python_path_for_config(engine.sgtk.pipeline_configuration.get_path())
+
+            # startup server pipe to listen
+            engine.startup_rpc()
+
+            # pickle up the info needed to bootstrap the project python
+            desktop_data = {
+                "core_python_path": core_python,
+                "manager_settings": {
+                    "caching_policy": toolkit_manager.caching_policy,
+                    "plugin_id": toolkit_manager.plugin_id,
+                    "base_configuration": toolkit_manager.base_configuration,
+                    "bundle_cache_fallback_paths": toolkit_manager.bundle_cache_fallback_paths,
+                    "pipeline_configuration": toolkit_manager.pipeline_configuration
+                },
+                "rpc_lib_path": rpc.__file__,
+                "project": self.current_project,
+                "proxy_data": {
+                    "proxy_pipe": engine.site_comm.server_pipe,
+                    "proxy_auth": engine.site_comm.server_authkey
+                }
+            }
+            (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
+            pickle.dump(desktop_data, open(pickle_data_file, "wb"))
+
+            # update the values on the project updater in case they are needed
+            self.update_project_config_widget.set_project_info(
+                path_to_python, core_python, config_path, self.current_project)
+
+            # get the path to the utilities module
+            utilities_module_path = os.path.realpath(
+                os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py")
+            )
+
+            # Make sure the credentials are refreshed so the background process
+            # has no problem launching.
+            engine.refresh_user_credentials()
+            # Ticket 26741: Avoid having odd DLL loading issues on windows
+            self._push_dll_state()
+
+            os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
+                engine.get_current_user()
+            )
+            engine.execute_hook(
+                "hook_launch_python",
+                project_python=path_to_python,
+                pickle_data_path=pickle_data_file,
+                utilities_module_path=utilities_module_path,
+            )
+            self._pop_dll_state()
+
+            # and remember it for next time
+            self._save_setting("project_id", self.current_project["id"], site_specific=True)
+        except (TankInvalidInterpreterLocationError, TankFileDoesNotExistError) as e:
+            log.exception("Problem locating interpreter file:")
+            self.setup_new_os_widget.show()
+            self.project_overlay.hide()
+            return
+        except Exception as e:
+            log.exception("Unexpected error while launching Python:")
+            self._launch_failed(str(e))
+        finally:
+            if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:
+                del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
+
+    def bootstrap_progress_callback(self, value, msg):
+        self.project_overlay.report_progress(value, msg)
 
     def _pick_pipeline_configuration(self, pipeline_configurations, requested_pipeline_configuration_id, project):
         """
@@ -1210,94 +1278,6 @@ class DesktopWindow(SystrayWindow):
             pprint.pformat(pipeline_configurations[0])
         )
         return pipeline_configurations[0]
-
-    def _launch_failed(self, message):
-        self._current_pipeline_descriptor = None
-        message = ("%s"
-                   "\n\nTo resolve this, open Shotgun in your browser\n"
-                   "and check the paths for this Pipeline Configuration."
-                   "\n\nFor more details, see the console." % message)
-        self.project_overlay.show_error_message(message)
-
-    def _sync_success(self, config_path, descriptor):
-        try:
-            self._current_pipeline_descriptor = descriptor
-            # Banners might need to be updated, we might have picked a configuration that has been
-            # updated.
-            self._update_banners()
-
-            engine = sgtk.platform.current_engine()
-
-            # Signals from PySide return unicode strings, even if the signal is a string,
-            # so re-encode the string as utf8. If we don't well start spreading unicode through
-            # Toolkit, including some environment variables, which will cause issues on Windows.
-            config_path = config_path.encode("utf8")
-
-            # Find where Python is installed so we can launch an interpreter.
-            path_to_python = sgtk.get_python_interpreter_for_config(config_path)
-            core_python = sgtk.get_core_python_path_for_config(config_path)
-
-            # startup server pipe to listen
-            engine.startup_rpc()
-
-            # pickle up the info needed to bootstrap the project python
-            desktop_data = {
-                "core_python_path": core_python,
-                "config_path": config_path,
-                "project": self.current_project,
-                "proxy_data": {
-                    "proxy_pipe": engine.site_comm.server_pipe,
-                    "proxy_auth": engine.site_comm.server_authkey
-                }
-            }
-            (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
-            pickle.dump(desktop_data, open(pickle_data_file, "wb"))
-
-            # update the values on the project updater in case they are needed
-            self.update_project_config_widget.set_project_info(
-                path_to_python, core_python, config_path, self.current_project)
-
-            # get the path to the utilities module
-            utilities_module_path = os.path.realpath(
-                os.path.join(__file__, "..", "..", "utils", "bootstrap_utilities.py")
-            )
-
-            # Make sure the credentials are refreshed so the background process
-            # has no problem launching.
-            engine.refresh_user_credentials()
-            # Ticket 26741: Avoid having odd DLL loading issues on windows
-            self._push_dll_state()
-
-            self.project_overlay.report_progress(
-                self._LAUNCHING_PYTHON_RATIO,
-                "Launching Python subprocess (%s)" % path_to_python
-            )
-            log.info("--- launching python subprocess (%s)" % path_to_python)
-
-            os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
-                engine.get_current_user()
-            )
-            engine.execute_hook(
-                "hook_launch_python",
-                project_python=path_to_python,
-                pickle_data_path=pickle_data_file,
-                utilities_module_path=utilities_module_path,
-            )
-            self._pop_dll_state()
-
-            # and remember it for next time
-            self._save_setting("project_id", self.current_project["id"], site_specific=True)
-        except (TankInvalidInterpreterLocationError, TankFileDoesNotExistError) as e:
-            log.exception("Problem locating interpreter file:")
-            self.setup_new_os_widget.show()
-            self.project_overlay.hide()
-            return
-        except Exception as e:
-            log.exception("Unexpected error while launching Python:")
-            self._launch_failed(str(e))
-        finally:
-            if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:
-                del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
 
     def slide_view(self, new_page, from_direction="right"):
         offsetx = self.ui.stack.frameRect().width()
