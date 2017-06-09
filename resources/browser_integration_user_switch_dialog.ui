@@ -110,7 +110,7 @@
    <item>
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>&lt;a href=&quot;https://support.shotgunsoftware.com/hc/en-us/articles/115000068574#Authentication%20and%20Browser%20Integration&quot;&gt;Why is a restart required?&lt;/a&gt;</string>
+      <string>&lt;a href=&quot;https://support.shotgunsoftware.com/hc/en-us/articles/115000068574#Authentication%20and%20browser%20integration&quot;&gt;Why is a restart required?&lt;/a&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

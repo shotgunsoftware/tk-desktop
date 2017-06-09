@@ -159,7 +159,7 @@ class DesktopWindow(SystrayWindow):
         name_action = self.user_menu.addAction(current_user["name"])
         url_action = self.user_menu.addAction(connection.base_url.split("://")[1])
         self.user_menu.addSeparator()
-
+        advanced_menu = self.user_menu.addMenu("Advanced")
         self.user_menu.addAction(self.ui.actionPin_to_Menu)
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
