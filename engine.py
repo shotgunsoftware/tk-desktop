@@ -72,6 +72,13 @@ class DesktopEngine(Engine):
         if hasattr(self.__impl, "destroy_engine"):
             self.__impl.destroy_engine()
 
+    def _emit_log_message(self, handler, record):
+        """
+        Called when a message needs to be logged.
+        """
+        if hasattr(self.__impl, "_emit_log_message"):
+            self.__impl._emit_log_message(handler, record)
+
     ############################################################################
     # Dispatch to our implementation
     def __getattr__(self, attr):
