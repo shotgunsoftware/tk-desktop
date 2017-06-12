@@ -212,6 +212,14 @@ class DesktopEngineSiteImplementation(object):
         # this engine.
         self.startup_version = kwargs.get("startup_version")
         self.startup_descriptor = kwargs.get("startup_descriptor")
+        server = kwargs.get("server")
+
+        # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
+        sgtk.util.log_user_attribute_metric("tk-framework-desktopstartup", self.startup_version)
+        sgtk.util.log_user_attribute_metric("Shotgun Desktop version", self.app_version)
+        # If a server is passed down from the desktop startup, it means we won't be using the engine-based
+        # websocket server.
+        sgtk.util.log_user_attribute_metric("Engine-Websockets", "no" if server else "yes")
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()
@@ -274,7 +282,7 @@ class DesktopEngineSiteImplementation(object):
         # our websocket integration only if there is no server running from the desktop startup.
         # Note that the server argument is set regardless of whether the server launched or crashed,
         # so we have to actually get its value instead of merely checking for existence.
-        if kwargs.get("server") is None:
+        if server is None:
             # Initialize all of this after the style-sheet has been applied so any prompt are also
             # styled after the Shotgun Desktop's visual-style.
             if splash:
