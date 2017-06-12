@@ -374,6 +374,8 @@ class Ui_DesktopWindow(object):
         self.actionRefresh_Projects.setObjectName("actionRefresh_Projects")
         self.actionAdvanced_Project_Setup = QtGui.QAction(DesktopWindow)
         self.actionAdvanced_Project_Setup.setObjectName("actionAdvanced_Project_Setup")
+        self.actionHelp = QtGui.QAction(DesktopWindow)
+        self.actionHelp.setObjectName("actionHelp")
         self.actionRegenerate_Certificates = QtGui.QAction(DesktopWindow)
         self.actionRegenerate_Certificates.setObjectName("actionRegenerate_Certificates")
 
@@ -414,6 +416,7 @@ class Ui_DesktopWindow(object):
         self.actionRefresh_Projects.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Refreshes the project information.", None, QtGui.QApplication.UnicodeUTF8))
         self.actionAdvanced_Project_Setup.setText(QtGui.QApplication.translate("DesktopWindow", "Advanced project setup...", None, QtGui.QApplication.UnicodeUTF8))
         self.actionAdvanced_Project_Setup.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Launch the classic project setup wizard", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionHelp.setText(QtGui.QApplication.translate("DesktopWindow", "Help", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRegenerate_Certificates.setText(QtGui.QApplication.translate("DesktopWindow", "Regenerate Certificates", None, QtGui.QApplication.UnicodeUTF8))
         self.actionRegenerate_Certificates.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Regenerates browser integration certificates", None, QtGui.QApplication.UnicodeUTF8))
 
