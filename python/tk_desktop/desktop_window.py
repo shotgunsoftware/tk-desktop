@@ -31,6 +31,7 @@ from sgtk.bootstrap import ToolkitManager
 from tank_vendor import shotgun_authentication as sg_auth
 from sgtk import TankInvalidInterpreterLocationError, TankFileDoesNotExistError
 from sgtk.platform import get_logger
+from sgtk import descriptor
 
 from .ui import resources_rc # noqa
 from .ui import desktop_window
@@ -1155,10 +1156,12 @@ class DesktopWindow(SystrayWindow):
             # Bootstrap into the requested pipeline configuration or using the fallback.
             if pipeline_configuration_to_load is None:
                 toolkit_manager.pipeline_configuration = None
+                config_descriptor = toolkit_manager.resolve_configuration(project)
             else:
                 # We've loaded this project before and saved its pipeline configuration id, so
                 # reload the same old one.
                 toolkit_manager.pipeline_configuration = pipeline_configuration_to_load["id"]
+                config_descriptor = pipeline_configuration_to_load["descriptor"]
         except Exception as error:
             log.exception(str(error))
             message = ("%s"
@@ -1176,10 +1179,28 @@ class DesktopWindow(SystrayWindow):
         # updated.
         # self._update_banners()
         try:
-            # FIXME: We're not launching with the right python here!
+            # Find the interpreter the config wants to use.
+            try:
+                path_to_python = config_descriptor.current_os_interpreter
+            except TankFileDoesNotExistError:
+                if sys.platform == "darwin":
+                    path_to_python = os.path.join(sys.prefix, "bin", "python")
+                elif sys.platform == "win32":
+                    path_to_python = os.path.join(sys.prefix, "python.exe")
+                else:
+                    path_to_python = os.path.join(sys.prefix, "bin", "python")
+
+            # Create a descriptor for the current core and gets its PYTHONPATH.
+            core_descriptor = descriptor.create_descriptor(
+                engine.shotgun,
+                descriptor.Descriptor.CORE,
+                engine.sgtk.configuration_descriptor.associated_core_descriptor,
+                fallback_roots=toolkit_manager.bundle_cache_fallback_paths
+            )
+            core_python = core_descriptor.python_path
+
+            # FIXME: We should not try to get the pipeline configuration root folder.
             config_path = engine.sgtk.pipeline_configuration.get_path()
-            path_to_python = sgtk.get_python_interpreter_for_config(config_path)
-            core_python = sgtk.get_core_python_path_for_config(engine.sgtk.pipeline_configuration.get_path())
 
             # startup server pipe to listen
             engine.startup_rpc()
@@ -1228,16 +1249,18 @@ class DesktopWindow(SystrayWindow):
             # Ticket 26741: Avoid having odd DLL loading issues on windows
             self._push_dll_state()
 
-            os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
-                engine.get_current_user()
-            )
-            engine.execute_hook(
-                "hook_launch_python",
-                project_python=path_to_python,
-                pickle_data_path=pickle_data_file,
-                utilities_module_path=utilities_module_path,
-            )
-            self._pop_dll_state()
+            try:
+                os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
+                    engine.get_current_user()
+                )
+                engine.execute_hook(
+                    "hook_launch_python",
+                    project_python=path_to_python,
+                    pickle_data_path=pickle_data_file,
+                    utilities_module_path=utilities_module_path,
+                )
+            finally:
+                self._pop_dll_state()
 
             # and remember it for next time
             self._save_setting("project_id", self.current_project["id"], site_specific=True)
@@ -1252,6 +1275,14 @@ class DesktopWindow(SystrayWindow):
         finally:
             if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:
                 del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
+
+    def _launch_failed(self, message):
+        self._current_pipeline_descriptor = None
+        message = ("%s"
+                   "\n\nTo resolve this, open Shotgun in your browser\n"
+                   "and check the paths for this Pipeline Configuration."
+                   "\n\nFor more details, see the console." % message)
+        self.project_overlay.show_error_message(message)
 
     def bootstrap_progress_callback(self, value, msg):
         self.project_overlay.report_progress(value, msg)
