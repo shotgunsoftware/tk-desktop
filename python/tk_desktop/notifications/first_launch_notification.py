@@ -52,7 +52,7 @@ class FirstLaunchNotification(Notification):
         Message to display.
         """
         return "Welcome to the <b>Shotgun Desktop</b>. <a href='{0}'>Click here</a> to learn more.".format(
-            self._SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
+            self.SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
         )
 
     @property
