@@ -93,6 +93,7 @@ class TestNotifications(TankTestBase):
         """
         # Make sure there's only one notif and its the first launch one.
         notifs = self._notification_manager.get_notifications()
+        self._test_properties(notifs)
         self.assertEqual(len(notifs), 1)
         self.assertEqual(isinstance(notifs[0], notifications.FirstLaunchNotification), True)
 
@@ -110,6 +111,7 @@ class TestNotifications(TankTestBase):
         Test the first launch notification message.
         """
         notifs = self._notification_manager.get_notifications()
+        self._test_properties(notifs)
 
         # Make sure there's only one notification the first time you launch the desktop. We don't
         # want to know about a configuration update.
@@ -138,6 +140,7 @@ class TestNotifications(TankTestBase):
 
         # Now there should be an extra event.
         notifs = self._notification_manager.get_notifications()
+        self._test_properties(notifs)
 
         self.assertEqual(len(notifs), 1)
         self.assertEqual(isinstance(notifs[0], notifications.ConfigurationUpdateNotification), True)
@@ -178,6 +181,7 @@ class TestNotifications(TankTestBase):
         self._mock_descriptor.changelog = (None, None)
 
         notifs = self._notification_manager.get_notifications()
+        self._test_properties(notifs)
         self.assertEqual(len(notifs), 1)
         self.assertEqual(
             isinstance(notifs[0], notifications.StartupUpdateNotification),
@@ -193,6 +197,16 @@ class TestNotifications(TankTestBase):
             []
         )
 
+    def _test_properties(self, notifications):
+        """
+        Ensures all properties returns strings.
+
+        :param notifications: List of notitications to test.
+        """
+        for notif in notifications:
+            self.assertTrue(isinstance(notif.message, str))
+            self.assertTrue(isinstance(notif.unique_id, str))
+
     def test_desktop_notifs(self):
         """
         Test notifications that are stored as engine settings.
@@ -203,6 +217,7 @@ class TestNotifications(TankTestBase):
         self._banner_message = "banner_message"
 
         notifs = self._notification_manager.get_notifications()
+        self._test_properties(notifs)
         self.assertEqual(len(notifs), 1)
         self.assertEqual(
             isinstance(notifs[0], notifications.DesktopNotification),
