@@ -73,7 +73,7 @@ class DesktopEngineSiteImplementation(object):
         else:
             message = "Error\n\n%s" % error.message
 
-        if trigger_project_config:
+        if trigger_project_config and not self._current_pipeline_descriptor.is_immutable():
             # error is that the desktop engine hasn't been setup for the project
             # show the UI to configure it
             self.desktop_window.show_update_project_config()

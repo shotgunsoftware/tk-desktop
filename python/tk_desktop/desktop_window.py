@@ -1174,7 +1174,6 @@ class DesktopWindow(SystrayWindow):
         # From this point on, we don't touch the UI anymore.
         self.project_overlay.start_progress()
 
-        # self._current_pipeline_descriptor = descriptor
         # Banners might need to be updated, we might have picked a configuration that has been
         # updated.
         # self._update_banners()
@@ -1199,8 +1198,7 @@ class DesktopWindow(SystrayWindow):
             )
             core_python = core_descriptor.python_path
 
-            # FIXME: We should not try to get the pipeline configuration root folder.
-            config_path = engine.sgtk.pipeline_configuration.get_path()
+            config_path = engine.sgtk.configuration_descriptor.get_path()
 
             # startup server pipe to listen
             engine.startup_rpc()
@@ -1235,6 +1233,7 @@ class DesktopWindow(SystrayWindow):
             pickle.dump(desktop_data, open(pickle_data_file, "wb"))
 
             # update the values on the project updater in case they are needed
+            # FIXME: Immutable pipeline configuration should not be updateable.
             self.update_project_config_widget.set_project_info(
                 path_to_python, core_python, config_path, self.current_project)
 
@@ -1264,6 +1263,7 @@ class DesktopWindow(SystrayWindow):
 
             # and remember it for next time
             self._save_setting("project_id", self.current_project["id"], site_specific=True)
+            self._current_pipeline_descriptor = config_descriptor
         except (TankInvalidInterpreterLocationError, TankFileDoesNotExistError) as e:
             log.exception("Problem locating interpreter file:")
             self.setup_new_os_widget.show()
@@ -1277,7 +1277,6 @@ class DesktopWindow(SystrayWindow):
                 del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
 
     def _launch_failed(self, message):
-        self._current_pipeline_descriptor = None
         message = ("%s"
                    "\n\nTo resolve this, open Shotgun in your browser\n"
                    "and check the paths for this Pipeline Configuration."
