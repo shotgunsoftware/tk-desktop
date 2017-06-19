@@ -16,6 +16,7 @@ import string
 import collections
 
 from sgtk.errors import TankEngineInitError
+from sgtk.platform import Engine
 
 from distutils.version import LooseVersion
 import sgtk
@@ -51,6 +52,99 @@ class DesktopEngineSiteImplementation(object):
     def destroy_engine(self):
         shotgun_globals.unregister_bg_task_manager(self._task_manager)
         self.site_comm.shut_down()
+
+
+    ###########################################################################
+    # panel support (displayed as tabs)
+    def _run_startup_commands(self):
+        """
+        Runs the commands that are configured to be executed at startup, through
+        the 'run_at_startup' setting in the configuration.
+
+        This gives an opportunity for apps to display panels through the
+        execution of a command, which will add a tab to Desktop.
+        """
+        apps_selector = {"app_instance": "", "name": "Apps"}
+
+        selectors = self._engine.get_setting("run_at_startup", [apps_selector])
+
+        # "Apps" is currently a builtin command, so we take care of it
+        # separately.
+        # We first figure out what is its index in the selectors, or None if it
+        # is not present
+        apps_index = (selectors.index(apps_selector)
+                      if apps_selector in selectors else None)
+        # strip the "Apps" tab from the selectors, as we handle it separately
+        if apps_index is not None:
+            del selectors[apps_index]
+
+        commands = self._engine.get_matching_commands(selectors)
+
+        # add the "Apps" tab back at the appropriate position
+        if apps_index is not None:
+            # we can't blindly use the previous index, since the following
+            # special cases can occur:
+            # - commands were not found (a selector with no matching command)
+            # - multiple commands were found (a wildcard selector found many)
+            #
+            # Thus, we go through the matched commands until we have run through
+            # all the commands that should occur before our "Apps" tab (based on
+            # its location in the selectors).
+            # In other words, we find where the "Apps" tab belongs in the
+            # matched commands.
+            apps_command_index = 0
+            # skip the commands from the selectors preceding "Apps"
+            for index in xrange(apps_index):
+                selector = selectors[index]
+                # skip all the commands that fit the current selector
+                while apps_command_index < len(commands): # insert as the last
+                                                          # command in the worst
+                                                          # case
+                    app, name, _ = commands[apps_command_index]
+
+                    # only keep skipping commands if the current selector
+                    # matches the current command
+                    if (selector["app_instance"] != app or
+                        (selector["name"] != "" and selector["name"] != name)):
+                        break
+
+                    apps_command_index += 1
+
+            # we now have the index where the apps command should be and we can
+            # add a fake command callback that will register the "Apps" tab.
+            apps_tab_callback = self.desktop_window._register_apps_tab
+            commands.insert(apps_command_index, ("", "", apps_tab_callback))
+
+
+        # Execute the actual commands.
+        # For example, a command could be displaying a panel in order to
+        # display it as a tab in the desktop.
+        for (_,_,command_callback) in commands:
+            command_callback()
+
+    def show_panel(self, panel_id, title, bundle, widget_class,
+                   *args, **kwargs):
+        """
+        Adds an app widget as a tab in the desktop UI. The tab is placed in the
+        next available tab slot in the desktop, going from left to right.
+
+        :param panel_id:     Unique identifier for the panel, as obtained by
+                             register_panel().
+        :param title:        The title of the panel, which is the title
+                             displayed for the tab in the UI.
+        :param bundle:       The app, engine or framework object that is
+                             associated with this window.
+        :param widget_class: The class of the UI to be constructed. This must
+                             derive from QWidget.
+
+        Additional parameters specified will be passed through to the
+        widget_class constructor.
+        """
+        self._engine.log_debug("Registering panel \"%s\" (id %s) as a tab." %
+                               (title, panel_id))
+        widget = widget_class(*args, **kwargs)
+
+        self.desktop_window.register_tab(title, widget)
 
     def startup_rpc(self):
         self.site_comm.start_server()
@@ -323,6 +417,9 @@ class DesktopEngineSiteImplementation(object):
                 "with the Shotgun Integrations. Please install the latest version."
 
             )
+
+        # run the commands that are configured to be executed at startup
+        self._run_startup_commands()
 
         # make sure we close down our rpc threads
         app.aboutToQuit.connect(self._engine.destroy_engine)

@@ -33,6 +33,30 @@ configuration:
                      commands that do not match any of the values in the groups
                      setting."
 
+    run_at_startup:
+        type: list
+        description: "Controls what apps will run on startup.  This is a list
+                     where each element is a dictionary with two keys:
+                     'app_instance' and 'name'.
+                     The 'app_instance' value connects this entry to a
+                     particular app instance defined in the environment
+                     configuration file.
+                     The 'name' is the menu name of the command to run when
+                     desktop starts up. If 'name' is '', then all commands from
+                     the given app instance are started.
+
+                     To add the 'Apps' tab (which contains the app launcher),
+                     add the following startup command to the list:
+                       {app_instance: '', name: 'Apps'}
+                     "
+        allows_empty: True
+        default_value: [{app_instance: '', name: Apps}]
+        values:
+            type: dict
+            items:
+                name: { type: str }
+                app_instance: { type: str }
+
     groups:
         type: list
         description: "A list of dictionaries that define what commands get put
