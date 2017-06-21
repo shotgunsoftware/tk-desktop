@@ -1204,10 +1204,8 @@ class DesktopWindow(SystrayWindow):
         # From this point on, we don't touch the UI anymore.
         self.project_overlay.start_progress()
 
-        # Banners might need to be updated, we might have picked a configuration that has been
-        # updated.
-        # self._update_banners()
         try:
+            self._current_pipeline_descriptor = config_descriptor
             # Find the interpreter the config wants to use.
             try:
                 path_to_python = config_descriptor.python_interpreter
@@ -1283,10 +1281,6 @@ class DesktopWindow(SystrayWindow):
                 )
             finally:
                 self._pop_dll_state()
-
-            # and remember it for next time
-            self._save_setting("project_id", self.current_project["id"], site_specific=True)
-            self._current_pipeline_descriptor = config_descriptor
         except (TankInvalidInterpreterLocationError, TankFileDoesNotExistError) as e:
             log.exception("Problem locating interpreter file:")
             self.setup_new_os_widget.show()
@@ -1295,6 +1289,12 @@ class DesktopWindow(SystrayWindow):
         except Exception as e:
             log.exception("Unexpected error while launching Python:")
             self._launch_failed(str(e))
+        else:
+            # and remember what we launched for next time
+            self._save_setting("project_id", self.current_project["id"], site_specific=True)
+            # Banners might need to be updated, we might have picked a configuration that has been
+            # updated.
+            self._update_banners()
         finally:
             if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:
                 del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
