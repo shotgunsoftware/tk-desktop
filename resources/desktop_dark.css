@@ -7,13 +7,24 @@ QWidget
     font-style: "Regular";
 }
 
-#header QPushButton, #header QPushButton:pressed
+#header QPushButton
 {
     background-color: transparent;
     font-size: 15px;
     font-style: "Condensed Light";
     border: none;
     padding: 15px 0px 10px 0px;
+}
+#header QPushButton:hover
+{
+    border-bottom: 2px solid rgb(85, 85, 85);
+}
+#header QPushButton:pressed
+{
+    border-bottom: 2px solid rgb(255, 255, 255);
+}
+#header QPushButton[active=true]
+{
     border-bottom: 2px solid rgb(195, 195, 195);
 }
 
@@ -102,7 +113,7 @@ QWidget
     background-color: rgb(40, 40, 40);
 }
 
-#stack
+#tab_view
 {
     background-color: rgb(40, 40, 40);
 }

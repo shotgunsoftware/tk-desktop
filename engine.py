@@ -65,6 +65,27 @@ class DesktopEngine(Engine):
         if hasattr(self.__impl, "post_app_init"):
             self.__impl.post_app_init()
 
+    def show_panel(self, panel_id, title, bundle, widget_class,
+                   *args, **kwargs):
+        """
+        Shows the panel in the desktop engine, if supported by the current
+        desktop mode (site vs project).
+
+        :param panel_id:     Unique identifier for the panel, as obtained by
+                             register_panel().
+        :param title:        The title of the panel.
+        :param bundle:       The app, engine or framework object that is
+                             associated with this window.
+        :param widget_class: The class of the UI to be constructed. This must
+                             derive from QWidget.
+
+        Additional parameters specified will be passed through to the
+        widget_class constructor.
+        """
+        if hasattr(self.__impl, "show_panel"):
+            self.__impl.show_panel(panel_id, title, bundle, widget_class,
+                                   *args, **kwargs)
+
     def destroy_engine(self):
         """ Clean up the engine """
         self.logger.debug("destroy_engine")
