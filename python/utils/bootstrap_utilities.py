@@ -24,6 +24,7 @@ import traceback
 import cPickle as pickle
 import imp
 import logging
+import inspect
 
 
 class ProxyLoggingHandler(logging.Handler):
@@ -85,7 +86,7 @@ class Bootstrap(object):
         """
         # Import Toolkit, but make sure we're not inheriting the parent process's current
         # pipeline configuration.
-        sys.path.append(self._core_python_path)
+        sys.path.insert(0, self._core_python_path)
         import sgtk
         del os.environ["TANK_CURRENT_PC"]
 
@@ -170,7 +171,26 @@ def start_engine(data):
     Start the tk-desktop engine given a data dictionary like the one passed
     to the launch_python hook.
     """
-    return Bootstrap(data).start_engine()
+    engine = Bootstrap(data).start_engine()
+
+    # Import Toolkit locally. We need to capture this Python path so we can use it to bootstrap.
+    # inside another process.
+    import sgtk
+    if hasattr(sgtk, "get_sgtk_module_path"):
+        python_folder = sgtk.get_sgtk_module_path()
+    else:
+        __init__py_location = inspect.getsourcefile(sgtk) # python/tank/__init__.py
+
+        # If the path is not absolute, make it so.
+        if not os.path.isabs(__init__py_location):
+            __init__py_location = os.path.join(os.getcwd(), __init__py_location)
+
+        tank_folder = os.path.dirname(__init__py_location)
+        python_folder = os.path.dirname(tank_folder)
+
+    sgtk.util.prepend_path_to_env_var("PYTHONPATH", python_folder)
+
+    return engine
 
 
 def start_app(engine):
