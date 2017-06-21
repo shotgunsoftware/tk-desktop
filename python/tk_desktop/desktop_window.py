@@ -1070,6 +1070,37 @@ class DesktopWindow(SystrayWindow):
         sg_patch_ver = connection.server_info["version"][2]
         return sg_major_ver, sg_minor_ver, sg_patch_ver
 
+    def engine_startup_error(self, error, tb):
+        """
+        Handle an error starting up the engine for the app proxy.
+
+        :param error: Exception object that was raised during bootstrap.
+        :param tb: Traceback of the exception raised during bootstrap.
+        """
+        trigger_project_config = False
+        if isinstance(error, sgtk.TankEngineInitError):
+            # match directly on the error message until something less fragile can be put in place
+            if error.message.startswith("Cannot find an engine instance tk-desktop"):
+                trigger_project_config = True
+            else:
+                message = "Error starting engine\n\n%s" % error.message
+        else:
+            message = "Error\n\n%s" % error.message
+
+        if trigger_project_config and not self._current_pipeline_descriptor.is_immutable():
+            # error is that the desktop engine hasn't been setup for the project
+            # show the UI to configure it
+            self.show_update_project_config()
+        else:
+            # just show the error in the window
+            display_message = "%s\n\nSee the console for more details." % message
+            self.project_overlay.show_error_message(display_message)
+
+            # add the traceback if available
+            if tb is not None:
+                message += "\n\n%s" % tb
+            log.error(message)
+
     def __launch_app_proxy_for_project(self, project, requested_pipeline_configuration_id=None):
         try:
             engine = sgtk.platform.current_engine()
@@ -1191,8 +1222,6 @@ class DesktopWindow(SystrayWindow):
             # Create a descriptor for the current core and gets its PYTHONPATH.
             core_python = sgtk.get_sgtk_module_path()
 
-            # FIXME: Not super clean to do this by the way... This might be a path
-            # to something in the bundle cache
             config_path = engine.sgtk.configuration_descriptor.get_path()
 
             # startup server pipe to listen
@@ -1228,7 +1257,6 @@ class DesktopWindow(SystrayWindow):
             pickle.dump(desktop_data, open(pickle_data_file, "wb"))
 
             # update the values on the project updater in case they are needed
-            # FIXME: Immutable pipeline configuration should not be updateable.
             self.update_project_config_widget.set_project_info(
                 path_to_python, core_python, config_path, self.current_project)
 
