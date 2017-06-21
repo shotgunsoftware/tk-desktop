@@ -31,7 +31,6 @@ from sgtk.bootstrap import ToolkitManager
 from tank_vendor import shotgun_authentication as sg_auth
 from sgtk import TankInvalidInterpreterLocationError, TankFileDoesNotExistError
 from sgtk.platform import get_logger
-from sgtk import descriptor
 
 from .ui import resources_rc # noqa
 from .ui import desktop_window
@@ -1180,7 +1179,7 @@ class DesktopWindow(SystrayWindow):
         try:
             # Find the interpreter the config wants to use.
             try:
-                path_to_python = config_descriptor.current_os_interpreter
+                path_to_python = config_descriptor.python_interpreter
             except TankFileDoesNotExistError:
                 if sys.platform == "darwin":
                     path_to_python = os.path.join(sys.prefix, "bin", "python")
@@ -1190,14 +1189,10 @@ class DesktopWindow(SystrayWindow):
                     path_to_python = os.path.join(sys.prefix, "bin", "python")
 
             # Create a descriptor for the current core and gets its PYTHONPATH.
-            core_descriptor = descriptor.create_descriptor(
-                engine.shotgun,
-                descriptor.Descriptor.CORE,
-                engine.sgtk.configuration_descriptor.associated_core_descriptor,
-                fallback_roots=toolkit_manager.bundle_cache_fallback_paths
-            )
-            core_python = core_descriptor.python_path
+            core_python = sgtk.get_sgtk_module_path()
 
+            # FIXME: Not super clean to do this by the way... This might be a path
+            # to something in the bundle cache
             config_path = engine.sgtk.configuration_descriptor.get_path()
 
             # startup server pipe to listen
