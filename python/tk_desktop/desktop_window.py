@@ -398,7 +398,6 @@ class DesktopWindow(SystrayWindow):
         # setup the tab widget
         tab_widget.setParent(self)
 
-
         # define the event handler when the user changes tab
         def on_tab_selected():
             """
@@ -419,7 +418,6 @@ class DesktopWindow(SystrayWindow):
         tab_button.toggled.connect(on_tab_selected)
         tab_button.clicked.connect(on_tab_selected)
 
-
         # add the tab components to the ui
         self.ui.tabs.addWidget(tab_button)
         self.ui.tab_view.addWidget(tab_widget)
@@ -428,14 +426,12 @@ class DesktopWindow(SystrayWindow):
         if self.ui.tabs.count() == 1:
             on_tab_selected()
 
-
     def _register_apps_tab(self):
         """
         Registers the "Apps" tab, which allows users to launch toolkit apps.
         This should eventually be moved to an app on its own.
         """
         self.register_tab("Apps", self.ui.apps_tab)
-
 
     ########################################################################################
     # Event handlers and slots
@@ -1358,13 +1354,22 @@ class DesktopWindow(SystrayWindow):
                 del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
 
     def _launch_failed(self, message):
+        """
+        Invoked when the launch fails.
+
+        :param message: Error message to display.
+        """
         message = ("%s"
-                   "\n\nTo resolve this, open Shotgun in your browser\n"
-                   "and check the paths for this Pipeline Configuration."
                    "\n\nFor more details, see the console." % message)
         self.project_overlay.show_error_message(message)
 
     def bootstrap_progress_callback(self, value, msg):
+        """
+        Reports progress on the project overlay.
+
+        :param value: Value between 0 and 1 indicating progress.
+        :param msg: Message to display in the overlay.
+        """
         self.project_overlay.report_progress(value, msg)
 
     def _pick_pipeline_configuration(self, pipeline_configurations, requested_pipeline_configuration_id, project):
