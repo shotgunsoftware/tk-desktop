@@ -298,14 +298,16 @@ class DesktopWindow(SystrayWindow):
         # Remove all items from the layout
         banner_layout = self.ui.banners.layout()
 
-        # Find all the current banners.
-        current_banners = {banner_layout.itemAt(i).widget().unique_id for i in range(banner_layout.count())}
+        # Find all the current banners and their unique identifiers.
+        current_banners = {
+            banner_layout.itemAt(i).widget().unique_id for i in range(banner_layout.count())
+        }
 
         notifs = self._notifs_mgr.get_notifications()
         for notif in notifs:
+            # If a banner is not already displayed, we'll add it.
             if notif.unique_id not in current_banners:
                 banner = BannerWidget(self._notifs_mgr, notif, parent=self)
-                # Each time a banner is dismissed, we'll rebuild them all.
                 banner.dismissed.connect(self._banner_dismissed)
                 banner_layout.addWidget(banner)
 
@@ -1132,12 +1134,17 @@ class DesktopWindow(SystrayWindow):
         :param tb: Traceback of the exception raised during bootstrap.
         """
         trigger_project_config = False
-        if isinstance(error, sgtk.TankEngineInitError):
+        # If missing engine init error, we're know we have to setup the project.
+        if isinstance(error, sgtk.platform.TankMissingEngineInitError):
+            message = "Error starting engine\n\n%s" % error.message
+            trigger_project_config = True
+        # However, this exception type hasn't always existed, so take care of that
+        # case also.
+        elif isinstance(error, sgtk.platform.TankEngineInitError):
+            message = "Error starting engine\n\n%s" % error.message
             # match directly on the error message until something less fragile can be put in place
             if error.message.startswith("Cannot find an engine instance tk-desktop"):
                 trigger_project_config = True
-            else:
-                message = "Error starting engine\n\n%s" % error.message
         else:
             message = "Error\n\n%s" % error.message
 
@@ -1284,13 +1291,7 @@ class DesktopWindow(SystrayWindow):
                 "core_python_path": core_python,
                 # Every settings that were used for discovering the pipeline configuration must be
                 # passed down to the next process so it can launch the same pipeline.
-                "manager_settings": {
-                    "caching_policy": toolkit_manager.caching_policy,
-                    "plugin_id": toolkit_manager.plugin_id,
-                    "base_configuration": toolkit_manager.base_configuration,
-                    "bundle_cache_fallback_paths": toolkit_manager.bundle_cache_fallback_paths,
-                    "pipeline_configuration": toolkit_manager.pipeline_configuration
-                },
+                "manager_settings": toolkit_manager.extract_settings(),
                 # We're passing down our implementation of the RPC module since the process
                 # will want to communicate back with us during bootstrapping.
                 # Get the source file, not __file__, since the background process will use imp.load_source
@@ -1465,9 +1466,14 @@ class DesktopWindow(SystrayWindow):
         versions["Core"] = engine.sgtk.version
 
         if engine.sgtk.configuration_descriptor:
-            versions[
-                engine.sgtk.configuration_descriptor.display_name
-            ] = engine.sgtk.configuration_descriptor.version
+            # Certain versions of core don't like configuration's without an
+            # info.yml, so tolerate it.
+            try:
+                versions[
+                    engine.sgtk.configuration_descriptor.display_name
+                ] = engine.sgtk.configuration_descriptor.version
+            except Exception:
+                pass
 
         body = "<center>"
         for name, version in versions.iteritems():

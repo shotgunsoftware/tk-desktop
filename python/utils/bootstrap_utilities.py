@@ -110,17 +110,15 @@ class Bootstrap(object):
 
             # Prepare the manager based on everything the bootstrap manager expected of us.
             manager = sgtk.bootstrap.ToolkitManager(self._user)
-            manager.caching_policy = self._manager_settings["caching_policy"]
-            manager.plugin_id = self._manager_settings["plugin_id"]
-            manager.base_configuration = self._manager_settings["base_configuration"]
-            manager.bundle_cache_fallback_paths = self._manager_settings["bundle_cache_fallback_paths"]
-            manager.pipeline_configuration = self._manager_settings["pipeline_configuration"]
-
+            manager.restore_settings(self._manager_settings)
             manager.pre_engine_start_callback = self._pre_engine_start_callback
             manager.progress_callback = self._progress_callback
 
             # We're now ready to start the engine.
             return manager.bootstrap_engine("tk-desktop", self._project)
+        # Do not attempt to be clever here and catch specific Toolkit exception types.
+        # The type information for sgtk.TankError is different after bootstrapping since the
+        # core has been swapped, so we can't catch these exceptions.
         finally:
             # Make sure we're closing our proxy so the error reporting,
             # which also creates a proxy, can create its own. If there's an
