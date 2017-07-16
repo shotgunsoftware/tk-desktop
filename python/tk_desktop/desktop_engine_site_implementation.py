@@ -142,8 +142,14 @@ class DesktopEngineSiteImplementation(object):
         """
         self._engine.log_debug("Registering panel \"%s\" (id %s) as a tab." %
                                (title, panel_id))
+        # create widget
         widget = widget_class(*args, **kwargs)
-
+        # apply std toolkit stylings
+        # note: since this class is an engine but doesn't derive from
+        #       engine, we have to call the protected method via bundle.engine
+        #       rather than using self._apply_external_stylesheet()
+        bundle.engine._apply_external_stylesheet(bundle, widget)
+        # register UI tab
         self.desktop_window.register_tab(title, widget)
 
     def startup_rpc(self):
