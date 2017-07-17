@@ -1135,7 +1135,7 @@ class DesktopWindow(SystrayWindow):
         """
         trigger_project_config = False
         # If missing engine init error, we're know we have to setup the project.
-        if isinstance(error, sgtk.platform.TankMissingEngineInitError):
+        if isinstance(error, sgtk.platform.TankMissingEngineError):
             message = "Error starting engine\n\n%s" % error.message
             trigger_project_config = True
         # However, this exception type hasn't always existed, so take care of that
