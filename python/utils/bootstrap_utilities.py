@@ -138,7 +138,8 @@ class Bootstrap(object):
         # at the same sime, especially for logging, to the server.
         # When the engine starts it will set up its own logging.
         self._proxy.close()
-        sgtk.LogManager().root_logger.removeHandler(self._handler)
+        if hasattr(sgtk, "LogManager"):
+            sgtk.LogManager().root_logger.removeHandler(self._handler)
 
         # The desktop engine expects the sgtk instance to have the _desktop_data attribute with
         # the proxy credentials in it.
