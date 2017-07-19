@@ -15,9 +15,7 @@ import sys
 import string
 import collections
 
-from sgtk.errors import TankEngineInitError
 from sgtk.platform import Engine
-
 from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
@@ -154,6 +152,7 @@ class DesktopEngineSiteImplementation(object):
 
     def startup_rpc(self):
         self.site_comm.start_server()
+        self.site_comm.register_function(self.bootstrap_progress_callback, "bootstrap_progress")
         self.site_comm.register_function(self.engine_startup_error, "engine_startup_error")
         self.site_comm.register_function(self.set_groups, "set_groups")
         self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
@@ -161,30 +160,23 @@ class DesktopEngineSiteImplementation(object):
         self.site_comm.register_function(self.project_commands_finished, "project_commands_finished")
 
     def engine_startup_error(self, error, tb=None):
-        """ Handle an error starting up the engine for the app proxy. """
-        trigger_project_config = False
-        if isinstance(error, TankEngineInitError):
-            # match directly on the error message until something less fragile can be put in place
-            if error.message.startswith("Cannot find an engine instance tk-desktop"):
-                trigger_project_config = True
-            else:
-                message = "Error starting engine\n\n%s" % error.message
-        else:
-            message = "Error\n\n%s" % error.message
+        """
+        Handle an error starting up the engine for the app proxy.
 
-        if trigger_project_config:
-            # error is that the desktop engine hasn't been setup for the project
-            # show the UI to configure it
-            self.desktop_window.show_update_project_config()
-        else:
-            # just show the error in the window
-            display_message = "%s\n\nSee the console for more details." % message
-            self.desktop_window.project_overlay.show_error_message(display_message)
+        :param error: Exception object that was raised during bootstrap.
+        :param tb: Traceback of the exception raised during bootstrap.
+        """
+        self.desktop_window.engine_startup_error(error, tb)
 
-            # add the traceback if available
-            if tb is not None:
-                message += "\n\n%s" % tb
-            logger.error(message)
+    def bootstrap_progress_callback(self, value, msg):
+        """
+        Called by the bootstrap to report progress.
+
+        :param value: Value between 0 and 1 indicating how far along we are into
+            bootstrapping.
+        :param msg: Message to print.
+        """
+        self.desktop_window.bootstrap_progress_callback(value, msg)
 
     def _on_proxy_closing(self):
         """

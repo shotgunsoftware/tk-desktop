@@ -65,7 +65,9 @@ class NotificationsManager(object):
             logger.debug("Site and project both have the same descriptor.")
             other_notifs.append(ConfigurationUpdateNotification.create(banner_settings, self._site_descriptor))
         else:
+            logger.debug("Creating site notification.")
             other_notifs.append(ConfigurationUpdateNotification.create(banner_settings, self._site_descriptor))
+            logger.debug("Creating project notification.")
             other_notifs.append(ConfigurationUpdateNotification.create(banner_settings, self._project_descriptor))
 
         other_notifs = filter(None, other_notifs)
