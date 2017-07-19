@@ -22,7 +22,147 @@ import os
 import sys
 import traceback
 import cPickle as pickle
+import imp
 import logging
+import inspect
+
+
+class ProxyLoggingHandler(logging.Handler):
+    """
+    Logs messages through the proxy.
+    """
+
+    def __init__(self, proxy):
+        """
+        :param proxy: Connection to the main process.
+        :type proxy: rpc.RPCProxy
+        """
+        super(ProxyLoggingHandler, self).__init__()
+        self._proxy = proxy
+
+    def emit(self, record):
+        """
+        Emits a log back to the host.
+        """
+        # Do not send logs if the connection is closed!
+        if self._proxy.is_closed():
+            return
+
+        try:
+            self._proxy.call_no_response(
+                "proxy_log", record.levelno, record.msg, record.args
+            )
+        except Exception:
+            # If something couldn't be pickled, don't fret too much about it,
+            # we'll format it ourselves instead.
+            self._proxy.call_no_response(
+                "proxy_log", record.levelno, (record.msg % record.args), []
+            )
+
+
+class Bootstrap(object):
+    """
+    Bootstraps the tk-desktop engine.
+    """
+
+    def __init__(self, data):
+        """
+        :param data: Dictionary of data passed down from the main desktop process.
+        """
+        # Extract the relevant information from the data
+        self._proxy_data = data["proxy_data"]
+        self._manager_settings = data["manager_settings"]
+        self._project = data["project"]
+        self._core_python_path = data["core_python_path"]
+        self._rpc_lib_path = data["rpc_lib_path"]
+
+        self._proxy = None
+        self._handler = None
+        self._user = None
+
+    def start_engine(self):
+        """
+        Bootstraps the engine and launches it.
+        """
+        # Import Toolkit, but make sure we're not inheriting the parent process's current
+        # pipeline configuration.
+        sys.path.insert(0, self._core_python_path)
+        import sgtk
+        del os.environ["TANK_CURRENT_PC"]
+
+        # Connect to the main desktop process so we can send updates to it.
+        # We're not guanranteed if the py or pyc file will be passed back to us
+        # from the desktop due to write permissions on the folder.
+        rpc_lib = imp.load_source("rpc", self._rpc_lib_path)
+        self._proxy = rpc_lib.RPCProxy(
+            self._proxy_data["proxy_pipe"],
+            self._proxy_data["proxy_auth"]
+        )
+        try:
+            # Set up logging with the rpc.
+            self._handler = ProxyLoggingHandler(self._proxy)
+            sgtk.LogManager().root_logger.addHandler(self._handler)
+
+            # Get the user we should be running as.
+            self._user = sgtk.authentication.deserialize_user(
+                os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
+            )
+
+            # Prepare the manager based on everything the bootstrap manager expected of us.
+            manager = sgtk.bootstrap.ToolkitManager(self._user)
+            manager.restore_settings(self._manager_settings)
+            manager.pre_engine_start_callback = self._pre_engine_start_callback
+            manager.progress_callback = self._progress_callback
+
+            # We're now ready to start the engine.
+            return manager.bootstrap_engine("tk-desktop", self._project)
+        # Do not attempt to be clever here and catch specific Toolkit exception types.
+        # The type information for sgtk.TankError is different after bootstrapping since the
+        # core has been swapped, so we can't catch these exceptions.
+        finally:
+            # Make sure we're closing our proxy so the error reporting,
+            # which also creates a proxy, can create its own. If there's an
+            # error, make sure we catch it and ignore it. Then the finally
+            # can  do its job and propagate the real error if there was one.
+            try:
+                self._proxy.close()
+            except:
+                pass
+
+    def _pre_engine_start_callback(self, ctx):
+        """
+        Called before the engine is started. Closes the proxy connection and removes out log handle.
+        """
+        import sgtk
+        # At this point we need to close the proxy because we can't have two proxies connected
+        # at the same sime, especially for logging, to the server.
+        # When the engine starts it will set up its own logging.
+        self._proxy.close()
+        if hasattr(sgtk, "LogManager"):
+            sgtk.LogManager().root_logger.removeHandler(self._handler)
+
+        # The desktop engine expects the sgtk instance to have the _desktop_data attribute with
+        # the proxy credentials in it.
+        ctx.sgtk._desktop_data = self._proxy_data
+
+    def _progress_callback(self, value, msg):
+        """
+        Reports bootstrap progress back to the main process.
+        """
+        # If the proxy hasn't been closed, report our progress.
+        # Note here that is we haven't closed the proxy ourselves in pre_engine_start_callback,
+        # but the main process has closed our connection, this code will raise an error.
+        # This is great because if the host has closed the connection it means at their the process
+        # crashes (yikes!) or that the user backed out of the project. In any case, it means
+        # we can stop bootstrapping. This exception will then bubble all the way up and back outside
+        # this file and we'll jump into "handle_error" at the bottom of this file. Jump over thread
+        # to understand more what is going on.
+        if self._proxy.is_closed():
+            return
+
+        self._proxy.call_no_response(
+            "bootstrap_progress", value, msg
+        )
 
 
 def start_engine(data):
@@ -30,45 +170,24 @@ def start_engine(data):
     Start the tk-desktop engine given a data dictionary like the one passed
     to the launch_python hook.
     """
-    sys.path.append(data["core_python_path"])
+    engine = Bootstrap(data).start_engine()
 
-    # make sure we don't inherit the GUI's pipeline configuration
-    os.environ["TANK_CURRENT_PC"] = data["config_path"]
-
+    # Import Toolkit locally. We need to capture this Python path so we can use it to bootstrap.
+    # inside another process.
     import sgtk
-    sgtk.util.append_path_to_env_var("PYTHONPATH", data["core_python_path"])
+    if hasattr(sgtk, "get_sgtk_module_path"):
+        python_folder = sgtk.get_sgtk_module_path()
+    else:
+        __init__py_location = inspect.getsourcefile(sgtk) # python/tank/__init__.py
 
-    # Initialize logging right away instead of waiting for the engine if we're using a 0.18 based-core.
-    # This will also ensure that a crash will be tracked
-    if hasattr(sgtk, "LogManager"):
-        sgtk.LogManager().initialize_base_file_handler("tk-desktop")
+        # If the path is not absolute, make it so.
+        if not os.path.isabs(__init__py_location):
+            __init__py_location = os.path.join(os.getcwd(), __init__py_location)
 
-    # If the core supports the shotgun_authentication module and the pickle has
-    # a current user, we have to set the authenticated user.
-    if hasattr(sgtk, "set_authenticated_user"):
-        # Retrieve the currently authenticated user for this process.
-        from tank_vendor.shotgun_authentication import ShotgunAuthenticator, deserialize_user
-        current_user = ShotgunAuthenticator(sgtk.util.CoreDefaultsManager()).get_default_user()
+        tank_folder = os.path.dirname(__init__py_location)
+        python_folder = os.path.dirname(tank_folder)
 
-        # If we found no user using the authenticator, we need to use the credentials that
-        # came through the environment variable.
-        # Also, if the credentials are user-based, we need to disregard what we got and use
-        # the credentials from the environment variable. This is required to solve any issues
-        # arising from the changes to the session cache changing place in core 0.18.
-        if not current_user or current_user.login:
-            current_user = deserialize_user(os.environ["SHOTGUN_DESKTOP_CURRENT_USER"])
-        else:
-            # This happens when the user retrieved from the project's core is a script.
-            # In that case, we use the script user and disregard who is the current
-            # authenticated user at the site level.
-            pass
-
-        sgtk.set_authenticated_user(current_user)
-
-    tk = sgtk.sgtk_from_path(data["config_path"])
-    tk._desktop_data = data["proxy_data"]
-    ctx = tk.context_from_entity("Project", data["project"]["id"])
-    engine = sgtk.platform.start_engine("tk-desktop", tk, ctx)
+    sgtk.util.prepend_path_to_env_var("PYTHONPATH", python_folder)
 
     return engine
 
@@ -121,8 +240,12 @@ def start_app(engine):
 def handle_error(data):
     """
     Attempt to communicate the error back to the GUI proxy given a data
-    dictionary like the one passed to the launch_python hook.
+    dictionary like the one passed to the launch_python hook. Note that
+    if the server has already been closed (process crashes or user left the
+    project) this will actually fail silently, which is alright as the main
+    process doesnt't care about this one anymore.
     """
+
     from multiprocessing.connection import Client
     if sys.platform == "win32":
         family = "AF_PIPE"
@@ -137,6 +260,7 @@ def handle_error(data):
 
     # build a message for the GUI signaling that an error occurred
     exc_type, exc_value, exc_traceback = sys.exc_info()
+
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
     msg = pickle.dumps((False, "engine_startup_error", [exc_value, ''.join(lines)], {}))
     connection.send(msg)
