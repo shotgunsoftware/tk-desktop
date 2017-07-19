@@ -83,8 +83,20 @@ class DesktopEngine(Engine):
         widget_class constructor.
         """
         if hasattr(self.__impl, "show_panel"):
+            # forward to site/projet implementation
             self.__impl.show_panel(panel_id, title, bundle, widget_class,
                                    *args, **kwargs)
+        else:
+            # fall back on base class implementation
+            super(DesktopEngine, self).show_panel(
+                panel_id,
+                title,
+                bundle,
+                widget_class,
+                *args,
+                **kwargs
+            )
+
 
     def destroy_engine(self):
         """ Clean up the engine """
