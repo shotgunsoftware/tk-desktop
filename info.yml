@@ -158,7 +158,7 @@ description: "The engine that runs inside the Shotgun Desktop Application"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:
-requires_core_version: "v0.18.79"
+requires_core_version: "v0.18.96"
 
 frameworks:
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x", "minimum_version": "v2.6.0"}
