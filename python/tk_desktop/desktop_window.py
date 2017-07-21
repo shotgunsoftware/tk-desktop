@@ -1247,7 +1247,7 @@ class DesktopWindow(SystrayWindow):
             # Bootstrap into the requested pipeline configuration or using the fallback.
             if pipeline_configuration_to_load is None:
                 toolkit_manager.pipeline_configuration = None
-                config_descriptor = toolkit_manager.resolve_configuration(project)
+                config_descriptor = toolkit_manager.resolve_descriptor(project)
             else:
                 # We've loaded this project before and saved its pipeline configuration id, so
                 # reload the same old one.
