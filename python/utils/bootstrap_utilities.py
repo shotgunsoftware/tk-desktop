@@ -37,7 +37,7 @@ class ProxyLoggingHandler(logging.Handler):
         :param proxy: Connection to the main process.
         :type proxy: rpc.RPCProxy
         """
-        super(ProxyLoggingHandler, self).__init__()
+        logging.Handler.__init__(self)
         self._proxy = proxy
 
     def emit(self, record):
