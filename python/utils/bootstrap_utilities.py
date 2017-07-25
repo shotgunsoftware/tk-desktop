@@ -37,6 +37,8 @@ class ProxyLoggingHandler(logging.Handler):
         :param proxy: Connection to the main process.
         :type proxy: rpc.RPCProxy
         """
+        # Call the __init__ directly since Python 2.6's logging.Handler doesn't
+        # derive from object and hence doesn't support 'super'.
         logging.Handler.__init__(self)
         self._proxy = proxy
 
