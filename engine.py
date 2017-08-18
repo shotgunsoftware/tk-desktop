@@ -84,11 +84,11 @@ class DesktopEngine(Engine):
         """
         if hasattr(self.__impl, "show_panel"):
             # forward to site/projet implementation
-            self.__impl.show_panel(panel_id, title, bundle, widget_class,
+            return self.__impl.show_panel(panel_id, title, bundle, widget_class,
                                    *args, **kwargs)
         else:
             # fall back on base class implementation
-            super(DesktopEngine, self).show_panel(
+            return super(DesktopEngine, self).show_panel(
                 panel_id,
                 title,
                 bundle,
