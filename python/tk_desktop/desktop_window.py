@@ -170,7 +170,7 @@ class DesktopWindow(SystrayWindow):
 
         advanced_menu.addAction(self.ui.actionShow_Console)
 
-        if desktop_server_framework.can_run_server():
+        if desktop_server_framework.can_run_server() and desktop_server_framework.can_regen_certs():
             advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
 
         # Initially hide the Advanced project setup... menu item. This
