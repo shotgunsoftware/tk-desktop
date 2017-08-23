@@ -413,7 +413,6 @@ class DesktopEngineSiteImplementation(object):
             logger.warning(
                 "You are running an older version of the Shotgun Desktop which is not fully compatible "
                 "with the Shotgun Integrations. Please install the latest version."
-
             )
 
         # run the commands that are configured to be executed at startup
