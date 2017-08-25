@@ -149,6 +149,7 @@ class DesktopEngineSiteImplementation(object):
         bundle.engine._apply_external_stylesheet(bundle, widget)
         # register UI tab
         self.desktop_window.register_tab(title, widget)
+        return widget
 
     def startup_rpc(self):
         self.site_comm.start_server()
