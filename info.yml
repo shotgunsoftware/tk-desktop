@@ -164,4 +164,4 @@ frameworks:
     - {"name": "tk-framework-qtwidgets", "version": "v2.x.x", "minimum_version": "v2.6.0"}
     - {"name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.1.0"}
     - {"name": "tk-framework-adminui", "version": "v0.x.x"}
-    - {"name": "tk-framework-desktopserver", "version": "v1.x.x", "minimum_version": "v1.1.2"}
+    - {"name": "tk-framework-desktopserver", "version": "v1.x.x", "minimum_version": "v1.2.0"}

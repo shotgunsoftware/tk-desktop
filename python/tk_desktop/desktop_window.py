@@ -170,7 +170,10 @@ class DesktopWindow(SystrayWindow):
 
         advanced_menu.addAction(self.ui.actionShow_Console)
 
-        if desktop_server_framework.can_run_server():
+        if (
+            desktop_server_framework.can_run_server() and
+            desktop_server_framework.can_regenerate_certificates()
+        ):
             advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
 
         # Initially hide the Advanced project setup... menu item. This
@@ -769,8 +772,8 @@ class DesktopWindow(SystrayWindow):
                     "are currently logged into <b>{1}</b>.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
                     "<b>Restart</b> button below to restart Shotgun Desktop and log into <b>{0}</b>.".format(
-                        urlparse.urlparse(site).netloc,
-                        urlparse.urlparse(current_site).netloc
+                        site,
+                        current_site
                     )
                 )
                 new_site = site
