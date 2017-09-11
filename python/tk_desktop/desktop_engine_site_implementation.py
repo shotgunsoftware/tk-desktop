@@ -307,12 +307,20 @@ class DesktopEngineSiteImplementation(object):
         self.startup_descriptor = kwargs.get("startup_descriptor")
         server = kwargs.get("server")
 
-        # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
-        sgtk.util.log_user_attribute_metric("tk-framework-desktopstartup", self.startup_version)
-        sgtk.util.log_user_attribute_metric("Shotgun Desktop version", self.app_version)
-        # If a server is passed down from the desktop startup, it means we won't be using the engine-based
-        # websocket server.
-        sgtk.util.log_user_attribute_metric("Engine-Websockets", "no" if server else "yes")
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
+            EventMetric.log(
+                EventMetric.KEY_APP,
+                "Starting Up",
+                properties={
+                    "tk-framework-desktopstartup": self.startup_version,
+                    "Shotgun Desktop version": self.app_version,
+                    "Engine-Websockets": "no" if server else "yes"
+                }
+            )
+        except ImportError as e:
+            pass
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()
