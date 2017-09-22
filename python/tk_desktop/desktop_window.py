@@ -1224,9 +1224,8 @@ class DesktopWindow(SystrayWindow):
             # Add all the pipeline configurations to the menu.
             self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration_to_load)
 
-            # If no pipeline configurations were found in Shotgun, show the
-            # 'Advanced project setup...' menu item.
-            # If there is no pipeline configuration set for the current project, add the Advanced Project Setup menu.
+            # If there is no pipeline configuration set for the current project, i.e. there might be
+            # site level ones but no project ones, add the Advanced Project Setup menu.
             if not any(True if pc["project"] else False for pc in pipeline_configurations):
                 # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
                 if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
