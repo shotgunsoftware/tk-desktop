@@ -314,10 +314,9 @@ class DesktopEngineSiteImplementation(object):
             # having the updated information. A special case is made for for Desktop
             # as we do want both versiond but don't want to create another metric field.
             # We are then combining both versions into single version string.
-            self._engine._host_info.update({
-                "version": "%s / %s" % (self.app_version, self.startup_version)
-            })
+            self._engine._host_info["version"] = "%s / %s" % (self.app_version, self.startup_version)
 
+            # Actually log the metric
             self._engine.log_metric("Launched Software")
 
         except Exception as e:
