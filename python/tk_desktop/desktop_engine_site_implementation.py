@@ -307,12 +307,22 @@ class DesktopEngineSiteImplementation(object):
         self.startup_descriptor = kwargs.get("startup_descriptor")
         server = kwargs.get("server")
 
-        # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
-        sgtk.util.log_user_attribute_metric("tk-framework-desktopstartup", self.startup_version)
-        sgtk.util.log_user_attribute_metric("Shotgun Desktop version", self.app_version)
-        # If a server is passed down from the desktop startup, it means we won't be using the engine-based
-        # websocket server.
-        sgtk.util.log_user_attribute_metric("Engine-Websockets", "no" if server else "yes")
+        try:
+            # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
+            #
+            # First we update `host_info` property so subsequent metrics can benefit
+            # having the updated information. A special case is made for for Desktop
+            # as we do want both versiond but don't want to create another metric field.
+            # We are then combining both versions into single version string.
+            self._engine._host_info["version"] = "%s / %s" % (self.app_version, self.startup_version)
+
+            # Actually log the metric
+            self._engine.log_metric("Launched Software")
+
+        except Exception as e:
+            logger.exception("Unexpected error logging a metric")
+            # DO NOT raise exception. It's reasonnable to log an error about it but
+            # we don't want to break normal execution for metric related logging.
 
         if self.uses_legacy_authentication():
             self._migrate_credentials()
