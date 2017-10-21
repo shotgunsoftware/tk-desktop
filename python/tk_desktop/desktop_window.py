@@ -158,6 +158,16 @@ class DesktopWindow(SystrayWindow):
         url_action = self.user_menu.addAction(connection.base_url.split("://")[1])
         self.user_menu.addSeparator()
         advanced_menu = self.user_menu.addMenu("Advanced")
+
+        # We will end up with a disable advanced menu item for the
+        # debug logging toggle if TK_DEBUG is set in the environment,
+        # so we want it to be a bit more obvious that the action is
+        # disabled than we get out of the box.
+        advanced_menu.setStyleSheet(
+            """
+            QMenu::item:disabled { color: rgb(100, 100, 100); }
+            """
+        )
         self.user_menu.addAction(self.ui.actionPin_to_Menu)
         self.user_menu.addAction(self.ui.actionKeep_on_Top)
         self.user_menu.addAction(self.ui.actionRefresh_Projects)
@@ -169,6 +179,26 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.addAction(self.ui.actionQuit)
 
         advanced_menu.addAction(self.ui.actionShow_Console)
+
+        # Setup the toggle action for debug logging.
+        self.toggle_debug_action = QtGui.QAction("Toggle Debug Logging", advanced_menu)
+        self.toggle_debug_action.setCheckable(True)
+        self.toggle_debug_action.setChecked(sgtk.LogManager().global_debug)
+        self.toggle_debug_action.toggled.connect(self._debug_toggled)
+
+        advanced_menu.addAction(self.toggle_debug_action)
+
+        # In the case of TK_DEBUG, we want to disable the control and set a tooltip 
+        # that explains why. We treat the TK_DEBUG env var as a complete override,
+        # otherwise we can check stored user settings. If the user previously set
+        # the logging on or off explicitly via this menu action then we'll remember
+        # it.
+        if sgtk.constants.DEBUG_LOGGING_ENV_VAR in os.environ:
+            self.toggle_debug_action.setEnabled(False)
+        else:
+            debug_user_pref = self.user_preferred_debug_logging
+            if debug_user_pref is not None:
+                self.toggle_debug_action.setChecked(debug_user_pref)
 
         if (
             desktop_server_framework.can_run_server() and
@@ -277,6 +307,47 @@ class DesktopWindow(SystrayWindow):
         # Do not put anything after this line, this can kick-off a Python process launch, which should
         # be done only when the dialog is fully initialized.
         self._load_settings()
+
+    def _debug_toggled(self, state):
+        """
+        Toggles global debug logging and stores the given state as an
+        engine level user setting.
+
+        :param bool state: The debug state to set.
+        """
+        self.user_preferred_debug_logging = state
+        sgtk.LogManager().global_debug = state
+
+    def _get_user_preferred_debug_logging(self):
+        """
+        Gets the user preferred debug logging state from engine-level user
+        settings. If no setting has been stored, a None is returned.
+
+        :rtype: bool or None
+        """
+        return self._settings_manager.retrieve(
+            "debug_logging",
+            None,
+            self._settings_manager.SCOPE_ENGINE,
+        )
+
+    def _set_user_preferred_debug_logging(self, state):
+        """
+        Sets the debug_logging user preference to the given boolean state.
+        The setting is stored at the engine-level scope.
+
+        :param bool state: The debug logging state to store.
+        """
+        self._settings_manager.store(
+            "debug_logging",
+            state,
+            self._settings_manager.SCOPE_ENGINE,
+        )
+
+    user_preferred_debug_logging = property(
+        _get_user_preferred_debug_logging,
+        _set_user_preferred_debug_logging
+    )
 
     def handle_help(self):
         """
