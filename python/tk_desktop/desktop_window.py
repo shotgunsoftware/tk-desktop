@@ -195,8 +195,14 @@ class DesktopWindow(SystrayWindow):
         # it.
         if sgtk.constants.DEBUG_LOGGING_ENV_VAR in os.environ:
             self.toggle_debug_action.setEnabled(False)
+            self.toggle_debug_action.setToolTip(
+                "The %s environment variable is set, which has forced debug logging on." %
+                sgtk.constants.DEBUG_LOGGING_ENV_VAR
+            )
         else:
+            self.toggle_debug_action.setToolTip("Toggles debug logging for Desktop's site context.")
             debug_user_pref = self.user_preferred_debug_logging
+
             if debug_user_pref is not None:
                 self.toggle_debug_action.setChecked(debug_user_pref)
 
