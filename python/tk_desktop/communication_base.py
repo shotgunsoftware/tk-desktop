@@ -32,6 +32,18 @@ class CommunicationBase(object):
         self._msg_server = None
         self._proxy = None
 
+    @property
+    def is_connected(self):
+        """
+        Indicates whether there a live connection.
+
+        :rtype: bool
+        """
+        return (
+            self._proxy is not None and
+            not self._proxy.is_closed()
+        )
+
     def shut_down(self):
         """
         Disconnects from the other process and shuts down the local server.

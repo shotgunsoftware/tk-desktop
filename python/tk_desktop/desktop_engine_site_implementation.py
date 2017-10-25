@@ -60,13 +60,24 @@ class DesktopEngineSiteImplementation(object):
 
         :param bool state: The debug to set.
         """
-        try:
-            self.site_comm.call_no_response("set_global_debug", state)
-        except Exception:
-            # This really can't be a debug log call, because we might have just
-            # toggled debug logging off, in which case the message would not be
-            # logged.
-            logger.warning("RPC call to set_global_debug did not succeed.")
+        if self.site_comm.is_connected:
+            try:
+                self.site_comm.call_no_response("set_global_debug", state)
+            except Exception:
+                # This really can't be a debug log call, because we might have just
+                # toggled debug logging off, in which case the message would not be
+                # logged.
+                logger.warning(
+                    "The RPC call to set_global_debug did not succeed. This is likely "
+                    "caused by an older version of the tk-desktop engine being "
+                    "used by the project. This issue can be resolved by updating to "
+                    "the latest version of tk-desktop using the 'tank updates' command."
+                )
+        else:
+            logger.debug(
+                "No connection exists to a project subprocess. No debug "
+                "toggling will occur via RPC as a result."
+            )
 
     ###########################################################################
     # panel support (displayed as tabs)
