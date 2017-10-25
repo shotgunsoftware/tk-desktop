@@ -51,6 +51,18 @@ class DesktopEngine(Engine):
         """
         return self._host_info
 
+    @property
+    def register_toggle_debug_command(self):
+        """
+        Indicates that the tk-desktop engine should not receive a toggle debug
+        engine command during engine initialization. The desktop engine provides
+        its own debug logging toggle via the advanced menu provided by the engine's
+        internal module.
+
+        :rtype: bool
+        """
+        return False
+
 
     ############################################################################
     # Engine methods
