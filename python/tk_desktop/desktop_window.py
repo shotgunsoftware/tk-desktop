@@ -175,12 +175,12 @@ class DesktopWindow(SystrayWindow):
         self.toggle_debug_action = QtGui.QAction("Toggle Debug Logging", advanced_menu)
         self.toggle_debug_action.setCheckable(True)
         self.toggle_debug_action.setChecked(sgtk.LogManager().global_debug)
+        self.toggle_debug_action.toggled.connect(self._debug_toggled)
 
         debug_user_pref = self.user_preferred_debug_logging
         if debug_user_pref is not None:
             self.toggle_debug_action.setChecked(debug_user_pref)
 
-        self.toggle_debug_action.toggled.connect(self._debug_toggled)
         advanced_menu.addAction(self.toggle_debug_action)
 
         if (
