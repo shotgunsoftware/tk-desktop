@@ -51,6 +51,33 @@ class DesktopEngineSiteImplementation(object):
         shotgun_globals.unregister_bg_task_manager(self._task_manager)
         self.site_comm.shut_down()
 
+    def set_global_debug(self, state):
+        """
+        Attempts to tell a project subprocess to set the state of
+        the global debug logging setting. This will never raise
+        an exception, but a warning message will be logged if something
+        causes the RPC call to raise.
+
+        :param bool state: The debug to set.
+        """
+        if self.site_comm.is_connected:
+            try:
+                self.site_comm.call_no_response("set_global_debug", state)
+            except Exception:
+                # This really can't be a debug log call, because we might have just
+                # toggled debug logging off, in which case the message would not be
+                # logged.
+                logger.warning(
+                    "The RPC call to set_global_debug did not succeed. This is likely "
+                    "caused by an older version of the tk-desktop engine being "
+                    "used by the project. This issue can be resolved by updating to "
+                    "the latest version of tk-desktop using the 'tank updates' command."
+                )
+        else:
+            logger.debug(
+                "No connection exists to a project subprocess. No debug "
+                "toggling will occur via RPC as a result."
+            )
 
     ###########################################################################
     # panel support (displayed as tabs)

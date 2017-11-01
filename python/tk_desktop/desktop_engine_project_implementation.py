@@ -102,6 +102,15 @@ class DesktopEngineProjectImplementation(object):
         self._project_comm.register_function(self._test_project_locations, "test_project_locations")
         self._project_comm.register_function(self._open_project_locations, "open_project_locations")
         self._project_comm.register_function(self._get_setting, "get_setting")
+        self._project_comm.register_function(self._set_global_debug, "set_global_debug")
+
+    def _set_global_debug(self, state):
+        """
+        Sets the global debug to the given state.
+
+        :param bool state: The debug state to set.
+        """
+        sgtk.LogManager().global_debug = state
 
     def _register_groups(self):
         # get the list of configured groups
