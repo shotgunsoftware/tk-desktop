@@ -1035,7 +1035,7 @@ class DesktopWindow(SystrayWindow):
         self.__set_project_from_item(item)
 
     def __set_project_from_id(self, project_id):
-        if id == 0:
+        if project_id == 0:
             return
 
         # find the project in the model
