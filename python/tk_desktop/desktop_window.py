@@ -278,6 +278,9 @@ class DesktopWindow(SystrayWindow):
         # be done only when the dialog is fully initialized.
         self._load_settings()
 
+        log.info("NICOLAS: DesktopWindow: __init__")
+        #self._log_metric_launched_software()
+
     def handle_help(self):
         """
         Jumps to the help page of the Shotgun Desktop.
@@ -437,6 +440,49 @@ class DesktopWindow(SystrayWindow):
         This should eventually be moved to an app on its own.
         """
         self.register_tab("Apps", self.ui.apps_tab)
+
+    def _log_metric(self, group, action):
+        """
+
+        :param group:
+        :param action:
+        :return:
+        """
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+
+            engine = sgtk.platform.current_engine()
+            properties = engine._get_metrics_properties()
+
+            # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
+            EventMetric.log(group, action, properties=properties)
+        except ImportError as e:
+            pass
+            log.info("NICOLAS: DesktopWindow: log_metric: exception: %s" % (str(e)))
+
+    def _log_metric_launched_software(self):
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            self._log_metric(EventMetric.GROUP_TOOLKIT, "Launched Software")
+        except ImportError as e:
+            pass
+            log.info("NICOLAS: DesktopWindow: log_metric_viewed_project_commands: exception: %s" % (str(e)))
+
+    def _log_metric_viewed_project_commands(self):
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            self._log_metric(EventMetric.GROUP_PROJECTS, "Viewed Project Commands")
+        except ImportError as e:
+            pass
+            log.info("NICOLAS: DesktopWindow: log_metric_viewed_project_commands: exception: %s" % (str(e)))
+
+    def _log_metric_viewed_projects(self):
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            self._log_metric("Navigation", "Viewed Projects")
+        except ImportError as e:
+            pass
+            log.info("NICOLAS: DesktopWindow: log_metric_viewed_projects: exception: %s" % (str(e)))
 
     ########################################################################################
     # Event handlers and slots
@@ -678,6 +724,10 @@ class DesktopWindow(SystrayWindow):
         """
         Invoked when all commands found for a project have been registered.
         """
+
+        log.info("NICOLAS: DesktopWindow: on_project_commands_finished: before metric")
+        self._log_metric_viewed_project_commands()
+
         if self._project_command_count == 0:
             # Show the UI that indicates no project commands have been configured
             self.install_apps_widget.build_software_entity_config_widget(
@@ -1025,7 +1075,7 @@ class DesktopWindow(SystrayWindow):
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
-
+        log.info("NICOLAS: DesktopWindow: _on_project_selection(%s)" % (str(selected)))
         if len(selected_indexes) == 0:
             return
 
@@ -1036,7 +1086,11 @@ class DesktopWindow(SystrayWindow):
 
     def __set_project_from_id(self, project_id):
         if project_id == 0:
+            log.info("NICOLAS: DesktopWindow: __set_project_from_id: project_id == 0")
+            self._log_metric_viewed_projects()
             return
+
+        log.info("NICOLAS: DesktopWindow: __set_project_from_id: executing remaining code ...")
 
         # find the project in the model
         model = self._project_selection_model.model()
@@ -1062,6 +1116,7 @@ class DesktopWindow(SystrayWindow):
         return pixmap.scaled(size, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
 
     def __set_project_from_item(self, item):
+        log.info("NICOLAS: DesktopWindow: __set_project_from_item: item: %s" % (str(item)))
         # slide in the project specific view
         self.slide_view(self.ui.project_page, "right")
 
