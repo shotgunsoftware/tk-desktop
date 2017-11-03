@@ -279,7 +279,7 @@ class DesktopWindow(SystrayWindow):
         self._load_settings()
 
         log.info("NICOLAS: DesktopWindow: __init__")
-        #self._log_metric_launched_software()
+        self._log_metric_launched_software()
 
     def handle_help(self):
         """
@@ -339,6 +339,10 @@ class DesktopWindow(SystrayWindow):
         # Update the project at the very end so the Python process is kicked off when everything
         # is initialized.
         project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
+        if project_id == 0:
+            # 0 means will be displaying all of the projects
+            self._log_metric_viewed_projects()
+
         self.__set_project_from_id(project_id)
 
     def _save_setting(self, key, value, site_specific):
@@ -441,7 +445,7 @@ class DesktopWindow(SystrayWindow):
         """
         self.register_tab("Apps", self.ui.apps_tab)
 
-    def _log_metric(self, group, action):
+    def _log_metric(self, group, action, extra_properties=None):
         """
 
         :param group:
@@ -453,6 +457,9 @@ class DesktopWindow(SystrayWindow):
 
             engine = sgtk.platform.current_engine()
             properties = engine._get_metrics_properties()
+
+            if extra_properties:
+                properties.update(extra_properties)
 
             # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
             EventMetric.log(group, action, properties=properties)
@@ -468,17 +475,21 @@ class DesktopWindow(SystrayWindow):
             pass
             log.info("NICOLAS: DesktopWindow: log_metric_viewed_project_commands: exception: %s" % (str(e)))
 
-    def _log_metric_viewed_project_commands(self):
+    def _log_metric_viewed_project_commands(self, filter):
+        """
+
+        :param filter:
+        :return:
+        """
         try:
-            from sgtk.util.metrics import EventMetric as EventMetric
-            self._log_metric(EventMetric.GROUP_PROJECTS, "Viewed Project Commands")
+            extra_properties = {"Filter": str(filter)}
+            self._log_metric("Projects", "Viewed Project Commands", extra_properties)
         except ImportError as e:
             pass
             log.info("NICOLAS: DesktopWindow: log_metric_viewed_project_commands: exception: %s" % (str(e)))
 
     def _log_metric_viewed_projects(self):
         try:
-            from sgtk.util.metrics import EventMetric as EventMetric
             self._log_metric("Navigation", "Viewed Projects")
         except ImportError as e:
             pass
@@ -726,7 +737,7 @@ class DesktopWindow(SystrayWindow):
         """
 
         log.info("NICOLAS: DesktopWindow: on_project_commands_finished: before metric")
-        self._log_metric_viewed_project_commands()
+        self._log_metric_viewed_project_commands("unspecified")
 
         if self._project_command_count == 0:
             # Show the UI that indicates no project commands have been configured
@@ -954,6 +965,7 @@ class DesktopWindow(SystrayWindow):
         # remember that we are back at the browser
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
+        self._log_metric_viewed_projects()
 
         # We are switching back to the project list, so need to show the
         # "Refresh Projects" and hide the "Advanced project setup" menu
@@ -1087,7 +1099,6 @@ class DesktopWindow(SystrayWindow):
     def __set_project_from_id(self, project_id):
         if project_id == 0:
             log.info("NICOLAS: DesktopWindow: __set_project_from_id: project_id == 0")
-            self._log_metric_viewed_projects()
             return
 
         log.info("NICOLAS: DesktopWindow: __set_project_from_id: executing remaining code ...")
