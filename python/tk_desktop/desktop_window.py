@@ -475,15 +475,11 @@ class DesktopWindow(SystrayWindow):
             pass
             log.info("NICOLAS: DesktopWindow: log_metric_viewed_project_commands: exception: %s" % (str(e)))
 
-    def _log_metric_viewed_project_commands(self, filter):
+    def _log_metric_viewed_project_commands(self):
         """
-
-        :param filter:
-        :return:
         """
         try:
-            extra_properties = {"Filter": str(filter)}
-            self._log_metric("Projects", "Viewed Project Commands", extra_properties)
+            self._log_metric("Projects", "Viewed Project Commands")
         except ImportError as e:
             pass
             log.info("NICOLAS: DesktopWindow: log_metric_viewed_project_commands: exception: %s" % (str(e)))
