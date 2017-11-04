@@ -277,9 +277,11 @@ class DesktopWindow(SystrayWindow):
         # Do not put anything after this line, this can kick-off a Python process launch, which should
         # be done only when the dialog is fully initialized.
         self._load_settings()
-
-        log.info("NICOLAS: DesktopWindow: __init__")
-        self._log_metric_launched_software()
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            self._log_metric(EventMetric.GROUP_TOOLKIT, "Launched Software")
+        except ImportError as e:
+            pass
 
     def handle_help(self):
         """
@@ -341,7 +343,7 @@ class DesktopWindow(SystrayWindow):
         project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
         if project_id == 0:
             # 0 means will be displaying all of the projects
-            self._log_metric_viewed_projects()
+            self._log_metric("Navigation", "Viewed Projects")
 
         self.__set_project_from_id(project_id)
 
@@ -447,10 +449,10 @@ class DesktopWindow(SystrayWindow):
 
     def _log_metric(self, group, action, extra_properties=None):
         """
-
-        :param group:
-        :param action:
-        :return:
+        Local metric logging helper method
+        :param group: A string of the metric group (e.g.: Navigation, ToolKit, etc)
+        :param action: A string of a metric action to me logged (e.g.: Launched Software, Viewed Projects
+        :param extra_properties: A dict of extra properties to attach to the logged metric
         """
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
@@ -465,31 +467,7 @@ class DesktopWindow(SystrayWindow):
             EventMetric.log(group, action, properties=properties)
         except ImportError as e:
             pass
-            log.info("NICOLAS: DesktopWindow: log_metric: exception: %s" % (str(e)))
 
-    def _log_metric_launched_software(self):
-        try:
-            from sgtk.util.metrics import EventMetric as EventMetric
-            self._log_metric(EventMetric.GROUP_TOOLKIT, "Launched Software")
-        except ImportError as e:
-            pass
-            log.info("NICOLAS: DesktopWindow: log_metric_viewed_project_commands: exception: %s" % (str(e)))
-
-    def _log_metric_viewed_project_commands(self):
-        """
-        """
-        try:
-            self._log_metric("Projects", "Viewed Project Commands")
-        except ImportError as e:
-            pass
-            log.info("NICOLAS: DesktopWindow: log_metric_viewed_project_commands: exception: %s" % (str(e)))
-
-    def _log_metric_viewed_projects(self):
-        try:
-            self._log_metric("Navigation", "Viewed Projects")
-        except ImportError as e:
-            pass
-            log.info("NICOLAS: DesktopWindow: log_metric_viewed_projects: exception: %s" % (str(e)))
 
     ########################################################################################
     # Event handlers and slots
@@ -731,9 +709,7 @@ class DesktopWindow(SystrayWindow):
         """
         Invoked when all commands found for a project have been registered.
         """
-
-        log.info("NICOLAS: DesktopWindow: on_project_commands_finished: before metric")
-        self._log_metric_viewed_project_commands("unspecified")
+        self._log_metric("Projects", "Viewed Project Commands")
 
         if self._project_command_count == 0:
             # Show the UI that indicates no project commands have been configured
@@ -961,7 +937,7 @@ class DesktopWindow(SystrayWindow):
         # remember that we are back at the browser
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
-        self._log_metric_viewed_projects()
+        self._log_metric("Navigation", "Viewed Projects")
 
         # We are switching back to the project list, so need to show the
         # "Refresh Projects" and hide the "Advanced project setup" menu
@@ -1083,7 +1059,6 @@ class DesktopWindow(SystrayWindow):
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
-        log.info("NICOLAS: DesktopWindow: _on_project_selection(%s)" % (str(selected)))
         if len(selected_indexes) == 0:
             return
 
@@ -1094,10 +1069,7 @@ class DesktopWindow(SystrayWindow):
 
     def __set_project_from_id(self, project_id):
         if project_id == 0:
-            log.info("NICOLAS: DesktopWindow: __set_project_from_id: project_id == 0")
             return
-
-        log.info("NICOLAS: DesktopWindow: __set_project_from_id: executing remaining code ...")
 
         # find the project in the model
         model = self._project_selection_model.model()
@@ -1123,7 +1095,6 @@ class DesktopWindow(SystrayWindow):
         return pixmap.scaled(size, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
 
     def __set_project_from_item(self, item):
-        log.info("NICOLAS: DesktopWindow: __set_project_from_item: item: %s" % (str(item)))
         # slide in the project specific view
         self.slide_view(self.ui.project_page, "right")
 
