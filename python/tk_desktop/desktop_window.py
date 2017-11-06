@@ -280,7 +280,7 @@ class DesktopWindow(SystrayWindow):
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
             self._log_metric(EventMetric.GROUP_TOOLKIT, "Launched Software")
-        except ImportError as e:
+        except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
 
@@ -344,7 +344,12 @@ class DesktopWindow(SystrayWindow):
         project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
         if project_id == 0:
             # 0 means will be displaying all of the projects
-            self._log_metric("Navigation", "Viewed Projects")
+            try:
+                from sgtk.util.metrics import EventMetric as EventMetric
+                self._log_metric(EventMetric.GROUP_NAVIGATION, "Viewed Projects")
+            except:
+                # ignore all errors. ex: using a core that doesn't support metrics
+                pass
 
         self.__set_project_from_id(project_id)
 
@@ -711,7 +716,13 @@ class DesktopWindow(SystrayWindow):
         """
         Invoked when all commands found for a project have been registered.
         """
-        self._log_metric("Projects", "Viewed Project Commands")
+
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            self._log_metric(EventMetric.GROUP_PROJECTS, "Viewed Project Commands")
+        except:
+            # ignore all errors. ex: using a core that doesn't support metrics
+            pass
 
         if self._project_command_count == 0:
             # Show the UI that indicates no project commands have been configured
@@ -939,7 +950,12 @@ class DesktopWindow(SystrayWindow):
         # remember that we are back at the browser
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
-        self._log_metric("Navigation", "Viewed Projects")
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            self._log_metric(EventMetric.GROUP_NAVIGATION, "Viewed Projects")
+        except:
+            # ignore all errors. ex: using a core that doesn't support metrics
+            pass
 
         # We are switching back to the project list, so need to show the
         # "Refresh Projects" and hide the "Advanced project setup" menu
