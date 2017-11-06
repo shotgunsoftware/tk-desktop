@@ -281,6 +281,7 @@ class DesktopWindow(SystrayWindow):
             from sgtk.util.metrics import EventMetric as EventMetric
             self._log_metric(EventMetric.GROUP_TOOLKIT, "Launched Software")
         except ImportError as e:
+            # ignore all errors. ex: using a core that doesn't support metrics
             pass
 
     def handle_help(self):
@@ -466,6 +467,7 @@ class DesktopWindow(SystrayWindow):
             # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
             EventMetric.log(group, action, properties=properties)
         except ImportError as e:
+            # ignore all errors. ex: using a core that doesn't support metrics
             pass
 
 
