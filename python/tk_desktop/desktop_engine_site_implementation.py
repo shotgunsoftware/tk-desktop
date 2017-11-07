@@ -35,6 +35,7 @@ class DesktopEngineSiteImplementation(object):
 
         self.site_comm = SiteCommunication(engine)
         self.site_comm.proxy_closing.connect(self._on_proxy_closing)
+        self.site_comm.proxy_created.connect(self._on_proxy_created)
 
         self._engine = engine
         self.app_version = None
@@ -213,6 +214,11 @@ class DesktopEngineSiteImplementation(object):
         # Clear the UI, we can't launch anything anymore!
         self.desktop_window.clear_app_uis()
 
+    def _on_proxy_created(self):
+        """
+        Invoked when background process has created proxy
+        """
+        logger.debug("_on_proxy_created")
     def set_groups(self, groups, show_recents=True):
         self.desktop_window.set_groups(groups, show_recents)
 
