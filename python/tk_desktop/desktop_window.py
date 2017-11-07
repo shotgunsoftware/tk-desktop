@@ -16,7 +16,6 @@ import tempfile
 import subprocess
 import cPickle as pickle
 import pprint
-import itertools
 import urlparse
 import inspect
 from collections import OrderedDict
@@ -50,6 +49,7 @@ from .loading_project_widget import LoadingProjectWidget
 from .browser_integration_user_switch_dialog import BrowserIntegrationUserSwitchDialog
 from .banner_widget import BannerWidget
 
+from .project_menu import ProjectMenu
 from .project_commands_model import ProjectCommandModel
 from .project_commands_model import ProjectCommandProxyModel
 from .project_commands_widget import ProjectCommandDelegate
@@ -89,7 +89,6 @@ class DesktopWindow(SystrayWindow):
         # initialize member variables
         self.current_project = None
         self.__activation_hotkey = None
-        self.__pipeline_configuration_separator = None
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
 
         self._sync_thread = None
@@ -99,6 +98,7 @@ class DesktopWindow(SystrayWindow):
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
+        self._project_menu = ProjectMenu(self)
         self.project_overlay = LoadingProjectWidget(self.ui.project_commands)
         self.install_apps_widget = NoAppsInstalledOverlay(self.ui.project_commands)
         self.setup_project_widget = SetupProject(self.ui.project_commands)
@@ -903,7 +903,7 @@ class DesktopWindow(SystrayWindow):
         return self.ui.project_commands
 
     def add_to_project_menu(self, action):
-        self.project_menu.insertAction(self.__pipeline_configuration_separator, action)
+        self._project_menu.add(action)
 
     def add_project_command(
         self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
@@ -989,91 +989,14 @@ class DesktopWindow(SystrayWindow):
         self.install_apps_widget.hide()
         self.project_overlay.hide()
 
-        # clear the project specific menu
-        self.project_menu = QtGui.QMenu(self)
-        self.project_menu.aboutToShow.connect(self._on_project_menu_about_to_show)
-        self.project_menu.triggered.connect(self._on_project_menu_triggered)
-        self.ui.actionProject_Filesystem_Folder.setVisible(True)
-        self.project_menu.addAction(self.ui.actionProject_Filesystem_Folder)
-        self.ui.project_menu.setMenu(self.project_menu)
-        self.__pipeline_configuration_separator = None
+        self._project_menu.clear()
+
+    def clear_actions_from_project_menu(self):
+        self._project_menu.clear_actions()
 
     def show_update_project_config(self):
         self.update_project_config_widget.show()
         self.project_overlay.hide()
-
-    def __populate_pipeline_configurations_menu(self, pipeline_configurations, selected):
-        """
-        This will populate the menu with all the pipeline configurations.
-
-            - It will only be built if two or more configurations are available.
-            - Primaries goes first, then everything else is alphabetical.
-            - If two primaries have the same name, the lowest id comes first.
-            - If more than two pipelines have the same name, their id is suffixed between paratheses.
-
-        :param list pipeline_configurations: List of pipeline configurations link.
-        :param id selected: Id of the pipeline that is currently selected. The selected pipeline
-            will have a marked checked box next to its name.
-        """
-
-        if len(pipeline_configurations) < 2:
-            log.debug("Less than two pipeline configurations were found, not building menu.")
-            # only one configuration choice
-            return
-
-        log.debug("More than one pipeline configuration was found, building menu.")
-
-        # Add a separator that will be above the pipeline configurations. Context menu actions will go over that.
-        self.__pipeline_configuration_separator = self.project_menu.addSeparator()
-
-        # Build the configuration section header.
-        label = QtGui.QLabel("CONFIGURATION")
-        label.setObjectName("project_menu_configuration_label")
-        action = QtGui.QWidgetAction(self)
-        action.setDefaultWidget(label)
-        self.project_menu.addAction(action)
-
-        # Group every sandboxes by their name and add pipelines one at a time
-        for pc_name, pc_group in itertools.groupby(pipeline_configurations, lambda x: x["name"]):
-            self._add_pipeline_group_to_menu(list(pc_group), selected)
-
-    def _add_pipeline_group_to_menu(self, pc_group, selected):
-        """
-        Adds a group of pipelines to the menu.
-
-        Pipelines are assumed to have the same name.
-
-        :param list pc_group: List of pipeline entities with keys ''id'', ''name'' and ''project''.
-        :param dict selected: Pipeline configuration to select.
-        """
-        for pc in pc_group:
-            parenthesis_arguments = []
-            # If this is a site level configuration, suffix (site) to it.
-            if pc["project"] is None:
-                parenthesis_arguments.append("site")
-
-            # If there are more than one pipeline in the group, we'll suffix the pipeline id.
-            if len(pc_group) > 1:
-                parenthesis_arguments.append("id %d" % pc["id"])
-
-            if parenthesis_arguments:
-                unique_pc_name = "%s (%s)" % (pc["name"], ", ".join(parenthesis_arguments))
-            else:
-                unique_pc_name = pc["name"]
-
-            action = self.project_menu.addAction(unique_pc_name)
-            action.setCheckable(True)
-            action.setProperty("project_configuration_id", pc["id"])
-
-            # If this pipeline is the one that was selected, mark it in the
-            # menu and update the configuration name widget.
-            if selected and selected["id"] == pc["id"]:
-                action.setChecked(True)
-                self.ui.configuration_name.setText(unique_pc_name)
-
-                # If we haven't picked a primary, show the sandbox header.
-                if not self._is_primary_pc(pc):
-                    self.ui.configuration_frame.show()
 
     def __set_project_just_accessed(self, project):
         self._project_model.update_project_accessed_time(project)
@@ -1128,31 +1051,6 @@ class DesktopWindow(SystrayWindow):
         # launch the app proxy
         project = item.data(SgProjectModel.SG_DATA_ROLE)
         self.__launch_app_proxy_for_project(project)
-
-    def _on_project_menu_about_to_show(self):
-        """
-        Called just before the project specific menu is shown to the user.
-        """
-
-        engine = sgtk.platform.current_engine()
-
-        try:
-            # Get the availability of the project locations.
-            has_project_locations = engine.site_comm.call("test_project_locations")
-        except Exception, exception:
-            log.debug("Cannot get the availability of the project locations: %s" % exception)
-            # Assume project locations are not available.
-            has_project_locations = False
-
-        # Show or hide project menu item "Project Filesystem Folder"
-        # based on the availability of the project locations.
-        self.ui.actionProject_Filesystem_Folder.setVisible(has_project_locations)
-
-    def _on_project_menu_triggered(self, action):
-        pc_id = action.property("project_configuration_id")
-
-        if pc_id is not None:
-            self.__launch_app_proxy_for_project(self.current_project, pc_id)
 
     def _on_setup_finished(self, success):
         if success:
@@ -1277,7 +1175,7 @@ class DesktopWindow(SystrayWindow):
                 self._save_setting(setting_name, pipeline_configuration_to_load["id"], site_specific=True)
 
             # Add all the pipeline configurations to the menu.
-            self.__populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration_to_load)
+            self._project_menu.populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration_to_load)
 
             # If there is no pipeline configuration set for the current project, i.e. there might be
             # site level ones but no project ones, add the Advanced Project Setup menu.

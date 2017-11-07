@@ -218,7 +218,10 @@ class DesktopEngineSiteImplementation(object):
         """
         Invoked when background process has created proxy
         """
-        logger.debug("_on_proxy_created")
+        # Clears the project menu so the previous engine's actions
+        # are removed before adding new one
+        self.desktop_window.clear_actions_from_project_menu()
+
     def set_groups(self, groups, show_recents=True):
         self.desktop_window.set_groups(groups, show_recents)
 
@@ -264,6 +267,7 @@ class DesktopEngineSiteImplementation(object):
                 # response back.
                 self.refresh_user_credentials()
                 self.site_comm.call_no_response("trigger_callback", "__commands", name)
+                
             action.triggered.connect(action_triggered)
             self.desktop_window.add_to_project_menu(action)
         else:
