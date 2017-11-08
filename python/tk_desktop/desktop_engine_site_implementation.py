@@ -60,7 +60,7 @@ class DesktopEngineSiteImplementation(object):
 
         :param bool state: The debug to set.
         """
-        if self.site_comm.is_connected:
+        if self.site_comm.is_connected and "set_global_debug" in self.site_comm.call("list_functions"):
             try:
                 self.site_comm.call_no_response("set_global_debug", state)
             except Exception:
@@ -73,6 +73,12 @@ class DesktopEngineSiteImplementation(object):
                     "used by the project. This issue can be resolved by updating to "
                     "the latest version of tk-desktop using the 'tank updates' command."
                 )
+        elif self.site_comm.is_connected:
+            logger.debug(
+                "A connection is active, but the proxy does not support the "
+                "set_global_debug RPC function. The debug log state will not "
+                "be toggled in the proxy as a result."
+            )
         else:
             logger.debug(
                 "No connection exists to a project subprocess. No debug "
