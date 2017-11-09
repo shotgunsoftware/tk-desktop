@@ -74,10 +74,10 @@ class DesktopEngineSiteImplementation(object):
                     "the latest version of tk-desktop using the 'tank updates' command."
                 )
         elif self.site_comm.is_connected:
-            logger.debug(
+            logger.warning(
                 "A connection is active, but the proxy does not support the "
                 "set_global_debug RPC function. The debug log state will not "
-                "be toggled in the proxy as a result."
+                "be toggled in the project context as a result."
             )
         else:
             logger.debug(
