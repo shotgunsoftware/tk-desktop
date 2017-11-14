@@ -26,6 +26,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
     """
 
     proxy_closing = QtCore.Signal()
+    proxy_created = QtCore.Signal()
 
     def __init__(self, engine):
         """
@@ -33,6 +34,13 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         """
         QtCore.QObject.__init__(self)
         CommunicationBase.__init__(self, engine)
+
+    def _create_proxy(self, pipe, authkey):
+        """
+        Connects to the other process's RPC server.
+        """
+        CommunicationBase._create_proxy(self, pipe, authkey)
+        self.proxy_created.emit()
 
     def start_server(self):
         """
