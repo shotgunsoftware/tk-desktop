@@ -1,3 +1,13 @@
+# Copyright (c) 2017 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+
 import itertools
 
 from tank.platform.qt import QtCore, QtGui
@@ -5,20 +15,27 @@ from sgtk.platform import get_logger
 
 log = get_logger(__name__)
 
+
 class ProjectMenu(object):
     """
-    Encalsulate specific functionalities relating ot the project menu
+    Encalsulate specific functionalities relating ot the project menu.
+    This class was mostly created to lighten the `DesktopWindow` class.
     """
     def __init__(self, parent):
         """
-
-        :param parent: DesktopWindow-->SystrayWindow-->
+        Initialise a `ProjectMenu` instance with a reference to it's parent object:
+        a DesktopWindow instance
+        :param parent: A reference to a `DesktopWindow` instance.
         """
         self._parent = parent
         self._project_menu = None
         self._pipeline_configuration_separator = None
 
     def add(self, action):
+        """
+        Add an child item to the menu (QAction)
+        :param action: A valid QAction object
+        """
         self._project_menu.insertAction(self._pipeline_configuration_separator, action)
 
     def clear(self):
@@ -41,10 +58,12 @@ class ProjectMenu(object):
         Clears actions from the project menu but keeps pipeline configurations if any
         """
         actions = self._project_menu.actions()
+
+        # Loop through actions and delete the ones listed before the separator
         for action in actions:
-            text = action.text()
-            print text
             if action == self._pipeline_configuration_separator:
+                # Found the separator, entering the pipeline
+                # config section, stop deleting items
                 break
 
             self._project_menu.removeAction(action)
