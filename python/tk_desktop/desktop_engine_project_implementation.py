@@ -129,8 +129,14 @@ class DesktopEngineProjectImplementation(object):
         self._project_comm.call("set_collapse_rules", collapse_rules)
 
     def _register_commands(self):
+        login = self._project_comm.call('get_current_login')
+
         # send the commands over to the proxy
         for name, command_info in self._engine.commands.iteritems():
+            deny_permissions = command_info['properties'].get('deny_permissions')
+            if deny_permissions and login['permission_rule_set']['name'] in deny_permissions:
+                continue
+
             self.__callback_map[("__commands", name)] = command_info["callback"]
             # pull out needed values since this needs to be pickleable
             gui_properties = {}

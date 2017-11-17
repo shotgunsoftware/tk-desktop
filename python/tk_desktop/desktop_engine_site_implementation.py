@@ -193,6 +193,7 @@ class DesktopEngineSiteImplementation(object):
         self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
         self.site_comm.register_function(self.trigger_register_command, "trigger_register_command")
         self.site_comm.register_function(self.project_commands_finished, "project_commands_finished")
+        self.site_comm.register_function(self.get_current_login, "get_current_login")
 
     def engine_startup_error(self, error, tb=None):
         """
@@ -387,7 +388,7 @@ class DesktopEngineSiteImplementation(object):
         self._current_login = self._engine.sgtk.shotgun.find_one(
             "HumanUser",
             [["login", "is", human_user.login]],
-            ["id", "login"]
+            ["id", "login", "permission_rule_set"]
         )
 
         # Initialize Qt app
