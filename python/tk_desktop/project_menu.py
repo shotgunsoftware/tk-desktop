@@ -163,9 +163,16 @@ class ProjectMenu(object):
         self._parent.ui.actionProject_Filesystem_Folder.setVisible(has_project_locations)
 
     def _on_project_menu_triggered(self, action):
+        """
+        Called just after user has selected a project menu option or pipeline configuration
 
-        # Forwards to `parent` so the `__launch_app_proxy_for_project` private methods
-        # can proceed with setting up project and request ui update as required.
+        Forwards to `parent` so the `__launch_app_proxy_for_project` private methods
+        can proceed with setting up project and request ui update as required.
+
+        NOTE: The parent version of the this method only acts on a pipeline configuration choice.
+
+        :param action: a QAction as selected by user.
+        """
         self._parent._on_project_menu_triggered(action)
 
 
