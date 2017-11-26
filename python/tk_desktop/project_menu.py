@@ -18,8 +18,8 @@ log = get_logger(__name__)
 
 class ProjectMenu(object):
     """
-    Encalsulate specific functionalities relating ot the project menu.
-    This class was mostly created to lighten the `DesktopWindow` class.
+    Encapsulate specific functionality relating of the project menu.
+    This class was created to lighten the `DesktopWindow` class.
     """
     def __init__(self, parent):
         """
@@ -160,10 +160,10 @@ class ProjectMenu(object):
         self._parent.ui.actionProject_Filesystem_Folder.setVisible(has_project_locations)
 
     def _on_project_menu_triggered(self, action):
-        pc_id = action.property("project_configuration_id")
 
-        if pc_id is not None:
-            self._parent.__launch_app_proxy_for_project(self.current_project, pc_id)
+        # Forwards to `parent` so the `__launch_app_proxy_for_project` private methods
+        # can proceed with setting up project and request ui update as required.
+        self._parent._on_project_menu_triggered(action)
 
 
 
