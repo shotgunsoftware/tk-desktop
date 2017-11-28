@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import itertools
+import sgtk
 
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import get_logger
