@@ -18,8 +18,8 @@ log = get_logger(__name__)
 
 class ProjectMenu(object):
     """
-    Encalsulate specific functionalities relating ot the project menu.
-    This class was mostly created to lighten the `DesktopWindow` class.
+    Encapsulate specific functionality relating of the project menu.
+    This class was created to lighten the `DesktopWindow` class.
     """
     def __init__(self, parent):
         """
@@ -98,11 +98,13 @@ class ProjectMenu(object):
         action = QtGui.QWidgetAction(self._parent)
         action.setDefaultWidget(label)
         self._project_menu.addAction(action)
+        pipelineConfigsMenuGroup = QtGui.QActionGroup(self._parent)
+        pipelineConfigsMenuGroup.setExclusive(True)
         # Group every sandboxes by their name and add pipelines one at a time
         for pc_name, pc_group in itertools.groupby(pipeline_configurations, lambda x: x["name"]):
-            self._add_pipeline_group_to_menu(list(pc_group), selected)
+            self._add_pipeline_group_to_menu(pipelineConfigsMenuGroup, list(pc_group), selected)
 
-    def _add_pipeline_group_to_menu(self, pc_group, selected):
+    def _add_pipeline_group_to_menu(self, parent_action_group, pc_group, selected):
         """
         Adds a group of pipelines to the menu.
 
@@ -127,6 +129,7 @@ class ProjectMenu(object):
                 unique_pc_name = pc["name"]
 
             action = self._project_menu.addAction(unique_pc_name)
+            action.setActionGroup(parent_action_group)
             action.setCheckable(True)
             action.setProperty("project_configuration_id", pc["id"])
 
@@ -160,10 +163,18 @@ class ProjectMenu(object):
         self._parent.ui.actionProject_Filesystem_Folder.setVisible(has_project_locations)
 
     def _on_project_menu_triggered(self, action):
-        pc_id = action.property("project_configuration_id")
+        """
+        Called just after user has selected a project menu option or pipeline configuration
 
-        if pc_id is not None:
-            self._parent.__launch_app_proxy_for_project(self.current_project, pc_id)
+        Forwards to `parent` so the `__launch_app_proxy_for_project` private methods
+        can proceed with setting up project and request ui update as required.
+
+        NOTE: The parent version of the this method only acts on a pipeline configuration choice.
+
+        :param action: a QAction as selected by user.
+        """
+        self._parent._on_project_menu_triggered(action)
+
 
 
 

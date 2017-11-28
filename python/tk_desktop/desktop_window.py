@@ -1052,6 +1052,18 @@ class DesktopWindow(SystrayWindow):
         project = item.data(SgProjectModel.SG_DATA_ROLE)
         self.__launch_app_proxy_for_project(project)
 
+    def _on_project_menu_triggered(self, action):
+        """
+        Called just after user has selected a project menu option or pipeline configuration.
+        The methods acts only on a pipeline configuration choice.
+
+        :param action: a QAction as selected by user.
+        """
+        pc_id = action.property("project_configuration_id")
+
+        if pc_id is not None:
+            self.__launch_app_proxy_for_project(self.current_project, pc_id)
+
     def _on_setup_finished(self, success):
         if success:
             self.__launch_app_proxy_for_project(self.current_project)
