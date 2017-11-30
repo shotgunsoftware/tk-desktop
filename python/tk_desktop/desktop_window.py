@@ -277,12 +277,6 @@ class DesktopWindow(SystrayWindow):
         # Do not put anything after this line, this can kick-off a Python process launch, which should
         # be done only when the dialog is fully initialized.
         self._load_settings()
-        try:
-            from sgtk.util.metrics import EventMetric as EventMetric
-            EventMetric.log(EventMetric.GROUP_TOOLKIT, "Launched Software", bundle=engine)
-        except:
-            # ignore all errors. ex: using a core that doesn't support metrics
-            pass
 
     def handle_help(self):
         """
