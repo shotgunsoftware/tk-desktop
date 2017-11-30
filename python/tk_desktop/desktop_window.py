@@ -279,7 +279,7 @@ class DesktopWindow(SystrayWindow):
         self._load_settings()
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
-            self._log_metric(EventMetric.GROUP_TOOLKIT, "Launched Software")
+            EventMetric.log(EventMetric.GROUP_TOOLKIT, "Launched Software", context=engine)
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
@@ -346,7 +346,9 @@ class DesktopWindow(SystrayWindow):
             # 0 means will be displaying all of the projects
             try:
                 from sgtk.util.metrics import EventMetric as EventMetric
-                self._log_metric(EventMetric.GROUP_NAVIGATION, "Viewed Projects")
+                EventMetric.log(EventMetric.GROUP_NAVIGATION,
+                                "Viewed Projects",
+                                context=sgtk.platform.current_bundle())
             except:
                 # ignore all errors. ex: using a core that doesn't support metrics
                 pass
@@ -452,29 +454,6 @@ class DesktopWindow(SystrayWindow):
         This should eventually be moved to an app on its own.
         """
         self.register_tab("Apps", self.ui.apps_tab)
-
-    def _log_metric(self, group, action, extra_properties=None):
-        """
-        Local metric logging helper method
-        :param group: A string of the metric group (e.g.: Navigation, ToolKit, etc)
-        :param action: A string of a metric action to me logged (e.g.: Launched Software, Viewed Projects
-        :param extra_properties: A dict of extra properties to attach to the logged metric
-        """
-        try:
-            from sgtk.util.metrics import EventMetric as EventMetric
-
-            engine = sgtk.platform.current_engine()
-            properties = engine._get_metrics_properties()
-
-            if extra_properties:
-                properties.update(extra_properties)
-
-            # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
-            EventMetric.log(group, action, properties=properties)
-        except ImportError as e:
-            # ignore all errors. ex: using a core that doesn't support metrics
-            pass
-
 
     ########################################################################################
     # Event handlers and slots
@@ -719,7 +698,9 @@ class DesktopWindow(SystrayWindow):
 
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
-            self._log_metric(EventMetric.GROUP_PROJECTS, "Viewed Project Commands")
+            EventMetric.log(EventMetric.GROUP_PROJECTS,
+                            "Viewed Project Commands",
+                            context=sgtk.platform.current_bundle())
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
@@ -952,7 +933,9 @@ class DesktopWindow(SystrayWindow):
         self._save_setting("project_id", 0, site_specific=True)
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
-            self._log_metric(EventMetric.GROUP_NAVIGATION, "Viewed Projects")
+            EventMetric.log(EventMetric.GROUP_NAVIGATION,
+                             "Viewed Projects",
+                             context=sgtk.platform.current_bundle())
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
