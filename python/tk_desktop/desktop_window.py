@@ -279,7 +279,7 @@ class DesktopWindow(SystrayWindow):
         self._load_settings()
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
-            EventMetric.log(EventMetric.GROUP_TOOLKIT, "Launched Software", context=engine)
+            EventMetric.log(EventMetric.GROUP_TOOLKIT, "Launched Software", bundle=engine)
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
@@ -348,7 +348,7 @@ class DesktopWindow(SystrayWindow):
                 from sgtk.util.metrics import EventMetric as EventMetric
                 EventMetric.log(EventMetric.GROUP_NAVIGATION,
                                 "Viewed Projects",
-                                context=sgtk.platform.current_bundle())
+                                bundle=sgtk.platform.current_engine())
             except:
                 # ignore all errors. ex: using a core that doesn't support metrics
                 pass
@@ -700,7 +700,7 @@ class DesktopWindow(SystrayWindow):
             from sgtk.util.metrics import EventMetric as EventMetric
             EventMetric.log(EventMetric.GROUP_PROJECTS,
                             "Viewed Project Commands",
-                            context=sgtk.platform.current_bundle())
+                            bundle=sgtk.platform.current_engine())
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
@@ -935,7 +935,7 @@ class DesktopWindow(SystrayWindow):
             from sgtk.util.metrics import EventMetric as EventMetric
             EventMetric.log(EventMetric.GROUP_NAVIGATION,
                              "Viewed Projects",
-                             context=sgtk.platform.current_bundle())
+                             bundle=engine)
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
