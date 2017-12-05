@@ -989,7 +989,7 @@ class DesktopWindow(SystrayWindow):
         self.install_apps_widget.hide()
         self.project_overlay.hide()
 
-        self._project_menu.clear()
+        self._project_menu.reset()
 
     def clear_actions_from_project_menu(self):
         self._project_menu.clear_actions()
