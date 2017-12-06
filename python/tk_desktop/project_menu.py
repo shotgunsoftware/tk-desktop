@@ -39,11 +39,13 @@ class ProjectMenu(object):
         """
         self._project_menu.insertAction(self._pipeline_configuration_separator, action)
 
-    def clear(self):
+    def reset(self):
         """
-        Clears the project specific menu
+        Clears the project specific related QT menu and add basic menu actions
+        and pipeline configuration section divider.
         """
         if self._project_menu:
+            self._pipeline_configuration_separator = None
             self._project_menu.clear()
 
         self._project_menu = QtGui.QMenu(self._parent)
@@ -53,6 +55,10 @@ class ProjectMenu(object):
         self._parent.ui.actionProject_Filesystem_Folder.setVisible(True)
         self._project_menu.addAction(self._parent.ui.actionProject_Filesystem_Folder)
         self._parent.ui.project_menu.setMenu(self._project_menu)
+
+        # Add a section separator that will be above the pipeline configurations.
+        # The context menu actions will be inserted above this saparator.
+        self._pipeline_configuration_separator = self._project_menu.addSeparator()
 
     def clear_actions(self):
         """
@@ -89,9 +95,6 @@ class ProjectMenu(object):
             return
 
         log.debug("More than one pipeline configuration was found, building menu.")
-
-        # Add a separator that will be above the pipeline configurations. Context menu actions will go over that.
-        self._pipeline_configuration_separator = self._project_menu.addSeparator()
 
         # Build the configuration section header.
         label = QtGui.QLabel("CONFIGURATION")
