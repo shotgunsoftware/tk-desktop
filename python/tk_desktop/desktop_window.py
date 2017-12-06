@@ -391,6 +391,17 @@ class DesktopWindow(SystrayWindow):
         # Update the project at the very end so the Python process is kicked off when everything
         # is initialized.
         project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
+        if project_id == 0:
+            # 0 means will be displaying all of the projects
+            try:
+                from sgtk.util.metrics import EventMetric as EventMetric
+                EventMetric.log(EventMetric.GROUP_NAVIGATION,
+                                "Viewed Projects",
+                                bundle=sgtk.platform.current_engine())
+            except:
+                # ignore all errors. ex: using a core that doesn't support metrics
+                pass
+
         self.__set_project_from_id(project_id)
 
     def _save_setting(self, key, value, site_specific):
@@ -733,6 +744,16 @@ class DesktopWindow(SystrayWindow):
         """
         Invoked when all commands found for a project have been registered.
         """
+
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            EventMetric.log(EventMetric.GROUP_PROJECTS,
+                            "Viewed Project Commands",
+                            bundle=sgtk.platform.current_engine())
+        except:
+            # ignore all errors. ex: using a core that doesn't support metrics
+            pass
+
         if self._project_command_count == 0:
             # Show the UI that indicates no project commands have been configured
             self.install_apps_widget.build_software_entity_config_widget(
@@ -959,6 +980,14 @@ class DesktopWindow(SystrayWindow):
         # remember that we are back at the browser
         self.current_project = None
         self._save_setting("project_id", 0, site_specific=True)
+        try:
+            from sgtk.util.metrics import EventMetric as EventMetric
+            EventMetric.log(EventMetric.GROUP_NAVIGATION,
+                             "Viewed Projects",
+                             bundle=engine)
+        except:
+            # ignore all errors. ex: using a core that doesn't support metrics
+            pass
 
         # We are switching back to the project list, so need to show the
         # "Refresh Projects" and hide the "Advanced project setup" menu
@@ -1003,7 +1032,6 @@ class DesktopWindow(SystrayWindow):
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
-
         if len(selected_indexes) == 0:
             return
 
@@ -1013,7 +1041,7 @@ class DesktopWindow(SystrayWindow):
         self.__set_project_from_item(item)
 
     def __set_project_from_id(self, project_id):
-        if id == 0:
+        if project_id == 0:
             return
 
         # find the project in the model
