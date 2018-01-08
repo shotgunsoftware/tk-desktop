@@ -1302,6 +1302,7 @@ class DesktopWindow(SystrayWindow):
                 }
             }
             (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
+            log.info("Using tentative insecure pickle fix.")
             with open(pickle_data_file, "wb") as pickle_data_file_handle:
                 pickle.dump(desktop_data, pickle_data_file_handle)
 
