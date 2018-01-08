@@ -1302,7 +1302,8 @@ class DesktopWindow(SystrayWindow):
                 }
             }
             (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
-            pickle.dump(desktop_data, open(pickle_data_file, "wb"))
+            with open(pickle_data_file, "wb") as pickle_data_file_handle:
+                pickle.dump(desktop_data, pickle_data_file_handle)
 
             # update the values on the project updater in case they are needed
             self.update_project_config_widget.set_project_info(
