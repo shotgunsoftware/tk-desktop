@@ -263,6 +263,12 @@ def handle_error(data, proxy=None):
     """
     # build a message for the GUI signaling that an error occurred
     exc_type, exc_value, exc_traceback = sys.exc_info()
+
+    # There's a chance this exception was already handled by, in which
+    # case we can ignore it.
+    if hasattr(exc_value, "sgtk_exception_handled"):
+        return
+
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
 
     # If we were given an RPCProxy object and it's open, use that

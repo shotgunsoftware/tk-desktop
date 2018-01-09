@@ -46,8 +46,8 @@ def main():
         engine = utilities.start_engine(data)
         result = utilities.start_app(engine)
         os._exit(result)
-    except Exception as exc:
-        if utilities is not None and not hasattr(exc, "sgtk_exception_handled"):
+    except Exception:
+        if utilities is not None:
             # send the error back to the GUI proxy
             #
             # Use the utilities module to send the error message back to the app
