@@ -342,6 +342,38 @@ class DesktopEngineSiteImplementation(object):
         :param startup_version: Version of the Desktop Startup code. Can be omitted.
         :param startup_descriptor: Descriptor of the Desktop Startup code. Can be omitted.
         """
+        # Initialize Qt app
+        from tank.platform.qt import QtGui
+
+        app = QtGui.QApplication.instance()
+        if app is None:
+            app = QtGui.QApplication(sys.argv)
+
+        # update the app icon
+        icon = QtGui.QIcon(":tk-desktop/default_systray_icon")
+        app.setWindowIcon(icon)
+
+        if splash:
+            splash.set_message("Building UI")
+
+        # setup the global look and feel
+        self._engine._initialize_dark_look_and_feel()
+
+        # load custom font
+        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Bold.ttf")
+        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Regular.ttf")
+        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-CondLight.ttf")
+        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Light.ttf")
+
+        # merge in app specific look and feel
+        css_file = os.path.join(self._engine.disk_location, "resources", "desktop_dark.css")
+        with open(css_file) as f:
+            css = app.styleSheet() + "\n\n" + f.read()
+        app.setStyleSheet(css)
+
+        from .console import Console
+        console = Console()
+
         self.app_version = version
 
         # Startup version will not be set if we have an old installer invoking
@@ -362,7 +394,7 @@ class DesktopEngineSiteImplementation(object):
             # Actually log the metric
             self._engine.log_metric("Launched Software")
 
-        except Exception as e:
+        except Exception:
             logger.exception("Unexpected error logging a metric")
             # DO NOT raise exception. It's reasonnable to log an error about it but
             # we don't want to break normal execution for metric related logging.
@@ -389,36 +421,6 @@ class DesktopEngineSiteImplementation(object):
             [["login", "is", human_user.login]],
             ["id", "login"]
         )
-
-        # Initialize Qt app
-        from tank.platform.qt import QtGui
-
-        app = QtGui.QApplication.instance()
-        if app is None:
-            app = QtGui.QApplication(sys.argv)
-
-        # update the app icon
-        icon = QtGui.QIcon(":tk-desktop/default_systray_icon")
-        app.setWindowIcon(icon)
-
-        if splash:
-            splash.set_message("Building UI")
-
-        # setup the global look and feel
-        self._engine._initialize_dark_look_and_feel()
-
-        # load custom font
-        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Bold.ttf")
-        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Regular.ttf")
-        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-CondLight.ttf")
-        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Light.ttf")
-
-        # merge in app specific look and feel
-        css_file = os.path.join(self._engine.disk_location, "resources", "desktop_dark.css")
-        f = open(css_file)
-        css = app.styleSheet() + "\n\n" + f.read()
-        f.close()
-        app.setStyleSheet(css)
 
         # If server is passed down to this method, it means we are running an older version of the
         # desktop startup code, which runs its own browser integration.
@@ -460,7 +462,7 @@ class DesktopEngineSiteImplementation(object):
         from . import desktop_window
 
         # initialize System Tray
-        self.desktop_window = desktop_window.DesktopWindow()
+        self.desktop_window = desktop_window.DesktopWindow(console)
 
         # We need for the dialog to exist for messages to get to the UI console.
         if kwargs.get("server") is not None:

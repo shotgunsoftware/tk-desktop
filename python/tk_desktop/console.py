@@ -14,7 +14,7 @@ import logging
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
 
-from .ui import resources_rc
+from .ui import resources_rc # noqa
 
 
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
@@ -37,13 +37,12 @@ class ConsoleLogHandler(logging.Handler):
 
     def __init__(self, console):
         logging.Handler.__init__(self)
-        self.__console = console
         self.__formatter = logging.Formatter("%(asctime)s [%(levelname) 8s] %(message)s")
 
         # Wrap the real message logging with a signal/slot,
         # to ensure that the console is updated within the UI thread.
         self.__signals = self.LogSignaller()
-        self.__signals.log_message.connect(self.__console.append_text)
+        self.__signals.log_message.connect(console.append_text)
 
     def emit(self, record):
         # Convert the record to pretty HTML
@@ -86,6 +85,9 @@ class Console(QtGui.QDialog):
 
         self.move(pos)
         self.resize(size)
+
+        self.__console_handler = ConsoleLogHandler(self)
+        sgtk.LogManager().initialize_custom_handler(self.__console_handler)
 
     def on_logs_context_menu_request(self, point):
         menu = self.__logs.createStandardContextMenu()
