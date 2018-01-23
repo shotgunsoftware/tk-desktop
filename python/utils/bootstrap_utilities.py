@@ -72,6 +72,7 @@ class Bootstrap(object):
         :param data: Dictionary of data passed down from the main desktop process.
         """
         # Extract the relevant information from the data
+        self._raw_data = data
         self._proxy_data = data["proxy_data"]
         self._manager_settings = data["manager_settings"]
         self._project = data["project"]
@@ -118,14 +119,23 @@ class Bootstrap(object):
 
             # We're now ready to start the engine.
             return manager.bootstrap_engine("tk-desktop", self._project)
-        # Do not attempt to be clever here and catch specific Toolkit exception types.
-        # The type information for sgtk.TankError is different after bootstrapping since the
-        # core has been swapped, so we can't catch these exceptions.
+        except Exception as exc:
+            # We have a situation here where, on Windows, we end up with some
+            # kind of leaked connection back to the server. This results in
+            # the connection attempt from the handle_error function hanging
+            # until the parent process is killed. The error is never reported
+            # as a result.
+            #
+            # Instead, we'll handle the exception here and use the RPCProxy
+            # connection we already have.
+            handle_error(self._raw_data, self._proxy)
+            exc.sgtk_exception_handled = True
+            raise
         finally:
             # Make sure we're closing our proxy so the error reporting,
             # which also creates a proxy, can create its own. If there's an
             # error, make sure we catch it and ignore it. Then the finally
-            # can  do its job and propagate the real error if there was one.
+            # can do its job and propagate the real error if there was one.
             try:
                 self._proxy.close()
             except:
@@ -239,14 +249,33 @@ def start_app(engine):
         return 0
 
 
-def handle_error(data):
+def handle_error(data, proxy=None):
     """
     Attempt to communicate the error back to the GUI proxy given a data
     dictionary like the one passed to the launch_python hook. Note that
     if the server has already been closed (process crashes or user left the
     project) this will actually fail silently, which is alright as the main
     process doesnt't care about this one anymore.
+
+    :param proxy: An optional RPCProxy object to use when sending the
+        error to the server. If a proxy is not given, a client connection
+        will be created on the fly.
     """
+    # build a message for the GUI signaling that an error occurred
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+
+    # There's a chance this exception was already handled by, in which
+    # case we can ignore it.
+    if hasattr(exc_value, "sgtk_exception_handled"):
+        return
+
+    lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+
+    # If we were given an RPCProxy object and it's open, use that
+    # to send the message.
+    if proxy is not None and not proxy.is_closed():
+        proxy.call_no_response("engine_startup_error", exc_value, ''.join(lines))
+        return
 
     from multiprocessing.connection import Client
     if sys.platform == "win32":
@@ -254,16 +283,16 @@ def handle_error(data):
     else:
         family = "AF_UNIX"
 
-    connection = Client(
-        address=data["proxy_data"]["proxy_pipe"],
-        family=family,
-        authkey=data["proxy_data"]["proxy_auth"],
-    )
-
-    # build a message for the GUI signaling that an error occurred
-    exc_type, exc_value, exc_traceback = sys.exc_info()
-
-    lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
-    msg = pickle.dumps((False, "engine_startup_error", [exc_value, ''.join(lines)], {}))
-    connection.send(msg)
-    connection.close()
+    try:
+        connection = Client(
+            address=data["proxy_data"]["proxy_pipe"],
+            family=family,
+            authkey=data["proxy_data"]["proxy_auth"],
+        )
+        msg = pickle.dumps((False, "engine_startup_error", [exc_value, ''.join(lines)], {}))
+        connection.send(msg)
+    finally:
+        try:
+            connection.close()
+        except Exception:
+            pass
