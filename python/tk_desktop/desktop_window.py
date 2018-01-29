@@ -16,7 +16,6 @@ import tempfile
 import subprocess
 import cPickle as pickle
 import pprint
-import urlparse
 import inspect
 from collections import OrderedDict
 
@@ -34,8 +33,6 @@ from sgtk.platform import get_logger
 from .ui import resources_rc # noqa
 from .ui import desktop_window
 
-from .console import Console
-from .console import ConsoleLogHandler
 from .systray import SystrayWindow
 from .about_screen import AboutScreen
 from .no_apps_installed_overlay import NoAppsInstalledOverlay
@@ -83,7 +80,7 @@ class DesktopWindow(SystrayWindow):
     _CHROME_SUPPORT_URL = "https://support.shotgunsoftware.com/hc/en-us/articles/114094536273"
     _FIREFOX_SUPPORT_URL = "https://support.shotgunsoftware.com/hc/en-us/articles/115000054954"
 
-    def __init__(self, parent=None):
+    def __init__(self, console, parent=None):
         SystrayWindow.__init__(self, parent)
 
         # initialize member variables
@@ -125,9 +122,7 @@ class DesktopWindow(SystrayWindow):
         connection = engine.get_current_user().create_sg_connection()
 
         # Setup the console
-        self.__console = Console()
-        self.__console_handler = ConsoleLogHandler(self.__console)
-        sgtk.LogManager().initialize_custom_handler(self.__console_handler)
+        self.__console = console
 
         # User menu
         ###########################
@@ -982,9 +977,11 @@ class DesktopWindow(SystrayWindow):
         self._save_setting("project_id", 0, site_specific=True)
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
-            EventMetric.log(EventMetric.GROUP_NAVIGATION,
-                             "Viewed Projects",
-                             bundle=engine)
+            EventMetric.log(
+                EventMetric.GROUP_NAVIGATION,
+                "Viewed Projects",
+                bundle=engine
+            )
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
@@ -1215,7 +1212,10 @@ class DesktopWindow(SystrayWindow):
                 self._save_setting(setting_name, pipeline_configuration_to_load["id"], site_specific=True)
 
             # Add all the pipeline configurations to the menu.
-            self._project_menu.populate_pipeline_configurations_menu(pipeline_configurations, pipeline_configuration_to_load)
+            self._project_menu.populate_pipeline_configurations_menu(
+                pipeline_configurations,
+                pipeline_configuration_to_load
+            )
 
             # If there is no pipeline configuration set for the current project, i.e. there might be
             # site level ones but no project ones, add the Advanced Project Setup menu.
@@ -1302,7 +1302,8 @@ class DesktopWindow(SystrayWindow):
                 }
             }
             (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
-            pickle.dump(desktop_data, open(pickle_data_file, "wb"))
+            with open(pickle_data_file, "wb") as pickle_data_file_handle:
+                pickle.dump(desktop_data, pickle_data_file_handle)
 
             # update the values on the project updater in case they are needed
             self.update_project_config_widget.set_project_info(
