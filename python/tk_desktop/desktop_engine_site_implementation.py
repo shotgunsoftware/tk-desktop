@@ -15,7 +15,6 @@ import sys
 import string
 import collections
 
-from sgtk.platform import Engine
 from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
@@ -129,15 +128,16 @@ class DesktopEngineSiteImplementation(object):
             for index in xrange(apps_index):
                 selector = selectors[index]
                 # skip all the commands that fit the current selector
-                while apps_command_index < len(commands): # insert as the last
-                                                          # command in the worst
-                                                          # case
+                # insert as the last command in the worst case
+                while apps_command_index < len(commands):
                     app, name, _ = commands[apps_command_index]
 
                     # only keep skipping commands if the current selector
                     # matches the current command
-                    if (selector["app_instance"] != app or
-                        (selector["name"] != "" and selector["name"] != name)):
+                    if (
+                        selector["app_instance"] != app or
+                        (selector["name"] != "" and selector["name"] != name)
+                    ):
                         break
 
                     apps_command_index += 1
@@ -147,11 +147,10 @@ class DesktopEngineSiteImplementation(object):
             apps_tab_callback = self.desktop_window._register_apps_tab
             commands.insert(apps_command_index, ("", "", apps_tab_callback))
 
-
         # Execute the actual commands.
         # For example, a command could be displaying a panel in order to
         # display it as a tab in the desktop.
-        for (_,_,command_callback) in commands:
+        for (_, _, command_callback) in commands:
             command_callback()
 
     def show_panel(self, panel_id, title, bundle, widget_class,
@@ -273,7 +272,7 @@ class DesktopEngineSiteImplementation(object):
                 # response back.
                 self.refresh_user_credentials()
                 self.site_comm.call_no_response("trigger_callback", "__commands", name)
-                
+
             action.triggered.connect(action_triggered)
             self.desktop_window.add_to_project_menu(action)
         else:
@@ -371,7 +370,22 @@ class DesktopEngineSiteImplementation(object):
             css = app.styleSheet() + "\n\n" + f.read()
         app.setStyleSheet(css)
 
+        # desktop_window needs to import shotgun_authentication globally. However, doing so
+        # can cause a crash when running Shotgun Desktop installer 1.02 code. We used to
+        # not restart Desktop when upgrading the core, which caused the older version of core
+        # to be kept in memory and the newer core to not be used until the app was reloaded.
+        #
+        # Since pre 0.16 cores didn't have a shotgun_authentication module, we
+        # would have crashed if this had been imported at init time. Note that earlier
+        # in this method we forcefully restarted the application if we noticed
+        # that the core was upgraded without restarting. Which means that if we
+        # end up here, it's now because we're in a good state.
+        from . import desktop_window
         from .console import Console
+
+        # When we instantiate the console, it also instantiates the logging handler that will
+        # route messages from the logger to the console. We're instantiating it here, right after
+        # Qt has been fully initialized, so that we get more entries in that dialog.
         console = Console()
 
         self.app_version = version
@@ -448,18 +462,6 @@ class DesktopEngineSiteImplementation(object):
         # hide the splash if it exists
         if splash is not None:
             splash.hide()
-
-        # desktop_window needs to import shotgun_authentication globally. However, doing so
-        # can cause a crash when running Shotgun Desktop installer 1.02 code. We used to
-        # not restart Desktop when upgrading the core, which caused the older version of core
-        # to be kept in memory and the newer core to not be used until the app was reloaded.
-        #
-        # Since pre 0.16 cores didn't have a shotgun_authentication module, we
-        # would have crashed if this had been imported at init time. Note that earlier
-        # in this method we forcefully restarted the application if we noticed
-        # that the core was upgraded without restarting. Which means that if we
-        # end up here, it's now because we're in a good state.
-        from . import desktop_window
 
         # initialize System Tray
         self.desktop_window = desktop_window.DesktopWindow(console)
