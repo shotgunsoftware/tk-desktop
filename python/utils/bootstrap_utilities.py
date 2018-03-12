@@ -223,9 +223,12 @@ def start_app(engine):
         app.setApplicationName("%s Python" % engine.context.project["name"])
 
         # set default icon
-        python_icon = os.path.realpath(os.path.join(
-            os.path.dirname(__file__),
-            "..", "..", "resources", "python_icon.png"))
+        python_icon = os.path.realpath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "python_icon.png"
+            )
+        )
         app.setWindowIcon(QtGui.QIcon(python_icon))
 
         # Let the engine know we've created the app

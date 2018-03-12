@@ -1,0 +1,6 @@
+[packaging]
+exclude=
+    # Remove CI files.
+    .travis.yml
+    tests
+    resources
