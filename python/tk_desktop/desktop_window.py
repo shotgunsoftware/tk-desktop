@@ -76,6 +76,13 @@ class ConfigDownloadThread(QtCore.QThread):
 
     It will emit download_completed or download_failed depending on the download's success
     or failure.
+
+    Note that the thread can't be interrupted, which means that if a user steps out of a project
+    it will keep downloading. It can't be killed because killing the Qt thread would risk
+    crashing the Python interpreter which could be left in an incoherent state.
+
+    When the application is closed, the threads seems to not only be properly shut down,
+    but they do not cause a crash on exit, most notably Windows.
     """
     download_completed = QtCore.Signal(object, object)
     download_failed = QtCore.Signal(str)
@@ -1292,7 +1299,7 @@ class DesktopWindow(SystrayWindow):
         # From this point on, we don't touch the UI anymore.
         self.project_overlay.start_progress()
 
-        self.project_overlay.report_progress(0.05, "Downloading configuration.")
+        self.project_overlay.report_progress(0.00, "Downloading configuration.")
         self._current_download_thread = ConfigDownloadThread(
             self, config_descriptor, toolkit_manager
         )
@@ -1307,6 +1314,10 @@ class DesktopWindow(SystrayWindow):
         :param config_descriptor: Configuration that has been synced locally.
         :param toolkit_manager: Manager to use for bootstrapping
         """
+
+        # It is possible that the user jumps in and out of projects that trigger downloads of zip
+        # files, therefore we only want to handle this message if we get it for the latest thread we've
+        # spun up.
         if self._current_download_thread != self.sender():
             log.debug("Discarding request for configuration %s that was cancelled.", config_descriptor)
             return
