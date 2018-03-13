@@ -216,6 +216,10 @@ def start_app(engine):
 
     # Otherwise run the legacy code.
     if engine.has_ui:
+
+        # NOTE
+        # The following code is meant to run for very old verions of tk-desktop. It
+        # should not be edited to support newer features.
         from tank.platform.qt import QtGui
 
         app = QtGui.QApplication([])

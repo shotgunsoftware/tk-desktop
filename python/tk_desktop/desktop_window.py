@@ -70,6 +70,45 @@ ShotgunModel = shotgun_model.ShotgunModel
 log = get_logger(__name__)
 
 
+class ConfigDownloadThread(QtCore.QThread):
+    """
+    Thread whose sole purpose is to download a configuration locally.
+
+    It will emit download_completed or download_failed depending on the download's success
+    or failure.
+
+    Note that the thread can't be interrupted, which means that if a user steps out of a project
+    it will keep downloading. It can't be killed because killing the Qt thread would risk
+    crashing the Python interpreter which could be left in an incoherent state.
+
+    When the application is closed, the threads seems to not only be properly shut down,
+    but they do not cause a crash on exit, most notably Windows.
+    """
+    download_completed = QtCore.Signal(object, object)
+    download_failed = QtCore.Signal(str)
+
+    def __init__(self, parent, config_descriptor, toolkit_manager):
+        """
+        :param parent: Parent of this Qt object
+        :param config_descriptor: Configuration descriptor to cache.
+        :param toolkit_manager: Configuration manager that will be used to bootstrap
+            this configuration.
+        """
+        super(ConfigDownloadThread, self).__init__(parent)
+        self._config_descriptor = config_descriptor
+        self._toolkit_manager = toolkit_manager
+
+    def run(self):
+        """
+        Ensures the configuration is local.
+        """
+        try:
+            self._config_descriptor.ensure_local()
+            self.download_completed.emit(self._config_descriptor, self._toolkit_manager)
+        except Exception as e:
+            self.download_failed.emit(str(e))
+
+
 class DesktopWindow(SystrayWindow):
     """ Dockable window for the Shotgun system tray """
 
@@ -1260,8 +1299,34 @@ class DesktopWindow(SystrayWindow):
         # From this point on, we don't touch the UI anymore.
         self.project_overlay.start_progress()
 
+        self.project_overlay.report_progress(0.00, "Downloading configuration.")
+        self._current_download_thread = ConfigDownloadThread(
+            self, config_descriptor, toolkit_manager
+        )
+        self._current_download_thread.download_completed.connect(self._on_config_downloaded)
+        self._current_download_thread.download_failed.connect(self._launch_failed)
+        self._current_download_thread.start()
+
+    def _on_config_downloaded(self, config_descriptor, toolkit_manager):
+        """
+        Called when a configuration has been synced locally and is ready to be bootstrapped into.
+
+        :param config_descriptor: Configuration that has been synced locally.
+        :param toolkit_manager: Manager to use for bootstrapping
+        """
+
+        # It is possible that the user jumps in and out of projects that trigger downloads of zip
+        # files, therefore we only want to handle this message if we get it for the latest thread we've
+        # spun up.
+        if self._current_download_thread != self.sender():
+            log.debug("Discarding request for configuration %s that was cancelled.", config_descriptor)
+            return
+
+        engine = sgtk.platform.current_engine()
+
         try:
             self._current_pipeline_descriptor = config_descriptor
+
             # Find the interpreter the config wants to use.
             try:
                 path_to_python = config_descriptor.python_interpreter

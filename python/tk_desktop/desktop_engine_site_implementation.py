@@ -365,7 +365,7 @@ class DesktopEngineSiteImplementation(object):
         QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Light.ttf")
 
         # merge in app specific look and feel
-        css_file = os.path.join(self._engine.disk_location, "resources", "desktop_dark.css")
+        css_file = os.path.join(self._engine.disk_location, "style.qss")
         with open(css_file) as f:
             css = app.styleSheet() + "\n\n" + f.read()
         app.setStyleSheet(css)
