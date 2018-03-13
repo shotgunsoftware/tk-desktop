@@ -216,6 +216,10 @@ def start_app(engine):
 
     # Otherwise run the legacy code.
     if engine.has_ui:
+
+        # NOTE
+        # The following code is meant to run for very old verions of tk-desktop. It
+        # should not be edited to support newer features.
         from tank.platform.qt import QtGui
 
         app = QtGui.QApplication([])
@@ -223,12 +227,9 @@ def start_app(engine):
         app.setApplicationName("%s Python" % engine.context.project["name"])
 
         # set default icon
-        python_icon = os.path.realpath(
-            os.path.join(
-                os.path.dirname(__file__),
-                "python_icon.png"
-            )
-        )
+        python_icon = os.path.realpath(os.path.join(
+            os.path.dirname(__file__),
+            "..", "..", "resources", "python_icon.png"))
         app.setWindowIcon(QtGui.QIcon(python_icon))
 
         # Let the engine know we've created the app
