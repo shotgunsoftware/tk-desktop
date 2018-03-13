@@ -1299,7 +1299,7 @@ class DesktopWindow(SystrayWindow):
         # From this point on, we don't touch the UI anymore.
         self.project_overlay.start_progress()
 
-        self.project_overlay.report_progress(0.00, "Downloading configuration.")
+        self.project_overlay.report_progress(0.00, "Retrieving configuration...")
         self._current_download_thread = ConfigDownloadThread(
             self, config_descriptor, toolkit_manager
         )
