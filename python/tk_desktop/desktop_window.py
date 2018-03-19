@@ -1299,13 +1299,16 @@ class DesktopWindow(SystrayWindow):
         # From this point on, we don't touch the UI anymore.
         self.project_overlay.start_progress()
 
-        self.project_overlay.report_progress(0.00, "Retrieving configuration...")
-        self._current_download_thread = ConfigDownloadThread(
-            self, config_descriptor, toolkit_manager
-        )
-        self._current_download_thread.download_completed.connect(self._on_config_downloaded)
-        self._current_download_thread.download_failed.connect(self._launch_failed)
-        self._current_download_thread.start()
+        if config_descriptor.exists_local():
+            self._start_bg_process(config_descriptor, toolkit_manager)
+        else:
+            self.project_overlay.report_progress(0.00, "Retrieving configuration...")
+            self._current_download_thread = ConfigDownloadThread(
+                self, config_descriptor, toolkit_manager
+            )
+            self._current_download_thread.download_completed.connect(self._on_config_downloaded)
+            self._current_download_thread.download_failed.connect(self._launch_failed)
+            self._current_download_thread.start()
 
     def _on_config_downloaded(self, config_descriptor, toolkit_manager):
         """
@@ -1322,6 +1325,15 @@ class DesktopWindow(SystrayWindow):
             log.debug("Discarding request for configuration %s that was cancelled.", config_descriptor)
             return
 
+        self._start_bg_process(config_descriptor, toolkit_manager)
+
+    def _start_bg_process(self, config_descriptor, toolkit_manager):
+        """
+        Starts the background process that Desktop will communicate with.
+
+        :param config_descriptor: Configuration that has been synced locally.
+        :param toolkit_manager: Manager to use for bootstrapping
+        """
         engine = sgtk.platform.current_engine()
 
         try:
