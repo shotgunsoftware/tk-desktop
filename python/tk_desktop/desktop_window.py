@@ -1281,12 +1281,26 @@ class DesktopWindow(SystrayWindow):
             # Bootstrap into the requested pipeline configuration or using the fallback.
             if pipeline_configuration_to_load is None:
                 toolkit_manager.pipeline_configuration = None
+                # The fallback is always valid, no need to check for a None descriptor.
                 config_descriptor = toolkit_manager.resolve_descriptor(project)
             else:
                 # We've loaded this project before and saved its pipeline configuration id, so
                 # reload the same old one.
+                engine.logger.debug(
+                    "Found a pipeline configuration to load in Shotgun, picking %s.",
+                    pipeline_configuration_to_load
+                )
                 toolkit_manager.pipeline_configuration = pipeline_configuration_to_load["id"]
                 config_descriptor = pipeline_configuration_to_load["descriptor"]
+
+                # The config descriptor can be None if the pipeline configuration hasn't been
+                # configured properly in Shotgun.
+                if not config_descriptor:
+                    raise Exception(
+                        "The pipeline configuration '{name}' (id: {id}) has not been properly "
+                        "configured.".format(**pipeline_configuration_to_load)
+                    )
+
         except Exception as error:
             log.exception(str(error))
             message = ("%s"
