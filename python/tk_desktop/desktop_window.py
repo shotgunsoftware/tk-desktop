@@ -1165,6 +1165,7 @@ class DesktopWindow(SystrayWindow):
         :param error: Exception object that was raised during bootstrap.
         :param tb: Traceback of the exception raised during bootstrap.
         """
+        engine = sgtk.platform.current_engine()
         trigger_project_config = False
         # If missing engine init error, we're know we have to setup the project.
         if isinstance(error, sgtk.platform.TankMissingEngineError):
@@ -1181,9 +1182,11 @@ class DesktopWindow(SystrayWindow):
             message = "Error starting engine!\n\n%s\n\n%s" % (
                 error.message.replace("tank_name", "<b>tank_name</b>"),
                 "Visit your "
-                "<b><a style='color: {0}' href='https://jf.shotgunstudio.com/detail/Project/{1}'>project</a></b> "
+                "<b><a style='color: {0}' href='{1}/detail/Project/{2}'>project</a></b> "
                 "page to set the field.".format(
-                    self.project_overlay.ERROR_COLOR, self.current_project["id"]
+                    self.project_overlay.ERROR_COLOR,
+                    engine.sgtk.shotgun_url,
+                    self.current_project["id"]
                 )
             )
         else:
