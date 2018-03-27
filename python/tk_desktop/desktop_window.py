@@ -1168,15 +1168,24 @@ class DesktopWindow(SystrayWindow):
         trigger_project_config = False
         # If missing engine init error, we're know we have to setup the project.
         if isinstance(error, sgtk.platform.TankMissingEngineError):
-            message = "Error starting engine\n\n%s" % error.message
+            message = "Error starting engine!\n\n%s" % error.message
             trigger_project_config = True
         # However, this exception type hasn't always existed, so take care of that
         # case also.
         elif isinstance(error, sgtk.platform.TankEngineInitError):
-            message = "Error starting engine\n\n%s" % error.message
+            message = "Error starting engine!\n\n%s" % error.message
             # match directly on the error message until something less fragile can be put in place
             if error.message.startswith("Cannot find an engine instance tk-desktop"):
                 trigger_project_config = True
+        elif isinstance(error, sgtk.bootstrap.TankMissingTankNameError):
+            message = "Error starting engine!\n\n%s\n\n%s" % (
+                error.message.replace("tank_name", "<b>tank_name</b>"),
+                "Visit your "
+                "<b><a style='color: {0}' href='https://jf.shotgunstudio.com/detail/Project/{1}'>project</a></b> "
+                "page to set the field.".format(
+                    self.project_overlay.ERROR_COLOR, self.current_project["id"]
+                )
+            )
         else:
             message = "Error\n\n%s" % error.message
 

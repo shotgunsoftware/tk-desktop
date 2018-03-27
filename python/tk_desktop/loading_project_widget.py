@@ -12,6 +12,11 @@
 
 from sgtk.platform.qt import QtCore, QtGui
 from .ui.loading_project_widget import Ui_LoadingProjectWidget
+import sgtk
+
+overlay = sgtk.platform.import_framework(
+    "tk-framework-qtwidgets", "overlay_widget"
+)
 
 
 class LoadingProjectWidget(QtGui.QWidget):
@@ -24,6 +29,8 @@ class LoadingProjectWidget(QtGui.QWidget):
     _SHOW_DETAILS = "Show Details"
     _HIDE_DETAILS = "Less Details"
 
+    ERROR_COLOR = overlay.ShotgunOverlayWidget.ERROR_COLOR
+
     def __init__(self, parent=None):
         """
         :param parent: Parent widget.
@@ -33,14 +40,14 @@ class LoadingProjectWidget(QtGui.QWidget):
         self._ui = Ui_LoadingProjectWidget()
         self._ui.setupUi(self)
 
+        self._overlay = overlay.ShotgunOverlayWidget(self)
+
         # hook up a listener to the parent window so we
         # can resize the overlay at the same time as the parent window
         # is being resized.
         filter = ResizeEventFilter(parent)
         filter.resized.connect(self._on_parent_resized)
         parent.installEventFilter(filter)
-
-        self._message = None
 
         self._ui.progress_output.hide()
         self.show()
@@ -75,8 +82,7 @@ class LoadingProjectWidget(QtGui.QWidget):
         Starts the progress reporting.
         """
         # Reset the message
-        self._message = None
-        self._show_widgets(True)
+        self._show_progress_widgets(True)
         self._ui.shotgun_spinning_widget.start_progress()
         # Hide details
         self._ui.progress_output.hide()
@@ -110,13 +116,11 @@ class LoadingProjectWidget(QtGui.QWidget):
         :param str msg: Message to display
         """
         # Hide all widgets
-        self._show_widgets(False)
-
+        self._show_progress_widgets(False)
+        self._overlay.show_error_message(msg)
         self.setVisible(True)
-        self._message = msg
-        self.repaint()
 
-    def _show_widgets(self, show=False):
+    def _show_progress_widgets(self, show=False):
         """
         Shows or hides the widgets in the UI.
 
@@ -125,30 +129,8 @@ class LoadingProjectWidget(QtGui.QWidget):
         self._ui.shotgun_spinning_widget.setVisible(show)
         self._ui.bottom.setVisible(show)
         self._ui.progress_output.setVisible(show)
-
-    def paintEvent(self, event):
-        """
-        Draws the overlay.
-        """
-        painter = QtGui.QPainter()
-        painter.begin(self)
-        try:
-            overlay_color = QtGui.QColor("#1B1B1B")
-            painter.setBrush(QtGui.QBrush(overlay_color))
-            painter.setPen(QtGui.QPen(overlay_color))
-            painter.drawRect(0, 0, painter.device().width(), painter.device().height())
-
-            if self._message is not None:
-                # show error text in the center
-                pen = QtGui.QPen(QtGui.QColor("#C8534A"))
-                painter.setPen(pen)
-                text_rect = QtCore.QRect(0, 0, painter.device().width(), painter.device().height())
-                text_flags = QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter | QtCore.Qt.TextWordWrap
-                painter.drawText(text_rect, text_flags, self._message)
-        finally:
-            painter.end()
-
-        return super(LoadingProjectWidget, self).paintEvent(event)
+        if show is True:
+            self._overlay.hide()
 
 
 class ResizeEventFilter(QtCore.QObject):
