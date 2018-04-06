@@ -91,7 +91,11 @@ class Bootstrap(object):
         # pipeline configuration.
         sys.path.insert(0, self._core_python_path)
         import sgtk
-        del os.environ["TANK_CURRENT_PC"]
+
+        # Do not always assume TANK_CURRENT_PC will be set. For older versions of Desktop
+        # (prior to the new bootstrap) this may not be the case.
+        if "TANK_CURRENT_PC" in os.environ:
+            del os.environ["TANK_CURRENT_PC"]
 
         # Connect to the main desktop process so we can send updates to it.
         # We're not guanranteed if the py or pyc file will be passed back to us
