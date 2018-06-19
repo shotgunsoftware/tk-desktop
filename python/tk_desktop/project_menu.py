@@ -68,9 +68,11 @@ class ProjectMenu(object):
 
         # Loop through actions and delete the ones listed before the separator
         for action in actions:
-            if action in [
-                self._pipeline_configuration_separator, self._parent.ui.actionProject_Filesystem_Folder
-            ]:
+            # Do not delete the Jump To Filesystem menu. This one is hidden on demand instead.
+            if action == self._parent.ui.actionProject_Filesystem_Folder:
+                continue
+
+            if action == self._pipeline_configuration_separator:
                 # Found the separator, entering the pipeline
                 # config section, stop deleting items
                 break
