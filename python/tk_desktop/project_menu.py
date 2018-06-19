@@ -11,7 +11,7 @@
 import itertools
 import sgtk
 
-from tank.platform.qt import QtCore, QtGui
+from tank.platform.qt import QtGui
 from sgtk.platform import get_logger
 
 log = get_logger(__name__)
@@ -68,7 +68,9 @@ class ProjectMenu(object):
 
         # Loop through actions and delete the ones listed before the separator
         for action in actions:
-            if action == self._pipeline_configuration_separator:
+            if action in [
+                self._pipeline_configuration_separator, self._parent.ui.actionProject_Filesystem_Folder
+            ]:
                 # Found the separator, entering the pipeline
                 # config section, stop deleting items
                 break
@@ -151,9 +153,7 @@ class ProjectMenu(object):
         """
         Called just before the project specific menu is shown to the user.
         """
-
         engine = sgtk.platform.current_engine()
-
         try:
             # Get the availability of the project locations.
             has_project_locations = engine.site_comm.call("test_project_locations")
@@ -178,7 +178,3 @@ class ProjectMenu(object):
         :param action: a QAction as selected by user.
         """
         self._parent._on_project_menu_triggered(action)
-
-
-
-
