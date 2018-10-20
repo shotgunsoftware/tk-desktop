@@ -10,6 +10,7 @@
 
 import sgtk
 import logging
+import re
 
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
@@ -66,8 +67,10 @@ class Console(QtGui.QDialog):
         self.setWindowIcon(QtGui.QIcon(":/tk-desktop/default_systray_icon.png"))
 
         self.__logs = QtGui.QPlainTextEdit()
-        layout = QtGui.QHBoxLayout()
+        self.__find = QtGui.QLineEdit()
+        layout = QtGui.QVBoxLayout()
         layout.addWidget(self.__logs)
+        layout.addWidget(self.__find)
         self.setLayout(layout)
 
         # configure the text widget
@@ -77,6 +80,13 @@ class Console(QtGui.QDialog):
         self.__logs.customContextMenuRequested.connect(self.on_logs_context_menu_request)
         self.__logs.setStyleSheet("QPlainTextEdit:focus { border: none; }")
 
+        # configure the find lineEdit
+        self.__find.setPlaceholderText("Find")
+        self.__find.returnPressed.connect(self.find)
+        self.__last_start = 0
+        # set shortcut
+        find_shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+F"), self)
+        find_shortcut.activated.connect(self.focus_find)
         # load up previous size
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
         pos = self._settings_manager.retrieve("console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL)
@@ -95,6 +105,9 @@ class Console(QtGui.QDialog):
         clear_action.triggered.connect(self.clear)
         close_action = menu.addAction("Close")
         close_action.triggered.connect(self.close)
+        find_action = menu.addAction("Find")
+        find_action.setShortcut("Ctrl+F")
+        find_action.triggered.connect(self.focus_find)
 
         menu.exec_(self.__logs.mapToGlobal(point))
 
@@ -111,6 +124,37 @@ class Console(QtGui.QDialog):
 
     def clear(self):
         self.__logs.setPlainText("")
+
+    def focus_find(self):
+        self.__find.setFocus()
+        self.__find.selectAll()
+
+    def find(self):
+        query = self.__find.text()
+        logs = self.__logs.toPlainText()
+        pattern = re.compile(query, re.IGNORECASE)
+        match = pattern.search(logs, self.__last_start + 1)
+        if match:
+            self.__last_start = match.start()
+            self.highlight(self.__last_start, match.end())
+        else:
+            self.__last_start = 0
+            # Set the cursor to the end if the search was unsuccessful
+            self.__logs.moveCursor(QtGui.QTextCursor.End)
+
+    def highlight(self, start, end):
+        cursor = self.__logs.textCursor()
+        # set the position to the beginning of the last match
+        cursor.setPosition(start)
+        # select match
+        cursor.movePosition(
+            QtGui.QTextCursor.Right,
+            QtGui.QTextCursor.KeepAnchor,
+            end - start
+        )
+
+        # set this new cursor as logs' cursor
+        self.__logs.setTextCursor(cursor)
 
     def show_and_raise(self):
         self.show()
