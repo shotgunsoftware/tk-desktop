@@ -67,9 +67,14 @@ class Console(QtGui.QDialog):
 
         self.__logs = QtGui.QPlainTextEdit()
         self.__find = QtGui.QLineEdit()
+        self.__find_label = QtGui.QLabel()
         layout = QtGui.QVBoxLayout()
+        find_layout = QtGui.QHBoxLayout()
         layout.addWidget(self.__logs)
-        layout.addWidget(self.__find)
+        layout.addLayout(find_layout)
+        find_layout.addStretch()
+        find_layout.addWidget(self.__find)
+        find_layout.addWidget(self.__find_label)
         self.setLayout(layout)
 
         # configure the text widget
@@ -78,9 +83,10 @@ class Console(QtGui.QDialog):
         self.__logs.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
         self.__logs.customContextMenuRequested.connect(self.on_logs_context_menu_request)
         self.__logs.setStyleSheet("QPlainTextEdit:focus { border: none; }")
-
-        # configure the find lineEdit
+        # configure the find area
         self.__find.setPlaceholderText("Find")
+        self.__find_label.setText("No Results")
+        self.__find_label.setFixedWidth(60)
         self.__find.returnPressed.connect(self.find)
         self.__pattern = ""
         self.__match_index = 0
@@ -119,6 +125,8 @@ class Console(QtGui.QDialog):
         cursor.movePosition(cursor.StartOfLine)
         self.__logs.setTextCursor(cursor)
         self.__logs.ensureCursorVisible()
+        # reset search after logs changed
+        self.__pattern = ""
 
         if force_show:
             self.show_and_raise()
@@ -132,20 +140,31 @@ class Console(QtGui.QDialog):
 
     def find(self):
         pattern = self.__find.text()
+        # do nothing if pattern is empty
+        if not pattern:
+            self.__find_label.setText("No Results")
+            return
         logs = self.__logs.toPlainText()
-        cursor = self.__logs.textCursor()
-        regex = QtCore.QRegExp(pattern, QtCore.Qt.CaseInsensitive)
+        # try to find all matches again if pattern changed
         if pattern != self.__pattern:
             self.clear_highlight()
             self.__match_index = 0
-            self.__matches = self.find_all(pattern, regex, logs, cursor)
+            self.__matches = self.find_all(pattern, logs)
             self.__pattern = pattern
+        self.find_in_matches(self.__matches)
+
+    def find_in_matches(self, matches):
         # total number of matches
-        match_count = len(self.__matches)
+        match_count = len(matches)
+        if match_count == 0:
+            self.__find_label.setText("No Results")
+            return
         # highlight pattern forward
         if self.__match_index < len(self.__matches):
             start, matched_length = self.__matches[self.__match_index]
-            print "{} of {}".format(self.__match_index + 1, match_count)
+            self.__find_label.setText(
+                "{} of {}".format(self.__match_index + 1, match_count)
+            )
             self.highlight_one(
                 start,
                 matched_length
@@ -153,15 +172,17 @@ class Console(QtGui.QDialog):
             self.__match_index += 1
         else:
             # search reaches end, reset match index and cursor
+            # and search again
             self.__match_index = 0
             self.__logs.moveCursor(QtGui.QTextCursor.End)
-            self.find()
+            self.find_in_matches(matches)
 
-    def find_all(self, pattern, regex, logs, cursor):
+    def find_all(self, pattern, logs):
         highlight_format = QtGui.QTextCharFormat()
         highlight_format.setBackground(
             QtGui.QBrush(QtGui.QColor(80, 80, 80))
         )
+        regex = QtCore.QRegExp(pattern, QtCore.Qt.CaseInsensitive)
         matches = []
         pos = 0
         index = regex.indexIn(logs, pos)
@@ -195,9 +216,13 @@ class Console(QtGui.QDialog):
         self.__logs.setTextCursor(cursor)
 
     def clear_highlight(self):
+        original_format = QtGui.QTextCharFormat()
+        original_format.setBackground(
+            QtGui.QBrush(QtGui.QColor(0, 0, 0), QtCore.Qt.NoBrush)
+        )
         cursor = self.__logs.textCursor()
         cursor.select(QtGui.QTextCursor.Document)
-        cursor.setCharFormat(QtGui.QTextCharFormat())
+        cursor.mergeCharFormat(original_format)
         cursor.clearSelection()
         self.__logs.setTextCursor(cursor)
 
