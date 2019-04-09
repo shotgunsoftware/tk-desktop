@@ -1034,7 +1034,6 @@ class DesktopWindow(SystrayWindow):
     def set_groups(self, groups, show_recents=True):
         self._project_command_model.set_project(
             self.current_project, groups, show_recents=show_recents)
-        self.project_overlay.hide()
 
         key = "project_expanded_state.%d" % self.current_project["id"]
         expanded_state = self._load_setting(key, {}, True)
