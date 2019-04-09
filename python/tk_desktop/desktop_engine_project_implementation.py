@@ -79,6 +79,7 @@ class DesktopEngineProjectImplementation(object):
             self._connect_to_server()
             self._register_groups()
             self._register_commands()
+            self._project_comm.call("hide_overlay")
         except:
             # Same deal as during init_engine.
             self.destroy_engine()
