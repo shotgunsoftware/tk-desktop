@@ -189,6 +189,7 @@ class DesktopEngineSiteImplementation(object):
         self.site_comm.register_function(self.bootstrap_progress_callback, "bootstrap_progress")
         self.site_comm.register_function(self.engine_startup_error, "engine_startup_error")
         self.site_comm.register_function(self.set_groups, "set_groups")
+        self.site_comm.register_function(self.hide_overlay, "hide_overlay")
         self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
         self.site_comm.register_function(self.trigger_register_command, "trigger_register_command")
         self.site_comm.register_function(self.project_commands_finished, "project_commands_finished")
@@ -230,6 +231,9 @@ class DesktopEngineSiteImplementation(object):
     def set_groups(self, groups, show_recents=True):
         self.desktop_window.set_groups(groups, show_recents)
 
+    def hide_overlay(self):
+        self.desktop_window.project_overlay.hide()
+        
     def set_collapse_rules(self, collapse_rules):
         self._collapse_rules = collapse_rules
 
