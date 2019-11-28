@@ -51,6 +51,8 @@ class ProxyLoggingHandler(logging.Handler):
             return
 
         msg = record.msg
+        # if we have exception details, we need to format these and combine them with the message, as the traceback
+        # object can't be serialize and passed over the proxy.
         if record.exc_info:
             msg += "\n" + ''.join(traceback.format_tb(record.exc_info[2]))
 
