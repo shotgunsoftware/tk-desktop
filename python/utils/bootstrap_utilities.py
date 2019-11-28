@@ -50,15 +50,19 @@ class ProxyLoggingHandler(logging.Handler):
         if self._proxy.is_closed():
             return
 
+        msg = record.msg
+        if record.exc_info:
+            msg += "\n" + ''.join(traceback.format_tb(record.exc_info[2]))
+
         try:
             self._proxy.call_no_response(
-                "proxy_log", record.levelno, record.msg, record.args
+                "proxy_log", record.levelno, msg, record.args
             )
-        except Exception:
+        except Exception as e:
             # If something couldn't be pickled, don't fret too much about it,
             # we'll format it ourselves instead.
             self._proxy.call_no_response(
-                "proxy_log", record.levelno, (record.msg % record.args), []
+                "proxy_log", record.levelno, (msg % record.args), []
             )
 
 
