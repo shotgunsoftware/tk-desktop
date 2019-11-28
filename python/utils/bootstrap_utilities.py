@@ -50,11 +50,13 @@ class ProxyLoggingHandler(logging.Handler):
         if self._proxy.is_closed():
             return
 
-        msg = record.msg
         # if we have exception details, we need to format these and combine them with the message, as the traceback
         # object can't be serialize and passed over the proxy.
         if record.exc_info:
-            msg += "\n" + ''.join(traceback.format_tb(record.exc_info[2]))
+            formatted_tracback = ''.join(traceback.format_tb(record.exc_info[2]))
+            msg = "{msg}\n{traceback}".format(msg=record.msg, traceback=formatted_tracback)
+        else:
+            msg = record.msg
 
         try:
             self._proxy.call_no_response(
