@@ -344,15 +344,29 @@ class DesktopEngineProjectImplementation(object):
         # If there is no file logger, attempt to send the message to the proxy server.
         if not sgtk.LogManager().base_file_handler:
             # If we can log through the proxy, only do that to avoid
-            # duplicate entries in the log file
+            # duplicate entries in the log file.
+            # Note any changes made here, should also be considered for the `ProxyLoggingHandler` class in the
+            # bootstrap_utilities module.
+
+            # If we have exception details, we need to format these and combine them with the message, as the traceback
+            # object can't be serialize and passed over the proxy.
+            if record.exc_info:
+                formatted_tracback = ''.join(traceback.format_tb(record.exc_info[2]))
+                msg = "{msg}\n{traceback}".format(msg=record.msg, traceback=formatted_tracback)
+            else:
+                msg = record.msg
+
             try:
                 self._project_comm.call_no_response(
-                    "proxy_log", record.levelno, record.msg, record.args
+                    "proxy_log", record.levelno, msg, record.args
                 )
                 return
             except Exception:
-                # could not log through to the proxy and there is no base file handler. bummer...
-                pass
+                # If something couldn't be pickled, don't fret too much about it,
+                # we'll format it ourselves instead.
+                self._proxy.call_no_response(
+                    "proxy_log", record.levelno, (msg % record.args), []
+                )
 
     def _get_groups(self, name, properties):
         display_name = properties.get("title", name)
