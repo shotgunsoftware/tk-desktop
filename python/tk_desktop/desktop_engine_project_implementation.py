@@ -351,7 +351,7 @@ class DesktopEngineProjectImplementation(object):
             # If we have exception details, we need to format these and combine them with the message, as the traceback
             # object can't be serialize and passed over the proxy.
             if record.exc_info:
-                formatted_tracback = ''.join(traceback.format_tb(record.exc_info[2]))
+                formatted_tracback = ''.join(traceback.format_exception(*record.exc_info))
                 msg = "{msg}\n{traceback}".format(msg=record.msg, traceback=formatted_tracback)
             else:
                 msg = record.msg
