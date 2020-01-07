@@ -46,19 +46,31 @@ class ProxyLoggingHandler(logging.Handler):
         """
         Emits a log back to the host.
         """
+        # Note any changes made here, should also be considered for the
+        # `DesktopEngineProjectImplementation._emit_log_message` method in the
+        # desktop_engine_project_implementation module.
+
         # Do not send logs if the connection is closed!
         if self._proxy.is_closed():
             return
 
+        # If we have exception details, we need to format these and combine them with the message, as the traceback
+        # object can't be serialize and passed over the proxy.
+        if record.exc_info:
+            formatted_tracback = ''.join(traceback.format_tb(record.exc_info[2]))
+            msg = "{msg}\n{traceback}".format(msg=record.msg, traceback=formatted_tracback)
+        else:
+            msg = record.msg
+
         try:
             self._proxy.call_no_response(
-                "proxy_log", record.levelno, record.msg, record.args
+                "proxy_log", record.levelno, msg, record.args
             )
         except Exception:
             # If something couldn't be pickled, don't fret too much about it,
             # we'll format it ourselves instead.
             self._proxy.call_no_response(
-                "proxy_log", record.levelno, (record.msg % record.args), []
+                "proxy_log", record.levelno, (msg % record.args), []
             )
 
 
