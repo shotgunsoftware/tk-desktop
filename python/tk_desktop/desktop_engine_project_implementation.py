@@ -348,6 +348,10 @@ class DesktopEngineProjectImplementation(object):
             # Note any changes made here, should also be considered for the `ProxyLoggingHandler` class in the
             # bootstrap_utilities module.
 
+            # Do not send logs if the connection is closed!
+            if not self._project_comm.connected:
+                return
+
             # If we have exception details, we need to format these and combine them with the message, as the traceback
             # object can't be serialize and passed over the proxy.
             if record.exc_info:
@@ -364,7 +368,7 @@ class DesktopEngineProjectImplementation(object):
             except Exception:
                 # If something couldn't be pickled, don't fret too much about it,
                 # we'll format it ourselves instead.
-                self._proxy.call_no_response(
+                self._project_comm.call_no_response(
                     "proxy_log", record.levelno, (msg % record.args), []
                 )
 
