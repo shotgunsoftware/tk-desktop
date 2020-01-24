@@ -1477,7 +1477,7 @@ class DesktopWindow(SystrayWindow):
         Picks which pipeline configuration to be loaded based on user input or previously used
         pipeline settings.
 
-        :param list pipeline_configurations: List of dicionaries with keys 'id' and 'code'.
+        :param list pipeline_configurations: List of dictionaries with keys 'id' and 'code'.
         :param dict project: Project entity dictionary with key 'id'.
 
         :returns: The pipeline configuration that should be loaded, or None.
