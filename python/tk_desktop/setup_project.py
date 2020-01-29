@@ -97,8 +97,7 @@ class SetupProject(QtGui.QWidget):
 
         if user_input == QtGui.QMessageBox.Open:
             # Go to the Toolkit Project setup wizard documentation
-            help_url = ("https://support.shotgunsoftware.com/hc/en-us/articles/"
-                        "219040668#The%20Toolkit%20Project%20setup%20wizard")
+            help_url = ("https://developer.shotgunsoftware.com/5d83a936/?title=Configuration+Setup")
             QtGui.QDesktopServices.openUrl(help_url)
 
     def _validate_user_permissions(self):
