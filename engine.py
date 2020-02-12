@@ -205,7 +205,6 @@ class DesktopEngine(Engine):
             utf8 = QtCore.QTextCodec.codecForName("utf-8")
             QtCore.QTextCodec.setCodecForCStrings(utf8)
 
-
             # a simple dialog proxy that pushes the window forward
             class ProxyDialog(DialogBase):
 
