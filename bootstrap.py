@@ -8,6 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from __future__ import print_function
 import os
 import sys
 import optparse
@@ -69,21 +70,21 @@ def parse_args():
     (opts, args) = parser.parse_args()
 
     if opts.data is None:
-        print "Data not specified"
+        print("Data not specified")
         parser.print_help()
         return -1
 
     if not os.path.exists(opts.data):
-        print "Data file not found."
+        print("Data file not found.")
         return -1
 
     if opts.utilities is None:
-        print "Utilities not specified"
+        print("Utilities not specified")
         parser.print_help()
         return -1
 
     if not os.path.exists(opts.utilities):
-        print "Utilities file not found."
+        print("Utilities file not found.")
         return -1
 
     return opts

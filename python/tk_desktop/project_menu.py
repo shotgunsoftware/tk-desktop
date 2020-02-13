@@ -159,7 +159,7 @@ class ProjectMenu(object):
         try:
             # Get the availability of the project locations.
             has_project_locations = engine.site_comm.call("test_project_locations")
-        except Exception, exception:
+        except Exception as exception:
             log.debug("Cannot get the availability of the project locations: %s" % exception)
             # Assume project locations are not available.
             has_project_locations = False

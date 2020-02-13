@@ -60,7 +60,7 @@ class SetupProject(QtGui.QWidget):
             ret = setup.exec_()
             self.setup_finished.emit(ret == setup.Accepted)
 
-        except TankErrorProjectIsSetup, e:
+        except TankErrorProjectIsSetup as e:
             error_dialog = ErrorDialog("Toolkit Setup Error",
                                        "You are trying to set up a project which has already been set up\n\n"
                                        "To re-setup a project, in a terminal window type: tank setup_project --force\n\n"
@@ -68,7 +68,7 @@ class SetupProject(QtGui.QWidget):
                                        "and delete all pipeline configurations for your project.")
             error_dialog.exec_()
 
-        except TankUserPermissionsError, e:
+        except TankUserPermissionsError as e:
             error_dialog = ErrorDialog("Toolkit Setup Error",
                                        "You do not have sufficient permissions in Shotgun to setup Toolkit for "
                                        "project '%s'.\n\nContact a site administrator for assistance." %
@@ -120,7 +120,7 @@ class SetupProject(QtGui.QWidget):
             engine.shotgun.update(
                 "Project", self.project["id"], {"tank_name": sg_project["tank_name"]}
             )
-        except Exception, e:
+        except Exception as e:
             # Attempting to catch a shotgun_api3.Fault here using 'except Fault:'
             # just passes through, so we need to catch the general Exception instead
             # and check the error message directly for the specific problems we want

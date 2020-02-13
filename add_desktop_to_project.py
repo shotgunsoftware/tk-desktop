@@ -82,7 +82,7 @@ def parse_args():
 if __name__ == "__main__":
     try:
         result = main()
-    except Exception, e:
+    except Exception as e:
         sys.stderr.write("%s" % e)
         sys.exit(-1)
 

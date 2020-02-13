@@ -110,7 +110,7 @@ class RPCServerThread(threading.Thread):
                 try:
                     mpc_win32.WaitNamedPipe(self.server.address, self.LISTEN_TIMEOUT * 1000)
                     ready = True
-                except WindowsError, e:
+                except WindowsError as e:
                     if e.args[0] not in (mpc_win32.ERROR_SEM_TIMEOUT, mpc_win32.ERROR_PIPE_BUSY):
                         raise
                     ready = False

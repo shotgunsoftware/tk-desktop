@@ -250,7 +250,7 @@ class DesktopEngine(Engine):
                            (QtWrapper.__name__.strip(), QtWrapper.__version__, QtWrapper.__file__))
 
             return base
-        except Exception, e:
+        except Exception as e:
             self.log_warning("Error setting up qt. Qt based UI support will not "
                              "be available: %s" % e)
             return self._define_unavailable_base()

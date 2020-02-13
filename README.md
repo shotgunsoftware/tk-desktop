@@ -1,4 +1,5 @@
-[![Build Status](https://secure.travis-ci.org/shotgunsoftware/tk-desktop.svg?branch=master)](http://travis-ci.org/shotgunsoftware/tk-desktop)
+
+[![Linting](https://img.shields.io/badge/PEP8%20by-Hound%20CI-a873d1.svg)](https://houndci.com)
 
 ## Documentation
 This repository is a part of the Shotgun Pipeline Toolkit.
