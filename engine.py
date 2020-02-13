@@ -173,8 +173,7 @@ class DesktopEngine(Engine):
         """ Allows to set the has ui property. """
         self._has_ui = has_a_ui
 
-    def _define_qt_base(self):
-        """ check for pyside then pyqt """
+    def _define_unavailable_base(self):
         # proxy class used when QT does not exist on the system.
         # this will raise an exception when any QT code tries to use it
         class QTProxy(object):
@@ -187,77 +186,71 @@ class DesktopEngine(Engine):
 
         base = {"qt_core": QTProxy(), "qt_gui": QTProxy(), "dialog_base": None}
         self._has_ui = False
+        return base
+
+    def _define_qt_base(self):
+        """ check for pyside then pyqt """
+        base = Engine._define_qt_base(self)
+
+        # If QtCore hasn't been set, then nothing was.
+        if base["qt_core"] is None:
+            return self._define_unavailable_base()
 
         try:
-            from PySide import QtCore, QtGui
-            import PySide
+            QtCore = base["qt_core"]
+            DialogBase = base["dialog_base"]
+            QtWrapper = base["wrapper"]
 
-            # Some old versions of PySide don't include version information
-            # so add something here so that we can use PySide.__version__
-            # later without having to check!
-            if not hasattr(PySide, "__version__"):
-                PySide.__version__ = "<unknown>"
+            # tell QT to interpret C strings as utf-8
+            utf8 = QtCore.QTextCodec.codecForName("utf-8")
+            QtCore.QTextCodec.setCodecForCStrings(utf8)
 
-            self.logger.debug("Found PySide '%s' located in %s." % (PySide.__version__, PySide.__file__))
-        except ImportError:
-            try:
-                from PyQt4 import QtCore, QtGui
-                import PyQt4
-                QtCore.Signal = QtCore.pyqtSignal
-                QtCore.Slot = QtCore.pyqtSlot
-                QtCore.Property = QtCore.pyqtProperty
+            # a simple dialog proxy that pushes the window forward
+            class ProxyDialog(DialogBase):
 
-                self.logger.debug("Found PyQt '%s' located in %s." % (QtCore.PYQT_VERSION_STR, PyQt4.__file__))
-            except ImportError:
-                return base
-        except Exception as e:
-            self.logger.exception("Error setting up QT. QT based UI support will not be available: %s" % e)
+                _requires_visibility_hack = True if sys.platform == "win32" and not self._is_site_engine else False
+
+                def setVisible(self, make_visible):
+                    # On Windows, a bug in Qt seems to prevent the first dialog we invoke to appear in the
+                    # background process. This seems to be related to the fact that the background process
+                    # doesn't even have a presence in the task bar. If we give the background process a
+                    # taskbar presence, then dialogs will appear right away. So when there is a request to
+                    # show the first dialog, we will "show" another dialog first, which will clean up
+                    # whatever incoherent state there is in Qt and will allow the requested dialog to
+                    # appear.
+                    if self._requires_visibility_hack:
+                        d = DialogBase()
+                        d.show()
+                        d.activateWindow()
+                        d.raise_()
+                        d.close()
+                        d.deleteLater()
+                        self._requires_visibility_hack = False
+
+                    DialogBase.setVisible(self, make_visible)
+
+                def show(self):
+                    DialogBase.show(self)
+                    self.activateWindow()
+                    self.raise_()
+
+                def exec_(self):
+                    self.activateWindow()
+                    self.raise_()
+                    # the trick of activating + raising does not seem to be enough for
+                    # modal dialogs. So force put them on top as well.
+                    self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | self.windowFlags())
+                    return DialogBase.exec_(self)
+
+            base["dialog_base"] = ProxyDialog
+            self._has_ui = True
+            self._has_qt = True
+            # Strip the name since PySide has a \n at the end for some reason.
+            self.log_debug("Successfully initialized %s '%s' located in %s." %
+                           (QtWrapper.__name__.strip(), QtWrapper.__version__, QtWrapper.__file__))
+
             return base
-
-        # tell QT to interpret C strings as utf-8
-        utf8 = QtCore.QTextCodec.codecForName("utf-8")
-        QtCore.QTextCodec.setCodecForCStrings(utf8)
-
-        # a simple dialog proxy that pushes the window forward
-        class ProxyDialog(QtGui.QDialog):
-
-            _requires_visibility_hack = True if sys.platform == "win32" and not self._is_site_engine else False
-
-            def setVisible(self, make_visible):
-                # On Windows, a bug in Qt seems to prevent the first dialog we invoke to appear in the
-                # background process. This seems to be related to the fact that the background process
-                # doesn't even have a presence in the task bar. If we give the background process a
-                # taskbar presence, then dialogs will appear right away. So when there is a request to
-                # show the first dialog, we will "show" another dialog first, which will clean up
-                # whatever incoherent state there is in Qt and will allow the requested dialog to
-                # appear.
-                if self._requires_visibility_hack:
-                    d = QtGui.QDialog()
-                    d.show()
-                    d.activateWindow()
-                    d.raise_()
-                    d.close()
-                    d.deleteLater()
-                    self._requires_visibility_hack = False
-
-                QtGui.QDialog.setVisible(self, make_visible)
-
-            def show(self):
-                QtGui.QDialog.show(self)
-                self.activateWindow()
-                self.raise_()
-
-            def exec_(self):
-                self.activateWindow()
-                self.raise_()
-                # the trick of activating + raising does not seem to be enough for
-                # modal dialogs. So force put them on top as well.
-                self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | self.windowFlags())
-                return QtGui.QDialog.exec_(self)
-
-        base["qt_core"] = QtCore
-        base["qt_gui"] = QtGui
-        base["dialog_base"] = ProxyDialog
-        self._has_ui = True
-
-        return base
+        except Exception, e:
+            self.log_warning("Error setting up qt. Qt based UI support will not "
+                             "be available: %s" % e)
+            return self._define_unavailable_base()
