@@ -64,8 +64,8 @@ class AbstractCommandDelegate(views.EditSelectedWidgetDelegate):
             self.view.selectionModel().clear()
         else:
             self.view.selectionModel().setCurrentIndex(
-                index,
-                QtGui.QItemSelectionModel.SelectCurrent)
+                index, QtGui.QItemSelectionModel.SelectCurrent
+            )
 
     def _create_widget(self, parent):
         w = self._create_button(parent)
@@ -141,7 +141,9 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         layout = QtGui.QVBoxLayout(button)
         layout.setAlignment(QtCore.Qt.AlignHCenter)
         layout.setSpacing(self.SPACING)
-        layout.setContentsMargins(self.SPACING, self.SPACING, self.SPACING, self.SPACING)
+        layout.setContentsMargins(
+            self.SPACING, self.SPACING, self.SPACING, self.SPACING
+        )
 
         button.icon_label = QtGui.QLabel(button)
         button.icon_label.setAlignment(QtCore.Qt.AlignHCenter)
@@ -180,8 +182,16 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         p = QtGui.QPalette()
         highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
 
-        border = "rgb(%s, %s, %s)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
-        background = "rgba(%s, %s, %s, 25%%)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
+        border = "rgb(%s, %s, %s)" % (
+            highlight_col.red(),
+            highlight_col.green(),
+            highlight_col.blue(),
+        )
+        background = "rgba(%s, %s, %s, 25%%)" % (
+            highlight_col.red(),
+            highlight_col.green(),
+            highlight_col.blue(),
+        )
 
         if selected:
             return HOVER_STYLE % (border, background)
@@ -203,7 +213,7 @@ class RecentCommandDelegate(AbstractCommandDelegate):
         # height is icon + text + top spacing + bottom spacing + space between
         width = max(cls.ICON_SIZE.width(), text_width)
         height = cls.ICON_SIZE.height() + text_height + (3 * cls.SPACING)
-        return QtCore.QSize(width + 2*cls.MARGIN, height)
+        return QtCore.QSize(width + 2 * cls.MARGIN, height)
 
     def sizeHint(self, style_options, model_index):
         # get the text size from the sizer label
@@ -219,7 +229,9 @@ class RecentCommandDelegate(AbstractCommandDelegate):
                 # limiting the number of recents, each one gets equal spacing
                 # the spacing is the width of the view, without the spacing
                 # divided up equally
-                space_to_divide = self.view.width() - (self.SPACING * (limit + 1)) - self.MARGIN
+                space_to_divide = (
+                    self.view.width() - (self.SPACING * (limit + 1)) - self.MARGIN
+                )
                 width = space_to_divide / limit
                 return QtCore.QSize(width, full_size.height())
 
@@ -235,14 +247,14 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
 
         # register a different delegate for the Recent group
         view.set_group_delegate(
-            ProjectCommandModel.RECENT_GROUP_NAME,
-            RecentCommandDelegate(view))
+            ProjectCommandModel.RECENT_GROUP_NAME, RecentCommandDelegate(view)
+        )
 
     def _create_button(self, parent):
         widget = QtGui.QToolButton(parent)
         widget.setSizePolicy(
-            QtGui.QSizePolicy.MinimumExpanding,
-            QtGui.QSizePolicy.MinimumExpanding)
+            QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding
+        )
         widget.setFocusPolicy(QtCore.Qt.NoFocus)
         return widget
 
@@ -269,10 +281,12 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
                         menu_name = "%s*" % menu_name
 
                 action = menu.addAction(menu_name)
-                action.setData({
-                    "command": child.data(ProjectCommandModel.COMMAND_ROLE),
-                    "button": child.data(ProjectCommandModel.BUTTON_NAME_ROLE),
-                })
+                action.setData(
+                    {
+                        "command": child.data(ProjectCommandModel.COMMAND_ROLE),
+                        "button": child.data(ProjectCommandModel.BUTTON_NAME_ROLE),
+                    }
+                )
                 action.setToolTip(child.toolTip())
                 action.setIconVisibleInMenu(False)
 
@@ -305,8 +319,16 @@ class ProjectCommandDelegate(AbstractCommandDelegate):
         p = QtGui.QPalette()
         highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
 
-        border = "rgb(%s, %s, %s)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
-        background = "rgba(%s, %s, %s, 25%%)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
+        border = "rgb(%s, %s, %s)" % (
+            highlight_col.red(),
+            highlight_col.green(),
+            highlight_col.blue(),
+        )
+        background = "rgba(%s, %s, %s, 25%%)" % (
+            highlight_col.red(),
+            highlight_col.green(),
+            highlight_col.blue(),
+        )
 
         if selected:
             return HOVER_STYLE % (border, background)

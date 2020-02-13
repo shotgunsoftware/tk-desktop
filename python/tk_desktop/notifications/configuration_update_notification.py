@@ -55,8 +55,12 @@ class ConfigurationUpdateNotification(Notification):
             return
 
         # If the banner hasn't been set yet.
-        if banner_settings.get(cls._CONFIG_UPDATES, {}).get(descriptor.get_uri(), False):
-            logger.debug("Configuration update notification has already been dismissed.")
+        if banner_settings.get(cls._CONFIG_UPDATES, {}).get(
+            descriptor.get_uri(), False
+        ):
+            logger.debug(
+                "Configuration update notification has already been dismissed."
+            )
             return None
         else:
             logger.debug("Configuration update notification is available.")
@@ -84,4 +88,6 @@ class ConfigurationUpdateNotification(Notification):
 
         :param banner_settings: Dictionary of the banners settings.
         """
-        banner_settings.setdefault(self._CONFIG_UPDATES, {})[self._descriptor.get_uri()] = True
+        banner_settings.setdefault(self._CONFIG_UPDATES, {})[
+            self._descriptor.get_uri()
+        ] = True

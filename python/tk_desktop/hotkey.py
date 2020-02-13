@@ -37,7 +37,7 @@ class HotKeyEditor(QtGui.QLineEdit):
                 action.setShortcut(QtGui.QKeySequence())
                 action_string = action.text()
                 pos = action_string.rfind("\t")
-                if (pos > 0):
+                if pos > 0:
                     action_string = action_string[:pos]
                     action.setText(action_string)
 
@@ -68,9 +68,14 @@ class HotKeyEditor(QtGui.QLineEdit):
             return
 
         key = event.key()
-        if (key == QtCore.Qt.Key_Control or key == QtCore.Qt.Key_Shift or
-                key == QtCore.Qt.Key_Meta or key == QtCore.Qt.Key_Alt or
-                key == QtCore.Qt.Key_Super_L or key == QtCore.Qt.Key_AltGr):
+        if (
+            key == QtCore.Qt.Key_Control
+            or key == QtCore.Qt.Key_Shift
+            or key == QtCore.Qt.Key_Meta
+            or key == QtCore.Qt.Key_Alt
+            or key == QtCore.Qt.Key_Super_L
+            or key == QtCore.Qt.Key_AltGr
+        ):
             return
 
         if not event.modifiers():
@@ -79,9 +84,7 @@ class HotKeyEditor(QtGui.QLineEdit):
         key |= self.translate_modifiers(event.modifiers(), event.text())
         self.key_sequence = QtGui.QKeySequence(key)
         self.key_sequence_changed.emit(
-            self.key_sequence,
-            event.nativeModifiers(),
-            event.nativeVirtualKey(),
+            self.key_sequence, event.nativeModifiers(), event.nativeVirtualKey(),
         )
 
         event.accept()
@@ -124,9 +127,11 @@ class HotKeyEditor(QtGui.QLineEdit):
         event.accept()
 
     def event(self, event):
-        if (event.type() == QtCore.QEvent.Shortcut or
-           event.type() == QtCore.QEvent.ShortcutOverride or
-           event.type() == QtCore.QEvent.KeyRelease):
+        if (
+            event.type() == QtCore.QEvent.Shortcut
+            or event.type() == QtCore.QEvent.ShortcutOverride
+            or event.type() == QtCore.QEvent.KeyRelease
+        ):
             event.accept()
             return True
 

@@ -23,6 +23,7 @@ views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
 
 class DefaultGroupingHeader(QtGui.QPushButton):
     """ Default widget for a group header """
+
     def __init__(self, parent=None):
         QtGui.QPushButton.__init__(self, parent)
 
@@ -32,12 +33,14 @@ class DefaultGroupingHeader(QtGui.QPushButton):
 
         # adjust the button look
         self.setFlat(True)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             text-align: left;
             font-size: 14px;
             background-color: transparent;
             border: none;
-        """)
+        """
+        )
 
         # default is to be expanded
         self.setIcon(self.down_arrow)
@@ -52,6 +55,7 @@ class DefaultGroupingHeader(QtGui.QPushButton):
 
 class DefaultGroupingHeaderDelegate(views.WidgetDelegate):
     """ Default delegate for header items """
+
     def _create_widget(self, parent):
         widget = DefaultGroupingHeader(parent)
         widget.setVisible(False)
@@ -84,13 +88,16 @@ class DefaultGroupingHeaderDelegate(views.WidgetDelegate):
 
 class DefaultGroupingFooterDelegate(views.WidgetDelegate):
     """ Default delegate for footer items """
+
     MARGIN = 10
 
     def _create_widget(self, parent):
         # footer is a simple horizontal line
         self.line = QtGui.QFrame(parent)
         self.line.setFrameShape(QtGui.QFrame.HLine)
-        self.line.setStyleSheet("background-color: transparent; color: rgb(30, 30, 30);")
+        self.line.setStyleSheet(
+            "background-color: transparent; color: rgb(30, 30, 30);"
+        )
         self.line.setMidLineWidth(2)
         self.line.setVisible(False)
         return self.line
@@ -110,6 +117,7 @@ class DefaultGroupingFooterDelegate(views.WidgetDelegate):
 
 class GroupingListView(ActionListView):
     """ A list view that handles grouping its items """
+
     # expanded_changed(group_key, expanded)
     expanded_changed = QtCore.Signal(str, bool)
 

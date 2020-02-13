@@ -14,9 +14,7 @@ from sgtk.platform.qt import QtCore, QtGui
 from .ui.loading_project_widget import Ui_LoadingProjectWidget
 import sgtk
 
-overlay = sgtk.platform.import_framework(
-    "tk-framework-qtwidgets", "overlay_widget"
-)
+overlay = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 
 
 class LoadingProjectWidget(QtGui.QWidget):
@@ -139,6 +137,7 @@ class ResizeEventFilter(QtCore.QObject):
     the monitored widget resizes. This is so that the overlay wrapper
     class can be informed whenever the Widget gets a resize event.
     """
+
     resized = QtCore.Signal()
 
     def eventFilter(self, obj, event):

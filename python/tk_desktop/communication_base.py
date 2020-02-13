@@ -39,10 +39,7 @@ class CommunicationBase(object):
 
         :rtype: bool
         """
-        return (
-            self._proxy is not None and
-            not self._proxy.is_closed()
-        )
+        return self._proxy is not None and not self._proxy.is_closed()
 
     def shut_down(self):
         """

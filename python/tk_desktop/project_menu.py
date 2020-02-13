@@ -22,6 +22,7 @@ class ProjectMenu(object):
     Encapsulate specific functionality relating of the project menu.
     This class was created to lighten the `DesktopWindow` class.
     """
+
     def __init__(self, parent):
         """
         Initialise a `ProjectMenu` instance with a reference to it's parent object:
@@ -94,7 +95,9 @@ class ProjectMenu(object):
         """
 
         if len(pipeline_configurations) < 2:
-            log.debug("Less than two pipeline configurations were found, not building menu.")
+            log.debug(
+                "Less than two pipeline configurations were found, not building menu."
+            )
             # only one configuration choice
             return
 
@@ -109,8 +112,12 @@ class ProjectMenu(object):
         pipelineConfigsMenuGroup = QtGui.QActionGroup(self._parent)
         pipelineConfigsMenuGroup.setExclusive(True)
         # Group every sandboxes by their name and add pipelines one at a time
-        for pc_name, pc_group in itertools.groupby(pipeline_configurations, lambda x: x["name"]):
-            self._add_pipeline_group_to_menu(pipelineConfigsMenuGroup, list(pc_group), selected)
+        for pc_name, pc_group in itertools.groupby(
+            pipeline_configurations, lambda x: x["name"]
+        ):
+            self._add_pipeline_group_to_menu(
+                pipelineConfigsMenuGroup, list(pc_group), selected
+            )
 
     def _add_pipeline_group_to_menu(self, parent_action_group, pc_group, selected):
         """
@@ -132,7 +139,10 @@ class ProjectMenu(object):
                 parenthesis_arguments.append("id %d" % pc["id"])
 
             if parenthesis_arguments:
-                unique_pc_name = "%s (%s)" % (pc["name"], ", ".join(parenthesis_arguments))
+                unique_pc_name = "%s (%s)" % (
+                    pc["name"],
+                    ", ".join(parenthesis_arguments),
+                )
             else:
                 unique_pc_name = pc["name"]
 
@@ -160,13 +170,17 @@ class ProjectMenu(object):
             # Get the availability of the project locations.
             has_project_locations = engine.site_comm.call("test_project_locations")
         except Exception as exception:
-            log.debug("Cannot get the availability of the project locations: %s" % exception)
+            log.debug(
+                "Cannot get the availability of the project locations: %s" % exception
+            )
             # Assume project locations are not available.
             has_project_locations = False
 
         # Show or hide project menu item "Project Filesystem Folder"
         # based on the availability of the project locations.
-        self._parent.ui.actionProject_Filesystem_Folder.setVisible(has_project_locations)
+        self._parent.ui.actionProject_Filesystem_Folder.setVisible(
+            has_project_locations
+        )
 
     def _on_project_menu_triggered(self, action):
         """

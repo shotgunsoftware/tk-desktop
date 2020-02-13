@@ -57,7 +57,9 @@ class RPCServerThread(threading.Thread):
         }
 
         self._stop = False  # used to shut down the thread cleanly
-        self.engine = engine  # need access to the engine to run functions in the main thread
+        self.engine = (
+            engine  # need access to the engine to run functions in the main thread
+        )
         self.authkey = str(uuid.uuid1())  # generate a random key for authentication
 
         # setup the server pipe
@@ -66,7 +68,8 @@ class RPCServerThread(threading.Thread):
         else:
             family = "AF_UNIX"
         self.server = multiprocessing.connection.Listener(
-            address=None, family=family, authkey=self.authkey)
+            address=None, family=family, authkey=self.authkey
+        )
 
         # grab the name of the pipe
         self.pipe = self.server.address
@@ -94,6 +97,7 @@ class RPCServerThread(threading.Thread):
                 # Return special value indicating the server was stopped.
                 return self._SERVER_WAS_STOPPED
             return func(*args, **kwargs)
+
         self._functions[name] = wrapper
 
     def run(self):
@@ -108,16 +112,23 @@ class RPCServerThread(threading.Thread):
                 # need to use win32 api for windows
                 mpc_win32 = multiprocessing.connection.win32
                 try:
-                    mpc_win32.WaitNamedPipe(self.server.address, self.LISTEN_TIMEOUT * 1000)
+                    mpc_win32.WaitNamedPipe(
+                        self.server.address, self.LISTEN_TIMEOUT * 1000
+                    )
                     ready = True
                 except WindowsError as e:
-                    if e.args[0] not in (mpc_win32.ERROR_SEM_TIMEOUT, mpc_win32.ERROR_PIPE_BUSY):
+                    if e.args[0] not in (
+                        mpc_win32.ERROR_SEM_TIMEOUT,
+                        mpc_win32.ERROR_PIPE_BUSY,
+                    ):
                         raise
                     ready = False
             else:
                 # can use select on osx and linux
-                (rd, _, _) = select.select([self.server._listener._socket], [], [], self.LISTEN_TIMEOUT)
-                ready = (len(rd) > 0)
+                (rd, _, _) = select.select(
+                    [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
+                )
+                ready = len(rd) > 0
 
             if not ready:
                 # nothing ready, see if we need to stop the server, if not keep waiting
@@ -143,7 +154,9 @@ class RPCServerThread(threading.Thread):
 
                     # data coming over the connection is a tuple of (name, args, kwargs)
                     (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
-                    logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
+                    logger.debug(
+                        "server calling '%s(%s, %s)'" % (func_name, args, kwargs)
+                    )
 
                     try:
                         if func_name not in self._functions:
@@ -154,7 +167,9 @@ class RPCServerThread(threading.Thread):
                         func = self._functions[func_name]
 
                         # execute the function on the main thread.  It may do GUI work.
-                        result = self.engine.execute_in_main_thread(func, *args, **kwargs)
+                        result = self.engine.execute_in_main_thread(
+                            func, *args, **kwargs
+                        )
 
                         # If the RPC server was stopped, don't bother trying to reply, the connection
                         # will have been broken on the client side and this will avoid an error
@@ -192,6 +207,7 @@ class RPCProxy(object):
     Return attributes on the object as methods that will result in an RPC call
     whose results are returned as the return value of the method.
     """
+
     # timeout in seconds to wait for a response
     LISTEN_TIMEOUT = 2
 
@@ -205,7 +221,8 @@ class RPCProxy(object):
             family = "AF_UNIX"
         logger.debug("client connecting to to %s", pipe)
         self._connection = multiprocessing.connection.Client(
-            address=pipe, family=family, authkey=authkey)
+            address=pipe, family=family, authkey=authkey
+        )
         logger.debug("client connected to %s", pipe)
 
     def call_no_response(self, name, *args, **kwargs):

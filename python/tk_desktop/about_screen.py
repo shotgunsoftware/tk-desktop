@@ -15,6 +15,7 @@ from .ui import about_screen
 
 class AboutScreen(QtGui.QDialog):
     """ Simple about dialog """
+
     def __init__(self, body="", parent=None):
         QtGui.QDialog.__init__(self, parent)
 

@@ -23,8 +23,12 @@ from sgtk import LogManager
 
 from .site_communication import SiteCommunication
 
-shotgun_globals = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_globals")
-task_manager = sgtk.platform.import_framework("tk-framework-shotgunutils", "task_manager")
+shotgun_globals = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_globals"
+)
+task_manager = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "task_manager"
+)
 
 logger = LogManager.get_logger(__name__)
 
@@ -60,7 +64,9 @@ class DesktopEngineSiteImplementation(object):
 
         :param bool state: The debug to set.
         """
-        if self.site_comm.is_connected and "set_global_debug" in self.site_comm.call("list_functions"):
+        if self.site_comm.is_connected and "set_global_debug" in self.site_comm.call(
+            "list_functions"
+        ):
             try:
                 self.site_comm.call_no_response("set_global_debug", state)
             except Exception:
@@ -103,8 +109,9 @@ class DesktopEngineSiteImplementation(object):
         # separately.
         # We first figure out what is its index in the selectors, or None if it
         # is not present
-        apps_index = (selectors.index(apps_selector)
-                      if apps_selector in selectors else None)
+        apps_index = (
+            selectors.index(apps_selector) if apps_selector in selectors else None
+        )
         # strip the "Apps" tab from the selectors, as we handle it separately
         if apps_index is not None:
             del selectors[apps_index]
@@ -134,9 +141,8 @@ class DesktopEngineSiteImplementation(object):
 
                     # only keep skipping commands if the current selector
                     # matches the current command
-                    if (
-                        selector["app_instance"] != app or
-                        (selector["name"] != "" and selector["name"] != name)
+                    if selector["app_instance"] != app or (
+                        selector["name"] != "" and selector["name"] != name
                     ):
                         break
 
@@ -153,8 +159,7 @@ class DesktopEngineSiteImplementation(object):
         for (_, _, command_callback) in commands:
             command_callback()
 
-    def show_panel(self, panel_id, title, bundle, widget_class,
-                   *args, **kwargs):
+    def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
         """
         Adds an app widget as a tab in the desktop UI. The tab is placed in the
         next available tab slot in the desktop, going from left to right.
@@ -171,8 +176,9 @@ class DesktopEngineSiteImplementation(object):
         Additional parameters specified will be passed through to the
         widget_class constructor.
         """
-        self._engine.log_debug("Registering panel \"%s\" (id %s) as a tab." %
-                               (title, panel_id))
+        self._engine.log_debug(
+            'Registering panel "%s" (id %s) as a tab.' % (title, panel_id)
+        )
         # create widget
         widget = widget_class(*args, **kwargs)
         # apply std toolkit stylings
@@ -186,12 +192,20 @@ class DesktopEngineSiteImplementation(object):
 
     def startup_rpc(self):
         self.site_comm.start_server()
-        self.site_comm.register_function(self.bootstrap_progress_callback, "bootstrap_progress")
-        self.site_comm.register_function(self.engine_startup_error, "engine_startup_error")
+        self.site_comm.register_function(
+            self.bootstrap_progress_callback, "bootstrap_progress"
+        )
+        self.site_comm.register_function(
+            self.engine_startup_error, "engine_startup_error"
+        )
         self.site_comm.register_function(self.set_groups, "set_groups")
         self.site_comm.register_function(self.set_collapse_rules, "set_collapse_rules")
-        self.site_comm.register_function(self.trigger_register_command, "trigger_register_command")
-        self.site_comm.register_function(self.project_commands_finished, "project_commands_finished")
+        self.site_comm.register_function(
+            self.trigger_register_command, "trigger_register_command"
+        )
+        self.site_comm.register_function(
+            self.project_commands_finished, "project_commands_finished"
+        )
 
     def engine_startup_error(self, error, tb=None):
         """
@@ -252,7 +266,8 @@ class DesktopEngineSiteImplementation(object):
                 icon = QtGui.QIcon(command_icon)
             else:
                 logger.error(
-                    "Icon for command '%s' not found: '%s'" % (name, command_icon))
+                    "Icon for command '%s' not found: '%s'" % (name, command_icon)
+                )
 
         title = properties.get("title", name)
 
@@ -291,12 +306,18 @@ class DesktopEngineSiteImplementation(object):
                 template = DisplayNameTemplate(collapse_rule["match"])
                 match = template.match(title)
                 if match is not None:
-                    logger.debug("matching %s against %s" % (title, collapse_rule["match"]))
+                    logger.debug(
+                        "matching %s against %s" % (title, collapse_rule["match"])
+                    )
                     if collapse_rule["menu_label"] == "None":
                         menu_name = None
                     else:
-                        menu_name = string.Template(collapse_rule["menu_label"]).safe_substitute(match)
-                    button_name = string.Template(collapse_rule["button_label"]).safe_substitute(match)
+                        menu_name = string.Template(
+                            collapse_rule["menu_label"]
+                        ).safe_substitute(match)
+                    button_name = string.Template(
+                        collapse_rule["button_label"]
+                    ).safe_substitute(match)
                     found_collapse_match = True
                     break
 
@@ -313,7 +334,7 @@ class DesktopEngineSiteImplementation(object):
                 icon,
                 command_tooltip,
                 groups,
-                command_is_menu_default
+                command_is_menu_default,
             )
 
     def project_commands_finished(self):
@@ -360,8 +381,12 @@ class DesktopEngineSiteImplementation(object):
 
         # load custom font
         QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Bold.ttf")
-        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Regular.ttf")
-        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-CondLight.ttf")
+        QtGui.QFontDatabase.addApplicationFont(
+            ":/tk-desktop/fonts/OpenSans-Regular.ttf"
+        )
+        QtGui.QFontDatabase.addApplicationFont(
+            ":/tk-desktop/fonts/OpenSans-CondLight.ttf"
+        )
         QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Light.ttf")
 
         # merge in app specific look and feel
@@ -403,7 +428,10 @@ class DesktopEngineSiteImplementation(object):
             # having the updated information. A special case is made for for Desktop
             # as we do want both versiond but don't want to create another metric field.
             # We are then combining both versions into single version string.
-            self._engine._host_info["version"] = "%s / %s" % (self.app_version, self.startup_version)
+            self._engine._host_info["version"] = "%s / %s" % (
+                self.app_version,
+                self.startup_version,
+            )
 
             # Actually log the metric
             self._engine.log_metric("Launched Software")
@@ -431,9 +459,7 @@ class DesktopEngineSiteImplementation(object):
         # Retrieve the current logged in user information. This will be used when creating
         # event log entries.
         self._current_login = self._engine.sgtk.shotgun.find_one(
-            "HumanUser",
-            [["login", "is", human_user.login]],
-            ["id", "login"]
+            "HumanUser", [["login", "is", human_user.login]], ["id", "login"]
         )
 
         # If server is passed down to this method, it means we are running an older version of the
@@ -450,12 +476,16 @@ class DesktopEngineSiteImplementation(object):
             if splash:
                 splash.set_message("Initializing browser integration.")
             try:
-                desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+                desktop_server_framework = sgtk.platform.get_framework(
+                    "tk-framework-desktopserver"
+                )
                 desktop_server_framework.launch_desktop_server(
                     self._user.host, self._current_login["id"], parent=splash
                 )
             except Exception:
-                logger.exception("Unexpected error while trying to launch the browser integration:")
+                logger.exception(
+                    "Unexpected error while trying to launch the browser integration:"
+                )
             else:
                 logger.debug("Browser integration was launched successfully.")
 
@@ -535,7 +565,10 @@ class DesktopEngineSiteImplementation(object):
 
         # If we have a version of the framework that supports password mangling with the session token,
         # try to pick the session token from the connection.
-        if hasattr(sl, "mangle_password") and connection.config.session_token is not None:
+        if (
+            hasattr(sl, "mangle_password")
+            and connection.config.session_token is not None
+        ):
             # Extract the credentials from the old Shotgun instance and create a
             # ShotgunUser with them. This will cache the session token as well.
             ShotgunAuthenticator().create_session_user(
@@ -543,7 +576,7 @@ class DesktopEngineSiteImplementation(object):
                 session_token=connection.config.session_token,
                 # Ugly, but this is the only way available to get at the
                 # raw http_proxy string.
-                http_proxy=sl._http_proxy
+                http_proxy=sl._http_proxy,
             )
         else:
             ShotgunAuthenticator().create_session_user(
@@ -552,7 +585,7 @@ class DesktopEngineSiteImplementation(object):
                 host=connection.base_url,
                 # Ugly, but this is the only way available to get at the
                 # raw http_proxy string.
-                http_proxy=sl._http_proxy
+                http_proxy=sl._http_proxy,
             )
 
     def get_current_login(self):
@@ -584,6 +617,7 @@ class KeyedDefaultDict(collections.defaultdict):
     Simple class to provide a dictionary whose default value for a key is a
     function of that key.
     """
+
     def __missing__(self, key):
         # call the default factory with the key as an argument
         ret = self[key] = self.default_factory(key)

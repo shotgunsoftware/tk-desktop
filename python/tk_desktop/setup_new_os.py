@@ -49,9 +49,10 @@ class ResizeEventFilter(QtCore.QObject):
     the monitored widget resizes. This is so that the overlay wrapper
     class can be informed whenever the Widget gets a resize event.
     """
+
     resized = QtCore.Signal()
 
-    def eventFilter(self,  obj,  event):
+    def eventFilter(self, obj, event):
         # peek at the message
         if event.type() == QtCore.QEvent.Resize:
             # re-broadcast any resize events

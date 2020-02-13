@@ -17,7 +17,10 @@ from sgtk.platform.qt import QtGui
 
 from .ui import no_apps_installed_overlay
 
-shotgun_data = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_data")
+shotgun_data = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_data"
+)
+
 
 class NoAppsInstalledOverlay(QtGui.QWidget):
     """
@@ -26,6 +29,7 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
     Software entity icons and a link to a Shotgun Support article detailing
     how to configure Software entities.
     """
+
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
 
@@ -102,8 +106,8 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
 
             if not sg_icon:
                 engine.logger.warning(
-                    "Could not download thumbnail for %s entity [%s]" %
-                    (sg_softwares[i]["type"], sg_softwares[i]["id"])
+                    "Could not download thumbnail for %s entity [%s]"
+                    % (sg_softwares[i]["type"], sg_softwares[i]["id"])
                 )
                 continue
 
@@ -146,21 +150,24 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         config_link = engine.get_setting("software_entity_config_link")
         if not config_link:
             engine.logger.debug(
-                "No 'software_entity_config_link' specified for engine %s." %
-                engine.name
+                "No 'software_entity_config_link' specified for engine %s."
+                % engine.name
             )
             return
 
         # Add the link to the link_label text
-        link_text = ("<a href='%s'><span style='color: %s;'>%s</span></a>" %
-                    (config_link, self._config_link_color, self._config_link_text))
+        link_text = "<a href='%s'><span style='color: %s;'>%s</span></a>" % (
+            config_link,
+            self._config_link_color,
+            self._config_link_text,
+        )
         current_text = self.ui.link_label.text()
         if link_text not in current_text:
             # Updae the ui.link_label with the engine's doc link and make
             # sure it's clickable.
-            self.ui.link_label.setText(current_text.replace(
-                self._config_link_text, link_text
-            ))
+            self.ui.link_label.setText(
+                current_text.replace(self._config_link_text, link_text)
+            )
             self.ui.link_label.setOpenExternalLinks(True)
 
     def _get_sg_software_entities(self, engine, project=None):
@@ -196,13 +203,10 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             # If a Project is defined in the current context, retrieve
             # Software entities that have either no Project restrictions OR
             # include the context Project as a restriction.
-            project_filters.append(
-                ["sg_projects", "in", current_project],
+            project_filters.append(["sg_projects", "in", current_project],)
+            sw_filters.append(
+                {"filter_operator": "or", "filters": project_filters,}
             )
-            sw_filters.append({
-                "filter_operator": "or",
-                "filters": project_filters,
-            })
         else:
             # If no context Project is defined, then only retrieve
             # Software entities that do not have any Project restrictions.
@@ -220,18 +224,25 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             # entities that either have A) no Group AND no User
             # restrictions OR B) current User is included in Group
             # OR User restrictions.
-            sw_filters.append({
-                "filter_operator": "or",
-                "filters": [
-                    {"filter_operator": "and",
-                     "filters": user_group_filters},
-                    {"filter_operator": "or",
-                     "filters": [
-                        ["sg_user_restrictions", "in", current_user],
-                        ["sg_group_restrictions.Group.users", "in", current_user],
-                     ]},
-                ]
-            })
+            sw_filters.append(
+                {
+                    "filter_operator": "or",
+                    "filters": [
+                        {"filter_operator": "and", "filters": user_group_filters},
+                        {
+                            "filter_operator": "or",
+                            "filters": [
+                                ["sg_user_restrictions", "in", current_user],
+                                [
+                                    "sg_group_restrictions.Group.users",
+                                    "in",
+                                    current_user,
+                                ],
+                            ],
+                        },
+                    ],
+                }
+            )
         else:
             # If no User is defined, then only retrieve Software
             # entities that do not have any Group or User restrictions.
@@ -239,8 +250,9 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
 
         # Get the list of matching Software entities
         sg_softwares = engine.shotgun.find(sw_entity, sw_filters)
-        engine.logger.debug("Found [%d] Software entities matching filters: %s" %
-            (len(sg_softwares), pprint.pformat(sw_filters))
+        engine.logger.debug(
+            "Found [%d] Software entities matching filters: %s"
+            % (len(sg_softwares), pprint.pformat(sw_filters))
         )
         if not sg_softwares:
             engine.logger.warning("No Software entities found in Shotgun.")

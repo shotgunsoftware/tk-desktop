@@ -15,7 +15,9 @@ import sgtk
 from .thumb_widget import ThumbWidget
 from .project_model import SgProjectModel
 
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+shotgun_model = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_model"
+)
 views = sgtk.platform.import_framework("tk-framework-qtwidgets", "views")
 
 ShotgunModel = shotgun_model.ShotgunModel

@@ -45,7 +45,7 @@ class SetupProject(QtGui.QWidget):
         is_on_top = self._is_on_top()
 
         try:
-            if is_on_top: 
+            if is_on_top:
                 self._set_top_window_on_top(False)
 
             # First check to see if the current user
@@ -61,23 +61,26 @@ class SetupProject(QtGui.QWidget):
             self.setup_finished.emit(ret == setup.Accepted)
 
         except TankErrorProjectIsSetup as e:
-            error_dialog = ErrorDialog("Toolkit Setup Error",
-                                       "You are trying to set up a project which has already been set up\n\n"
-                                       "To re-setup a project, in a terminal window type: tank setup_project --force\n\n"
-                                       "Alternatively, you can go into shotgun and clear the Project.tank_name field\n"
-                                       "and delete all pipeline configurations for your project.")
+            error_dialog = ErrorDialog(
+                "Toolkit Setup Error",
+                "You are trying to set up a project which has already been set up\n\n"
+                "To re-setup a project, in a terminal window type: tank setup_project --force\n\n"
+                "Alternatively, you can go into shotgun and clear the Project.tank_name field\n"
+                "and delete all pipeline configurations for your project.",
+            )
             error_dialog.exec_()
 
         except TankUserPermissionsError as e:
-            error_dialog = ErrorDialog("Toolkit Setup Error",
-                                       "You do not have sufficient permissions in Shotgun to setup Toolkit for "
-                                       "project '%s'.\n\nContact a site administrator for assistance." %
-                                        self.project["name"]
+            error_dialog = ErrorDialog(
+                "Toolkit Setup Error",
+                "You do not have sufficient permissions in Shotgun to setup Toolkit for "
+                "project '%s'.\n\nContact a site administrator for assistance."
+                % self.project["name"],
             )
             error_dialog.exec_()
 
         finally:
-            if is_on_top: 
+            if is_on_top:
                 self._set_top_window_on_top(True)
 
     def show_help_popup(self):
@@ -87,17 +90,17 @@ class SetupProject(QtGui.QWidget):
         # For the interim, just launch an information MessageBox
         # that will open a link to the Toolkit Project setup wizard
         # documentation
-        help_text = ("Find out more about the Setup Project Wizard by "
-                     "clicking 'Open' below.")
+        help_text = (
+            "Find out more about the Setup Project Wizard by " "clicking 'Open' below."
+        )
         help_buttons = QtGui.QMessageBox.Open | QtGui.QMessageBox.Cancel
         user_input = QtGui.QMessageBox.information(
-            self, "Setup Project Help", help_text,
-            help_buttons, QtGui.QMessageBox.Open
+            self, "Setup Project Help", help_text, help_buttons, QtGui.QMessageBox.Open
         )
 
         if user_input == QtGui.QMessageBox.Open:
             # Go to the Toolkit Project setup wizard documentation
-            help_url = ("https://developer.shotgunsoftware.com/5d83a936/?title=Configuration+Setup")
+            help_url = "https://developer.shotgunsoftware.com/5d83a936/?title=Configuration+Setup"
             QtGui.QDesktopServices.openUrl(help_url)
 
     def _validate_user_permissions(self):
@@ -138,9 +141,11 @@ class SetupProject(QtGui.QWidget):
         :returns: True if top window is always on top
         """
         is_on_top = False
-        
+
         flags = self.window().windowFlags()
-        is_on_top = (flags & QtCore.Qt.WindowStaysOnTopHint) == QtCore.Qt.WindowStaysOnTopHint
+        is_on_top = (
+            flags & QtCore.Qt.WindowStaysOnTopHint
+        ) == QtCore.Qt.WindowStaysOnTopHint
 
         return is_on_top
 
@@ -178,9 +183,10 @@ class ResizeEventFilter(QtCore.QObject):
     the monitored widget resizes. This is so that the overlay wrapper
     class can be informed whenever the Widget gets a resize event.
     """
+
     resized = QtCore.Signal()
 
-    def eventFilter(self,  obj,  event):
+    def eventFilter(self, obj, event):
         # peek at the message
         if event.type() == QtCore.QEvent.Resize:
             # re-broadcast any resize events
@@ -188,9 +194,11 @@ class ResizeEventFilter(QtCore.QObject):
         # pass it on!
         return False
 
+
 class TankUserPermissionsError(Exception):
     """
     Exception to raise if the current user does not have
     sufficient permissions to setup a project.
     """
+
     pass

@@ -1,7 +1,7 @@
 language: python
 python:
     - "2.7"
- 
+
 # command to install dependencies
 # Ideally we would be pip installing tk-core, but we need the testing framework from core,
 # so we will clone the repo install to a known location and run the tests there.

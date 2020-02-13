@@ -47,7 +47,9 @@ class ProjectCommandProxyModel(GroupingProxyModel):
         index = src_model.index(source_row, 0, source_parent)
         item = src_model.itemFromIndex(index)
         group = src_model.get_item_group_key(item)
-        if group != ProjectCommandModel.RECENT_GROUP_NAME or not src_model.is_content(item):
+        if group != ProjectCommandModel.RECENT_GROUP_NAME or not src_model.is_content(
+            item
+        ):
             return GroupingProxyModel.filterAcceptsRow(self, source_row, source_parent)
 
         # now we are going to get all the recent items in proper order
@@ -59,6 +61,7 @@ class ProjectCommandProxyModel(GroupingProxyModel):
             if self.lessThan(right, left):
                 return 1
             return 0
+
         recents.sort(cmp=recent_item_cmp)
 
         # see if the index of this item in that list is within our restriction
@@ -133,7 +136,7 @@ class ProjectCommandModel(GroupingModel):
         for (i, group) in enumerate(groups):
             group = group.upper()
             (header, _) = self.create_group(group)
-            self.set_group_rank(group, i+1)
+            self.set_group_rank(group, i + 1)
 
         if self.show_recents:
             (header, _) = self.create_group(self.RECENT_GROUP_NAME)
@@ -141,8 +144,15 @@ class ProjectCommandModel(GroupingModel):
             self.__load_recents()
 
     def add_command(
-            self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default=False
-        ):
+        self,
+        name,
+        button_name,
+        menu_name,
+        icon,
+        command_tooltip,
+        groups,
+        is_menu_default=False,
+    ):
         """
         Create the UI components for a button command for each group specified in ``groups``.
         If a RECENTS group exists, create a button command for that as well. If a ``menu_name``
@@ -157,7 +167,11 @@ class ProjectCommandModel(GroupingModel):
         :param bool is_menu_default: If this command is a menu item, indicate whether it should
                                      also be run by the command button.
         """
-        if self.show_recents and name in self.__recents and not self.__recents[name]["added"]:
+        if (
+            self.show_recents
+            and name in self.__recents
+            and not self.__recents[name]["added"]
+        ):
             item = QtGui.QStandardItem()
             item.setData(button_name, self.BUTTON_NAME_ROLE)
             item.setData(menu_name, self.MENU_NAME_ROLE)
@@ -177,7 +191,9 @@ class ProjectCommandModel(GroupingModel):
             # Has this command already been added?
             start = self.index(0, 0)
             match_flags = QtCore.Qt.MatchExactly
-            indexes_in_group = self.match(start, self.GROUP_ROLE, group, -1, match_flags)
+            indexes_in_group = self.match(
+                start, self.GROUP_ROLE, group, -1, match_flags
+            )
 
             item = None
             for index in indexes_in_group:
@@ -261,10 +277,17 @@ class ProjectCommandModel(GroupingModel):
         default_children.sort(cmp=child_cmp)
         other_children.sort(cmp=child_cmp)
 
-        return (default_children + other_children)
+        return default_children + other_children
 
-    def _handle_command_triggered(self, item, command_name=None, button_name=None,
-                                  menu_name=None, icon=None, tooltip=None):
+    def _handle_command_triggered(
+        self,
+        item,
+        command_name=None,
+        button_name=None,
+        menu_name=None,
+        icon=None,
+        tooltip=None,
+    ):
         # get the info for the command
         # if the info was explicit use that, otherwise if the item has children
         # use the info from the first one after sorting, otherwise use the item's
@@ -298,15 +321,19 @@ class ProjectCommandModel(GroupingModel):
                 tooltip = item.toolTip()
 
         # save app launch in recent settings
-        self.__recents[command_name] = {"timestamp": datetime.datetime.utcnow(), "added": False}
+        self.__recents[command_name] = {
+            "timestamp": datetime.datetime.utcnow(),
+            "added": False,
+        }
         self.__store_recents()
 
         if self.show_recents:
             # find the corresponding recent if it exists
             start = self.index(0, 0)
             match_flags = QtCore.Qt.MatchExactly
-            indexes_in_recent = self.match(start, self.GROUP_ROLE, self.RECENT_GROUP_NAME, -1,
-                                           match_flags)
+            indexes_in_recent = self.match(
+                start, self.GROUP_ROLE, self.RECENT_GROUP_NAME, -1, match_flags
+            )
 
             recent_item = None
             for index in indexes_in_recent:

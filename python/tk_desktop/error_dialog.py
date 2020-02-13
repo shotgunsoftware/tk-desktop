@@ -15,6 +15,7 @@ from .ui import error_dialog
 
 class ErrorDialog(QtGui.QDialog):
     """ Simple error dialog with a text edit to handle displaying large messages. """
+
     def __init__(self, title, message, parent=None):
         QtGui.QDialog.__init__(self, parent)
 

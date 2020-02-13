@@ -16,7 +16,7 @@ import contextlib
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 
-from .ui import resources_rc # noqa
+from .ui import resources_rc  # noqa
 
 from .systray_icon import ShotgunSystemTrayIcon
 
@@ -35,6 +35,7 @@ class SystrayWindow(QtGui.QMainWindow):
 
     A Qt main window that pins to a system tray icon and can be dragged
     """
+
     # constants to track what state the window is in
     STATE_PINNED = 0
     STATE_WINDOWED = 1
@@ -49,6 +50,7 @@ class SystrayWindow(QtGui.QMainWindow):
 
     class ApplicationEventFilter(QtCore.QObject):
         """ Internal class to handle hiding window on App deactivate """
+
         def __init__(self, window, parent=None):
             QtCore.QObject.__init__(self, parent)
             self._window = window
@@ -94,15 +96,23 @@ class SystrayWindow(QtGui.QMainWindow):
 
         self.__state = None  # pinned or windowed
         self.__anchor_side = None  # which side the anchor is currently pinned on
-        self.__content_layout = None  # layout whose margin will be set to contain the anchor
+        self.__content_layout = (
+            None  # layout whose margin will be set to contain the anchor
+        )
         self.__mouse_down_pos = None  # track position when dragging
         self.__mouse_down_global = None  # track global position when dragging
 
         # setup the anchor
         self.__bottom_anchor = QtGui.QPixmap(":/tk-desktop/anchor_arrow.png")
-        self.__top_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(1, 0, 0, -1, 0, 0))
-        self.__right_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(0, 1, 1, 0, 0, 0))
-        self.__left_anchor = self.__bottom_anchor.transformed(QtGui.QTransform(0, 1, -1, 0, 0, 0))
+        self.__top_anchor = self.__bottom_anchor.transformed(
+            QtGui.QTransform(1, 0, 0, -1, 0, 0)
+        )
+        self.__right_anchor = self.__bottom_anchor.transformed(
+            QtGui.QTransform(0, 1, 1, 0, 0, 0)
+        )
+        self.__left_anchor = self.__bottom_anchor.transformed(
+            QtGui.QTransform(0, 1, -1, 0, 0, 0)
+        )
 
         # radius for rounded corners
         self.__corner_radius = 4
@@ -426,32 +436,50 @@ class SystrayWindow(QtGui.QMainWindow):
             points = []
 
             # make sure the triangle is drawn over the tray icon.
-            rel_systray_geo_center = self.mapFromGlobal(self.systray.geometry().center())
+            rel_systray_geo_center = self.mapFromGlobal(
+                self.systray.geometry().center()
+            )
             mask_center = QtCore.QPoint(rel_systray_geo_center.x(), mask.center().y())
 
             if side == self.DOCK_TOP:
                 anchor_pixmap = self.__top_anchor
                 anchor_center = anchor_pixmap.rect().center()
                 points.append(QtCore.QPoint(mask_center.x(), rect.top()))
-                points.append(QtCore.QPoint(mask_center.x() - anchor_height, mask.top()))
-                points.append(QtCore.QPoint(mask_center.x() + anchor_height, mask.top()))
+                points.append(
+                    QtCore.QPoint(mask_center.x() - anchor_height, mask.top())
+                )
+                points.append(
+                    QtCore.QPoint(mask_center.x() + anchor_height, mask.top())
+                )
             elif side == self.DOCK_LEFT:
                 anchor_pixmap = self.__left_anchor
                 anchor_center = anchor_pixmap.rect().center()
                 points.append(QtCore.QPoint(rect.left(), mask_center.y()))
-                points.append(QtCore.QPoint(mask.left(), mask_center.y() - anchor_center.y()))
-                points.append(QtCore.QPoint(mask.left(), mask_center.y() + anchor_center.y()))
+                points.append(
+                    QtCore.QPoint(mask.left(), mask_center.y() - anchor_center.y())
+                )
+                points.append(
+                    QtCore.QPoint(mask.left(), mask_center.y() + anchor_center.y())
+                )
             elif side == self.DOCK_RIGHT:
                 anchor_pixmap = self.__right_anchor
                 anchor_center = anchor_pixmap.rect().center()
-                points.append(QtCore.QPoint(mask.right(), mask_center.y() + anchor_center.y()))
-                points.append(QtCore.QPoint(mask.right(), mask_center.y() - anchor_center.y()))
+                points.append(
+                    QtCore.QPoint(mask.right(), mask_center.y() + anchor_center.y())
+                )
+                points.append(
+                    QtCore.QPoint(mask.right(), mask_center.y() - anchor_center.y())
+                )
                 points.append(QtCore.QPoint(rect.right(), mask_center.y()))
             elif side == self.DOCK_BOTTOM:
                 anchor_pixmap = self.__bottom_anchor
                 anchor_center = anchor_pixmap.rect().center()
-                points.append(QtCore.QPoint(mask_center.x() - anchor_height, mask.bottom()))
-                points.append(QtCore.QPoint(mask_center.x() + anchor_height, mask.bottom()))
+                points.append(
+                    QtCore.QPoint(mask_center.x() - anchor_height, mask.bottom())
+                )
+                points.append(
+                    QtCore.QPoint(mask_center.x() + anchor_height, mask.bottom())
+                )
                 points.append(QtCore.QPoint(mask_center.x(), rect.bottom()))
             else:
                 raise ValueError("Unknown value for side: %s" % side)

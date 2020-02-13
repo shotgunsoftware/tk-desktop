@@ -63,10 +63,12 @@ def parse_args():
     #
     # See the launch_python hook for details of what these arguments are.
     parser = optparse.OptionParser()
-    parser.add_option('-d', '--data', help='pickle file with startup data')
+    parser.add_option("-d", "--data", help="pickle file with startup data")
     parser.add_option(
-        '-u', '--utilities',
-        help='path to the python module that defines startup utilities')
+        "-u",
+        "--utilities",
+        help="path to the python module that defines startup utilities",
+    )
     (opts, args) = parser.parse_args()
 
     if opts.data is None:
@@ -88,6 +90,7 @@ def parse_args():
         return -1
 
     return opts
+
 
 if __name__ == "__main__":
     result = main()

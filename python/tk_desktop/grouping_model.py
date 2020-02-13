@@ -19,6 +19,7 @@ class GroupingProxyModel(QtGui.QSortFilterProxyModel):
     representing the headers and footers.  This proxy is also responsible for
     hiding items in collapsed groups.
     """
+
     def setSourceModel(self, src_model):
         """ Overridden from the base class in order to react to toggling groups """
         # connect up signal to react to groups being toggled expanded or collapsed
@@ -41,11 +42,15 @@ class GroupingProxyModel(QtGui.QSortFilterProxyModel):
 
         # if both items are in the same group, group_headers first, else by row
         if left_group_rank == right_group_rank:
-            if left_type == GroupingModel.ITEM_TYPE_HEADER or \
-               right_type == GroupingModel.ITEM_TYPE_FOOTER:
+            if (
+                left_type == GroupingModel.ITEM_TYPE_HEADER
+                or right_type == GroupingModel.ITEM_TYPE_FOOTER
+            ):
                 return True
-            if right_type == GroupingModel.ITEM_TYPE_FOOTER or \
-               left_type == GroupingModel.ITEM_TYPE_HEADER:
+            if (
+                right_type == GroupingModel.ITEM_TYPE_FOOTER
+                or left_type == GroupingModel.ITEM_TYPE_HEADER
+            ):
                 return False
             return left.row() < right.row()
 
@@ -84,10 +89,13 @@ class GroupingProxyModel(QtGui.QSortFilterProxyModel):
 
 class GroupingModel(QtGui.QStandardItemModel):
     """ A model that manages items in collapsible groups. """
+
     GROUP_ROLE = QtCore.Qt.UserRole + 1001  # stores the group an item is in
     GROUP_RANK_ROLE = QtCore.Qt.UserRole + 1002  # stores the ordering for a group
     GROUP_VISIBLE_ROLE = QtCore.Qt.UserRole + 1003  # store whether a group is collapsed
-    ITEM_TYPE_ROLE = QtCore.Qt.UserRole + 1004  # store the type of an item (header, footer, content)
+    ITEM_TYPE_ROLE = (
+        QtCore.Qt.UserRole + 1004
+    )  # store the type of an item (header, footer, content)
 
     # the types for non-content items
     ITEM_TYPE_HEADER = "group_header"
@@ -188,14 +196,20 @@ class GroupingModel(QtGui.QStandardItemModel):
         start = self.index(0, 0)
         match_flags = QtCore.Qt.MatchExactly
         matching_indexes = self.match(start, self.GROUP_ROLE, group, -1, match_flags)
-        return [index for index in matching_indexes if index.data(self.ITEM_TYPE_ROLE) is None]
+        return [
+            index
+            for index in matching_indexes
+            if index.data(self.ITEM_TYPE_ROLE) is None
+        ]
 
     def set_group_rank(self, group_key, rank):
         """ Set the rank for the given group.  Groups are ordered by rank. """
         # get all items with matching group_key
         start = self.index(0, 0)
         match_flags = QtCore.Qt.MatchExactly
-        matching_indexes = self.match(start, self.GROUP_ROLE, group_key, -1, match_flags)
+        matching_indexes = self.match(
+            start, self.GROUP_ROLE, group_key, -1, match_flags
+        )
 
         if len(matching_indexes) == 0:
             raise KeyError("no group '%s'" % group_key)
@@ -308,7 +322,7 @@ class GroupingModel(QtGui.QStandardItemModel):
         if not parent.isValid():
             return
 
-        for row in xrange(start, end+1):
+        for row in xrange(start, end + 1):
             item = self.item(row, 0)
             group_key = item.data(self.GROUP_ROLE)
             item_type = item.data(self.ITEM_TYPE_ROLE)

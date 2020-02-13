@@ -13,14 +13,14 @@ import os
 import sys
 
 from tank_test.tank_test_base import TankTestBase, SealedMock
-from tank_test.tank_test_base import setUpModule # noqa
+from tank_test.tank_test_base import setUpModule  # noqa
 
 notifications_path = os.path.abspath(
     os.path.join(
-        os.path.dirname(__file__), # tk-desktop/tests
-        "..", # tk-desktop
-        "python", # tk-desktop/python
-        "tk_desktop" # tk-desktop/python/tk_desktop
+        os.path.dirname(__file__),  # tk-desktop/tests
+        "..",  # tk-desktop
+        "python",  # tk-desktop/python
+        "tk_desktop",  # tk-desktop/python/tk_desktop
     )
 )
 sys.path.insert(0, notifications_path)
@@ -29,7 +29,6 @@ import notifications
 
 
 class MockUserSettings(dict):
-
     def store(self, key, value):
         self[key] = value
 
@@ -50,16 +49,14 @@ class TestNotifications(TankTestBase):
 
         # Mocks the descriptor class.
         self._mock_descriptor = SealedMock(
-            changelog=("Text", "http://foo.bar"),
-            get_uri=SealedMock()
+            changelog=("Text", "http://foo.bar"), get_uri=SealedMock()
         )
         # Later tests will set the get_uri mock's return_value.
         self._get_uri_mock = self._mock_descriptor.get_uri
 
         # Mocks the parts of the engine required by the notification system.
         self._mock_engine = SealedMock(
-            startup_descriptor=None,
-            get_setting=self._get_setting_mock
+            startup_descriptor=None, get_setting=self._get_setting_mock
         )
 
         # Create the manager.
@@ -67,7 +64,7 @@ class TestNotifications(TankTestBase):
             self._user_settings,
             self._mock_descriptor,
             self._mock_descriptor,
-            self._mock_engine
+            self._mock_engine,
         )
 
         # Will be used by the _get_setting_mock method to mock engine settings.
@@ -95,16 +92,15 @@ class TestNotifications(TankTestBase):
         notifs = self._notification_manager.get_notifications()
         self._test_properties(notifs)
         self.assertEqual(len(notifs), 1)
-        self.assertEqual(isinstance(notifs[0], notifications.FirstLaunchNotification), True)
+        self.assertEqual(
+            isinstance(notifs[0], notifications.FirstLaunchNotification), True
+        )
 
         # Dismiss it!
         self._notification_manager.dismiss(notifs[0])
 
         # Should be empty now.
-        self.assertListEqual(
-            self._notification_manager.get_notifications(),
-            []
-        )
+        self.assertListEqual(self._notification_manager.get_notifications(), [])
 
     def test_first_launch_notifs(self):
         """
@@ -116,16 +112,15 @@ class TestNotifications(TankTestBase):
         # Make sure there's only one notification the first time you launch the desktop. We don't
         # want to know about a configuration update.
         self.assertEqual(len(notifs), 1)
-        self.assertEqual(isinstance(notifs[0], notifications.FirstLaunchNotification), True)
+        self.assertEqual(
+            isinstance(notifs[0], notifications.FirstLaunchNotification), True
+        )
 
         # Dismiss the notification.
         self._notification_manager.dismiss(notifs[0])
 
         # Now there should be no more current notifications.
-        self.assertListEqual(
-            self._notification_manager.get_notifications(),
-            []
-        )
+        self.assertListEqual(self._notification_manager.get_notifications(), [])
 
     def test_configuration_update_notifs(self):
         """
@@ -143,16 +138,15 @@ class TestNotifications(TankTestBase):
         self._test_properties(notifs)
 
         self.assertEqual(len(notifs), 1)
-        self.assertEqual(isinstance(notifs[0], notifications.ConfigurationUpdateNotification), True)
+        self.assertEqual(
+            isinstance(notifs[0], notifications.ConfigurationUpdateNotification), True
+        )
 
         # Dismiss the notification.
         self._notification_manager.dismiss(notifs[0])
 
         # Now there should be no more current notifications.
-        self.assertListEqual(
-            self._notification_manager.get_notifications(),
-            []
-        )
+        self.assertListEqual(self._notification_manager.get_notifications(), [])
 
     def test_no_config_update_notifs_on_missing_doc(self):
         """
@@ -175,7 +169,7 @@ class TestNotifications(TankTestBase):
         self._mock_engine.startup_descriptor = SealedMock(
             version="v0.0.0",
             changelog=(None, "https://foo.bar"),
-            has_remote_access=SealedMock(return_value=True)
+            has_remote_access=SealedMock(return_value=True),
         )
 
         self._mock_descriptor.changelog = (None, None)
@@ -184,18 +178,14 @@ class TestNotifications(TankTestBase):
         self._test_properties(notifs)
         self.assertEqual(len(notifs), 1)
         self.assertEqual(
-            isinstance(notifs[0], notifications.StartupUpdateNotification),
-            True
+            isinstance(notifs[0], notifications.StartupUpdateNotification), True
         )
 
         # Dismiss the notification.
         self._notification_manager.dismiss(notifs[0])
 
         # Now there should be no more current notifications.
-        self.assertListEqual(
-            self._notification_manager.get_notifications(),
-            []
-        )
+        self.assertListEqual(self._notification_manager.get_notifications(), [])
 
     def _test_properties(self, notifications):
         """
@@ -219,16 +209,10 @@ class TestNotifications(TankTestBase):
         notifs = self._notification_manager.get_notifications()
         self._test_properties(notifs)
         self.assertEqual(len(notifs), 1)
-        self.assertEqual(
-            isinstance(notifs[0], notifications.DesktopNotification),
-            True
-        )
+        self.assertEqual(isinstance(notifs[0], notifications.DesktopNotification), True)
 
         # Dismiss the notification.
         self._notification_manager.dismiss(notifs[0])
 
         # Now there should be no more current notifications.
-        self.assertListEqual(
-            self._notification_manager.get_notifications(),
-            []
-        )
+        self.assertListEqual(self._notification_manager.get_notifications(), [])

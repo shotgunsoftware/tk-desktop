@@ -16,6 +16,7 @@ from .ui import wait_screen
 
 class WaitScreen(QtGui.QDialog):
     """ Simple wait dialog """
+
     def __init__(self, header="", subheader="", parent=None):
         QtGui.QDialog.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Popup)

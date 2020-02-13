@@ -44,6 +44,7 @@ class ProjectCommunication(CommunicationBase):
             self._connected = False
             self._destroy_proxy()
             disconnect_callback()
+
         self.register_function(wrapper, "signal_disconnect")
 
     def shut_down(self):

@@ -67,15 +67,19 @@ class UpdateProjectConfig(QtGui.QWidget):
 
         # figure out path to script to execute
         apps_copy_script = os.path.realpath(
-            os.path.join(__file__, "..", "..", "..", "add_desktop_to_project.py"))
+            os.path.join(__file__, "..", "..", "..", "add_desktop_to_project.py")
+        )
 
         # put together the arguments to the command
         args = [
             self.python_interpreter_path,
             apps_copy_script,
-            "--core_python_path", self.core_python_path,
-            "--configuration_path", self.configuration_path,
-            "--project_id", str(self.project["id"]),
+            "--core_python_path",
+            self.core_python_path,
+            "--configuration_path",
+            self.configuration_path,
+            "--project_id",
+            str(self.project["id"]),
         ]
 
         try:
@@ -97,7 +101,7 @@ class UpdateProjectConfig(QtGui.QWidget):
                 stderr=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stdin=subprocess.PIPE,
-                startupinfo=startupinfo
+                startupinfo=startupinfo,
             )
             (stdout, stderr) = python_process.communicate()
         finally:
@@ -111,7 +115,8 @@ class UpdateProjectConfig(QtGui.QWidget):
             self.update_finished.emit(True)
         else:
             # failure
-            message = """
+            message = (
+                """
                 <html><head/><body>
                     <p><span style=" font-size:16pt;">
                         There was an error adding the desktop engine:
@@ -123,7 +128,9 @@ class UpdateProjectConfig(QtGui.QWidget):
                         Please let support@shotgunsoftware.com know.
                     </span></p>
                 </body></html>
-            """ % stderr
+            """
+                % stderr
+            )
 
             # show the error
             e = ErrorDialog("Toolkit Error", message, self)
@@ -151,9 +158,10 @@ class ResizeEventFilter(QtCore.QObject):
     the monitored widget resizes. This is so that the overlay wrapper
     class can be informed whenever the Widget gets a resize event.
     """
+
     resized = QtCore.Signal()
 
-    def eventFilter(self,  obj,  event):
+    def eventFilter(self, obj, event):
         # peek at the message
         if event.type() == QtCore.QEvent.Resize:
             # re-broadcast any resize events
