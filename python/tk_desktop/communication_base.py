@@ -39,10 +39,7 @@ class CommunicationBase(object):
 
         :rtype: bool
         """
-        return (
-            self._proxy is not None and
-            not self._proxy.is_closed()
-        )
+        return self._proxy is not None and not self._proxy.is_closed()
 
     def shut_down(self):
         """
@@ -138,7 +135,7 @@ class CommunicationBase(object):
         if self._proxy is not None:
             try:
                 self._proxy.close()
-            except Exception, e:
+            except Exception as e:
                 logger.warning("Error disconnecting from proxy: %s", e)
             else:
                 logger.debug("Disconnected from the proxy.")

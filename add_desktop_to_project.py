@@ -19,9 +19,11 @@ def main():
     # import toolkit from the specified core install
     sys.path.insert(0, opts.core_python_path)
     import sgtk
+
     if hasattr(sgtk, "set_authenticated_user"):
         # import authentication
         from tank_vendor import shotgun_authentication
+
         # Initialize the authenticator with Toolkit's defaults manager.
         dm = sgtk.util.CoreDefaultsManager()
         sg_auth = shotgun_authentication.ShotgunAuthenticator(dm)
@@ -64,9 +66,16 @@ def main():
 def parse_args():
     # parse and verify args
     parser = optparse.OptionParser()
-    parser.add_option("--core_python_path", help="path to the python directory of the core install to use")
-    parser.add_option("--configuration_path", help="path to the configuration to modify")
-    parser.add_option("--project_id", help="id of the project we are modifying the config of")
+    parser.add_option(
+        "--core_python_path",
+        help="path to the python directory of the core install to use",
+    )
+    parser.add_option(
+        "--configuration_path", help="path to the configuration to modify"
+    )
+    parser.add_option(
+        "--project_id", help="id of the project we are modifying the config of"
+    )
 
     (opts, args) = parser.parse_args()
 
@@ -79,10 +88,11 @@ def parse_args():
 
     return opts
 
+
 if __name__ == "__main__":
     try:
         result = main()
-    except Exception, e:
+    except Exception as e:
         sys.stderr.write("%s" % e)
         sys.exit(-1)
 

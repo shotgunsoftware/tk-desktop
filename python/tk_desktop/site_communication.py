@@ -59,7 +59,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         self.proxy_closing.emit()
         try:
             self.call_no_response("signal_disconnect")
-        except Exception, e:
+        except Exception as e:
             logger.warning("Error while sending signal to proxy to disconnect: %s", e)
         else:
             logger.debug("Proxy was signaled that we are disconnecting.")

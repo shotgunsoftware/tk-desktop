@@ -93,14 +93,22 @@ class DesktopEngineProjectImplementation(object):
         proxy_pipe = bootstrap_data["proxy_pipe"]
         proxy_auth = bootstrap_data["proxy_auth"]
 
-        self._project_comm.connect_to_server(proxy_pipe, proxy_auth, self._signal_disconnect)
+        self._project_comm.connect_to_server(
+            proxy_pipe, proxy_auth, self._signal_disconnect
+        )
         # Stop logging to disk
         sgtk.LogManager().uninitialize_base_file_handler()
-        logger.debug("Project-level tk-desktop engine has now switched back to proxy based logging.")
+        logger.debug(
+            "Project-level tk-desktop engine has now switched back to proxy based logging."
+        )
 
         self._project_comm.register_function(self._trigger_callback, "trigger_callback")
-        self._project_comm.register_function(self._test_project_locations, "test_project_locations")
-        self._project_comm.register_function(self._open_project_locations, "open_project_locations")
+        self._project_comm.register_function(
+            self._test_project_locations, "test_project_locations"
+        )
+        self._project_comm.register_function(
+            self._open_project_locations, "open_project_locations"
+        )
         self._project_comm.register_function(self._get_setting, "get_setting")
         self._project_comm.register_function(self._set_global_debug, "set_global_debug")
 
@@ -134,7 +142,14 @@ class DesktopEngineProjectImplementation(object):
             self.__callback_map[("__commands", name)] = command_info["callback"]
             # pull out needed values since this needs to be pickleable
             gui_properties = {}
-            for prop in ["type", "icon", "title", "description", "group", "group_default"]:
+            for prop in [
+                "type",
+                "icon",
+                "title",
+                "description",
+                "group",
+                "group_default",
+            ]:
                 if prop in command_info["properties"]:
                     gui_properties[prop] = command_info["properties"][prop]
             # evaluate groups on the app proxy side
@@ -145,7 +160,9 @@ class DesktopEngineProjectImplementation(object):
             if "SGTK_DESKTOP_DEBUG_REGISTRATION" in os.environ:
                 time.sleep(0.5)
 
-            self._project_comm.call("trigger_register_command", name, gui_properties, groups)
+            self._project_comm.call(
+                "trigger_register_command", name, gui_properties, groups
+            )
 
         # Let the proxy know command registration is complete
         self._project_comm.call_no_response("project_commands_finished")
@@ -163,8 +180,10 @@ class DesktopEngineProjectImplementation(object):
         try:
             callback(*args, **kwargs)
         except Exception:
-            logger.error("Error calling %s::%s(%s, %s):\n%s" % (
-                namespace, command, args, kwargs, traceback.format_exc()))
+            logger.error(
+                "Error calling %s::%s(%s, %s):\n%s"
+                % (namespace, command, args, kwargs, traceback.format_exc())
+            )
 
     def _enable_file_based_logging(self):
         """
@@ -177,7 +196,9 @@ class DesktopEngineProjectImplementation(object):
         # initialize the base file handler. Ensuring that it is not enabled means there won't be spurious log
         # messages about switching handlers in the log files.
         if not sgtk.LogManager().base_file_handler:
-            logger.debug("Project-level tk-desktop engine will now switch back to file based logging.")
+            logger.debug(
+                "Project-level tk-desktop engine will now switch back to file based logging."
+            )
             sgtk.LogManager().initialize_base_file_handler("tk-desktop")
 
     def _signal_disconnect(self):
@@ -189,9 +210,14 @@ class DesktopEngineProjectImplementation(object):
             # QtGui is accessible in non-qt-based environments through the QtProxy, but won't be accessed if has_ui is
             # False.
             from tank.platform.qt import QtGui
+
             # If the engine reports having qt, but the QApplication hasn't been initialized yet, we want to make sure
             # that the _signal_disconnect and start_app both use the same part of if self._engine.has_ui.
-            self._engine.has_ui = True if (self._engine.has_ui and QtGui.QApplication.instance()) else False
+            self._engine.has_ui = (
+                True
+                if (self._engine.has_ui and QtGui.QApplication.instance())
+                else False
+            )
 
         if self._engine.has_ui:
             app = QtGui.QApplication.instance()
@@ -251,9 +277,7 @@ class DesktopEngineProjectImplementation(object):
         # Make the name pretty for the tray and the task manager.
         app.setApplicationName("%s Python" % self._engine.context.project["name"])
         # set default icon
-        python_icon = os.path.join(
-            self._engine.disk_location, "icon_bg_python.png"
-        )
+        python_icon = os.path.join(self._engine.disk_location, "icon_bg_python.png")
         app.setWindowIcon(QtGui.QIcon(python_icon))
 
         self.register_qapplication(app)
@@ -355,8 +379,12 @@ class DesktopEngineProjectImplementation(object):
             # If we have exception details, we need to format these and combine them with the message, as the traceback
             # object can't be serialize and passed over the proxy.
             if record.exc_info:
-                formatted_tracback = ''.join(traceback.format_exception(*record.exc_info))
-                msg = "{msg}\n{traceback}".format(msg=record.msg, traceback=formatted_tracback)
+                formatted_tracback = "".join(
+                    traceback.format_exception(*record.exc_info)
+                )
+                msg = "{msg}\n{traceback}".format(
+                    msg=record.msg, traceback=formatted_tracback
+                )
             else:
                 msg = record.msg
 

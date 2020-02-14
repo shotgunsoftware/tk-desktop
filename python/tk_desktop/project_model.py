@@ -17,18 +17,21 @@ from tank.platform.qt import QtCore, QtGui
 
 import sgtk
 
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
+shotgun_model = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_model"
+)
 
 ShotgunModel = shotgun_model.ShotgunModel
 
 
-class FuzzyMatcher():
+class FuzzyMatcher:
     """
     Implement an algorithm to rank strings via fuzzy matching.
 
     Based on the analysis at
     http://crossplatform.net/sublime-text-ctrl-p-fuzzy-matching-in-python
     """
+
     def __init__(self, pattern, case_sensitive=False):
         # construct a pattern that matches the letters in order
         # for example "aad" turns into "(a).*?(a).*?(d)".
@@ -49,18 +52,19 @@ class FuzzyMatcher():
             score = 100.0 / ((1 + match.start()) * (match.end() - match.start() + 1))
 
             if highlighter is not None:
-                highlighted = string[0:match.start(1)]
-                for group in xrange(1, match.lastindex+1):
+                highlighted = string[0 : match.start(1)]
+                for group in xrange(1, match.lastindex + 1):
                     if group == match.lastindex:
-                        remainder = string[match.end(group):]
+                        remainder = string[match.end(group) :]
                     else:
-                        remainder = string[match.end(group):match.start(group+1)]
+                        remainder = string[match.end(group) : match.start(group + 1)]
                     highlighted += highlighter(match.group(group)) + remainder
             return (score, highlighted)
 
 
 class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
     """Enable sorting and filtering on projects"""
+
     def __init__(self, parent=None):
         """Constructor"""
         QtGui.QSortFilterProxyModel.__init__(self, parent)
@@ -127,8 +131,10 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
 
         # apply ordering
         if self.search_text:
+
             def highlighter(char):
                 return "<b><u><font color='white'>" + char + "</font></u></b>"
+
             # order is done by search text
             ratios = []
             matcher = FuzzyMatcher(self.search_text.lower())
@@ -136,15 +142,21 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
                 (ratio, highlighted) = matcher.score(project["name"], highlighter)
                 if ratio:
                     ratios.append((ratio, project))
-                    project["__item"].setData(highlighted, SgProjectModel.DISPLAY_NAME_ROLE)
+                    project["__item"].setData(
+                        highlighted, SgProjectModel.DISPLAY_NAME_ROLE
+                    )
                 else:
-                    project["__item"].setData(project["name"], SgProjectModel.DISPLAY_NAME_ROLE)
+                    project["__item"].setData(
+                        project["name"], SgProjectModel.DISPLAY_NAME_ROLE
+                    )
             ratios_in_order = sorted(ratios, key=lambda key: -key[0])
             projects_in_order = [r[1] for r in ratios_in_order]
         else:
             # clear any existing highlighting
             for project in projects:
-                project["__item"].setData(project["name"], SgProjectModel.DISPLAY_NAME_ROLE)
+                project["__item"].setData(
+                    project["name"], SgProjectModel.DISPLAY_NAME_ROLE
+                )
 
             # sort by last_accessed_by_current_user
             def key_for_project(project):
@@ -153,11 +165,12 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
                     project["name"],
                     project["id"],
                 )
+
             projects_in_order = sorted(projects, key=key_for_project, reverse=True)
 
         # apply limit post sort
         if self.limit is not None:
-            projects_in_order = projects_in_order[:self.limit]
+            projects_in_order = projects_in_order[: self.limit]
 
         # grab the ids for easy access during lessThan and filterAcceptsRow
         self._ids_in_order = [p["id"] for p in projects_in_order]
@@ -185,7 +198,7 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         else:
             right_index = self._ids_in_order.index(right_sg_data["id"])
 
-        return (left_index < right_index)
+        return left_index < right_index
 
     def filterAcceptsRow(self, source_row, source_parent):
         """
@@ -205,6 +218,7 @@ class SgProjectModel(ShotgunModel):
     """
     This model represents the data which is displayed in the projects list view
     """
+
     DISPLAY_NAME_ROLE = QtCore.Qt.UserRole + 101
 
     thumbnail_updated = QtCore.Signal(QtGui.QStandardItem)
@@ -243,13 +257,12 @@ class SgProjectModel(ShotgunModel):
         ShotgunModel.__init__(self, parent, download_thumbs=True)
 
         # load up the thumbnail to use when there is none set in Shotgun
-        self._missing_thumbnail_project = QtGui.QPixmap(":/tk-desktop/missing_thumbnail_project.png")
+        self._missing_thumbnail_project = QtGui.QPixmap(
+            ":/tk-desktop/missing_thumbnail_project.png"
+        )
 
         # load up the cached data for the model
-        filters = [
-            ["name", "is_not", "Template Project"],
-            ["archived", "is_not", True]
-        ]
+        filters = [["name", "is_not", "Template Project"], ["archived", "is_not", True]]
         # Template projects is a Shotgun 6.0 feature, so make sure it exists
         # on the server before filtering on that value.
         if SgProjectModel.supports_project_templates():

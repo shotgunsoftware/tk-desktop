@@ -67,27 +67,22 @@ class StartupUpdateNotification(Notification):
 
         if engine.startup_descriptor.version.lower() in ["undefined", "head"]:
             logger.debug(
-                "Startup descriptor version is '%s', skipping.", engine.startup_descriptor.version
+                "Startup descriptor version is '%s', skipping.",
+                engine.startup_descriptor.version,
             )
             return None
 
         if not engine.startup_descriptor.changelog[1]:
-            logger.debug(
-                "Startup descriptor doesn't have a release url."
-            )
+            logger.debug("Startup descriptor doesn't have a release url.")
             return None
 
-        if banner_settings.get(
-            cls._DESKTOPSTARTUP_UPDATES_ID, {}
-        ).get(engine.startup_descriptor.version, False):
-            logger.debug(
-                "This release has already been dismissed."
-            )
+        if banner_settings.get(cls._DESKTOPSTARTUP_UPDATES_ID, {}).get(
+            engine.startup_descriptor.version, False
+        ):
+            logger.debug("This release has already been dismissed.")
             return None
         else:
-            logger.debug(
-                "Startup update available: %s", engine.startup_descriptor
-            )
+            logger.debug("Startup update available: %s", engine.startup_descriptor)
             return StartupUpdateNotification(engine)
 
     @property
@@ -113,6 +108,6 @@ class StartupUpdateNotification(Notification):
 
         :param banner_settings: Dictionary of the banners settings.
         """
-        banner_settings.setdefault(
-            self._DESKTOPSTARTUP_UPDATES_ID, {}
-        )[self._engine.startup_descriptor.version] = True
+        banner_settings.setdefault(self._DESKTOPSTARTUP_UPDATES_ID, {})[
+            self._engine.startup_descriptor.version
+        ] = True

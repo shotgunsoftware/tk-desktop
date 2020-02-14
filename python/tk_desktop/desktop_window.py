@@ -30,7 +30,7 @@ from tank_vendor import shotgun_authentication as sg_auth
 from sgtk import TankInvalidInterpreterLocationError, TankFileDoesNotExistError
 from sgtk.platform import get_logger
 
-from .ui import resources_rc # noqa
+from .ui import resources_rc  # noqa
 from .ui import desktop_window
 
 from .systray import SystrayWindow
@@ -60,8 +60,12 @@ except Exception:
     osutils = None
 
 # import our frameworks
-shotgun_model = sgtk.platform.import_framework("tk-framework-shotgunutils", "shotgun_model")
-overlay_widget = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
+shotgun_model = sgtk.platform.import_framework(
+    "tk-framework-shotgunutils", "shotgun_model"
+)
+overlay_widget = sgtk.platform.import_framework(
+    "tk-framework-qtwidgets", "overlay_widget"
+)
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
@@ -84,6 +88,7 @@ class ConfigDownloadThread(QtCore.QThread):
     When the application is closed, the threads seems to not only be properly shut down,
     but they do not cause a crash on exit, most notably Windows.
     """
+
     download_completed = QtCore.Signal(object, object)
     download_failed = QtCore.Signal(str)
 
@@ -116,8 +121,12 @@ class DesktopWindow(SystrayWindow):
     APPLICATION = "tk-desktop"
     _BOOTSTRAP_END_RATIO = 0.9
     _LAUNCHING_PYTHON_RATIO = 0.95
-    _CHROME_SUPPORT_URL = "https://support.shotgunsoftware.com/hc/en-us/articles/114094536273"
-    _FIREFOX_SUPPORT_URL = "https://support.shotgunsoftware.com/hc/en-us/articles/115000054954"
+    _CHROME_SUPPORT_URL = (
+        "https://support.shotgunsoftware.com/hc/en-us/articles/114094536273"
+    )
+    _FIREFOX_SUPPORT_URL = (
+        "https://support.shotgunsoftware.com/hc/en-us/articles/115000054954"
+    )
 
     def __init__(self, console, parent=None):
         SystrayWindow.__init__(self, parent)
@@ -139,8 +148,12 @@ class DesktopWindow(SystrayWindow):
         self.install_apps_widget = NoAppsInstalledOverlay(self.ui.project_commands)
         self.setup_project_widget = SetupProject(self.ui.project_commands)
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
-        self.update_project_config_widget = UpdateProjectConfig(self.ui.project_commands)
-        self.update_project_config_widget.update_finished.connect(self._on_update_finished)
+        self.update_project_config_widget = UpdateProjectConfig(
+            self.ui.project_commands
+        )
+        self.update_project_config_widget.update_finished.connect(
+            self._on_update_finished
+        )
         self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
 
         self._current_pipeline_descriptor = None
@@ -167,8 +180,8 @@ class DesktopWindow(SystrayWindow):
         ###########################
         user = engine.get_current_login()
         current_user = connection.find_one(
-            "HumanUser", [["id", "is", user["id"]]],
-            ["image", "name"])
+            "HumanUser", [["id", "is", user["id"]]], ["image", "name"]
+        )
         self._current_user_id = user["id"]
         thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
@@ -218,8 +231,8 @@ class DesktopWindow(SystrayWindow):
         advanced_menu.addAction(self.toggle_debug_action)
 
         if (
-            desktop_server_framework.can_run_server() and
-            desktop_server_framework.can_regenerate_certificates()
+            desktop_server_framework.can_run_server()
+            and desktop_server_framework.can_regenerate_certificates()
         ):
             advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
 
@@ -237,8 +250,12 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
         self.ui.actionShow_Console.triggered.connect(self.__console.show_and_raise)
-        self.ui.actionAdvanced_Project_Setup.triggered.connect(self.handle_advanced_project_setup_action)
-        self.ui.actionRefresh_Projects.triggered.connect(self.handle_project_refresh_action)
+        self.ui.actionAdvanced_Project_Setup.triggered.connect(
+            self.handle_advanced_project_setup_action
+        )
+        self.ui.actionRefresh_Projects.triggered.connect(
+            self.handle_project_refresh_action
+        )
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
         self.ui.actionQuit.triggered.connect(self.handle_quit_action)
         self.ui.actionRegenerate_Certificates.triggered.connect(self.handle_regen_certs)
@@ -257,16 +274,23 @@ class DesktopWindow(SystrayWindow):
         # limit how many recent commands are shown
         self._project_command_proxy.set_recents_limit(6)
 
-        self._project_command_delegate = ProjectCommandDelegate(self.ui.project_commands)
+        self._project_command_delegate = ProjectCommandDelegate(
+            self.ui.project_commands
+        )
         self.ui.project_commands.setItemDelegate(self._project_command_delegate)
-        self.ui.project_commands.expanded_changed.connect(self.handle_project_command_expanded_changed)
+        self.ui.project_commands.expanded_changed.connect(
+            self.handle_project_command_expanded_changed
+        )
 
         # fix for floating delegate bug
         # see discussion at https://stackoverflow.com/questions/15331256
         self.ui.project_commands.verticalScrollBar().valueChanged.connect(
-            self.ui.project_commands.updateEditorGeometries)
+            self.ui.project_commands.updateEditorGeometries
+        )
 
-        self._project_command_model.command_triggered.connect(engine._handle_button_command_triggered)
+        self._project_command_model.command_triggered.connect(
+            engine._handle_button_command_triggered
+        )
 
         # load and initialize cached projects
         self._project_model = SgProjectModel(self, self.ui.projects)
@@ -278,19 +302,23 @@ class DesktopWindow(SystrayWindow):
         self.ui.projects.setModel(self._project_proxy)
 
         # tell our project view to use a custom delegate to produce widgets
-        self._project_delegate = \
-            SgProjectDelegate(self.ui.projects, QtCore.QSize(130, 150))
+        self._project_delegate = SgProjectDelegate(
+            self.ui.projects, QtCore.QSize(130, 150)
+        )
         self.ui.projects.setItemDelegate(self._project_delegate)
 
         # handle project selection change
         self._project_selection_model = self.ui.projects.selectionModel()
-        self._project_selection_model.selectionChanged.connect(self._on_project_selection)
+        self._project_selection_model.selectionChanged.connect(
+            self._on_project_selection
+        )
 
         # handle project data updated
         self._project_model.data_refreshed.connect(self._handle_project_data_changed)
 
         self.ui.actionProject_Filesystem_Folder.triggered.connect(
-            self.on_project_filesystem_folder_triggered)
+            self.on_project_filesystem_folder_triggered
+        )
 
         # setup project search
         self._search_x_icon = QtGui.QIcon(":/tk-desktop/icon_inbox_clear.png")
@@ -309,11 +337,17 @@ class DesktopWindow(SystrayWindow):
         self.clear_app_uis()
 
         self.ui.shotgun_button.clicked.connect(self.open_site_in_browser)
-        self.ui.shotgun_button.setToolTip("Open Shotgun in browser.\n%s" % connection.base_url)
+        self.ui.shotgun_button.setToolTip(
+            "Open Shotgun in browser.\n%s" % connection.base_url
+        )
 
-        self._project_model.thumbnail_updated.connect(self.handle_project_thumbnail_updated)
+        self._project_model.thumbnail_updated.connect(
+            self.handle_project_thumbnail_updated
+        )
 
-        desktop_server_framework.add_different_user_requested_callback(self._on_different_user)
+        desktop_server_framework.add_different_user_requested_callback(
+            self._on_different_user
+        )
 
         # Set of sites that are being ignored when browser integration requests happen. This set is not
         # persisted when the desktop is closed.
@@ -344,9 +378,7 @@ class DesktopWindow(SystrayWindow):
         :rtype: bool or None
         """
         return self._settings_manager.retrieve(
-            "debug_logging",
-            None,
-            self._settings_manager.SCOPE_ENGINE,
+            "debug_logging", None, self._settings_manager.SCOPE_ENGINE,
         )
 
     def _set_user_preferred_debug_logging(self, state):
@@ -357,14 +389,11 @@ class DesktopWindow(SystrayWindow):
         :param bool state: The debug logging state to store.
         """
         self._settings_manager.store(
-            "debug_logging",
-            state,
-            self._settings_manager.SCOPE_ENGINE,
+            "debug_logging", state, self._settings_manager.SCOPE_ENGINE,
         )
 
     user_preferred_debug_logging = property(
-        _get_user_preferred_debug_logging,
-        _set_user_preferred_debug_logging
+        _get_user_preferred_debug_logging, _set_user_preferred_debug_logging
     )
 
     def handle_help(self):
@@ -384,7 +413,7 @@ class DesktopWindow(SystrayWindow):
             self._settings_manager,
             engine.sgtk.configuration_descriptor,
             self._current_pipeline_descriptor,
-            engine
+            engine,
         )
 
         # Remove all items from the layout
@@ -392,7 +421,8 @@ class DesktopWindow(SystrayWindow):
 
         # Find all the current banners and their unique identifiers.
         current_banners = {
-            banner_layout.itemAt(i).widget().unique_id for i in range(banner_layout.count())
+            banner_layout.itemAt(i).widget().unique_id
+            for i in range(banner_layout.count())
         }
 
         notifs = self._notifs_mgr.get_notifications()
@@ -411,7 +441,9 @@ class DesktopWindow(SystrayWindow):
 
     def _load_settings(self):
         # last window position
-        pos = self._settings_manager.retrieve("pos", QtCore.QPoint(200, 200), self._settings_manager.SCOPE_SITE)
+        pos = self._settings_manager.retrieve(
+            "pos", QtCore.QPoint(200, 200), self._settings_manager.SCOPE_SITE
+        )
         self.move(pos)
         # Force update so the project selection happens if the window is shown by default
         QtGui.QApplication.processEvents()
@@ -424,14 +456,19 @@ class DesktopWindow(SystrayWindow):
 
         # Update the project at the very end so the Python process is kicked off when everything
         # is initialized.
-        project_id = self._settings_manager.retrieve("project_id", None, self._settings_manager.SCOPE_SITE)
+        project_id = self._settings_manager.retrieve(
+            "project_id", None, self._settings_manager.SCOPE_SITE
+        )
         if project_id == 0:
             # 0 means will be displaying all of the projects
             try:
                 from sgtk.util.metrics import EventMetric as EventMetric
-                EventMetric.log(EventMetric.GROUP_NAVIGATION,
-                                "Viewed Projects",
-                                bundle=sgtk.platform.current_engine())
+
+                EventMetric.log(
+                    EventMetric.GROUP_NAVIGATION,
+                    "Viewed Projects",
+                    bundle=sgtk.platform.current_engine(),
+                )
             except:
                 # ignore all errors. ex: using a core that doesn't support metrics
                 pass
@@ -446,7 +483,9 @@ class DesktopWindow(SystrayWindow):
 
     def _load_setting(self, key, default_value, site_specific):
         if site_specific:
-            ret = self._settings_manager.retrieve(key, default_value, self._settings_manager.SCOPE_SITE)
+            ret = self._settings_manager.retrieve(
+                key, default_value, self._settings_manager.SCOPE_SITE
+            )
         else:
             ret = self._settings_manager.retrieve(key, default_value)
 
@@ -477,6 +516,7 @@ class DesktopWindow(SystrayWindow):
         if sys.platform == "win32":
             try:
                 import win32api
+
                 win32api.SetDllDirectory(self._previous_dll_directory)
             except StandardError:
                 log.warning("Could not restore DllDirectory under Windows.")
@@ -587,11 +627,9 @@ class DesktopWindow(SystrayWindow):
                 "to troubleshoot connections with <a href='%s'>Chrome</a> or "
                 "<a href='%s'>Firefox</a>.<br/>"
                 "<br/>"
-                "Would you like to continue?" % (
-                    self._CHROME_SUPPORT_URL,
-                    self._FIREFOX_SUPPORT_URL
-                ),
-                [QtGui.QMessageBox.Yes, QtGui.QMessageBox.No]
+                "Would you like to continue?"
+                % (self._CHROME_SUPPORT_URL, self._FIREFOX_SUPPORT_URL),
+                [QtGui.QMessageBox.Yes, QtGui.QMessageBox.No],
             )
 
             if choice != QtGui.QMessageBox.Yes:
@@ -610,8 +648,8 @@ class DesktopWindow(SystrayWindow):
                     "if you need assistance resolving this issue. Make sure to zip the logs folder "
                     "at <a href='file://{1}'>{1}</a> and send it to us.".format(
                         "mailto:support@shotgunsoftware.com",
-                        sgtk.LogManager().log_folder
-                    )
+                        sgtk.LogManager().log_folder,
+                    ),
                 )
             else:
                 choice = QtGui.QMessageBox.question(
@@ -621,7 +659,7 @@ class DesktopWindow(SystrayWindow):
                     "to take effect.\n"
                     "\n"
                     "Would you like to restart?",
-                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No
+                    QtGui.QMessageBox.Yes | QtGui.QMessageBox.No,
                 )
                 if choice == QtGui.QMessageBox.Yes:
                     self._restart_desktop()
@@ -637,7 +675,9 @@ class DesktopWindow(SystrayWindow):
             # nothing needs updating
             return
 
-        self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
+        self.ui.project_icon.setPixmap(
+            self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size())
+        )
 
     def handle_systray_state_changed(self, state):
         if state == self.STATE_PINNED:
@@ -675,11 +715,13 @@ class DesktopWindow(SystrayWindow):
             if self.__activation_hotkey is not None:
                 osutils.unregister_global_hotkey(self.__activation_hotkey)
             self.__activation_hotkey = osutils.register_global_hotkey(
-                native_modifiers, native_key, self.handle_hotkey_triggered)
+                native_modifiers, native_key, self.handle_hotkey_triggered
+            )
             self._save_setting(
                 "activation_hotkey",
                 (shortcut[0], native_modifiers, native_key),
-                site_specific=True)
+                site_specific=True,
+            )
 
     def handle_auto_start_changed(self, state):
         if osutils is None:
@@ -718,13 +760,11 @@ class DesktopWindow(SystrayWindow):
             wizard_setting, default_value=False, site_specific=False
         )
         if not help_wizard_shown:
-            self._save_setting(
-                wizard_setting, value=True, site_specific=False
-            )
+            self._save_setting(wizard_setting, value=True, site_specific=False)
 
         # Bypass the Setup Toolkit overlay of the setup_project_widget
         # and go straight to the setup wizard window.
-        self.setup_project_widget.do_setup(show_help=not(help_wizard_shown))
+        self.setup_project_widget.do_setup(show_help=not (help_wizard_shown))
 
     def search_button_clicked(self):
         if self.ui.search_frame.property("collapsed"):
@@ -751,7 +791,8 @@ class DesktopWindow(SystrayWindow):
             # self.ui.project_button.show()
             self.ui.search_button.setIcon(self._search_magnifier_icon)
             self.ui.search_button.setToolTip("Search Projects")
-            self.ui.search_button.setStyleSheet("""
+            self.ui.search_button.setStyleSheet(
+                """
                 QPushButton {
                     border-image: url(:/tk-desktop/search_light.png);
                 }
@@ -759,7 +800,8 @@ class DesktopWindow(SystrayWindow):
                 QPushButton:hover {
                     border-image: url(:/tk-desktop/search_blue.png);
                 }
-            """)
+            """
+            )
             self.ui.search_frame.setProperty("collapsed", True)
 
         self.ui.search_frame.style().unpolish(self.ui.search_frame)
@@ -781,9 +823,12 @@ class DesktopWindow(SystrayWindow):
 
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
-            EventMetric.log(EventMetric.GROUP_PROJECTS,
-                            "Viewed Project Commands",
-                            bundle=sgtk.platform.current_engine())
+
+            EventMetric.log(
+                EventMetric.GROUP_PROJECTS,
+                "Viewed Project Commands",
+                bundle=sgtk.platform.current_engine(),
+            )
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
             pass
@@ -882,8 +927,7 @@ class DesktopWindow(SystrayWindow):
                     "are currently logged into <b>{1}</b>.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
                     "<b>Restart</b> button below to restart Shotgun Desktop and log into <b>{0}</b>.".format(
-                        site,
-                        current_site
+                        site, current_site
                     )
                 )
                 new_site = site
@@ -892,7 +936,9 @@ class DesktopWindow(SystrayWindow):
                 user_login = None
             else:
 
-                user = bundle.shotgun.find_one("HumanUser", [["id", "is", user_id]], ["login"])
+                user = bundle.shotgun.find_one(
+                    "HumanUser", [["id", "is", user_id]], ["login"]
+                )
                 # If for some reason we can't see the user (permissions might be the cause),
                 # use the <unknown> string.
                 if user is None or not user.get("login"):
@@ -905,7 +951,8 @@ class DesktopWindow(SystrayWindow):
                     "signed in as <b>{1}</b> in the Shotgun Desktop.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
                     "<b>Restart</b> button below to restart Shotgun Desktop and log as <b>{0}</b>.".format(
-                        user_login if user_login else "<unknown>", bundle.get_current_user().login
+                        user_login if user_login else "<unknown>",
+                        bundle.get_current_user().login,
                     )
                 )
                 new_site = None
@@ -930,7 +977,7 @@ class DesktopWindow(SystrayWindow):
             self._is_handling_switch_request = False
 
     def is_on_top(self):
-        return (self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint)
+        return self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint
 
     def set_on_top(self, value):
         flags = self.windowFlags()
@@ -961,7 +1008,14 @@ class DesktopWindow(SystrayWindow):
         self._project_menu.add(action)
 
     def add_project_command(
-        self, name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
+        self,
+        name,
+        button_name,
+        menu_name,
+        icon,
+        command_tooltip,
+        groups,
+        is_menu_default,
     ):
         """
         Add a button command to the Project dialog. Keeps a running total of how
@@ -1016,10 +1070,9 @@ class DesktopWindow(SystrayWindow):
         self._save_setting("project_id", 0, site_specific=True)
         try:
             from sgtk.util.metrics import EventMetric as EventMetric
+
             EventMetric.log(
-                EventMetric.GROUP_NAVIGATION,
-                "Viewed Projects",
-                bundle=engine
+                EventMetric.GROUP_NAVIGATION, "Viewed Projects", bundle=engine
             )
         except:
             # ignore all errors. ex: using a core that doesn't support metrics
@@ -1033,7 +1086,8 @@ class DesktopWindow(SystrayWindow):
 
     def set_groups(self, groups, show_recents=True):
         self._project_command_model.set_project(
-            self.current_project, groups, show_recents=show_recents)
+            self.current_project, groups, show_recents=show_recents
+        )
         self.project_overlay.hide()
 
         key = "project_expanded_state.%d" % self.current_project["id"]
@@ -1096,19 +1150,24 @@ class DesktopWindow(SystrayWindow):
             if project["id"] == project_id:
                 # select it in the model
                 self._project_selection_model.select(
-                    index, self._project_selection_model.SelectCurrent)
+                    index, self._project_selection_model.SelectCurrent
+                )
                 break
 
     def __get_icon_pixmap(self, icon, size):
         pixmap = icon.pixmap(512, 512)
-        return pixmap.scaled(size, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation)
+        return pixmap.scaled(
+            size, QtCore.Qt.KeepAspectRatioByExpanding, QtCore.Qt.SmoothTransformation
+        )
 
     def __set_project_from_item(self, item):
         # slide in the project specific view
         self.slide_view(self.ui.project_page, "right")
 
         # update the project icon and name
-        self.ui.project_icon.setPixmap(self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size()))
+        self.ui.project_icon.setPixmap(
+            self.__get_icon_pixmap(item.icon(), self.ui.project_icon.size())
+        )
         project = item.data(SgProjectModel.SG_DATA_ROLE)
         self.ui.project_name.setText(project.get("name", "No Name"))
 
@@ -1186,13 +1245,16 @@ class DesktopWindow(SystrayWindow):
                 "page to set the field.".format(
                     self.project_overlay.ERROR_COLOR,
                     engine.sgtk.shotgun_url,
-                    self.current_project["id"]
-                )
+                    self.current_project["id"],
+                ),
             )
         else:
             message = "Error\n\n%s" % error.message
 
-        if trigger_project_config and not self._current_pipeline_descriptor.is_immutable():
+        if (
+            trigger_project_config
+            and not self._current_pipeline_descriptor.is_immutable()
+        ):
             # error is that the desktop engine hasn't been setup for the project
             # show the UI to configure it
             self.show_update_project_config()
@@ -1206,7 +1268,9 @@ class DesktopWindow(SystrayWindow):
                 message += "\n\n%s" % tb
             log.error(message)
 
-    def __launch_app_proxy_for_project(self, project, requested_pipeline_configuration_id=None):
+    def __launch_app_proxy_for_project(
+        self, project, requested_pipeline_configuration_id=None
+    ):
         try:
             engine = sgtk.platform.current_engine()
             log.debug("launching app proxy for project: %s" % project)
@@ -1236,20 +1300,28 @@ class DesktopWindow(SystrayWindow):
             # We need to cache all environments because we don't know which one the user will require.
             toolkit_manager.caching_policy = ToolkitManager.CACHE_FULL
             toolkit_manager.plugin_id = "basic.desktop"
-            toolkit_manager.base_configuration = "sgtk:descriptor:app_store?name=tk-config-basic"
+            toolkit_manager.base_configuration = (
+                "sgtk:descriptor:app_store?name=tk-config-basic"
+            )
             toolkit_manager.bundle_cache_fallback_paths.extend(
                 engine.sgtk.bundle_cache_fallback_paths
             )
-            pipeline_configurations = toolkit_manager.get_pipeline_configurations(project)
+            pipeline_configurations = toolkit_manager.get_pipeline_configurations(
+                project
+            )
 
-            log.debug("The following pipeline configurations for this project have been found:")
+            log.debug(
+                "The following pipeline configurations for this project have been found:"
+            )
             log.debug(pprint.pformat(pipeline_configurations))
 
             # No specific pipeline was requested, load the previously used one.
             setting_name = "pipeline_configuration_for_project_%d" % project["id"]
             if requested_pipeline_configuration_id is None:
                 log.debug("Searching for the latest config that was used.")
-                requested_pipeline_configuration_id = self._load_setting(setting_name, None, site_specific=True)
+                requested_pipeline_configuration_id = self._load_setting(
+                    setting_name, None, site_specific=True
+                )
 
             # Pick a pipeline configuration from the list to use.
             pipeline_configuration_to_load = self._pick_pipeline_configuration(
@@ -1259,18 +1331,27 @@ class DesktopWindow(SystrayWindow):
             # If we've found what we should be loading.
             if pipeline_configuration_to_load:
                 # Remember what we just picked so we pick the same thing next time we launch the app.
-                log.debug("Updating %s to %d.", setting_name, pipeline_configuration_to_load["id"])
-                self._save_setting(setting_name, pipeline_configuration_to_load["id"], site_specific=True)
+                log.debug(
+                    "Updating %s to %d.",
+                    setting_name,
+                    pipeline_configuration_to_load["id"],
+                )
+                self._save_setting(
+                    setting_name,
+                    pipeline_configuration_to_load["id"],
+                    site_specific=True,
+                )
 
             # Add all the pipeline configurations to the menu.
             self._project_menu.populate_pipeline_configurations_menu(
-                pipeline_configurations,
-                pipeline_configuration_to_load
+                pipeline_configurations, pipeline_configuration_to_load
             )
 
             # If there is no pipeline configuration set for the current project, i.e. there might be
             # site level ones but no project ones, add the Advanced Project Setup menu.
-            if not any(True if pc["project"] else False for pc in pipeline_configurations):
+            if not any(
+                True if pc["project"] else False for pc in pipeline_configurations
+            ):
                 # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
                 if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
                     self.ui.actionAdvanced_Project_Setup.setVisible(True)
@@ -1300,9 +1381,11 @@ class DesktopWindow(SystrayWindow):
                 # reload the same old one.
                 engine.logger.debug(
                     "Found a pipeline configuration to load in Shotgun, picking %s.",
-                    pipeline_configuration_to_load
+                    pipeline_configuration_to_load,
                 )
-                toolkit_manager.pipeline_configuration = pipeline_configuration_to_load["id"]
+                toolkit_manager.pipeline_configuration = pipeline_configuration_to_load[
+                    "id"
+                ]
                 config_descriptor = pipeline_configuration_to_load["descriptor"]
 
                 # The config descriptor can be None if the pipeline configuration hasn't been
@@ -1315,10 +1398,12 @@ class DesktopWindow(SystrayWindow):
 
         except Exception as error:
             log.exception(str(error))
-            message = ("%s"
-                       "\n\nTo resolve this, open Shotgun in your browser\n"
-                       "and check the paths for this Pipeline Configuration."
-                       "\n\nFor more details, see the console." % str(error))
+            message = (
+                "%s"
+                "\n\nTo resolve this, open Shotgun in your browser\n"
+                "and check the paths for this Pipeline Configuration."
+                "\n\nFor more details, see the console." % str(error)
+            )
             self.project_overlay.show_error_message(message)
             return
 
@@ -1332,7 +1417,9 @@ class DesktopWindow(SystrayWindow):
             self._current_download_thread = ConfigDownloadThread(
                 self, config_descriptor, toolkit_manager
             )
-            self._current_download_thread.download_completed.connect(self._on_config_downloaded)
+            self._current_download_thread.download_completed.connect(
+                self._on_config_downloaded
+            )
             self._current_download_thread.download_failed.connect(self._launch_failed)
             self._current_download_thread.start()
 
@@ -1348,7 +1435,10 @@ class DesktopWindow(SystrayWindow):
         # files, therefore we only want to handle this message if we get it for the latest thread we've
         # spun up.
         if self._current_download_thread != self.sender():
-            log.debug("Discarding request for configuration %s that was cancelled.", config_descriptor)
+            log.debug(
+                "Discarding request for configuration %s that was cancelled.",
+                config_descriptor,
+            )
             return
 
         self._start_bg_process(config_descriptor, toolkit_manager)
@@ -1401,16 +1491,17 @@ class DesktopWindow(SystrayWindow):
                 # Authentication credentials to connect back to this process.
                 "proxy_data": {
                     "proxy_pipe": engine.site_comm.server_pipe,
-                    "proxy_auth": engine.site_comm.server_authkey
-                }
+                    "proxy_auth": engine.site_comm.server_authkey,
+                },
             }
-            (_, pickle_data_file) = tempfile.mkstemp(suffix='.pkl')
+            (_, pickle_data_file) = tempfile.mkstemp(suffix=".pkl")
             with open(pickle_data_file, "wb") as pickle_data_file_handle:
                 pickle.dump(desktop_data, pickle_data_file_handle)
 
             # update the values on the project updater in case they are needed
             self.update_project_config_widget.set_project_info(
-                path_to_python, core_python, config_path, self.current_project)
+                path_to_python, core_python, config_path, self.current_project
+            )
 
             # get the path to the utilities module
             utilities_module_path = os.path.realpath(
@@ -1424,9 +1515,9 @@ class DesktopWindow(SystrayWindow):
             self._push_dll_state()
 
             try:
-                os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = sgtk.authentication.serialize_user(
-                    engine.get_current_user()
-                )
+                os.environ[
+                    "SHOTGUN_DESKTOP_CURRENT_USER"
+                ] = sgtk.authentication.serialize_user(engine.get_current_user())
                 engine.execute_hook(
                     "hook_launch_python",
                     project_python=path_to_python,
@@ -1445,7 +1536,9 @@ class DesktopWindow(SystrayWindow):
             self._launch_failed(str(e))
         else:
             # and remember what we launched for next time
-            self._save_setting("project_id", self.current_project["id"], site_specific=True)
+            self._save_setting(
+                "project_id", self.current_project["id"], site_specific=True
+            )
             # Banners might need to be updated, we might have picked a configuration that has been
             # updated.
             self._update_banners()
@@ -1459,8 +1552,7 @@ class DesktopWindow(SystrayWindow):
 
         :param message: Error message to display.
         """
-        message = ("%s"
-                   "\n\nFor more details, see the console." % message)
+        message = "%s" "\n\nFor more details, see the console." % message
         self.project_overlay.show_error_message(message)
 
     def bootstrap_progress_callback(self, value, msg):
@@ -1472,7 +1564,9 @@ class DesktopWindow(SystrayWindow):
         """
         self.project_overlay.report_progress(value, msg)
 
-    def _pick_pipeline_configuration(self, pipeline_configurations, requested_pipeline_configuration_id, project):
+    def _pick_pipeline_configuration(
+        self, pipeline_configurations, requested_pipeline_configuration_id, project
+    ):
         """
         Picks which pipeline configuration to be loaded based on user input or previously used
         pipeline settings.
@@ -1489,7 +1583,10 @@ class DesktopWindow(SystrayWindow):
             log.debug("No pipeline configuration to choose from.")
             return None
 
-        log.debug("Looking for pipeline configuration %s.", requested_pipeline_configuration_id)
+        log.debug(
+            "Looking for pipeline configuration %s.",
+            requested_pipeline_configuration_id,
+        )
 
         # Find the matching pipeline configuration to launch against
         for pc in pipeline_configurations:
@@ -1502,7 +1599,7 @@ class DesktopWindow(SystrayWindow):
         # fallback.
         log.debug(
             "Requested pipeline configuration was not found. Falling back on %s",
-            pprint.pformat(pipeline_configurations[0])
+            pprint.pformat(pipeline_configurations[0]),
         )
         return pipeline_configurations[0]
 
@@ -1539,6 +1636,7 @@ class DesktopWindow(SystrayWindow):
 
         def slide_finished():
             self.ui.apps_tab.setCurrentWidget(new_page)
+
         anim_group.finished.connect(slide_finished)
         anim_group.start()
 

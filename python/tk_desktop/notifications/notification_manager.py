@@ -14,6 +14,7 @@ from .first_launch_notification import FirstLaunchNotification
 from .startup_update_notification import StartupUpdateNotification
 
 import sgtk
+
 logger = sgtk.platform.get_logger(__name__)
 
 
@@ -54,28 +55,43 @@ class NotificationsManager(object):
         # Get all other notification types. Filter out those who are not set.
         other_notifs = [
             StartupUpdateNotification.create(banner_settings, self._engine),
-            DesktopNotification.create(banner_settings, self._engine)
+            DesktopNotification.create(banner_settings, self._engine),
         ]
 
         # If both descriptors are set and they have the same uri, we only want one notification.
         if (
-            self._site_descriptor and self._project_descriptor and
-            self._site_descriptor.get_uri() == self._project_descriptor.get_uri()
+            self._site_descriptor
+            and self._project_descriptor
+            and self._site_descriptor.get_uri() == self._project_descriptor.get_uri()
         ):
             logger.debug("Site and project both have the same descriptor.")
-            other_notifs.append(ConfigurationUpdateNotification.create(banner_settings, self._site_descriptor))
+            other_notifs.append(
+                ConfigurationUpdateNotification.create(
+                    banner_settings, self._site_descriptor
+                )
+            )
         else:
             logger.debug("Creating site notification.")
-            other_notifs.append(ConfigurationUpdateNotification.create(banner_settings, self._site_descriptor))
+            other_notifs.append(
+                ConfigurationUpdateNotification.create(
+                    banner_settings, self._site_descriptor
+                )
+            )
             logger.debug("Creating project notification.")
-            other_notifs.append(ConfigurationUpdateNotification.create(banner_settings, self._project_descriptor))
+            other_notifs.append(
+                ConfigurationUpdateNotification.create(
+                    banner_settings, self._project_descriptor
+                )
+            )
 
         other_notifs = filter(None, other_notifs)
 
         # If this is the first launch, suppress all other notifications and return only the first
         # launch one.
         if first_launch_notif:
-            logger.debug("First launch notification to be displayed, dismiss all other notifications.")
+            logger.debug(
+                "First launch notification to be displayed, dismiss all other notifications."
+            )
             for notif in other_notifs:
                 self.dismiss(notif)
             return [first_launch_notif]
@@ -87,7 +103,7 @@ class NotificationsManager(object):
         """
         Marks a notification as dismiss to that it is not shown in the future.
         """
-        settings  = self._get_banner_settings()
+        settings = self._get_banner_settings()
         notification._dismiss(settings)
         self._user_settings.store(self._BANNERS, settings)
 

@@ -16,6 +16,7 @@ from .ui import thumb_widget
 
 class ThumbWidget(QtGui.QWidget):
     """Thumbnail widget to poplulate the projects list view """
+
     SIZER_WIDGET = None
 
     def __init__(self, width=120, parent=None):
@@ -37,7 +38,7 @@ class ThumbWidget(QtGui.QWidget):
         pixmap = pixmap.scaledToHeight(self.thumb_size, QtCore.Qt.SmoothTransformation)
         if pixmap.width() > self.thumb_size:
             extra = pixmap.width() - self.thumb_size
-            pixmap = pixmap.copy(extra/2, 0, self.thumb_size, self.thumb_size)
+            pixmap = pixmap.copy(extra / 2, 0, self.thumb_size, self.thumb_size)
         self.ui.thumbnail.setPixmap(pixmap)
 
     @classmethod
@@ -52,7 +53,9 @@ class ThumbWidget(QtGui.QWidget):
         thumb_height = cls.SIZER_WIDGET.thumb_size
 
         cls.SIZER_WIDGET.set_text(text)
-        label_height = cls.SIZER_WIDGET.ui.label.heightForWidth(width - margins.left() - margins.right())
+        label_height = cls.SIZER_WIDGET.ui.label.heightForWidth(
+            width - margins.left() - margins.right()
+        )
 
         return margins.top() + margins.bottom() + spacing + thumb_height + label_height
 
@@ -66,20 +69,33 @@ class ThumbWidget(QtGui.QWidget):
             p = QtGui.QPalette()
             highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
 
-            border = "rgb(%s, %s, %s)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
-            background = "rgba(%s, %s, %s, 25%%)" % (highlight_col.red(), highlight_col.green(), highlight_col.blue())
-            self.ui.widget_frame.setStyleSheet("""
+            border = "rgb(%s, %s, %s)" % (
+                highlight_col.red(),
+                highlight_col.green(),
+                highlight_col.blue(),
+            )
+            background = "rgba(%s, %s, %s, 25%%)" % (
+                highlight_col.red(),
+                highlight_col.green(),
+                highlight_col.blue(),
+            )
+            self.ui.widget_frame.setStyleSheet(
+                """
                 #widget_frame {
                     border: 1px solid %s;
                     background-color: %s;
                 }
-            """ % (border, background))
+            """
+                % (border, background)
+            )
         else:
-            self.ui.widget_frame.setStyleSheet("""
+            self.ui.widget_frame.setStyleSheet(
+                """
                 #widget_frame {
                     border: 1px solid transparent;
                 }
-            """)
+            """
+            )
 
         # force a refresh of the stylesheet
         self.ui.widget_frame.style().unpolish(self.ui.widget_frame)

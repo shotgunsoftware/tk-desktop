@@ -9,7 +9,9 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from sgtk.platform.qt import QtCore, QtGui
-from .ui.browser_integration_user_switch_dialog import Ui_BrowserIntegrationUserSwitchDialog
+from .ui.browser_integration_user_switch_dialog import (
+    Ui_BrowserIntegrationUserSwitchDialog,
+)
 
 
 class BrowserIntegrationUserSwitchDialog(QtGui.QDialog):

@@ -63,7 +63,6 @@ class DesktopEngine(Engine):
         """
         return False
 
-
     ############################################################################
     # Engine methods
     def init_engine(self):
@@ -89,6 +88,7 @@ class DesktopEngine(Engine):
         #
         # try to pull in QT classes and assign to sgtk.platform.qt.XYZ
         from sgtk.platform import qt
+
         base_def = self._define_qt_base()
         qt.QtCore = base_def.get("qt_core")
         qt.QtGui = base_def.get("qt_gui")
@@ -107,8 +107,7 @@ class DesktopEngine(Engine):
         if hasattr(self.__impl, "post_app_init"):
             self.__impl.post_app_init()
 
-    def show_panel(self, panel_id, title, bundle, widget_class,
-                   *args, **kwargs):
+    def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
         """
         Shows the panel in the desktop engine, if supported by the current
         desktop mode (site vs project).
@@ -126,19 +125,14 @@ class DesktopEngine(Engine):
         """
         if hasattr(self.__impl, "show_panel"):
             # forward to site/projet implementation
-            return self.__impl.show_panel(panel_id, title, bundle, widget_class,
-                                   *args, **kwargs)
+            return self.__impl.show_panel(
+                panel_id, title, bundle, widget_class, *args, **kwargs
+            )
         else:
             # fall back on base class implementation
             return super(DesktopEngine, self).show_panel(
-                panel_id,
-                title,
-                bundle,
-                widget_class,
-                *args,
-                **kwargs
+                panel_id, title, bundle, widget_class, *args, **kwargs
             )
-
 
     def destroy_engine(self):
         """ Clean up the engine """
@@ -159,7 +153,9 @@ class DesktopEngine(Engine):
     def __getattr__(self, attr):
         if self.__impl is not None:
             return getattr(self.__impl, attr)
-        raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
+        raise AttributeError(
+            "'%s' object has no attribute '%s'" % (self.__class__.__name__, attr)
+        )
 
     ##########################################################################################
     # pyside / qt
@@ -178,11 +174,13 @@ class DesktopEngine(Engine):
         # this will raise an exception when any QT code tries to use it
         class QTProxy(object):
             def __getattr__(self, name):
-                raise sgtk.TankError("Looks like you are trying to run an App that uses a QT based UI, however the "
-                                     "python installation that the Desktop engine is currently using does not seem "
-                                     "to contain a valid PySide or PyQt4 install. Either install PySide into your "
-                                     "python environment or alternatively switch back to using the native Shotgun "
-                                     "Desktop python installation, which includes full QT support.")
+                raise sgtk.TankError(
+                    "Looks like you are trying to run an App that uses a QT based UI, however the "
+                    "python installation that the Desktop engine is currently using does not seem "
+                    "to contain a valid PySide or PyQt4 install. Either install PySide into your "
+                    "python environment or alternatively switch back to using the native Shotgun "
+                    "Desktop python installation, which includes full QT support."
+                )
 
         base = {"qt_core": QTProxy(), "qt_gui": QTProxy(), "dialog_base": None}
         self._has_ui = False
@@ -208,7 +206,11 @@ class DesktopEngine(Engine):
             # a simple dialog proxy that pushes the window forward
             class ProxyDialog(DialogBase):
 
-                _requires_visibility_hack = True if sys.platform == "win32" and not self._is_site_engine else False
+                _requires_visibility_hack = (
+                    True
+                    if sys.platform == "win32" and not self._is_site_engine
+                    else False
+                )
 
                 def setVisible(self, make_visible):
                     # On Windows, a bug in Qt seems to prevent the first dialog we invoke to appear in the
@@ -239,18 +241,28 @@ class DesktopEngine(Engine):
                     self.raise_()
                     # the trick of activating + raising does not seem to be enough for
                     # modal dialogs. So force put them on top as well.
-                    self.setWindowFlags(QtCore.Qt.WindowStaysOnTopHint | self.windowFlags())
+                    self.setWindowFlags(
+                        QtCore.Qt.WindowStaysOnTopHint | self.windowFlags()
+                    )
                     return DialogBase.exec_(self)
 
             base["dialog_base"] = ProxyDialog
             self._has_ui = True
             self._has_qt = True
             # Strip the name since PySide has a \n at the end for some reason.
-            self.log_debug("Successfully initialized %s '%s' located in %s." %
-                           (QtWrapper.__name__.strip(), QtWrapper.__version__, QtWrapper.__file__))
+            self.log_debug(
+                "Successfully initialized %s '%s' located in %s."
+                % (
+                    QtWrapper.__name__.strip(),
+                    QtWrapper.__version__,
+                    QtWrapper.__file__,
+                )
+            )
 
             return base
-        except Exception, e:
-            self.log_warning("Error setting up qt. Qt based UI support will not "
-                             "be available: %s" % e)
+        except Exception as e:
+            self.log_warning(
+                "Error setting up qt. Qt based UI support will not "
+                "be available: %s" % e
+            )
             return self._define_unavailable_base()

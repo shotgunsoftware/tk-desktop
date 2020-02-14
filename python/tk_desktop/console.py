@@ -14,7 +14,7 @@ import logging
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
 
-from .ui import resources_rc # noqa
+from .ui import resources_rc  # noqa
 
 
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
@@ -22,11 +22,11 @@ settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings
 
 COLOR_MAP = {
     # colors from the Tomorrow Night Eighties theme
-    logging.CRITICAL: '#f2777a',
-    logging.ERROR: '#f2777a',
-    logging.WARNING: '#ffcc66',
-    logging.INFO: '#cccccc',
-    logging.DEBUG: '#999999'
+    logging.CRITICAL: "#f2777a",
+    logging.ERROR: "#f2777a",
+    logging.WARNING: "#ffcc66",
+    logging.INFO: "#cccccc",
+    logging.DEBUG: "#999999",
 }
 
 
@@ -37,7 +37,9 @@ class ConsoleLogHandler(logging.Handler):
 
     def __init__(self, console):
         logging.Handler.__init__(self)
-        self.__formatter = logging.Formatter("%(asctime)s [%(levelname) 8s] %(message)s")
+        self.__formatter = logging.Formatter(
+            "%(asctime)s [%(levelname) 8s] %(message)s"
+        )
 
         # Wrap the real message logging with a signal/slot,
         # to ensure that the console is updated within the UI thread.
@@ -49,7 +51,7 @@ class ConsoleLogHandler(logging.Handler):
         message = self.__formatter.format(record)
         if record.levelno in COLOR_MAP:
             color = COLOR_MAP[record.levelno]
-            message = "<font color=\"%s\">%s</font>" % (color, message)
+            message = '<font color="%s">%s</font>' % (color, message)
         message = "<pre>%s</pre>" % message
 
         # Update console (possibly in a different thread than the current one)
@@ -62,7 +64,7 @@ class Console(QtGui.QDialog):
     def __init__(self, parent=None):
         super(Console, self).__init__(parent)
 
-        self.setWindowTitle('Shotgun Desktop Console')
+        self.setWindowTitle("Shotgun Desktop Console")
         self.setWindowIcon(QtGui.QIcon(":/tk-desktop/default_systray_icon.png"))
 
         self.__logs = QtGui.QPlainTextEdit()
@@ -74,14 +76,19 @@ class Console(QtGui.QDialog):
         self.__logs.setReadOnly(True)
         self.__logs.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.__logs.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
-        self.__logs.customContextMenuRequested.connect(self.on_logs_context_menu_request)
+        self.__logs.customContextMenuRequested.connect(
+            self.on_logs_context_menu_request
+        )
         self.__logs.setStyleSheet("QPlainTextEdit:focus { border: none; }")
 
         # load up previous size
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
-        pos = self._settings_manager.retrieve("console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL)
+        pos = self._settings_manager.retrieve(
+            "console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL
+        )
         size = self._settings_manager.retrieve(
-            "console.size", QtCore.QSize(800, 400), self._settings_manager.SCOPE_GLOBAL)
+            "console.size", QtCore.QSize(800, 400), self._settings_manager.SCOPE_GLOBAL
+        )
 
         self.move(pos)
         self.resize(size)
@@ -115,9 +122,15 @@ class Console(QtGui.QDialog):
     def show_and_raise(self):
         self.show()
         self.raise_()
-        self.setWindowState(self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive)
+        self.setWindowState(
+            self.windowState() & ~QtCore.Qt.WindowMinimized | QtCore.Qt.WindowActive
+        )
 
     def closeEvent(self, event):
-        self._settings_manager.store("console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL)
-        self._settings_manager.store("console.size", self.size(), self._settings_manager.SCOPE_GLOBAL)
+        self._settings_manager.store(
+            "console.pos", self.pos(), self._settings_manager.SCOPE_GLOBAL
+        )
+        self._settings_manager.store(
+            "console.size", self.size(), self._settings_manager.SCOPE_GLOBAL
+        )
         event.accept()

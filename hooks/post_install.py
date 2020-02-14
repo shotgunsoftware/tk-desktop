@@ -38,6 +38,7 @@ class PostInstall(sgtk.get_hook_baseclass()):
         :returns True if we have the wrong version, False otherwise.
         """
         from tank_vendor import shotgun_api3
+
         return not hasattr(shotgun_api3, "AuthenticationFault")
 
     def _get_shotgun_desktop(self):
@@ -48,6 +49,7 @@ class PostInstall(sgtk.get_hook_baseclass()):
         """
         try:
             import shotgun_desktop
+
             return shotgun_desktop
         except ImportError:
             return None
@@ -92,4 +94,6 @@ class PostInstall(sgtk.get_hook_baseclass()):
             if shotgun_desktop:
                 self._reboot_app(shotgun_desktop)
             else:
-                raise Exception("Wrong version of Shotgun API3. AuthenticationFault not accessible.")
+                raise Exception(
+                    "Wrong version of Shotgun API3. AuthenticationFault not accessible."
+                )

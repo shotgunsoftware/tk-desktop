@@ -48,18 +48,11 @@ class DesktopNotification(Notification):
         banner_message = engine.get_setting("banner_message")
 
         if not banner_id or not banner_message:
-            logger.debug(
-                "banner_id and/or banner_message not set."
-            )
+            logger.debug("banner_id and/or banner_message not set.")
             return
 
-        if banner_settings.get(
-            cls._DESKTOP_NOTIFICATIONS, {}
-        ).get(banner_id, False):
-            logger.debug(
-                "banner_id %s has already been dismissed.",
-                banner_id
-            )
+        if banner_settings.get(cls._DESKTOP_NOTIFICATIONS, {}).get(banner_id, False):
+            logger.debug("banner_id %s has already been dismissed.", banner_id)
             return None
         else:
             logger.debug("Desktop notification is available.")
@@ -85,6 +78,6 @@ class DesktopNotification(Notification):
 
         :param banner_settings: Dictionary of the banners settings.
         """
-        banner_settings.setdefault(
-            self._DESKTOP_NOTIFICATIONS, {}
-        )[self._engine.get_setting("banner_id")] = True
+        banner_settings.setdefault(self._DESKTOP_NOTIFICATIONS, {})[
+            self._engine.get_setting("banner_id")
+        ] = True

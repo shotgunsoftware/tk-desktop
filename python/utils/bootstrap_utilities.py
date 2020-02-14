@@ -57,15 +57,15 @@ class ProxyLoggingHandler(logging.Handler):
         # If we have exception details, we need to format these and combine them with the message, as the traceback
         # object can't be serialize and passed over the proxy.
         if record.exc_info:
-            formatted_tracback = ''.join(traceback.format_tb(record.exc_info[2]))
-            msg = "{msg}\n{traceback}".format(msg=record.msg, traceback=formatted_tracback)
+            formatted_tracback = "".join(traceback.format_tb(record.exc_info[2]))
+            msg = "{msg}\n{traceback}".format(
+                msg=record.msg, traceback=formatted_tracback
+            )
         else:
             msg = record.msg
 
         try:
-            self._proxy.call_no_response(
-                "proxy_log", record.levelno, msg, record.args
-            )
+            self._proxy.call_no_response("proxy_log", record.levelno, msg, record.args)
         except Exception:
             # If something couldn't be pickled, don't fret too much about it,
             # we'll format it ourselves instead.
@@ -103,6 +103,7 @@ class Bootstrap(object):
         # pipeline configuration.
         sys.path.insert(0, self._core_python_path)
         import sgtk
+
         del os.environ["TANK_CURRENT_PC"]
 
         # Connect to the main desktop process so we can send updates to it.
@@ -110,8 +111,7 @@ class Bootstrap(object):
         # from the desktop due to write permissions on the folder.
         rpc_lib = imp.load_source("rpc", self._rpc_lib_path)
         self._proxy = rpc_lib.RPCProxy(
-            self._proxy_data["proxy_pipe"],
-            self._proxy_data["proxy_auth"]
+            self._proxy_data["proxy_pipe"], self._proxy_data["proxy_auth"]
         )
         try:
             # Set up logging with the rpc.
@@ -158,6 +158,7 @@ class Bootstrap(object):
         Called before the engine is started. Closes the proxy connection and removes out log handle.
         """
         import sgtk
+
         # At this point we need to close the proxy because we can't have two proxies connected
         # at the same sime, especially for logging, to the server.
         # When the engine starts it will set up its own logging.
@@ -184,9 +185,7 @@ class Bootstrap(object):
         if self._proxy.is_closed():
             return
 
-        self._proxy.call_no_response(
-            "bootstrap_progress", value, msg
-        )
+        self._proxy.call_no_response("bootstrap_progress", value, msg)
 
 
 def start_engine(data):
@@ -199,10 +198,11 @@ def start_engine(data):
     # Import Toolkit locally. We need to capture this Python path so we can use it to bootstrap.
     # inside another process.
     import sgtk
+
     if hasattr(sgtk, "get_sgtk_module_path"):
         python_folder = sgtk.get_sgtk_module_path()
     else:
-        __init__py_location = inspect.getsourcefile(sgtk) # python/tank/__init__.py
+        __init__py_location = inspect.getsourcefile(sgtk)  # python/tank/__init__.py
 
         # If the path is not absolute, make it so.
         if not os.path.isabs(__init__py_location):
@@ -239,9 +239,11 @@ def start_app(engine):
         app.setApplicationName("%s Python" % engine.context.project["name"])
 
         # set default icon
-        python_icon = os.path.realpath(os.path.join(
-            os.path.dirname(__file__),
-            "..", "..", "resources", "python_icon.png"))
+        python_icon = os.path.realpath(
+            os.path.join(
+                os.path.dirname(__file__), "..", "..", "resources", "python_icon.png"
+            )
+        )
         app.setWindowIcon(QtGui.QIcon(python_icon))
 
         # Let the engine know we've created the app
@@ -290,10 +292,11 @@ def handle_error(data, proxy=None):
     # If we were given an RPCProxy object and it's open, use that
     # to send the message.
     if proxy is not None and not proxy.is_closed():
-        proxy.call_no_response("engine_startup_error", exc_value, ''.join(lines))
+        proxy.call_no_response("engine_startup_error", exc_value, "".join(lines))
         return
 
     from multiprocessing.connection import Client
+
     if sys.platform == "win32":
         family = "AF_PIPE"
     else:
@@ -305,7 +308,9 @@ def handle_error(data, proxy=None):
             family=family,
             authkey=data["proxy_data"]["proxy_auth"],
         )
-        msg = pickle.dumps((False, "engine_startup_error", [exc_value, ''.join(lines)], {}))
+        msg = pickle.dumps(
+            (False, "engine_startup_error", [exc_value, "".join(lines)], {})
+        )
         connection.send(msg)
     finally:
         try:

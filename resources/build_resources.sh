@@ -53,4 +53,3 @@ build_ui banner_widget
 # build resources
 echo "building resources..."
 build_res resources
-

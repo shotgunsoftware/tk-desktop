@@ -21,6 +21,7 @@ class ProjectSyncingCancelledError(Exception):
     """
     Raised to notify the thread that the user aborted the syncing process.
     """
+
     pass
 
 
@@ -66,7 +67,9 @@ class ProjectSynchronizationThread(QtCore.QThread):
         """
         try:
             # Make sure the config is downloaded and the bundles cached.
-            config_path, descriptor = self._toolkit_manager.prepare_engine(None, self._project)
+            config_path, descriptor = self._toolkit_manager.prepare_engine(
+                None, self._project
+            )
         except ProjectSyncingCancelledError:
             logger.debug("Caught ProjectSyncingCancelledError.")
             # Someone has canceled the syncing. Simply abort. No need to emit anything, abort is fire
