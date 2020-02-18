@@ -92,7 +92,7 @@ class RPCServerThread(threading.Thread):
         """
         Default method that returns the list of functions registered with the server.
         """
-        return self._functions.keys()
+        return list(self._functions)
 
     def register_function(self, func, name=None):
         """
