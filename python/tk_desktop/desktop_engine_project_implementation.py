@@ -138,7 +138,7 @@ class DesktopEngineProjectImplementation(object):
 
     def _register_commands(self):
         # send the commands over to the proxy
-        for name, command_info in self._engine.commands.iteritems():
+        for name, command_info in self._engine.commands.items():
             self.__callback_map[("__commands", name)] = command_info["callback"]
             # pull out needed values since this needs to be pickleable
             gui_properties = {}
@@ -226,7 +226,7 @@ class DesktopEngineProjectImplementation(object):
             sgtk.platform.current_engine()
             # Bugs in client code (or Toolkit) can cause a leak of a top-level dialog that is already
             # closed. So if any top level dialog is visible, wait for it to close.
-            opened_windows = filter(lambda w: w.isVisible(), top_level_windows)
+            opened_windows = list(filter(lambda w: w.isVisible(), top_level_windows))
             if opened_windows:
                 logger.debug("The following top level widgets are still visible:")
                 for w in opened_windows:
@@ -333,15 +333,13 @@ class DesktopEngineProjectImplementation(object):
         paths = self._engine.context.filesystem_locations
 
         for disk_location in paths:
-            # get the setting
-            system = sys.platform
 
             # run the app
-            if system.startswith("linux"):
+            if sgtk.util.is_linux():
                 cmd = 'xdg-open "%s"' % disk_location
-            elif system == "darwin":
+            elif sgtk.util.is_macos():
                 cmd = 'open "%s"' % disk_location
-            elif system == "win32":
+            elif sgtk.util.is_windows():
                 cmd = 'cmd.exe /C start "Folder" "%s"' % disk_location
             else:
                 raise Exception("Platform '%s' is not supported." % system)

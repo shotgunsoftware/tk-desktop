@@ -8,6 +8,10 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+# This file needs to remain backwards compatible with older tk-core's, so
+# we can import methods from Toolkit that may be too recent. For now, this
+# file is compatible with 0.18 and up, as it uses the LogManager, which
+# was introduce in 0.18.
 
 import os
 import sys
@@ -16,7 +20,14 @@ import select
 import logging
 import threading
 import traceback
-import cPickle as pickle
+
+# Try to import the fastest version of pickle we can.
+try:
+    import cPickle as pickle
+except ImportError:
+    # In Python 3, cPickle is now imported as pickle.
+    import pickle
+
 import multiprocessing.connection
 
 from sgtk import LogManager

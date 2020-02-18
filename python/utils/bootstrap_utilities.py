@@ -297,6 +297,8 @@ def handle_error(data, proxy=None):
 
     from multiprocessing.connection import Client
 
+    # Do not invoke sgtk.util.is_windows here. This needs to be invokable from
+    # a project using an older tk-core.
     if sys.platform == "win32":
         family = "AF_PIPE"
     else:
