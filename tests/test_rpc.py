@@ -35,7 +35,7 @@ class ComplexValue(object):
         self.b = b
 
     def __eq__(self, rhs):
-        return rhs.a == self.a and rhs.b == self.b
+        return isinstance(rhs, self.__class__) and rhs.a == self.a and rhs.b == self.b
 
 
 class FakeEngine:
