@@ -22,11 +22,14 @@ import threading
 import traceback
 
 # Try to import the fastest version of pickle we can.
-try:
-    import cPickle as pickle
-except ImportError:
-    # In Python 3, cPickle is now imported as pickle.
+PY3 = sys.version_info[0] >= 3
+if PY3:
     import pickle
+else:
+    try:
+        import cPickle as pickle
+    except ImportError:
+        import pickle
 
 import multiprocessing.connection
 
@@ -67,12 +70,13 @@ class RPCServerThread(threading.Thread):
             "list_functions": self.list_functions,
         }
 
-        self._stop = False  # used to shut down the thread cleanly
+        self._stop_server = False  # used to shut down the thread cleanly
         self.engine = (
             engine  # need access to the engine to run functions in the main thread
         )
         self.authkey = str(uuid.uuid1())  # generate a random key for authentication
-
+        if PY3:
+            self.authkey = self.authkey.encode("utf8")
         # setup the server pipe
         if sys.platform == "win32":
             family = "AF_PIPE"
@@ -86,7 +90,7 @@ class RPCServerThread(threading.Thread):
         self.pipe = self.server.address
 
     def is_closed(self):
-        return self._stop
+        return self._stop_server
 
     def list_functions(self):
         """
@@ -104,7 +108,7 @@ class RPCServerThread(threading.Thread):
         # This method will be called from the main thread. If the server has been stopped, there
         # is no need to call the method.
         def wrapper(*args, **kwargs):
-            if self._stop:
+            if self._stop_server:
                 # Return special value indicating the server was stopped.
                 return self._SERVER_WAS_STOPPED
             return func(*args, **kwargs)
@@ -143,7 +147,7 @@ class RPCServerThread(threading.Thread):
 
             if not ready:
                 # nothing ready, see if we need to stop the server, if not keep waiting
-                if self._stop:
+                if self._stop_server:
                     break
                 continue
 
@@ -156,7 +160,7 @@ class RPCServerThread(threading.Thread):
                     has_data = connection.poll(self.LISTEN_TIMEOUT)
 
                     # see if we need to stop the server
-                    if self._stop:
+                    if self._stop_server:
                         break
 
                     # If we timed out waiting for data, go back to sleep.
@@ -208,7 +212,7 @@ class RPCServerThread(threading.Thread):
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
         logger.debug("server setting flag to stop")
-        self._stop = True
+        self._stop_server = True
 
 
 class RPCProxy(object):
@@ -239,7 +243,7 @@ class RPCProxy(object):
     def call_no_response(self, name, *args, **kwargs):
         msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
-            raise EOFError("closed " + msg)
+            raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
         logger.debug(msg)
         self._connection.send(pickle.dumps((False, name, args, kwargs)))
@@ -247,7 +251,7 @@ class RPCProxy(object):
     def call(self, name, *args, **kwargs):
         msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
-            raise EOFError("closed " + msg)
+            raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
         logger.debug(msg)
         self._connection.send(pickle.dumps((True, name, args, kwargs)))
@@ -260,7 +264,7 @@ class RPCProxy(object):
             else:
                 # no response waiting, see if we need to stop the client
                 if self._closed:
-                    raise EOFError("client closed while waiting for a response")
+                    raise RuntimeError("client closed while waiting for a response")
                 continue
         # read the result
         result = pickle.loads(self._connection.recv())

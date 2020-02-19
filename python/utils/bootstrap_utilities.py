@@ -21,10 +21,29 @@ engine is bootstrapped and finalized.
 import os
 import sys
 import traceback
-import cPickle as pickle
+
+PY3 = sys.version_info[0] >= 3
+# if PY3:
+#     import pickle
+# else:
+#     try:
+#         import cPickle as pickle
+#     except ImportError:
+#         import pickle
+
 import imp
 import logging
 import inspect
+
+
+# Heavily inspired by six.ensure_binary
+def ensure_binary(text):
+    if PY3 and isinstance(text, str):
+        return text.encode("utf8")
+    elif PY3 is False and isinstance(text, unicode):
+        return text.encode("utf8")
+    else:
+        return text
 
 
 class ProxyLoggingHandler(logging.Handler):
@@ -111,7 +130,8 @@ class Bootstrap(object):
         # from the desktop due to write permissions on the folder.
         rpc_lib = imp.load_source("rpc", self._rpc_lib_path)
         self._proxy = rpc_lib.RPCProxy(
-            self._proxy_data["proxy_pipe"], self._proxy_data["proxy_auth"]
+            self._proxy_data["proxy_pipe"],
+            ensure_binary(self._proxy_data["proxy_auth"]),
         )
         try:
             # Set up logging with the rpc.
@@ -304,11 +324,15 @@ def handle_error(data, proxy=None):
     else:
         family = "AF_UNIX"
 
+    auth_key = data["proxy_data"]["proxy_auth"]
+    print(exc_value)
+    from sgtk.util import pickle
+
     try:
         connection = Client(
             address=data["proxy_data"]["proxy_pipe"],
             family=family,
-            authkey=data["proxy_data"]["proxy_auth"],
+            authkey=ensure_binary(auth_key),
         )
         msg = pickle.dumps(
             (False, "engine_startup_error", [exc_value, "".join(lines)], {})

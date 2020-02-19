@@ -11,6 +11,7 @@
 import imp
 import os
 import time
+import six
 
 import pytest
 
@@ -56,6 +57,12 @@ class FakeEngine:
     def boom(self):
         raise Boom()
 
+    def long_call(self, close_proxy, return_value=None):
+        if close_proxy:
+            self.proxy.close()
+        time.sleep(RPCServerThread.LISTEN_TIMEOUT * 1.5)
+        return return_value
+
 
 @pytest.fixture
 def fake_engine():
@@ -68,6 +75,7 @@ def server(fake_engine):
     server.register_function(fake_engine.pass_arg)
     server.register_function(fake_engine.pass_named_arg)
     server.register_function(fake_engine.boom)
+    server.register_function(fake_engine.long_call)
     server.register_function(fake_engine.set_something, "assign_something")
     server.start()
     try:
@@ -89,8 +97,17 @@ def test_list_functions(server):
     """
     Ensure function enumeration works.
     """
-    assert sorted(server.list_functions()) == sorted(
-        ["assign_something", "boom", "list_functions", "pass_arg", "pass_named_arg"]
+    function_list = server.list_functions()
+    assert isinstance(function_list, list)
+    assert sorted(function_list) == sorted(
+        [
+            "assign_something",
+            "boom",
+            "long_call",
+            "list_functions",
+            "pass_arg",
+            "pass_named_arg",
+        ]
     )
 
 
@@ -167,7 +184,7 @@ def test_call_no_response(fake_engine, proxy):
 def test_call_unknown_method(proxy):
     with pytest.raises(ValueError) as exc:
         proxy.call("unknown")
-    assert str(exc).endswith("unknown function call: 'unknown'")
+    assert str(exc.value) == "unknown function call: 'unknown'"
 
     # This should not raise, it's fire and forget.
     proxy.call_no_response("unknown")
@@ -176,11 +193,36 @@ def test_call_unknown_method(proxy):
 def test_call_with_wrong_arguments(proxy):
     with pytest.raises(TypeError) as exc:
         proxy.call("pass_arg", 1, 2, 3)
-    assert str(exc).endswith(
-        "TypeError: pass_arg() takes exactly 2 arguments (4 given)"
-    )
+    if six.PY3:
+        assert (
+            str(exc.value) == "pass_arg() takes 2 positional arguments but 4 were given"
+        )
+    else:
+        assert str(exc.value) == "pass_arg() takes exactly 2 arguments (4 given)"
+
+
+def test_proxy_close_during_long_call(proxy, fake_engine, server):
+    fake_engine.proxy = proxy
+    with pytest.raises(RuntimeError) as exc:
+        proxy.call("long_call", close_proxy=True)
+    assert str(exc.value) == "client closed while waiting for a response"
+
+
+def test_long_call(proxy):
+    assert proxy.call("long_call", close_proxy=False, return_value=1) == 1
 
 
 def test_call_with_exception_raised(proxy):
     with pytest.raises(Boom) as exc:
         proxy.call("boom")
+
+
+def test_calling_when_closed(proxy):
+    proxy.close()
+    with pytest.raises(RuntimeError) as exc:
+        proxy.call("anything")
+    assert str(exc.value) == "closed client waiting call 'anything((), {})'"
+
+    with pytest.raises(RuntimeError) as exc:
+        proxy.call_no_response("anything")
+    assert str(exc.value) == "closed client calling 'anything((), {})'"
