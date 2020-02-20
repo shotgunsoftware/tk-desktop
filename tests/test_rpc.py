@@ -60,7 +60,7 @@ class FakeEngine:
     def long_call(self, close_proxy, return_value=None):
         if close_proxy:
             self.proxy.close()
-        time.sleep(RPCServerThread.LISTEN_TIMEOUT * 1.5)
+        time.sleep(3)
         return return_value
 
 
