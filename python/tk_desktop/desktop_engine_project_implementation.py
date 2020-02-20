@@ -386,17 +386,10 @@ class DesktopEngineProjectImplementation(object):
             else:
                 msg = record.msg
 
-            try:
-                self._project_comm.call_no_response(
-                    "proxy_log", record.levelno, msg, record.args
-                )
-                return
-            except Exception:
-                # If something couldn't be pickled, don't fret too much about it,
-                # we'll format it ourselves instead.
-                self._project_comm.call_no_response(
-                    "proxy_log", record.levelno, (msg % record.args), []
-                )
+            if record.args:
+                msg = msg % record.args
+
+            self._project_comm.call_no_response("proxy_log", record.levelno, msg, [])
 
     def _get_groups(self, name, properties):
         display_name = properties.get("title", name)

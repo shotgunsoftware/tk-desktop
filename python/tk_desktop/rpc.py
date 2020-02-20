@@ -21,12 +21,14 @@ import logging
 import threading
 import traceback
 import socket
-import urllib
 
 # Try to import the fastest version of pickle we can.
 PY3 = sys.version_info[0] >= 3
 if PY3:
     import pickle
+    from http.server import HTTPServer
+    from http.server import SimpleHTTPRequestHandler
+    from urllib.request import urlopen
 else:
     try:
         import cPickle as pickle
@@ -35,6 +37,8 @@ else:
 
     from BaseHTTPServer import HTTPServer
     from SimpleHTTPServer import SimpleHTTPRequestHandler
+
+    from urllib import urlopen
 
 
 import multiprocessing.connection
@@ -141,13 +145,19 @@ class Handler(SimpleHTTPRequestHandler):
                 response = e
         self._send_response(200, response)
 
+    def log_request(self, code=None, size=None):
+        pass
+
     def _read_request(self):
         content_type = self.headers.getheader("content-type")
 
         content_len = int(self.headers.getheader("content-length", 0))
-        body = self.rfile.read(content_len)
 
-        return pickle.loads(body)
+        body = self.rfile.read(content_len)
+        try:
+            return pickle.loads(body)
+        except Exception:
+            raise RuntimeError("Response could not be unserialized: %s" % body)
 
     def _send_response(self, code, body):
         raw_data = pickle.dumps(body, protocol=0)
@@ -222,7 +232,7 @@ class Emitter(object):
 
     def send(self, is_blocking, func_name, args, kwargs):
         payload = pickle.dumps((is_blocking, func_name, args, kwargs), protocol=0)
-        r = urllib.urlopen(self._address, data=payload)
+        r = urlopen(self._address, data=payload)
         response = pickle.loads(r.read())
         if isinstance(response, Exception):
             raise response

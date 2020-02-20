@@ -13,7 +13,10 @@ import os
 import sys
 import optparse
 
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 
 def main():

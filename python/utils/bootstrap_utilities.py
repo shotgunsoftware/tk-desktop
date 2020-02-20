@@ -83,8 +83,11 @@ class ProxyLoggingHandler(logging.Handler):
         else:
             msg = record.msg
 
+        if record.args:
+            msg = msg % record.args
+
         try:
-            self._proxy.call_no_response("proxy_log", record.levelno, msg, record.args)
+            self._proxy.call_no_response("proxy_log", record.levelno, msg, [])
         except Exception:
             # If something couldn't be pickled, don't fret too much about it,
             # we'll format it ourselves instead.
