@@ -29,6 +29,7 @@ if PY3:
     from http.server import HTTPServer
     from http.server import SimpleHTTPRequestHandler
     from urllib.request import urlopen
+    from queue import Queue
 else:
     try:
         import cPickle as pickle
@@ -39,6 +40,7 @@ else:
     from SimpleHTTPServer import SimpleHTTPRequestHandler
 
     from urllib import urlopen
+    from Queue import Queue
 
 
 import multiprocessing.connection
@@ -149,9 +151,12 @@ class Handler(SimpleHTTPRequestHandler):
         pass
 
     def _read_request(self):
-        content_type = self.headers.getheader("content-type")
-
-        content_len = int(self.headers.getheader("content-length", 0))
+        if PY3:
+            content_type = self.headers.get("content-type")
+            content_len = int(self.headers.get("content-length", 0))
+        else:
+            content_type = self.headers.getheader("content-type")
+            content_len = int(self.headers.getheader("content-length", 0))
 
         body = self.rfile.read(content_len)
         try:
@@ -226,17 +231,61 @@ class RPCServerThread(threading.Thread):
         self._listener.close()
 
 
+class Dispatcher(threading.Thread):
+    _shutdown_hint = "shutdown_hint"
+
+    def __init__(self, emitter):
+        super(Dispatcher, self).__init__()
+        self._emitter = emitter
+        self._queue = Queue()
+
+    def queue_job(self, job):
+        self._queue.put(job)
+
+    def shutdown(self):
+        self._queue.put(self._shutdown_hint)
+
+    def run(self):
+        while True:
+            job = self._queue.get()
+            if job == self._shutdown_hint:
+                return
+            # Job might raise an error, but we don't care
+            # this was an asynchronous call.
+            try:
+                job()
+            except Exception:
+                pass
+
+
 class Emitter(object):
     def __init__(self, address, authkey):
         self._address = address
 
-    def send(self, is_blocking, func_name, args, kwargs):
-        payload = pickle.dumps((is_blocking, func_name, args, kwargs), protocol=0)
+    def send(self, payload):
+        payload = pickle.dumps(payload, protocol=0)
         r = urlopen(self._address, data=payload)
         response = pickle.loads(r.read())
         if isinstance(response, Exception):
             raise response
         return response
+
+
+class Connection(object):
+    def __init__(self, address, authkey):
+        self._emitter = Emitter(address, authkey)
+        self._dispatcher = Dispatcher(self._emitter)
+        self._dispatcher.start()
+
+    def close(self):
+        self._dispatcher.shutdown()
+
+    def send(self, is_blocking, func_name, args, kwargs):
+        payload = (is_blocking, func_name, args, kwargs)
+        if is_blocking:
+            return self._emitter.send(payload)
+        else:
+            self._dispatcher.queue_job(lambda: self._emitter.send(payload))
 
 
 class RPCProxy(object):
@@ -250,7 +299,7 @@ class RPCProxy(object):
     def __init__(self, pipe, authkey):
         self._closed = False
         logger.debug("client connecting to to %s", pipe)
-        self._connection = Emitter(pipe, authkey)
+        self._connection = Connection(pipe, authkey)
         logger.debug("client connected to %s", pipe)
 
     def call_no_response(self, name, *args, **kwargs):
@@ -283,4 +332,5 @@ class RPCProxy(object):
     def close(self):
         # close down the client connection
         logger.debug("closing connection")
+        self._connection.close()
         self._closed = True
