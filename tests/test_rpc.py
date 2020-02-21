@@ -10,6 +10,7 @@
 
 import time
 import six
+import sgtk
 
 import pytest
 
@@ -213,10 +214,10 @@ def test_server_close(server, proxy):
     with pytest.raises(Exception) as exc:
         proxy.call("pass_arg", 1)
 
-    if six.PY2:
-        assert str(exc.value) == "[Errno socket error] [Errno 61] Connection refused"
+    if sgtk.util.is_windows():
+        assert "No connection could be made" in str(exc.value)
     else:
-        assert str(exc.value) == "<urlopen error [Errno 61] Connection refused>"
+        assert "Connection refused" in str(exc.value)
 
 
 def test_proxy_close(proxy):

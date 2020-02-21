@@ -11,9 +11,6 @@
 import os
 import sys
 
-import six
-import pytest
-
 from tank_test.tank_test_base import TankTestBase, SealedMock
 from tank_test.tank_test_base import setUpModule  # noqa
 
