@@ -87,6 +87,7 @@ class Listener(object):
         self._server.serve_forever()
 
     def close(self):
+        self._server.socket.close()
         self._server.shutdown()
         self._is_closed = True
 
@@ -207,45 +208,49 @@ class RPCServerThread(threading.Thread):
         Run the thread, accepting connections and then listening on them until
         they are closed.  Each message is a call into the function table.
         """
-        logger.debug("server listening on '%s'", self.pipe)
+        logger.debug("server thread listening on '%s'", self.pipe)
         try:
             self._listener.serve_forever()
         finally:
-            print("RPCServerThread is shutting down")
+            logger.debug("server thread shutting down")
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
-        logger.debug("server setting flag to stop")
-        print("Asking listener to close")
+        logger.debug("requesting server thread to close")
         self._listener.close()
-        print("Asked listener to close")
+        logger.debug("requested server thread close request to close")
 
 
 class Dispatcher(threading.Thread):
-    _shutdown_hint = "shutdown_hint"
-
-    def __init__(self, emitter):
+    def __init__(self):
         super(Dispatcher, self).__init__()
-        self._emitter = emitter
         self._queue = Queue()
+        self._shut_down_requested = False
 
     def queue_job(self, job):
         self._queue.put(job)
 
     def shutdown(self):
-        self._queue.put(self._shutdown_hint)
+        # Sets the shut down now flag
+        self._shut_down_requested = True
+        # Insert dummy data to wake up the thread
+        # if nothing is currently in the queue
+        self._queue.put(None)
 
     def run(self):
+        logger.debug("dispatcher thread running")
         while True:
-            job = self._queue.get()
-            if job == self._shutdown_hint:
-                break
             # Job might raise an error, but we don't care
             # this was an asynchronous call.
             try:
+                job = self._queue.get()
+                # If a shutdown request was made.
+                if self._shut_down_requested:
+                    break
                 job()
             except Exception as e:
                 logger.exception("Error was raised from RPC dispatching thread:")
+        logger.debug("dispatcher thread ending")
 
 
 class Emitter(object):
@@ -265,7 +270,7 @@ class Emitter(object):
 class Connection(object):
     def __init__(self, address, authkey):
         self._emitter = Emitter(address, authkey)
-        self._dispatcher = Dispatcher(self._emitter)
+        self._dispatcher = Dispatcher()
         self._dispatcher.start()
 
     def close(self):
@@ -289,9 +294,7 @@ class RPCProxy(object):
 
     def __init__(self, pipe, authkey):
         self._closed = False
-        logger.debug("client connecting to to %s", pipe)
         self._connection = Connection(pipe, authkey)
-        logger.debug("client connected to %s", pipe)
 
     def call_no_response(self, name, *args, **kwargs):
         msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
@@ -322,6 +325,7 @@ class RPCProxy(object):
 
     def close(self):
         # close down the client connection
-        logger.debug("closing connection")
+        logger.debug("closing proxy connection")
         self._connection.close()
         self._closed = True
+        logger.debug("closed proxy connection")

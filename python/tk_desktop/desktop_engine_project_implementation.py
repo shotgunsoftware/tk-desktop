@@ -389,7 +389,14 @@ class DesktopEngineProjectImplementation(object):
             if record.args:
                 msg = msg % record.args
 
-            self._project_comm.call_no_response("proxy_log", record.levelno, msg, [])
+            try:
+                self._project_comm.call_no_response(
+                    "proxy_log", record.levelno, msg, []
+                )
+            except Exception:
+                # Ignore log failures, this is important, as we don't want logging to
+                # cause issues.
+                pass
 
     def _get_groups(self, name, properties):
         display_name = properties.get("title", name)

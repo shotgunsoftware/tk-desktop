@@ -302,6 +302,7 @@ def handle_error(data, proxy=None):
         error to the server. If a proxy is not given, a client connection
         will be created on the fly.
     """
+    return
     # build a message for the GUI signaling that an error occurred
     exc_type, exc_value, exc_traceback = sys.exc_info()
 
