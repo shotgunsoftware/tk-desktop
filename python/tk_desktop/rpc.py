@@ -182,7 +182,9 @@ class RPCServerThread(threading.Thread):
 
     @property
     def pipe(self):
-        return "http://localhost:%s" % self._listener.server_port
+        # Keep the IP hardcoded instead of set to localhost.
+        # localhost host is about 5 times slower on Windows.
+        return "http://127.0.0.1:%s" % self._listener.server_port
 
     @property
     def authkey(self):
