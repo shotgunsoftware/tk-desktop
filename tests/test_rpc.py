@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2020 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -8,10 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import os
 import time
 import six
-import sys
 
 import pytest
 
@@ -88,11 +86,20 @@ class FakeEngine:
 
 @pytest.fixture
 def fake_engine():
+    """
+    Fixture returning the Fake engine instance.
+    """
     return FakeEngine()
 
 
 @pytest.fixture
 def server(fake_engine):
+    """
+    Readies an RPCServerThread for use, preconfigure to be able to
+    call method on a FakeEngine instance.
+
+    :returns: A RPCServerThread instance.
+    """
     server = RPCServerThread(fake_engine)
     server.register_function(fake_engine.pass_arg)
     server.register_function(fake_engine.pass_named_arg)
@@ -108,6 +115,12 @@ def server(fake_engine):
 
 @pytest.fixture
 def proxy(server):
+    """
+    Creates a proxy that can communicate with the RPCServerThread
+    fixture.
+
+    :returns: A RPCProxy instance.
+    """
     client = RPCProxy(server.pipe, server.authkey)
     try:
         yield client
@@ -131,14 +144,27 @@ def test_list_functions(server):
     ]
 
 
-def test_initial_state(server, fake_engine):
+def test_api_backward_and_forward_compatible(server, proxy):
     """
-    Ensure initial state is expected.
+    Ensure the RPCServerThread and RPCProxy have not changed
+    API so they remain forward and backward compatible with
+    different versions of tk-desktop.
     """
-    assert server.is_closed() is False
-    assert server.engine == fake_engine
+    # These are all the available API calls as of tk-desktop
+    # 2.4.14:
+    # https://github.com/shotgunsoftware/tk-desktop/blob/208d07710b87b2341c5e0d439b74212cd8d27434/python/tk_desktop/rpc.py
+    assert hasattr(server, "is_closed")
+    assert hasattr(server, "list_functions")
+    assert hasattr(server, "register_function")
+    assert hasattr(server, "close")
+    assert hasattr(server, "engine")
     assert hasattr(server, "pipe")
     assert hasattr(server, "authkey")
+
+    assert hasattr(proxy, "call_no_response")
+    assert hasattr(proxy, "call")
+    assert hasattr(proxy, "is_closed")
+    assert hasattr(proxy, "close")
 
 
 @pytest.mark.parametrize(
@@ -161,7 +187,7 @@ def test_call_named_arg(fake_engine, proxy):
     """
     Test synchronous calls with named parameters
     """
-    assert proxy.call("pass_named_arg", 4) == 4
+    assert proxy.call("pass_named_arg", named_arg=4) == 4
     assert fake_engine.named_arg == 4
 
 
@@ -203,7 +229,7 @@ def test_proxy_close(proxy):
 
 def test_call_no_response(fake_engine, proxy):
     """
-    Test asynchronous calls
+    Ensures an asynchronous call actually happens.
     """
     assert proxy.call_no_response("pass_arg", 3) is None
     await_value(fake_engine, "arg", 3)
@@ -216,6 +242,9 @@ def test_call_no_response(fake_engine, proxy):
 
 
 def test_call_unknown_method(proxy):
+    """
+    Ensures unknown method raise an error.
+    """
     with pytest.raises(ValueError) as exc:
         proxy.call("unknown")
     assert str(exc.value) == "unknown function call: 'unknown'"
@@ -225,6 +254,9 @@ def test_call_unknown_method(proxy):
 
 
 def test_call_with_wrong_arguments(proxy):
+    """
+    Ensures passing the wrong number of arguments raise an error.
+    """
     with pytest.raises(TypeError) as exc:
         proxy.call("pass_arg", 1, 2, 3)
     if six.PY3:
@@ -236,6 +268,9 @@ def test_call_with_wrong_arguments(proxy):
 
 
 def test_proxy_close_during_long_call(proxy, fake_engine, server):
+    """
+    Ensure proxy being clone while a call is ongoing will raise an error.
+    """
     fake_engine.proxy = proxy
     with pytest.raises(RuntimeError) as exc:
         proxy.call("long_call", close_proxy=True)
@@ -243,15 +278,25 @@ def test_proxy_close_during_long_call(proxy, fake_engine, server):
 
 
 def test_long_call(proxy):
+    """
+    Ensure a long_call works.
+    """
     assert proxy.call("long_call", close_proxy=False, return_value=1) == 1
 
 
 def test_call_with_exception_raised(proxy):
+    """
+    Ensure exceptions raise by the server are sent back to the client correctly.
+    """
     with pytest.raises(Boom):
         proxy.call("boom")
 
 
 def test_bad_auth_key(server):
+    """
+    Ensure connecting to a server with the wrong auth key will reject
+    the request.
+    """
     try:
         proxy = RPCProxy(server.pipe, "12345")
         with pytest.raises(ValueError) as exc:
@@ -262,6 +307,9 @@ def test_bad_auth_key(server):
 
 
 def test_calling_when_closed(proxy):
+    """
+    Ensure calling a method on the clietn when it is closed fails.
+    """
     proxy.close()
     with pytest.raises(RuntimeError) as exc:
         proxy.call("anything")

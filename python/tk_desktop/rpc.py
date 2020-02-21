@@ -54,7 +54,14 @@ else:
 
 
 class Listener(object):
-    def __init__(self, engine, min_port=49152, max_port=65535):
+    """
+
+    """
+
+    def __init__(self, engine):
+        """
+        :param engine: Current Toolkit engine.
+        """
         self._server = HTTPServer(("localhost", 0), Handler)
 
         self._server.listener = self
@@ -108,7 +115,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_POST(self):
         response = None
         try:
-            (authkey, (is_blocking, func_name, args, kwargs)) = self._read_request()
+            (authkey, (func_name, args, kwargs)) = self._read_request()
             logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
 
             if authkey != self.server.listener.authkey:
@@ -128,9 +135,7 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception as e:
             # if any of the above fails send the exception back to the client
             logger.exception("got exception during '%s" % func_name)
-
-            if is_blocking:
-                response = e
+            response = e
 
         self._send_response(200, response)
 
@@ -225,16 +230,31 @@ class RPCServerThread(threading.Thread):
         logger.debug("requested server thread close request to close")
 
 
-class Dispatcher(threading.Thread):
-    def __init__(self):
-        super(Dispatcher, self).__init__()
+class AsyncDispatcher(threading.Thread):
+    """
+    Asynchronously sends payloads to the server.
+    """
+
+    def __init__(self, connection):
+        """
+        :param connection: The Connection object to use to send payloads.
+        """
+        super(AsyncDispatcher, self).__init__()
         self._queue = Queue()
         self._shut_down_requested = False
+        self._connection = connection
 
-    def queue_job(self, job):
-        self._queue.put(job)
+    def send(self, payload):
+        """
+        Queue a payload to be sent asynchronously.
+        :param payload: Data to send.
+        """
+        self._queue.put(payload)
 
     def shutdown(self):
+        """
+        Stop the dispatching thread.
+        """
         # Sets the shut down now flag
         self._shut_down_requested = True
         # Insert dummy data to wake up the thread
@@ -242,27 +262,73 @@ class Dispatcher(threading.Thread):
         self._queue.put(None)
 
     def run(self):
-        logger.debug("dispatcher thread running")
+        """
+        Dispatch payloads to the server.
+
+        This method returns when ``shutdown`` is called on the AsyncDispatcher.
+        """
         while True:
             # Job might raise an error, but we don't care
             # this was an asynchronous call.
             try:
-                job = self._queue.get()
+                payload = self._queue.get()
                 # If a shutdown request was made.
                 if self._shut_down_requested:
                     break
-                job()
+                # We're in the background thread, so we can send
+                # a blocking request now, as urlopen is blocking
+                # anyway.
+                self._connection.send(True, *payload)
             except Exception:
                 logger.exception("Error was raised from RPC dispatching thread:")
-        logger.debug("dispatcher thread ending")
 
 
-class Emitter(object):
+class Connection(object):
+    """
+    Connection to the other process's server.
+    """
+
     def __init__(self, address, authkey):
+        """
+        :param str address: Address of the server.
+        :param str authkey: Credentials to the server.
+        """
         self._address = address
         self._authkey = authkey
 
-    def send(self, payload):
+        self._async_dipsatcher = AsyncDispatcher(self)
+        self._async_dipsatcher.start()
+
+    def close(self):
+        """
+        Close the connection to the server.
+        """
+        self._async_dipsatcher.shutdown()
+
+    def send(self, is_blocking, func_name, args, kwargs):
+        """
+        Call a function on the server synchronously or not.
+
+        :param bool is_blocking: If ``True``, the call will block until the server
+            completes the task and the value/exception will be returned/raised by this
+            method. If ``False``, the call will be queued for delivery and the method
+            returns None.
+        """
+        payload = (func_name, args, kwargs)
+        if is_blocking:
+            return self._send(payload)
+        else:
+            self._async_dipsatcher.send(payload)
+
+    def _send(self, payload):
+        """
+        Send a payload to the server.
+
+        The call will block until the server completes the task and the value/exception
+        will be returned/raised by this method.
+
+        :param payload: Data to send.
+        """
         payload = pickle.dumps((self._authkey, payload), protocol=0)
         r = urlopen(self._address, data=payload)
         response = pickle.loads(r.read())
@@ -271,36 +337,33 @@ class Emitter(object):
         return response
 
 
-class Connection(object):
-    def __init__(self, address, authkey):
-        self._emitter = Emitter(address, authkey)
-        self._dispatcher = Dispatcher()
-        self._dispatcher.start()
-
-    def close(self):
-        self._dispatcher.shutdown()
-
-    def send(self, is_blocking, func_name, args, kwargs):
-        payload = (is_blocking, func_name, args, kwargs)
-        if is_blocking:
-            return self._emitter.send(payload)
-        else:
-            self._dispatcher.queue_job(lambda: self._emitter.send(payload))
-
-
 class RPCProxy(object):
     """
     Client side for an RPC Server.
 
     Return attributes on the object as methods that will result in an RPC call
     whose results are returned as the return value of the method.
+
+    DO NOT MODIFY THE INTERFACE OF THIS CLASS. IT IS USED ACROSS VERSIONS OF THE DESKTOP
+    ENGINE AND SHOULD NOT BE MODIFIED UNDER ANY CIRCUMSTANCES.
     """
 
     def __init__(self, pipe, authkey):
+        """
+        :param str pipe: Connection to the server.
+        :param str authkey: Credentials for the server.
+        """
         self._closed = False
         self._connection = Connection(pipe, authkey)
 
     def call_no_response(self, name, *args, **kwargs):
+        """
+        Call a method on the server asynchronously.
+
+        :param str name: Name of the method to call.
+        :param args: Arguments to pass to the method
+        :param kwargs: Keyword arguments to pass to the method.
+        """
         msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
@@ -309,6 +372,16 @@ class RPCProxy(object):
         self._connection.send(False, name, args, kwargs)
 
     def call(self, name, *args, **kwargs):
+        """
+        Call a method on the server synchronously.
+
+        The call with return/raise the value/exception returned by the
+        server.
+
+        :param str name: Name of the method to call.
+        :param args: Arguments to pass to the method
+        :param kwargs: Keyword arguments to pass to the method.
+        """
         msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
@@ -325,11 +398,16 @@ class RPCProxy(object):
         return result
 
     def is_closed(self):
+        """
+        Test if the connection to the server is still open.
+
+        :returns: ``True`` is close, ``False`` if not.
+        """
         return self._closed
 
     def close(self):
-        # close down the client connection
-        logger.debug("closing proxy connection")
+        """
+        Close the connection to the server.
+        """
         self._connection.close()
         self._closed = True
-        logger.debug("closed proxy connection")
