@@ -21,29 +21,9 @@ engine is bootstrapped and finalized.
 import os
 import sys
 import traceback
-
-PY3 = sys.version_info[0] >= 3
-# if PY3:
-#     import pickle
-# else:
-#     try:
-#         import cPickle as pickle
-#     except ImportError:
-#         import pickle
-
 import imp
 import logging
 import inspect
-
-
-# Heavily inspired by six.ensure_binary
-def ensure_binary(text):
-    if PY3 and isinstance(text, str):
-        return text.encode("utf8")
-    elif PY3 is False and isinstance(text, unicode):
-        return text.encode("utf8")
-    else:
-        return text
 
 
 class ProxyLoggingHandler(logging.Handler):
@@ -96,6 +76,22 @@ class ProxyLoggingHandler(logging.Handler):
             )
 
 
+def _create_proxy(data):
+    """
+    Create a proxy based on the data received from the Shotgun Desktop.
+
+    :returns: A connection back to the Shotgun Desktop.
+    :rtype: RPCProxy
+    """
+    # Connect to the main desktop process so we can send updates to it.
+    # We're not guanranteed if the py or pyc file will be passed back to us
+    # from the desktop due to write permissions on the folder.
+    rpc_lib = imp.load_source("rpc", data["rpc_lib_path"])
+    return rpc_lib.RPCProxy(
+        data["proxy_data"]["proxy_pipe"], data["proxy_data"]["proxy_auth"],
+    )
+
+
 class Bootstrap(object):
     """
     Bootstraps the tk-desktop engine.
@@ -128,14 +124,7 @@ class Bootstrap(object):
 
         del os.environ["TANK_CURRENT_PC"]
 
-        # Connect to the main desktop process so we can send updates to it.
-        # We're not guanranteed if the py or pyc file will be passed back to us
-        # from the desktop due to write permissions on the folder.
-        rpc_lib = imp.load_source("rpc", self._rpc_lib_path)
-        self._proxy = rpc_lib.RPCProxy(
-            self._proxy_data["proxy_pipe"],
-            ensure_binary(self._proxy_data["proxy_auth"]),
-        )
+        self._proxy = _create_proxy(self._raw_data)
         try:
             # Set up logging with the rpc.
             self._handler = ProxyLoggingHandler(self._proxy)
@@ -302,7 +291,6 @@ def handle_error(data, proxy=None):
         error to the server. If a proxy is not given, a client connection
         will be created on the fly.
     """
-    return
     # build a message for the GUI signaling that an error occurred
     exc_type, exc_value, exc_traceback = sys.exc_info()
 
@@ -316,34 +304,15 @@ def handle_error(data, proxy=None):
     # If we were given an RPCProxy object and it's open, use that
     # to send the message.
     if proxy is not None and not proxy.is_closed():
-        proxy.call_no_response("engine_startup_error", exc_value, "".join(lines))
+        proxy.call("engine_startup_error", exc_value, "".join(lines))
         return
 
-    from multiprocessing.connection import Client
-
-    # Do not invoke sgtk.util.is_windows here. This needs to be invokable from
-    # a project using an older tk-core.
-    if sys.platform == "win32":
-        family = "AF_PIPE"
-    else:
-        family = "AF_UNIX"
-
-    auth_key = data["proxy_data"]["proxy_auth"]
-    print(exc_value)
-    from sgtk.util import pickle
+    proxy = _create_proxy(data)
 
     try:
-        connection = Client(
-            address=data["proxy_data"]["proxy_pipe"],
-            family=family,
-            authkey=ensure_binary(auth_key),
-        )
-        msg = pickle.dumps(
-            (False, "engine_startup_error", [exc_value, "".join(lines)], {})
-        )
-        connection.send(msg)
+        proxy.call("engine_startup_error", exc_value, "".join(lines))
     finally:
         try:
-            connection.close()
+            proxy.close()
         except Exception:
             pass

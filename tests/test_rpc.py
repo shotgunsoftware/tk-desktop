@@ -8,7 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import imp
 import os
 import time
 import six
@@ -16,54 +15,64 @@ import sys
 
 import pytest
 
-notifications_path = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),  # tk-desktop/tests
-        "..",  # tk-desktop
-        "python",  # tk-desktop/python
-        "tk_desktop",  # tk-desktop/python/tk_desktop
-    )
-)
-sys.path.insert(0, notifications_path)
-
-# rpc_lib = imp.load_source(
-#     "rpc",
-#     os.path.join(
-#         os.path.dirname(os.path.dirname(__file__)), "python", "tk_desktop", "rpc.py"
-#     ),
-# )
-# RPCServerThread = rpc_lib.RPCServerThread
-# RPCProxy = rpc_lib.RPCProxy
-
 from rpc import RPCServerThread, RPCProxy
 
 
 class Boom(Exception):
+    """
+    Test exception that will be launched from an RPC call.
+    """
+
     pass
 
 
 class ComplexValue(object):
+    """
+    Class that will be pickled between the two RPC endpoints.
+    """
+
     def __init__(self, a, b):
         self.a = a
         self.b = b
 
     def __eq__(self, rhs):
+        """
+        :returns: ``True`` if both sides of the equality are equal, ``False`` otherwise.
+        """
         return isinstance(rhs, self.__class__) and rhs.a == self.a and rhs.b == self.b
 
 
 class FakeEngine:
+    """
+    Fake desktop engine. Implements the interface expected for the engine to be
+    usable by the RPC classes. It also provides a few test functions.
+    """
+
     def execute_in_main_thread(self, func, *args, **kwargs):
+        """
+        Just call the function directly, don't worry about running it actually in
+        the main thread, the test does not have any Qt dependency.
+        """
         return func(*args, **kwargs)
 
     def pass_arg(self, arg):
+        """
+        Stores are and returns it.
+        """
         self.arg = arg
         return arg
 
     def pass_named_arg(self, named_arg="arg"):
+        """
+        Stores named argument and returns it.
+        """
         self.named_arg = named_arg
         return named_arg
 
     def set_something(self, something):
+        """
+        Method with a different name
+        """
         self.something = something
         return something
 
@@ -89,7 +98,7 @@ def server(fake_engine):
     server.register_function(fake_engine.pass_named_arg)
     server.register_function(fake_engine.boom)
     server.register_function(fake_engine.long_call)
-    server.register_function(fake_engine.set_something, "assign_something")
+    server.register_function(fake_engine.pass_arg, "pass_arg_as_another_name")
     server.start()
     try:
         yield server
@@ -112,16 +121,14 @@ def test_list_functions(server):
     """
     function_list = server.list_functions()
     assert isinstance(function_list, list)
-    assert sorted(function_list) == sorted(
-        [
-            "assign_something",
-            "boom",
-            "long_call",
-            "list_functions",
-            "pass_arg",
-            "pass_named_arg",
-        ]
-    )
+    assert sorted(function_list) == [
+        "boom",
+        "list_functions",
+        "long_call",
+        "pass_arg",
+        "pass_arg_as_another_name",
+        "pass_named_arg",
+    ]
 
 
 def test_initial_state(server, fake_engine):
@@ -138,8 +145,8 @@ def test_initial_state(server, fake_engine):
     "method,attr,value",
     [
         ("pass_arg", "arg", 3),
-        ("assign_something", "something", 3.14),
-        ("assign_something", "something", ComplexValue(1, 2)),
+        ("pass_arg_as_another_name", "arg", 3.14),
+        ("pass_arg_as_another_name", "arg", ComplexValue(1, 2)),
     ],
 )
 def test_call(fake_engine, proxy, method, attr, value):
@@ -170,12 +177,26 @@ def await_value(obj, attr, expected):
     raise RuntimeError("Waited more than 5 seconds for value to settle.")
 
 
-def test_server_close(server):
+def test_server_close(server, proxy):
+    """
+    Ensure closing the server actually closes it.
+    """
     server.close()
     assert server.is_closed()
 
+    with pytest.raises(Exception) as exc:
+        proxy.call("pass_arg", 1)
+
+    if six.PY2:
+        assert str(exc.value) == "[Errno socket error] [Errno 61] Connection refused"
+    else:
+        assert str(exc.value) == "<urlopen error [Errno 61] Connection refused>"
+
 
 def test_proxy_close(proxy):
+    """
+    Ensure closing a proxy actually closes it.
+    """
     proxy.close()
     assert proxy.is_closed()
 
@@ -190,8 +211,8 @@ def test_call_no_response(fake_engine, proxy):
     assert proxy.call_no_response("pass_named_arg", 4) is None
     await_value(fake_engine, "named_arg", 4)
 
-    assert proxy.call_no_response("assign_something", 3.14) is None
-    await_value(fake_engine, "something", 3.14)
+    assert proxy.call_no_response("pass_arg_as_another_name", 3.14) is None
+    await_value(fake_engine, "arg", 3.14)
 
 
 def test_call_unknown_method(proxy):
@@ -226,7 +247,7 @@ def test_long_call(proxy):
 
 
 def test_call_with_exception_raised(proxy):
-    with pytest.raises(Boom) as exc:
+    with pytest.raises(Boom):
         proxy.call("boom")
 
 

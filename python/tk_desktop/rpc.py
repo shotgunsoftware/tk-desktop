@@ -11,7 +11,7 @@
 # This file needs to remain backwards compatible with older tk-core's, so
 # we can import methods from Toolkit that may be too recent. For now, this
 # file is compatible with 0.18 and up, as it uses the LogManager, which
-# was introduce in 0.18.
+# was introduced in 0.18.
 
 import os
 import sys
@@ -20,9 +20,10 @@ import select
 import logging
 import threading
 import traceback
-import socket
 
-# Try to import the fastest version of pickle we can.
+# We can't assume that the project we're talking to has a recent tk-core
+# that ships with six, so we're detecting python 3 and making the right
+# imports on our own.
 PY3 = sys.version_info[0] >= 3
 if PY3:
     import pickle
@@ -38,12 +39,8 @@ else:
 
     from BaseHTTPServer import HTTPServer
     from SimpleHTTPServer import SimpleHTTPRequestHandler
-
     from urllib import urlopen
     from Queue import Queue
-
-
-import multiprocessing.connection
 
 from sgtk import LogManager
 
@@ -142,10 +139,8 @@ class Handler(SimpleHTTPRequestHandler):
 
     def _read_request(self):
         if PY3:
-            content_type = self.headers.get("content-type")
             content_len = int(self.headers.get("content-length", 0))
         else:
-            content_type = self.headers.getheader("content-type")
             content_len = int(self.headers.getheader("content-length", 0))
 
         body = self.rfile.read(content_len)
@@ -213,11 +208,13 @@ class RPCServerThread(threading.Thread):
         logger.debug("server thread listening on '%s'", self.pipe)
         try:
             self._listener.serve_forever()
-        except:
+        except BaseException:
             # Not catching the error here seems to not clean up the
             # server connection and it can deadlock the main thread.
             # Keep this except in place or you'll freeze when hitting
             # the back arrow on the project page of the desktop window.
+            # Let's also be thorough and catch BaseException to make
+            # sure CTRL-C still ends this thread peacefully.
             pass
         logger.debug("server thread shutting down")
 
@@ -255,7 +252,7 @@ class Dispatcher(threading.Thread):
                 if self._shut_down_requested:
                     break
                 job()
-            except Exception as e:
+            except Exception:
                 logger.exception("Error was raised from RPC dispatching thread:")
         logger.debug("dispatcher thread ending")
 
