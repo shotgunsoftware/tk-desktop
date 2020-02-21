@@ -84,7 +84,7 @@ class NotificationsManager(object):
                 )
             )
 
-        other_notifs = filter(None, other_notifs)
+        other_notifs = list(filter(None, other_notifs))
 
         # If this is the first launch, suppress all other notifications and return only the first
         # launch one.
