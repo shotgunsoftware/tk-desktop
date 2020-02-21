@@ -211,8 +211,13 @@ class RPCServerThread(threading.Thread):
         logger.debug("server thread listening on '%s'", self.pipe)
         try:
             self._listener.serve_forever()
-        finally:
-            logger.debug("server thread shutting down")
+        except:
+            # Not catching the error here seems to not clean up the
+            # server connection and it can deadlock the main thread.
+            # Keep this except in place or you'll freeze when hitting
+            # the back arrow on the project page of the desktop window.
+            pass
+        logger.debug("server thread shutting down")
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""

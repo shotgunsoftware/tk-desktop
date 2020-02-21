@@ -12,17 +12,30 @@ import imp
 import os
 import time
 import six
+import sys
 
 import pytest
 
-rpc_lib = imp.load_source(
-    "rpc",
+notifications_path = os.path.abspath(
     os.path.join(
-        os.path.dirname(os.path.dirname(__file__)), "python", "tk_desktop", "rpc.py"
-    ),
+        os.path.dirname(__file__),  # tk-desktop/tests
+        "..",  # tk-desktop
+        "python",  # tk-desktop/python
+        "tk_desktop",  # tk-desktop/python/tk_desktop
+    )
 )
-RPCServerThread = rpc_lib.RPCServerThread
-RPCProxy = rpc_lib.RPCProxy
+sys.path.insert(0, notifications_path)
+
+# rpc_lib = imp.load_source(
+#     "rpc",
+#     os.path.join(
+#         os.path.dirname(os.path.dirname(__file__)), "python", "tk_desktop", "rpc.py"
+#     ),
+# )
+# RPCServerThread = rpc_lib.RPCServerThread
+# RPCProxy = rpc_lib.RPCProxy
+
+from rpc import RPCServerThread, RPCProxy
 
 
 class Boom(Exception):
