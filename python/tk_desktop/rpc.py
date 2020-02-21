@@ -8,10 +8,40 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-# This file needs to remain backwards compatible with older tk-core's, so
-# we can import methods from Toolkit that may be too recent. For now, this
-# file is compatible with 0.18 and up, as it uses the LogManager, which
-# was introduced in 0.18.
+"""
+VERY IMPORTANT. READ THIS BEFORE MODIFYING THIS FILE!!!!!
+
+This module exposes the necessary low-level components to have the site and project
+engine's of the Shotgun Desktop communicate with each other.
+
+This API needs to remain fixed as it needs to be backward and forward compatible
+with different versions of tk-desktop on both sides. This API used to be
+implemented on top of the multiprocessing module, but unfortunately
+the multiprocessing module in Python 3 forces data to be sent with pickle version 3
+which is not understood by Python 2. Therefore, a new implementation was written
+from scratch using HTTPServer and urllib.urlopen.
+
+Also, this file needs to remain backwards compatible with older tk-core's, so
+we can't import methods from Toolkit that may be too recent. For now, this
+file is compatible with 0.18 and up, as it uses the LogManager, which
+was introduced in 0.18.
+
+The two main classes, and those that are part of the API, are RPCServerThread and
+RPCProxy and they are defined at the top of this file. Every other classes are part
+of the internal API of this module. The module is expected to be stored on disk as
+a single file by older versions of tk-desktop, so we can't turn it into a module
+with multiple files.
+
+The relationship between the classes are as follow:
+
+- RPCServerThread owns the Listener.
+- The Listener is used to register methods and owns an HTTPServer that the Handler
+  will invoke.
+
+- The RPCProxy owns a Connection object to send data to the server.
+- The Connection class owns an AsyncDispatcher that allows it to send fire-and-forget
+  data to the server.
+"""
 
 import os
 import sys
@@ -51,6 +81,172 @@ if "TK_DESKTOP_RPC_DEBUG" in os.environ:
     logger.setLevel(logging.DEBUG)
 else:
     logger.setLevel(logging.INFO)
+
+
+class RPCServerThread(threading.Thread):
+    """
+    Run an RPC Server in a subthread.
+
+    Will listen on a named pipe for connection objects that are
+    pickled tuples in the form (name, list, dictionary) where name
+    is a lookup against functions registered with the server and
+    list/dictionary are treated as args/kwargs for the function call.
+    """
+
+    def __init__(self, engine):
+        """
+        :param engine: The tk-desktop engine.
+        """
+        super(RPCServerThread, self).__init__()
+        self.engine = engine
+        # need access to the engine to run functions in the main thread
+        self._listener = Listener(engine)
+
+    @property
+    def pipe(self):
+        """
+        Connection string to the server.
+
+        Note that this property is named pipe to be backwards compatible with
+        previous versions of the API.
+        """
+        # Keep the IP hardcoded instead of set to localhost.
+        # localhost host is about 5 times slower on Windows.
+        return "http://127.0.0.1:%s" % self._listener.server_port
+
+    @property
+    def authkey(self):
+        """
+        Credential to connect to this server.
+        """
+        return self._listener.authkey
+
+    def is_closed(self):
+        """
+        :returns: ``True`` if the server is closed, ``False`` if not.
+        """
+        return self._listener.is_closed()
+
+    def list_functions(self):
+        """
+        Default method that returns the list of functions registered with the server.
+        """
+        return self._listener.list_functions()
+
+    def register_function(self, func, name=None):
+        """
+        Add a new function to the list of functions being served.
+        """
+        return self._listener.register_function(func, name)
+
+    def run(self):
+        """
+        Run the thread, accepting connections and then listening on them until
+        they are closed.  Each message is a call into the function table.
+        """
+        logger.debug("server thread listening on '%s'", self.pipe)
+        try:
+            self._listener.serve_forever()
+        except BaseException:
+            # Not catching the error here seems to not clean up the
+            # server connection and it can deadlock the main thread.
+            # Keep this except in place or you'll freeze when hitting
+            # the back arrow on the project page of the desktop window.
+            # Let's also be thorough and catch BaseException to make
+            # sure CTRL-C still ends this thread peacefully.
+            pass
+        logger.debug("server thread shutting down")
+
+    def close(self):
+        """
+        Signal the server to shut down connections and stop the run loop.
+        """
+        logger.debug("requesting server thread to close")
+        self._listener.close()
+        logger.debug("requested server thread close request to close")
+
+
+class RPCProxy(object):
+    """
+    Client side for an RPC Server.
+
+    Return attributes on the object as methods that will result in an RPC call
+    whose results are returned as the return value of the method.
+
+    DO NOT MODIFY THE INTERFACE OF THIS CLASS. IT IS USED ACROSS VERSIONS OF THE DESKTOP
+    ENGINE AND SHOULD NOT BE MODIFIED UNDER ANY CIRCUMSTANCES.
+    """
+
+    def __init__(self, pipe, authkey):
+        """
+        :param str pipe: Connection to the server.
+        :param str authkey: Credentials for the server.
+        """
+        self._closed = False
+        self._connection = Connection(pipe, authkey)
+
+    def call_no_response(self, name, *args, **kwargs):
+        """
+        Call a method on the server asynchronously.
+
+        :param str name: Name of the method to call.
+        :param args: Arguments to pass to the method
+        :param kwargs: Keyword arguments to pass to the method.
+        """
+        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
+        if self._closed:
+            raise RuntimeError("closed " + msg)
+        # send the call through with args and kwargs
+        logger.debug(msg)
+        self._connection.send(False, name, args, kwargs)
+
+    def call(self, name, *args, **kwargs):
+        """
+        Call a method on the server synchronously.
+
+        The call with return/raise the value/exception returned by the
+        server.
+
+        :param str name: Name of the method to call.
+        :param args: Arguments to pass to the method
+        :param kwargs: Keyword arguments to pass to the method.
+        """
+        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
+        if self._closed:
+            raise RuntimeError("closed " + msg)
+        # send the call through with args and kwargs
+        logger.debug(msg)
+        result = self._connection.send(True, name, args, kwargs)
+        if self._closed:
+            raise RuntimeError("client closed while waiting for a response")
+        logger.debug("client got result '%s'" % result)
+        # if an exception was returned raise it on the client side
+        if isinstance(result, Exception):
+            raise result
+        # return the result as our own
+        return result
+
+    def is_closed(self):
+        """
+        Test if the connection to the server is still open.
+
+        :returns: ``True`` is close, ``False`` if not.
+        """
+        return self._closed
+
+    def close(self):
+        """
+        Close the connection to the server.
+        """
+        self._connection.close()
+        self._closed = True
+
+
+##############################################################################
+# Internal API starts here.
+
+######################
+# Server side classes
 
 
 class Listener(object):
@@ -214,78 +410,8 @@ class Handler(SimpleHTTPRequestHandler):
         self.wfile.write(raw_data)
 
 
-class RPCServerThread(threading.Thread):
-    """
-    Run an RPC Server in a subthread.
-
-    Will listen on a named pipe for connection objects that are
-    pickled tuples in the form (name, list, dictionary) where name
-    is a lookup against functions registered with the server and
-    list/dictionary are treated as args/kwargs for the function call.
-    """
-
-    def __init__(self, engine):
-        super(RPCServerThread, self).__init__()
-        self.engine = engine
-        # need access to the engine to run functions in the main thread
-        self._listener = Listener(engine)
-
-    @property
-    def pipe(self):
-        # Keep the IP hardcoded instead of set to localhost.
-        # localhost host is about 5 times slower on Windows.
-        return "http://127.0.0.1:%s" % self._listener.server_port
-
-    @property
-    def authkey(self):
-        """
-        Credential to connect to this server.
-        """
-        return self._listener.authkey
-
-    def is_closed(self):
-        """
-        :returns: ``True`` if the server is closed, ``False`` if not.
-        """
-        return self._listener.is_closed()
-
-    def list_functions(self):
-        """
-        Default method that returns the list of functions registered with the server.
-        """
-        return self._listener.list_functions()
-
-    def register_function(self, func, name=None):
-        """
-        Add a new function to the list of functions being served.
-        """
-        return self._listener.register_function(func, name)
-
-    def run(self):
-        """
-        Run the thread, accepting connections and then listening on them until
-        they are closed.  Each message is a call into the function table.
-        """
-        logger.debug("server thread listening on '%s'", self.pipe)
-        try:
-            self._listener.serve_forever()
-        except BaseException:
-            # Not catching the error here seems to not clean up the
-            # server connection and it can deadlock the main thread.
-            # Keep this except in place or you'll freeze when hitting
-            # the back arrow on the project page of the desktop window.
-            # Let's also be thorough and catch BaseException to make
-            # sure CTRL-C still ends this thread peacefully.
-            pass
-        logger.debug("server thread shutting down")
-
-    def close(self):
-        """
-        Signal the server to shut down connections and stop the run loop.
-        """
-        logger.debug("requesting server thread to close")
-        self._listener.close()
-        logger.debug("requested server thread close request to close")
+######################
+# Client side classes
 
 
 class AsyncDispatcher(threading.Thread):
@@ -393,79 +519,3 @@ class Connection(object):
         if isinstance(response, Exception):
             raise response
         return response
-
-
-class RPCProxy(object):
-    """
-    Client side for an RPC Server.
-
-    Return attributes on the object as methods that will result in an RPC call
-    whose results are returned as the return value of the method.
-
-    DO NOT MODIFY THE INTERFACE OF THIS CLASS. IT IS USED ACROSS VERSIONS OF THE DESKTOP
-    ENGINE AND SHOULD NOT BE MODIFIED UNDER ANY CIRCUMSTANCES.
-    """
-
-    def __init__(self, pipe, authkey):
-        """
-        :param str pipe: Connection to the server.
-        :param str authkey: Credentials for the server.
-        """
-        self._closed = False
-        self._connection = Connection(pipe, authkey)
-
-    def call_no_response(self, name, *args, **kwargs):
-        """
-        Call a method on the server asynchronously.
-
-        :param str name: Name of the method to call.
-        :param args: Arguments to pass to the method
-        :param kwargs: Keyword arguments to pass to the method.
-        """
-        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
-        if self._closed:
-            raise RuntimeError("closed " + msg)
-        # send the call through with args and kwargs
-        logger.debug(msg)
-        self._connection.send(False, name, args, kwargs)
-
-    def call(self, name, *args, **kwargs):
-        """
-        Call a method on the server synchronously.
-
-        The call with return/raise the value/exception returned by the
-        server.
-
-        :param str name: Name of the method to call.
-        :param args: Arguments to pass to the method
-        :param kwargs: Keyword arguments to pass to the method.
-        """
-        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
-        if self._closed:
-            raise RuntimeError("closed " + msg)
-        # send the call through with args and kwargs
-        logger.debug(msg)
-        result = self._connection.send(True, name, args, kwargs)
-        if self._closed:
-            raise RuntimeError("client closed while waiting for a response")
-        logger.debug("client got result '%s'" % result)
-        # if an exception was returned raise it on the client side
-        if isinstance(result, Exception):
-            raise result
-        # return the result as our own
-        return result
-
-    def is_closed(self):
-        """
-        Test if the connection to the server is still open.
-
-        :returns: ``True`` is close, ``False`` if not.
-        """
-        return self._closed
-
-    def close(self):
-        """
-        Close the connection to the server.
-        """
-        self._connection.close()
-        self._closed = True
