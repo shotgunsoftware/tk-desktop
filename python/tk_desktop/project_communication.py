@@ -29,7 +29,8 @@ class ProjectCommunication(CommunicationBase):
 
     def connect_to_server(self, pipe, auth, disconnect_callback):
         """
-        Sets up a server to communicate with the background process and connects to the site engine.
+        Sets up a server to communicate with the foreground process and connects
+        back to the it.
         """
         # create the connection to the site engine.
         self._create_proxy(pipe, auth)

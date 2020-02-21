@@ -58,19 +58,11 @@ else:
 
 class Listener(object):
     def __init__(self, engine, min_port=49152, max_port=65535):
-        # According to the following link
-        # https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?&page=137
-        # the port range 49152-65535 is free to use for everyone and is meant for dynamic servers
-        # which is our case here.
-        # range intervals are always [a, b[, so add 1 to include max_port.
         self._server = HTTPServer(("localhost", 0), Handler)
 
         self._server.listener = self
 
         self.authkey = str(uuid.uuid1())  # generate a random key for authentication
-        if PY3:
-            self.authkey = self.authkey.encode("utf8")
-
         self.engine = engine
         self._is_closed = False
 
@@ -95,7 +87,7 @@ class Listener(object):
         self._server.serve_forever()
 
     def close(self):
-        self._server.socket.close()
+        self._server.shutdown()
         self._is_closed = True
 
     def is_closed(self):
@@ -116,11 +108,14 @@ class Handler(SimpleHTTPRequestHandler):
         return self.server.listener.engine
 
     def do_POST(self):
-        (is_blocking, func_name, args, kwargs) = self._read_request()
-
-        logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
         response = None
         try:
+            (authkey, (is_blocking, func_name, args, kwargs)) = self._read_request()
+            logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
+
+            if authkey != self.server.listener.authkey:
+                raise ValueError("invalid auth key")
+
             if func_name not in self._functions:
                 logger.error("unknown function call: '%s'" % func_name)
                 raise ValueError("unknown function call: '%s'" % func_name)
@@ -129,22 +124,16 @@ class Handler(SimpleHTTPRequestHandler):
             func = self._functions[func_name]
 
             # execute the function on the main thread.  It may do GUI work.
-            result = self._engine.execute_in_main_thread(func, *args, **kwargs)
+            response = self._engine.execute_in_main_thread(func, *args, **kwargs)
 
-            # If the RPC server was stopped, don't bother trying to reply, the connection
-            # will have been broken on the client side and this will avoid an error
-            # on the server side when calling send.
-            if self.server.listener.is_closed() is False:
-                # if the client expects the results, send them along
-                logger.debug("server got result '%s'" % result)
-                response = result
+            logger.debug("'%s' result: '%s" % (func_name, response))
         except Exception as e:
             # if any of the above fails send the exception back to the client
-            logger.error("got exception '%s'" % e)
-            logger.debug("   traceback:\n%s" % traceback.format_exc())
+            logger.exception("got exception during '%s" % func_name)
 
             if is_blocking:
                 response = e
+
         self._send_response(200, response)
 
     def log_request(self, code=None, size=None):
@@ -221,14 +210,15 @@ class RPCServerThread(threading.Thread):
         logger.debug("server listening on '%s'", self.pipe)
         try:
             self._listener.serve_forever()
-        except Exception as e:
-            if "bad file descriptor" not in str(e).lower():
-                raise
+        finally:
+            print("RPCServerThread is shutting down")
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
         logger.debug("server setting flag to stop")
+        print("Asking listener to close")
         self._listener.close()
+        print("Asked listener to close")
 
 
 class Dispatcher(threading.Thread):
@@ -249,21 +239,22 @@ class Dispatcher(threading.Thread):
         while True:
             job = self._queue.get()
             if job == self._shutdown_hint:
-                return
+                break
             # Job might raise an error, but we don't care
             # this was an asynchronous call.
             try:
                 job()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.exception("Error was raised from RPC dispatching thread:")
 
 
 class Emitter(object):
     def __init__(self, address, authkey):
         self._address = address
+        self._authkey = authkey
 
     def send(self, payload):
-        payload = pickle.dumps(payload, protocol=0)
+        payload = pickle.dumps((self._authkey, payload), protocol=0)
         r = urlopen(self._address, data=payload)
         response = pickle.loads(r.read())
         if isinstance(response, Exception):

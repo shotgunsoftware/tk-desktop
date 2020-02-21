@@ -217,6 +217,16 @@ def test_call_with_exception_raised(proxy):
         proxy.call("boom")
 
 
+def test_bad_auth_key(server):
+    try:
+        proxy = RPCProxy(server.pipe, "12345")
+        with pytest.raises(ValueError) as exc:
+            proxy.call("list_functions")
+        assert str(exc.value) == "invalid auth key"
+    finally:
+        proxy.close()
+
+
 def test_calling_when_closed(proxy):
     proxy.close()
     with pytest.raises(RuntimeError) as exc:
