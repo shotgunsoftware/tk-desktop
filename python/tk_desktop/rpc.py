@@ -55,7 +55,7 @@ else:
 
 class Listener(object):
     """
-
+    Server that allows methods to be called from a remote process.
     """
 
     def __init__(self, engine):
@@ -74,6 +74,13 @@ class Listener(object):
         self._functions = {"list_functions": self.list_functions}
 
     def register_function(self, func, name=None):
+        """
+        Register a function with the server.
+
+        :param callable func: Method to call.
+        :param name: Optional. If set, the function will be named as the parameter states.
+            Otherwise, func.__name__ will be used.
+        """
         if name is None:
             name = func.__name__
 
@@ -85,42 +92,72 @@ class Listener(object):
         self._functions[name] = wrapper
 
     def list_functions(self):
+        """
+        Return a list of functions that can be invoked on the server.
+        """
         return list(self._functions)
 
     def serve_forever(self):
+        """
+        Serve requests until the server is closed.
+        """
         self._server.serve_forever()
 
     def close(self):
+        """
+        Close the server.
+        """
         self._server.socket.close()
         self._server.shutdown()
         self._is_closed = True
 
     def is_closed(self):
+        """
+        :returns: ``True`` is the server is closed, ``False`` if not.
+        """
         return self._is_closed
 
     @property
     def server_port(self):
+        """
+        :returns: Port number used by the server.
+        """
         return self._server.server_port
 
 
 class Handler(SimpleHTTPRequestHandler):
+    """
+    Handle an HTTP request.
+    """
+
     @property
     def _functions(self):
+        """
+        Shorthand to access the listener's function list.
+        """
         return self.server.listener._functions
 
     @property
     def _engine(self):
+        """
+        Shorthand to access the engine we're exposing methods for.
+        """
         return self.server.listener.engine
 
     def do_POST(self):
+        """
+        Handle request to execute a function from the listener.
+        """
         response = None
         try:
             (authkey, (func_name, args, kwargs)) = self._read_request()
             logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
 
+            # Make sure the right credentials were sent.
             if authkey != self.server.listener.authkey:
                 raise ValueError("invalid auth key")
 
+            # Make sure the function exists.
             if func_name not in self._functions:
                 logger.error("unknown function call: '%s'" % func_name)
                 raise ValueError("unknown function call: '%s'" % func_name)
@@ -128,21 +165,29 @@ class Handler(SimpleHTTPRequestHandler):
             # grab the function from the function table
             func = self._functions[func_name]
 
-            # execute the function on the main thread.  It may do GUI work.
+            # execute the function on the main thread, as it may to GUI work.
             response = self._engine.execute_in_main_thread(func, *args, **kwargs)
 
             logger.debug("'%s' result: '%s" % (func_name, response))
         except Exception as e:
+            response = e
             # if any of the above fails send the exception back to the client
             logger.exception("got exception during '%s" % func_name)
-            response = e
-
-        self._send_response(200, response)
+        finally:
+            self._send_response(response)
 
     def log_request(self, code=None, size=None):
-        pass
+        """
+        Prevent the server from outputting to stdout every single time
+        a query is processed by the server.
+        """
 
     def _read_request(self):
+        """
+        Read an incoming request and return the data.
+
+        :returns: The data that was sent.
+        """
         if PY3:
             content_len = int(self.headers.get("content-length", 0))
         else:
@@ -154,9 +199,14 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception:
             raise RuntimeError("Response could not be unserialized: %s" % body)
 
-    def _send_response(self, code, body):
+    def _send_response(self, body):
+        """
+        Send a response back to the client.
+
+        :param body: Data to send back to the client.
+        """
         raw_data = pickle.dumps(body, protocol=0)
-        self.send_response(code, self.responses[code])
+        self.send_response(200, self.responses[200])
         self.send_header("Content-Type", "text/text")
         self.send_header("Content-Length", len(raw_data))
         self.send_header("Connection", "close")
@@ -188,9 +238,15 @@ class RPCServerThread(threading.Thread):
 
     @property
     def authkey(self):
+        """
+        Credential to connect to this server.
+        """
         return self._listener.authkey
 
     def is_closed(self):
+        """
+        :returns: ``True`` if the server is closed, ``False`` if not.
+        """
         return self._listener.is_closed()
 
     def list_functions(self):
@@ -224,7 +280,9 @@ class RPCServerThread(threading.Thread):
         logger.debug("server thread shutting down")
 
     def close(self):
-        """Signal the server to shut down connections and stop the run loop."""
+        """
+        Signal the server to shut down connections and stop the run loop.
+        """
         logger.debug("requesting server thread to close")
         self._listener.close()
         logger.debug("requested server thread close request to close")

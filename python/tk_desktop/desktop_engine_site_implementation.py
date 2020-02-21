@@ -32,11 +32,6 @@ task_manager = sgtk.platform.import_framework(
 
 logger = LogManager.get_logger(__name__)
 
-# sys.path.insert(0, '/Applications/PyCharm.app/Contents/plugins/python/pydevd-pycharm.egg')
-# import pydevd_pycharm
-
-# pydevd_pycharm.settrace('localhost', port=12345, stdoutToServer=True, stderrToServer=True)
-
 
 class DesktopEngineSiteImplementation(object):
     def __init__(self, engine):
