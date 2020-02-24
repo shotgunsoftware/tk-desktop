@@ -213,6 +213,11 @@ def test_server_close(server, proxy):
     server.close()
     assert server.is_closed()
 
+    # Sleep long enough for the server to shut down, this is bigger
+    # than the timeout, so we should be good.
+    time.sleep(2)
+    assert not server.isAlive()
+
     with pytest.raises(Exception) as exc:
         proxy.call("pass_arg", 1)
 
