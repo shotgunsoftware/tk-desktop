@@ -296,20 +296,22 @@ class Listener(object):
         """
         return list(self._functions)
 
-    def serve(self):
+    def serve_forever(self):
         """
         Serve requests until the server is closed.
         """
-        while self._is_closed is False:
-            self._server.handle_request()
-            print("Handled!")
+        # Implement our own variant of serve_forever here.
+        # HTTPServer.serve_forever will server requests until HTTP
+        try:
+            while self._is_closed is False:
+                self._server.handle_request()
+        finally:
+            self._server.socket.close()
 
     def close(self):
         """
         Close the server.
         """
-        print("closing socket")
-        self._server.socket.close()
         self._is_closed = True
 
     def is_closed(self):
