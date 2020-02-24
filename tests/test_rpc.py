@@ -54,6 +54,8 @@ class FakeEngine:
         """
         return func(*args, **kwargs)
 
+    async_execute_in_main_thread = execute_in_main_thread
+
     def pass_arg(self, arg):
         """
         Stores are and returns it.

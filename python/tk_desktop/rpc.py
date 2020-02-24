@@ -346,7 +346,7 @@ class Handler(SimpleHTTPRequestHandler):
         """
         response = None
         try:
-            (authkey, (func_name, args, kwargs)) = self._read_request()
+            (authkey, (is_blocking, func_name, args, kwargs)) = self._read_request()
             logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
 
             # Make sure the right credentials were sent.
@@ -362,7 +362,11 @@ class Handler(SimpleHTTPRequestHandler):
             func = self._functions[func_name]
 
             # execute the function on the main thread, as it may to GUI work.
-            response = self._engine.execute_in_main_thread(func, *args, **kwargs)
+            if is_blocking:
+                response = self._engine.execute_in_main_thread(func, *args, **kwargs)
+            else:
+                self._engine.async_execute_in_main_thread(func, *args, **kwargs)
+                response = None
 
             logger.debug("'%s' result: '%s" % (func_name, response))
         except Exception as e:
@@ -462,7 +466,7 @@ class AsyncDispatcher(threading.Thread):
                 # We're in the background thread, so we can send
                 # a blocking request now, as urlopen is blocking
                 # anyway.
-                self._connection.send(True, *payload)
+                self._connection._send(payload)
             except Exception:
                 logger.exception("Error was raised from RPC dispatching thread:")
 
@@ -498,7 +502,7 @@ class Connection(object):
             method. If ``False``, the call will be queued for delivery and the method
             returns None.
         """
-        payload = (func_name, args, kwargs)
+        payload = (is_blocking, func_name, args, kwargs)
         if is_blocking:
             return self._send(payload)
         else:

@@ -314,5 +314,5 @@ def handle_error(data, proxy=None):
     finally:
         try:
             proxy.close()
-        except Exception:
+        except Exception as e:
             pass

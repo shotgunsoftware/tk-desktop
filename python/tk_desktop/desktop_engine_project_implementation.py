@@ -172,8 +172,10 @@ class DesktopEngineProjectImplementation(object):
         Called when the engine is being torn-down.
         """
         # We're about to disconenct from the server, reenable file based logging.
-        self._enable_file_based_logging()
-        self._project_comm.shut_down()
+        try:
+            self._enable_file_based_logging()
+        finally:
+            self._project_comm.shut_down()
 
     def _trigger_callback(self, namespace, command, *args, **kwargs):
         callback = self.__callback_map.get((namespace, command))
