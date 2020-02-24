@@ -259,8 +259,6 @@ class Listener(object):
         :param engine: Current Toolkit engine.
         """
         self._server = HTTPServer(("localhost", 0), Handler)
-        self._server.timeout = 1
-
         self._server.listener = self
 
         self.authkey = str(uuid.uuid1())  # generate a random key for authentication
@@ -301,9 +299,42 @@ class Listener(object):
         Serve requests until the server is closed.
         """
         # Implement our own variant of serve_forever here.
-        # HTTPServer.serve_forever will server requests until HTTP
+        # HTTPServer.serve_forever will serve requests until HTTPServer.shut_down
+        # is invoked. The problem with that flow is that if there is a request
+        # currently being handled, the shut_down() call will block until
+        # the request has been handled.
+        #
+        # This becomes an issue in this flow
+        #
+        # 1. Project engine makes an RPC call from the main thread.
+        # 2. Site engine makes an RPC call from the main thread.
+        # 3. Site engine receives the request to process the RPC and queues it for
+        #    execution in the main thread.
+        # 4. Project engine receives the request to process the RPC and queues it for
+        #    execution in the main thread.
+        # 5. At this point, both main threads are executing something and both
+        #    have a second event in queue.
+        # 6. Site engine wants to close the server thread using shut_down()
+        #
+        # 7. Deadlock!
+        #
+        # This happens because the site engine HTTP server is currently
+        # waiting for a response from the main thread and we've just asked
+        # from the main thread to shut_down(), which waits for the current
+        # request to terminate before returning.
+        #
+        # The solution to this problem is to implement the loop ourselves
+        # by calling handle_request manually. From the main thread
+        # we simply raise a flag which will not block the main thread. When
+        # the current event is done, the event queued by the server thread
+        # will be executed and the serve_forever method will unblock,
+        # read the flag and will be done.
+        self._server.timeout = 1
         try:
             while self._is_closed is False:
+                # This will wait for a request until the timeout
+                # is reached. This means that we'll wait at most
+                # one second before noticing we should be closing down.
                 self._server.handle_request()
         finally:
             self._server.socket.close()
