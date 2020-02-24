@@ -259,6 +259,7 @@ class Listener(object):
         :param engine: Current Toolkit engine.
         """
         self._server = HTTPServer(("localhost", 0), Handler)
+        self._server.timeout = 1
 
         self._server.listener = self
 
@@ -295,18 +296,20 @@ class Listener(object):
         """
         return list(self._functions)
 
-    def serve_forever(self):
+    def serve(self):
         """
         Serve requests until the server is closed.
         """
-        self._server.serve_forever()
+        while self._is_closed is False:
+            self._server.handle_request()
+            print("Handled!")
 
     def close(self):
         """
         Close the server.
         """
+        print("closing socket")
         self._server.socket.close()
-        self._server.shutdown()
         self._is_closed = True
 
     def is_closed(self):
