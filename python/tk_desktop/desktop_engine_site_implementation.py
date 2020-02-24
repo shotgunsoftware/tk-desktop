@@ -251,6 +251,7 @@ class DesktopEngineSiteImplementation(object):
         """ GUI side handler for the add_command call. """
         from tank.platform.qt import QtGui
         import time
+
         time.sleep(0.2)
 
         logger.debug("register_command(%s, %s)", name, properties)
