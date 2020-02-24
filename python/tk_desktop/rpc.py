@@ -283,6 +283,8 @@ class Listener(object):
         # This method will be called from the main thread. If the server has been stopped, there
         # is no need to call the method.
         def wrapper(*args, **kwargs):
+            if self._is_closed:
+                return
             return func(*args, **kwargs)
 
         self._functions[name] = wrapper
