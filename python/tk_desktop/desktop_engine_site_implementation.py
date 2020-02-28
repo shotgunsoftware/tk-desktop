@@ -132,7 +132,7 @@ class DesktopEngineSiteImplementation(object):
             # matched commands.
             apps_command_index = 0
             # skip the commands from the selectors preceding "Apps"
-            for index in xrange(apps_index):
+            for index in range(apps_index):
                 selector = selectors[index]
                 # skip all the commands that fit the current selector
                 # insert as the last command in the worst case
@@ -250,9 +250,6 @@ class DesktopEngineSiteImplementation(object):
     def trigger_register_command(self, name, properties, groups):
         """ GUI side handler for the add_command call. """
         from tank.platform.qt import QtGui
-        import time
-
-        time.sleep(0.2)
 
         logger.debug("register_command(%s, %s)", name, properties)
 

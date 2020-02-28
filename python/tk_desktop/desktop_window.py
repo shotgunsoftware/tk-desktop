@@ -14,7 +14,6 @@ import os
 import sys
 import tempfile
 import subprocess
-import cPickle as pickle
 import pprint
 import inspect
 from collections import OrderedDict
@@ -549,7 +548,7 @@ class DesktopWindow(SystrayWindow):
             Event fired when a tab is selected by the user
             """
             # update the state of tab buttons
-            for i in xrange(self.ui.tabs.count()):
+            for i in range(self.ui.tabs.count()):
                 button = self.ui.tabs.itemAt(i).widget()
                 button.setProperty("active", button == tab_button)
                 # apply style update
@@ -1136,7 +1135,7 @@ class DesktopWindow(SystrayWindow):
 
         # find the project in the model
         model = self._project_selection_model.model()
-        for i in xrange(model.rowCount()):
+        for i in range(model.rowCount()):
             index = model.index(i, 0)
 
             if hasattr(model, "mapToSource"):
@@ -1474,7 +1473,7 @@ class DesktopWindow(SystrayWindow):
             # startup server pipe to listen
             engine.startup_rpc()
 
-            # pickle up the info needed to bootstrap the project python
+            # seerialize the info needed to bootstrap the project python
             desktop_data = {
                 "core_python_path": core_python,
                 # Every settings that were used for discovering the pipeline configuration must be
@@ -1496,7 +1495,7 @@ class DesktopWindow(SystrayWindow):
             }
             (_, pickle_data_file) = tempfile.mkstemp(suffix=".pkl")
             with open(pickle_data_file, "wb") as pickle_data_file_handle:
-                pickle.dump(desktop_data, pickle_data_file_handle)
+                sgtk.util.pickle.dump(desktop_data, pickle_data_file_handle)
 
             # update the values on the project updater in case they are needed
             self.update_project_config_widget.set_project_info(
@@ -1618,13 +1617,13 @@ class DesktopWindow(SystrayWindow):
         new_page.show()
         new_page.raise_()
 
-        anim_old = QtCore.QPropertyAnimation(current_page, "pos", self)
+        anim_old = QtCore.QPropertyAnimation(current_page, b"pos", self)
         anim_old.setDuration(500)
         anim_old.setStartValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
         anim_old.setEndValue(QtCore.QPoint(curr_pos.x() - offsetx, curr_pos.y()))
         anim_old.setEasingCurve(QtCore.QEasingCurve.OutBack)
 
-        anim_new = QtCore.QPropertyAnimation(new_page, "pos", self)
+        anim_new = QtCore.QPropertyAnimation(new_page, b"pos", self)
         anim_new.setDuration(500)
         anim_new.setStartValue(QtCore.QPoint(curr_pos.x() + offsetx, curr_pos.y()))
         anim_new.setEndValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
@@ -1673,7 +1672,7 @@ class DesktopWindow(SystrayWindow):
                 pass
 
         body = "<center>"
-        for name, version in versions.iteritems():
+        for name, version in versions.items():
             body += "    {0} {1}<br/>".format(name, version)
         body += "</center>"
 
