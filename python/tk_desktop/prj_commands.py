@@ -1,201 +1,17 @@
 from __future__ import print_function
 
 if __name__ == "__main__":
-    import sys
-    import datetime
+    import sgtk
 
-    sys.path.insert(0, "/Users/boismej/gitlocal/tk-core/python")
-    sys.path.insert(0, "..")
+    importer = sgtk.util.qt_importer.QtImporter()
+    sgtk.platform.qt.QtGui = importer.QtGui
+    sgtk.platform.qt.QtCore = importer.QtCore
 
-    from sgtk.util.qt_importer import QtImporter
+    app = sgtk.platform.qt.QtGui.QApplication([])
 
-    importer = QtImporter()
-    QtGui = importer.QtGui
-    QtCore = importer.QtCore
 
-    app = QtGui.QApplication([])
-
-    p = QtGui.QPalette()
-    highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
-
-    border = "rgb(%s, %s, %s)" % (
-        highlight_col.red(),
-        highlight_col.green(),
-        highlight_col.blue(),
-    )
-    background = "rgba(%s, %s, %s, 25%%)" % (
-        highlight_col.red(),
-        highlight_col.green(),
-        highlight_col.blue(),
-    )
-
-    # Set the fusion style, which gives us a good base to build on. With
-    # this, we'll be sticking largely to the style and won't need to
-    # introduce much qss to get a good look.
-    app.setStyle("fusion")
-
-    # Build ourselves a dark palette to assign to the application. This
-    # will take the fusion style and darken it up.
-    palette = QtGui.QPalette()
-
-    # This closely resembles the color palette used in Maya 2017 with a
-    # few minor tweaks.
-    palette.setBrush(
-        QtGui.QPalette.Disabled, QtGui.QPalette.Button, QtGui.QColor(80, 80, 80)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled, QtGui.QPalette.Light, QtGui.QColor(97, 97, 97)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled, QtGui.QPalette.Midlight, QtGui.QColor(59, 59, 59)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled, QtGui.QPalette.Dark, QtGui.QColor(37, 37, 37)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled, QtGui.QPalette.Mid, QtGui.QColor(45, 45, 45)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled, QtGui.QPalette.Base, QtGui.QColor(42, 42, 42)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled, QtGui.QPalette.Window, QtGui.QColor(68, 68, 68)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled, QtGui.QPalette.Shadow, QtGui.QColor(0, 0, 0)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled,
-        QtGui.QPalette.AlternateBase,
-        palette.color(QtGui.QPalette.Disabled, QtGui.QPalette.Base).lighter(110),
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled,
-        QtGui.QPalette.Text,
-        palette.color(QtGui.QPalette.Disabled, QtGui.QPalette.Base).lighter(250),
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled,
-        QtGui.QPalette.Link,
-        palette.color(QtGui.QPalette.Disabled, QtGui.QPalette.Base).lighter(250),
-    )
-    palette.setBrush(
-        QtGui.QPalette.Disabled,
-        QtGui.QPalette.LinkVisited,
-        palette.color(QtGui.QPalette.Disabled, QtGui.QPalette.Base).lighter(110),
-    )
-
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.WindowText, QtGui.QColor(200, 200, 200),
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Button, QtGui.QColor(75, 75, 75)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200),
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Light, QtGui.QColor(97, 97, 97)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Midlight, QtGui.QColor(59, 59, 59)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Dark, QtGui.QColor(37, 37, 37)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Mid, QtGui.QColor(45, 45, 45)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Text, QtGui.QColor(200, 200, 200)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Link, QtGui.QColor(200, 200, 200)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.LinkVisited, QtGui.QColor(97, 97, 97)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.BrightText, QtGui.QColor(37, 37, 37)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Base, QtGui.QColor(42, 42, 42)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Window, QtGui.QColor(68, 68, 68)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active, QtGui.QPalette.Shadow, QtGui.QColor(0, 0, 0)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Active,
-        QtGui.QPalette.AlternateBase,
-        palette.color(QtGui.QPalette.Active, QtGui.QPalette.Base).lighter(110),
-    )
-
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.WindowText, QtGui.QColor(200, 200, 200),
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Button, QtGui.QColor(75, 75, 75)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.ButtonText, QtGui.QColor(200, 200, 200),
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Light, QtGui.QColor(97, 97, 97)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Midlight, QtGui.QColor(59, 59, 59)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Dark, QtGui.QColor(37, 37, 37)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Mid, QtGui.QColor(45, 45, 45)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Text, QtGui.QColor(200, 200, 200)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Link, QtGui.QColor(200, 200, 200)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.LinkVisited, QtGui.QColor(97, 97, 97),
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.BrightText, QtGui.QColor(37, 37, 37)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Base, QtGui.QColor(42, 42, 42)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Window, QtGui.QColor(68, 68, 68)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive, QtGui.QPalette.Shadow, QtGui.QColor(0, 0, 0)
-    )
-    palette.setBrush(
-        QtGui.QPalette.Inactive,
-        QtGui.QPalette.AlternateBase,
-        palette.color(QtGui.QPalette.Inactive, QtGui.QPalette.Base).lighter(110),
-    )
-
-    app.setPalette(palette)
-
-    # Finally, we just need to set the default font size for our widgets
-    # deriving from QWidget. This also has the side effect of correcting
-    # a couple of styling quirks in the tank dialog header when it's
-    # used with the fusion style.
-    app.setStyleSheet(".QWidget { font-size: 11px; }")
-
-    css_file = "/Users/boismej/gitlocal/tk-desktop/style.qss"
-    with open(css_file) as f:
-        css = app.styleSheet() + "\n\n" + f.read()
-    app.setStyleSheet(css)
-else:
-    from sgtk.platform.qt import QtCore, QtGui
-
+from sgtk.platform.qt import QtCore, QtGui
+import datetime
 
 p = QtGui.QPalette()
 highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
@@ -456,7 +272,7 @@ class RecentList(QtGui.QWidget):
         self._layout.addStretch(1)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
-        for insert_pos, button in enumerate(self._buttons):
+        for insert_pos, button in enumerate(self.buttons):
             # This button already exist. Make it the first button!
             if button.command_name == command_name:
                 self._layout.removeWidget(button)
@@ -475,7 +291,7 @@ class RecentList(QtGui.QWidget):
             self._layout.takeAt(self.MAX_RECENTS).widget().deleteLater()
 
     @property
-    def _buttons(self):
+    def buttons(self):
         for i in range(self._layout.count() - 1):
             yield self._layout.itemAt(i).widget()
 
@@ -521,6 +337,11 @@ class CommandList(QtGui.QWidget):
             self._buttons[button_name].add_command(
                 command_name, menu_name, icon, tooltip, is_menu_default
             )
+
+    @property
+    def buttons(self):
+        for i in range(len(self._buttons)):
+            yield self._layout.itemAt(i).widget()
 
 
 class Section(QtGui.QWidget):
@@ -804,8 +625,6 @@ if __name__ == "__main__":
 
     commands = [
         (
-            "nuke_studio_120",
-            "Nuke Studio",
             "Nuke Studio 12.0",
             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
             "tooltip nuke 12.0",
@@ -813,8 +632,6 @@ if __name__ == "__main__":
             True,
         ),
         (
-            "nuke_studio_125",
-            "NukeX",
             "NukeX 12.5",
             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
             "tooltip nuke 12.0",
@@ -822,8 +639,6 @@ if __name__ == "__main__":
             True,
         ),
         (
-            "nuke_x_120",
-            "NukeX",
             "NukeX 12.0",
             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
             "tooltip nuke 12.0",
@@ -831,8 +646,6 @@ if __name__ == "__main__":
             False,
         ),
         (
-            "nuke_assist_120",
-            "Nuke Assist",
             "Nuke Assist 12.0",
             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
             "tooltip nuke 12.0",
@@ -840,8 +653,6 @@ if __name__ == "__main__":
             True,
         ),
         (
-            "maya2019",
-            "Maya",
             "Maya 2019",
             "/Users/boismej/gitlocal/tk-maya/icon_256.png",
             "tooltip maya 2019",
@@ -849,8 +660,6 @@ if __name__ == "__main__":
             True,
         ),
         (
-            "maya2020",
-            "Maya",
             "Maya 2020",
             "/Users/boismej/gitlocal/tk-maya/icon_256.png",
             "tooltip maya 2020",
@@ -859,11 +668,24 @@ if __name__ == "__main__":
         ),
     ]
 
+    commands = [
+        (
+            cmd[0].lower().replace(" ", "_").replace(".", ""),
+            cmd[0].rsplit(" ", 1)[0],
+            cmd[0],
+            cmd[1],
+            cmd[2],
+            cmd[3],
+            cmd[4],
+        )
+        for cmd in commands
+    ]
+
     if False:
 
         def add_button():
             command = commands.pop(0)
-            view.add_command(*command)
+            view.add_command()
             if commands:
                 QtCore.QTimer.singleShot(500, add_button)
             else:
