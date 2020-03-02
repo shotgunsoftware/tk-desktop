@@ -145,7 +145,17 @@ class DesktopWindow(SystrayWindow):
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
 
-        self._project_commands = CommandsView(self)
+        class ProjectCommandSettings(object):
+            def __init__(self, dlg):
+                self._dlg = dlg
+
+            def save(self, key, recents):
+                self._dlg._save_setting(key, recents, site_specific=True)
+
+            def load(self, key):
+                return self._dlg._load_setting(key, None, True) or {}
+
+        self._project_commands = CommandsView(self, ProjectCommandSettings(self))
         self.ui.project_commands_area.setWidget(self._project_commands)
         self.project_overlay = LoadingProjectWidget(self._project_commands)
         self.install_apps_widget = NoAppsInstalledOverlay(self._project_commands)
@@ -276,9 +286,6 @@ class DesktopWindow(SystrayWindow):
         # self._project_command_proxy.setSourceModel(self._project_command_model)
         # self._project_command_proxy.sort(0)
         # self._project_commands.setModel(self._project_command_proxy)
-
-        # limit how many recent commands are shown
-        self._project_commands.set_recents_limit(6)
 
         # self._project_command_delegate = ProjectCommandDelegate(
         #     self._project_commands

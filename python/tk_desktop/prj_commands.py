@@ -11,6 +11,7 @@ if __name__ == "__main__":
 
 
 from sgtk.platform.qt import QtCore, QtGui
+from tank_vendor import six
 import datetime
 
 p = QtGui.QPalette()
@@ -154,7 +155,7 @@ class RecentButton(QtGui.QPushButton):
 
     @property
     def name(self):
-        return six.ensure_str(self.text())
+        return six.ensure_str(self.text_label.text())
 
     @property
     def timestamp(self):
@@ -272,22 +273,40 @@ class RecentList(QtGui.QWidget):
         self._layout.addStretch(1)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
-        for insert_pos, button in enumerate(self.buttons):
-            # This button already exist. Make it the first button!
-            if button.command_name == command_name:
-                self._layout.removeWidget(button)
-                self._layout.insertWidget(0, button)
-                return
-            elif timestamp < button.timestamp:
-                break
-        else:
+
+        print("recent", command_name, button_name, icon, tooltip, timestamp)
+
+        buttons = list(self.buttons)
+
+        # If we do not have any buttons, simply insert at the beginning.
+        if not buttons:
             insert_pos = 0
+        else:
+            # If we do have something, search for where to insert the
+            # button.
+            for insert_pos, button in enumerate(buttons):
+                # This button already exist. Make it the first button!
+                if button.command_name == command_name:
+                    self._layout.removeWidget(button)
+                    self._layout.insertWidget(0, button)
+                    return
+                # The timestamp of this command is earlier that the current
+                # button, so we'll insert here.
+                elif timestamp >= button.timestamp:
+                    break
+            else:
+                # We haven't found anything, so we'll insert one past the
+                # last button in the UI.
+                insert_pos += 1
+
+        if insert_pos >= self.MAX_RECENTS:
+            return
 
         button = RecentButton(self, command_name, button_name, icon, tooltip, timestamp)
         button.action_clicked.connect(self.action_clicked)
         self._layout.insertWidget(insert_pos, button)
 
-        if self._layout.count() > self.MAX_RECENTS + 1:
+        if (self._layout.count() - 1) > self.MAX_RECENTS:
             self._layout.takeAt(self.MAX_RECENTS).widget().deleteLater()
 
     @property
@@ -436,7 +455,7 @@ class CommandsView(QtGui.QWidget):
 
     action_clicked = QtCore.Signal(str)
 
-    def __init__(self, parent):
+    def __init__(self, parent, settings):
         super(CommandsView, self).__init__(parent)
         self.setObjectName("project_recent_commands_cache")
         self._layout = QtGui.QVBoxLayout(self)
@@ -460,6 +479,8 @@ class CommandsView(QtGui.QWidget):
         # retrieve it when updating recents
         self._recent_commands_cache = {}
 
+        self._settings = settings
+
     def _on_parent_resized(self):
         """
         Special slot hooked up to the event filter.
@@ -474,7 +495,7 @@ class CommandsView(QtGui.QWidget):
         self._load_recents()
 
     def clear(self):
-        self._recent_commands_cache = []
+        self._recent_commands_cache = {}
         self._recents = {}
         self._recents_widget = None
 
@@ -487,8 +508,12 @@ class CommandsView(QtGui.QWidget):
         print(command_name)
         self._recents[command_name] = {
             "timestamp": datetime.datetime.utcnow(),
+            # This is present for backwards compatibility with
+            # previous version of desktop. we do not actually use this
+            # value for this implementation.
             "added": False,
         }
+        self._store_recents()
         self._refresh_recent_list(command_name)
 
     def _refresh_recent_list(self, command_name):
@@ -569,7 +594,7 @@ class CommandsView(QtGui.QWidget):
         for name, details in self._recents.items():
             recents[name] = {"timestamp": details["timestamp"], "added": False}
         key = "project_recent_apps.%d" % self._current_project["id"]
-        self.parent()._save_setting(key, recents, site_specific=True)
+        self._settings.save(key, recents)
 
     def _load_recents(self):
         """
@@ -577,7 +602,8 @@ class CommandsView(QtGui.QWidget):
         for the format.
         """
         key = "project_recent_apps.%d" % self._current_project["id"]
-        self._recents = self.parent()._load_setting(key, None, True) or {}
+        self._recents = self._settings.load(key) or {}
+        print(self._recents)
 
 
 class ResizeEventFilter(QtCore.QObject):
@@ -603,25 +629,30 @@ if __name__ == "__main__":
     scrollarea = QtGui.QScrollArea()
     scrollarea.resize(427, 715)
 
-    CommandsView._load_recents = lambda self: None
-    CommandsView._store_recents = lambda self: None
-    RecentList.MAX_RECENTS = 3
-    view = CommandsView(scrollarea)
-    scrollarea.setWidget(view)
-    # view._recents = [
-    #     {
-    #         "nuke_studio_120": {
-    #             "timestamp": datetime.datetime.now(),
-    #             "added": True
-    #         },
-    #         "maya2019": {
-    #             "timestamp": datetime.datetime.now(),
-    #             "added": True
-    #         }
-    #     }
-    # ]
+    class ProjectCommandSettings(object):
+        def save(self, key, recents):
+            pass
 
-    view.set_project(None, ["Creative Tools", "Editorial Tools", "Automotive Tools"])
+        def load(self, key):
+            return {
+                "nuke_studio_120": {
+                    "timestamp": datetime.datetime(2008, 1, 1),
+                    "added": True,
+                },
+                "maya_2019": {
+                    "timestamp": datetime.datetime(2005, 1, 1),
+                    "added": True,
+                },
+            }
+
+    RecentList.MAX_RECENTS = 3
+    view = CommandsView(scrollarea, ProjectCommandSettings())
+    scrollarea.setWidget(view)
+
+    view.set_project(
+        {"type": "Project", "id": 61},
+        ["Creative Tools", "Editorial Tools", "Automotive Tools"],
+    )
 
     commands = [
         (
