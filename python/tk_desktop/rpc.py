@@ -72,15 +72,45 @@ else:
     from urllib import urlopen
     from Queue import Queue
 
-from sgtk import LogManager
 
-logger = LogManager.get_logger(__name__)
+class SafeLogger(object):
+    def __init__(self):
+        self.__logger = None
 
-# Only log debug messages if they are specifically requested.
-if "TK_DESKTOP_RPC_DEBUG" in os.environ:
-    logger.setLevel(logging.DEBUG)
-else:
-    logger.setLevel(logging.INFO)
+    def debug(self, *args, **kwargs):
+        if self._logger:
+            self._logger.debug(*args, **kwargs)
+
+    def warning(self, *args, **kwargs):
+        if self._logger:
+            self._logger.error(*args, **kwargs)
+
+    def error(self, *args, **kwargs):
+        if self._logger:
+            self._logger.error(*args, **kwargs)
+
+    def exception(self, *args, **kwargs):
+        if self._logger:
+            self._logger.exception(*args, **kwargs)
+
+    @property
+    def _logger(self):
+        if self.__logger is None:
+            try:
+                from sgtk import LogManager
+            except ImportError:
+                return None
+            else:
+                self.__logger = LogManager.get_logger(__name__)
+                # Only log debug messages if they are specifically requested.
+                if "TK_DESKTOP_RPC_DEBUG" in os.environ:
+                    self.__logger.setLevel(logging.DEBUG)
+                else:
+                    self.__logger.setLevel(logging.INFO)
+        return self.__logger
+
+
+logger = SafeLogger()
 
 
 class RPCServerThread(threading.Thread):
