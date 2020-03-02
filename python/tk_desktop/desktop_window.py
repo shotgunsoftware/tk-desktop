@@ -46,9 +46,11 @@ from .browser_integration_user_switch_dialog import BrowserIntegrationUserSwitch
 from .banner_widget import BannerWidget
 
 from .project_menu import ProjectMenu
-from .project_commands_model import ProjectCommandModel
-from .project_commands_model import ProjectCommandProxyModel
-from .project_commands_widget import ProjectCommandDelegate
+
+# from .project_commands_model import ProjectCommandModel
+# from .project_commands_model import ProjectCommandProxyModel
+# from .project_commands_widget import ProjectCommandDelegate
+from .prj_commands import CommandsView
 from . import rpc
 
 from .notifications import NotificationsManager, FirstLaunchNotification
@@ -142,18 +144,23 @@ class DesktopWindow(SystrayWindow):
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
+
+        self._project_commands = CommandsView(self)
+        self.ui.project_commands_area.setWidget(self._project_commands)
+        self.project_overlay = LoadingProjectWidget(self._project_commands)
+        self.install_apps_widget = NoAppsInstalledOverlay(self._project_commands)
+        self.setup_project_widget = SetupProject(self._project_commands)
+
         self._project_menu = ProjectMenu(self)
-        self.project_overlay = LoadingProjectWidget(self.ui.project_commands)
-        self.install_apps_widget = NoAppsInstalledOverlay(self.ui.project_commands)
-        self.setup_project_widget = SetupProject(self.ui.project_commands)
+        self.project_overlay = LoadingProjectWidget(self._project_commands)
+        self.install_apps_widget = NoAppsInstalledOverlay(self._project_commands)
+        self.setup_project_widget = SetupProject(self._project_commands)
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
-        self.update_project_config_widget = UpdateProjectConfig(
-            self.ui.project_commands
-        )
+        self.update_project_config_widget = UpdateProjectConfig(self._project_commands)
         self.update_project_config_widget.update_finished.connect(
             self._on_update_finished
         )
-        self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
+        self.setup_new_os_widget = SetupNewOS(self._project_commands)
 
         self._current_pipeline_descriptor = None
 
@@ -264,32 +271,32 @@ class DesktopWindow(SystrayWindow):
 
         # Initialize the model to track project commands
         self._project_command_count = 0
-        self._project_command_model = ProjectCommandModel(self)
-        self._project_command_proxy = ProjectCommandProxyModel(self)
-        self._project_command_proxy.setSourceModel(self._project_command_model)
-        self._project_command_proxy.sort(0)
-        self.ui.project_commands.setModel(self._project_command_proxy)
+        # self._project_command_model = ProjectCommandModel(self)
+        # self._project_command_proxy = ProjectCommandProxyModel(self)
+        # self._project_command_proxy.setSourceModel(self._project_command_model)
+        # self._project_command_proxy.sort(0)
+        # self._project_commands.setModel(self._project_command_proxy)
 
         # limit how many recent commands are shown
-        self._project_command_proxy.set_recents_limit(6)
+        # self._project_command_proxy.set_recents_limit(6)
 
-        self._project_command_delegate = ProjectCommandDelegate(
-            self.ui.project_commands
-        )
-        self.ui.project_commands.setItemDelegate(self._project_command_delegate)
-        self.ui.project_commands.expanded_changed.connect(
-            self.handle_project_command_expanded_changed
-        )
+        # self._project_command_delegate = ProjectCommandDelegate(
+        #     self._project_commands
+        # )
+        # self._project_commands.setItemDelegate(self._project_command_delegate)
+        # self._project_commands.expanded_changed.connect(
+        #     self.handle_project_command_expanded_changed
+        # )
 
         # fix for floating delegate bug
         # see discussion at https://stackoverflow.com/questions/15331256
-        self.ui.project_commands.verticalScrollBar().valueChanged.connect(
-            self.ui.project_commands.updateEditorGeometries
-        )
+        # self._project_commands.verticalScrollBar().valueChanged.connect(
+        #     self._project_commands.updateEditorGeometries
+        # )
 
-        self._project_command_model.command_triggered.connect(
-            engine._handle_button_command_triggered
-        )
+        # self._project_command_model.command_triggered.connect(
+        #     engine._handle_button_command_triggered
+        # )
 
         # load and initialize cached projects
         self._project_model = SgProjectModel(self, self.ui.projects)
@@ -664,9 +671,10 @@ class DesktopWindow(SystrayWindow):
                     self._restart_desktop()
 
     def handle_project_command_expanded_changed(self, group_key, expanded):
-        expanded_state = self._project_command_model.get_expanded_state()
-        key = "project_expanded_state.%d" % self.current_project["id"]
-        self._save_setting(key, expanded_state, site_specific=True)
+        pass
+        # expanded_state = self._project_command_model.get_expanded_state()
+        # key = "project_expanded_state.%d" % self.current_project["id"]
+        # self._save_setting(key, expanded_state, site_specific=True)
 
     def handle_project_thumbnail_updated(self, item):
         project = item.data(ShotgunModel.SG_DATA_ROLE)
@@ -1001,7 +1009,7 @@ class DesktopWindow(SystrayWindow):
     ########################################################################################
     # project view
     def get_app_widget(self, namespace=None):
-        return self.ui.project_commands
+        return self._project_commands
 
     def add_to_project_menu(self, action):
         self._project_menu.add(action)
@@ -1030,10 +1038,10 @@ class DesktopWindow(SystrayWindow):
         :param bool is_menu_default: If this command is a menu item, indicate whether it should
                                      also be run by the command button.
         """
-        self._project_command_model.add_command(
+        self._project_commands.add_command(
             name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
         )
-        self._project_command_proxy.invalidate()
+        # self._project_command_proxy.invalidate()
         self._project_command_count += 1
 
     def _handle_project_data_changed(self):
@@ -1084,18 +1092,18 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
     def set_groups(self, groups, show_recents=True):
-        self._project_command_model.set_project(
+        self._project_commands.set_project(
             self.current_project, groups, show_recents=show_recents
         )
         self.project_overlay.hide()
 
         key = "project_expanded_state.%d" % self.current_project["id"]
         expanded_state = self._load_setting(key, {}, True)
-        self._project_command_model.set_expanded_state(expanded_state)
+        # self._project_commands.set_expanded_state(expanded_state)
 
     def clear_app_uis(self):
         # empty the project commands
-        self._project_command_model.clear()
+        self._project_commands.clear()
 
         # hide the pipeline configuration bar
         self.ui.configuration_frame.hide()
