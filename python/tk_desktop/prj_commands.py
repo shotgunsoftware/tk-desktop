@@ -1,7 +1,11 @@
+from __future__ import print_function
+
 if __name__ == "__main__":
     import sys
+    import datetime
 
     sys.path.insert(0, "/Users/boismej/gitlocal/tk-core/python")
+    sys.path.insert(0, "..")
 
     from sgtk.util.qt_importer import QtImporter
 
@@ -292,7 +296,9 @@ class RecentButton(QtGui.QPushButton):
     SPACING = 5
     SIZER_LABEL = None
 
-    def __init__(self, parent, command_name, button_name, icon, tooltip):
+    action_clicked = QtCore.Signal(str)
+
+    def __init__(self, parent, command_name, button_name, icon, tooltip, timestamp):
         super(RecentButton, self).__init__(parent)
 
         self.setFlat(True)
@@ -303,6 +309,8 @@ class RecentButton(QtGui.QPushButton):
         layout.setContentsMargins(
             self.SPACING, self.SPACING, self.SPACING, self.SPACING
         )
+
+        self._timestamp = timestamp
 
         self.icon_label = QtGui.QLabel(self)
         self.icon_label.setAlignment(QtCore.Qt.AlignHCenter)
@@ -322,9 +330,23 @@ class RecentButton(QtGui.QPushButton):
         else:
             self.icon_label.setPixmap(QtGui.QIcon(icon).pixmap(self.ICON_SIZE))
 
+        self._command_name = command_name
+
+        self.clicked.connect(
+            lambda checked: self.action_clicked.emit(self._command_name)
+        )
+
     @property
     def name(self):
-        return self.text()
+        return six.ensure_str(self.text())
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @property
+    def command_name(self):
+        return self._command_name
 
     @classmethod
     def size_for_text(cls, text):
@@ -348,7 +370,6 @@ class RecentButton(QtGui.QPushButton):
         # get the text size from the sizer label
         text = self.text_label.text()
         full_size = self.size_for_text(text)
-        print(full_size)
 
         # see if the model has a limit on recents
         # limiting the number of recents, each one gets equal spacing
@@ -363,6 +384,9 @@ class RecentButton(QtGui.QPushButton):
 
 
 class CommandButton(QtGui.QToolButton):
+
+    action_clicked = QtCore.Signal(str)
+
     def __init__(self, parent, command_name, button_name, icon, tooltip):
         super(CommandButton, self).__init__(parent)
         self.setSizePolicy(
@@ -375,6 +399,9 @@ class CommandButton(QtGui.QToolButton):
 
         self.setText(" %s" % button_name)
         self._set_default(command_name, tooltip, icon)
+        self.clicked.connect(
+            lambda checked: self.action_clicked.emit(self._default_command_name)
+        )
 
         self._menu = SortedMenu(self)
         self._is_menu_empty = True
@@ -404,6 +431,7 @@ class CommandButton(QtGui.QToolButton):
 
         action = self._menu.addAction(menu_name)
         action.setToolTip(tooltip)
+        action.triggered.connect(lambda action: self.action_clicked.emit(command_name))
 
         if self._is_menu_empty:
             self._is_menu_empty = False
@@ -417,22 +445,45 @@ class CommandButton(QtGui.QToolButton):
 
 
 class RecentList(QtGui.QWidget):
+
+    action_clicked = QtCore.Signal(str)
+    MAX_RECENTS = 6
+
     def __init__(self, parent):
         super(RecentList, self).__init__(parent)
         self._layout = QtGui.QHBoxLayout(self)
         self.setLayout(self._layout)
         self._layout.addStretch(1)
 
-    def add_command(self, command_name, button_name, icon, tooltip):
-        _find_or_insert_in_layout(
-            self._layout,
-            range(self._layout.count() - 1),
-            button_name,
-            lambda: RecentButton(self, command_name, button_name, icon, tooltip),
-        )
+    def add_command(self, command_name, button_name, icon, tooltip, timestamp):
+        for insert_pos, button in enumerate(self._buttons):
+            # This button already exist. Make it the first button!
+            if button.command_name == command_name:
+                self._layout.removeWidget(button)
+                self._layout.insertWidget(0, button)
+                return
+            elif timestamp < button.timestamp:
+                break
+        else:
+            insert_pos = 0
+
+        button = RecentButton(self, command_name, button_name, icon, tooltip, timestamp)
+        button.action_clicked.connect(self.action_clicked)
+        self._layout.insertWidget(insert_pos, button)
+
+        if self._layout.count() > self.MAX_RECENTS + 1:
+            self._layout.takeAt(self.MAX_RECENTS).widget().deleteLater()
+
+    @property
+    def _buttons(self):
+        for i in range(self._layout.count() - 1):
+            yield self._layout.itemAt(i).widget()
 
 
 class CommandList(QtGui.QWidget):
+
+    action_clicked = QtCore.Signal(str)
+
     def __init__(self, parent):
         super(CommandList, self).__init__(parent)
 
@@ -454,6 +505,7 @@ class CommandList(QtGui.QWidget):
             self._buttons[button_name] = CommandButton(
                 self, command_name, button_name, icon, tooltip
             )
+            self._buttons[button_name].action_clicked.connect(self.action_clicked)
 
             for idx, name in enumerate(sorted(self._buttons)):
                 column = idx % 2
@@ -472,6 +524,9 @@ class CommandList(QtGui.QWidget):
 
 
 class Section(QtGui.QWidget):
+
+    action_clicked = QtCore.Signal(str)
+
     def __init__(self, name, WidgetListFactory):
         super(Section, self).__init__(parent=None)
 
@@ -501,6 +556,8 @@ class Section(QtGui.QWidget):
         margins.setBottom(0)
         self._layout.setContentsMargins(margins)
 
+        self._list.action_clicked.connect(self.action_clicked)
+
     @property
     def name(self):
         return self._name
@@ -518,8 +575,8 @@ class RecentSection(Section):
     def __init__(self, name):
         super(RecentSection, self).__init__(name, RecentList)
 
-    def add_command(self, command_name, button_name, icon, tooltip):
-        self._list.add_command(command_name, button_name, icon, tooltip)
+    def add_command(self, command_name, button_name, icon, tooltip, timestamp):
+        self._list.add_command(command_name, button_name, icon, tooltip, timestamp)
 
 
 class CommandSection(Section):
@@ -555,21 +612,32 @@ def _find_or_insert_in_layout(layout, interval, name, factory, first=0):
 
 
 class CommandsView(QtGui.QWidget):
+
+    action_clicked = QtCore.Signal(str)
+
     def __init__(self, parent):
         super(CommandsView, self).__init__(parent)
-        self.setObjectName("project_commands")
+        self.setObjectName("project_recent_commands_cache")
         self._layout = QtGui.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self._layout)
         self._layout.addStretch(1)
-        self._recents = None
+        self._recents_widget = None
+        self._recents = {}
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
+        self._show_recents = False
 
         if parent:
             filter = ResizeEventFilter(parent)
             filter.resized.connect(self._on_parent_resized)
             parent.installEventFilter(filter)
+
+        self.action_clicked.connect(self._update_recents_list)
+
+        # Caches the information about all commands so we can
+        # retrieve it when updating recents
+        self._recent_commands_cache = {}
 
     def _on_parent_resized(self):
         """
@@ -582,15 +650,43 @@ class CommandsView(QtGui.QWidget):
     def set_project(self, current_project, groups, show_recents=True):
         self._current_project = current_project
         self._show_recents = show_recents
-        # if show_recents:
-        #     self._groups["Recent"] = CommandSection("Recent")
+        self._load_recents()
 
     def clear(self):
+        self._recent_commands_cache = []
+        self._recents = {}
+        self._recents_widget = None
 
         while self.layout().count() > 0:
             item = self.layout().takeAt(0)
             if item.widget():
                 item.widget().deleteLater()
+
+    def _update_recents_list(self, command_name):
+        print(command_name)
+        self._recents[command_name] = {
+            "timestamp": datetime.datetime.utcnow(),
+            "added": False,
+        }
+        self._refresh_recent_list(command_name)
+
+    def _refresh_recent_list(self, command_name):
+        # if action in recent list.
+        if self._recents_widget is None:
+            self._recents_widget = RecentSection("Recent")
+            self._recents_widget.action_clicked.connect(self.action_clicked)
+            self._layout.insertWidget(0, self._recents_widget)
+
+        timestamp = self._recents[command_name]["timestamp"]
+        command = self._recent_commands_cache[command_name]
+
+        self._recents_widget.add_command(
+            command_name,
+            command["menu_name"],
+            command["icon"],
+            command["tooltip"],
+            timestamp,
+        )
 
     def add_command(
         self,
@@ -602,32 +698,65 @@ class CommandsView(QtGui.QWidget):
         groups,
         is_menu_default=False,
     ):
-
-        # if action in recent list.
-        if False:
-            if self._recents is None:
-                self._recents = RecentSection("Recent")
-                self._layout.insertWidget(0, self._recents)
-            self._recents.add_command(command_name, menu_name, icon, tooltip)
-
         for group_name in groups:
             # Search for the requested group.
             current_group = _find_or_insert_in_layout(
                 self._layout,
                 self._section_range(),
                 group_name,
-                lambda: CommandSection(group_name),
-                first=1 if self._recents else 0,
+                lambda: self._command_section_factory(group_name),
+                first=1 if self._recents_widget else 0,
             )
             current_group.add_command(
                 command_name, button_name, menu_name, icon, tooltip, is_menu_default
             )
+            # Caches information about the command so that if it is a recent
+            self._recent_commands_cache[command_name] = {
+                "menu_name": menu_name,
+                "icon": icon,
+                "tooltip": tooltip,
+            }
+
+        if self._show_recents and command_name in self._recents:
+            self._refresh_recent_list(command_name)
+
+    def _command_section_factory(self, group_name):
+        section = CommandSection(group_name)
+        section.action_clicked.connect(self.action_clicked)
+        return section
 
     def _section_range(self):
-        if self._recents:
+        if self._recents_widget:
             return range(1, self._layout.count() - 1)
         else:
             return range(self._layout.count() - 1)
+
+    def _store_recents(self):
+        """
+        Stores a list of recently launched apps in the user settings. Resets the "added" key so
+        when the settings are loaded again, each item will be added to the list. They are stored as
+        a dictionary in the following format::
+
+            self._recents = {
+                'launch_nuke': {
+                    'timestamp': datetime.datetime(2016, 5, 20, 21, 48, 17, 495234),
+                    'added': False},
+                ...
+            }
+        """
+        recents = {}
+        for name, details in self._recents.items():
+            recents[name] = {"timestamp": details["timestamp"], "added": False}
+        key = "project_recent_apps.%d" % self._current_project["id"]
+        self.parent()._save_setting(key, recents, site_specific=True)
+
+    def _load_recents(self):
+        """
+        Loads recently launched apps from the user settings and returns them in a dict. See above
+        for the format.
+        """
+        key = "project_recent_apps.%d" % self._current_project["id"]
+        self._recents = self.parent()._load_setting(key, None, True) or {}
 
 
 class ResizeEventFilter(QtCore.QObject):
@@ -652,8 +781,24 @@ if __name__ == "__main__":
 
     scrollarea = QtGui.QScrollArea()
     scrollarea.resize(427, 715)
+
+    CommandsView._load_recents = lambda self: None
+    CommandsView._store_recents = lambda self: None
+    RecentList.MAX_RECENTS = 3
     view = CommandsView(scrollarea)
     scrollarea.setWidget(view)
+    # view._recents = [
+    #     {
+    #         "nuke_studio_120": {
+    #             "timestamp": datetime.datetime.now(),
+    #             "added": True
+    #         },
+    #         "maya2019": {
+    #             "timestamp": datetime.datetime.now(),
+    #             "added": True
+    #         }
+    #     }
+    # ]
 
     view.set_project(None, ["Creative Tools", "Editorial Tools", "Automotive Tools"])
 
@@ -668,7 +813,7 @@ if __name__ == "__main__":
             True,
         ),
         (
-            "nuke_studio_120",
+            "nuke_studio_125",
             "NukeX",
             "NukeX 12.5",
             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
@@ -677,7 +822,7 @@ if __name__ == "__main__":
             True,
         ),
         (
-            "nuke_studio_120",
+            "nuke_x_120",
             "NukeX",
             "NukeX 12.0",
             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
@@ -686,7 +831,7 @@ if __name__ == "__main__":
             False,
         ),
         (
-            "nuke_studio_120",
+            "nuke_assist_120",
             "Nuke Assist",
             "Nuke Assist 12.0",
             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
@@ -721,8 +866,12 @@ if __name__ == "__main__":
             view.add_command(*command)
             if commands:
                 QtCore.QTimer.singleShot(500, add_button)
+            else:
+                import subprocess
 
-        QtCore.QTimer.singleShot(1000, add_button)
+                # subprocess.Popen(["python", "-c", "from PySide2 import QtWidgets; QtWidgets.QApplication([]).exec_()"])
+
+        QtCore.QTimer.singleShot(3000, add_button)
     else:
         for cmd in commands:
             view.add_command(*cmd)

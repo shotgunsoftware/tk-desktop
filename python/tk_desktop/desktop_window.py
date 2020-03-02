@@ -278,7 +278,7 @@ class DesktopWindow(SystrayWindow):
         # self._project_commands.setModel(self._project_command_proxy)
 
         # limit how many recent commands are shown
-        # self._project_command_proxy.set_recents_limit(6)
+        self._project_commands.set_recents_limit(6)
 
         # self._project_command_delegate = ProjectCommandDelegate(
         #     self._project_commands
@@ -526,6 +526,14 @@ class DesktopWindow(SystrayWindow):
                 win32api.SetDllDirectory(self._previous_dll_directory)
             except StandardError:
                 log.warning("Could not restore DllDirectory under Windows.")
+
+    # def event(self, event):
+    #     if event.type() == QtCore.QEvent.WindowActivate:
+    #         event = QtCore.QEvent(QtCore.QEvent.Leave)
+    #         QtGui.QApplication.instance().postEvent(self, event)
+    #         event = QtCore.QEvent(QtCore.QEvent.Enter)
+    #         QtGui.QApplication.instance().postEvent(self, event)
+    #     return super(DesktopWindow, self).event(event)
 
     def register_tab(self, tab_name, tab_widget):
         """
