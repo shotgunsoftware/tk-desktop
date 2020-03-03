@@ -289,26 +289,23 @@ class RecentList(QtGui.QWidget):
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
         buttons = list(self.buttons)
 
-        # If we do not have any buttons, simply insert at the beginning.
-        if not buttons:
-            insert_pos = 0
+        # If we do have something, search for where to insert the
+        # button.
+        for idx, button in enumerate(buttons):
+            # This button already exist. Make it the first button!
+            if button.command_name == command_name:
+                self._layout.removeWidget(button)
+                self._layout.insertWidget(0, button)
+                return
+            # The timestamp of this command is earlier that the current
+            # button, so we'll insert here.
+            elif timestamp >= button.timestamp:
+                insert_pos = idx
+                break
         else:
-            # If we do have something, search for where to insert the
-            # button.
-            for insert_pos, button in enumerate(buttons):
-                # This button already exist. Make it the first button!
-                if button.command_name == command_name:
-                    self._layout.removeWidget(button)
-                    self._layout.insertWidget(0, button)
-                    return
-                # The timestamp of this command is earlier that the current
-                # button, so we'll insert here.
-                elif timestamp >= button.timestamp:
-                    break
-            else:
-                # We haven't found anything, so we'll insert one past the
-                # last button in the UI.
-                insert_pos += 1
+            # We haven't found anything, so we'll insert one past the
+            # last button in the UI.
+            insert_pos = len(buttons)
 
         if insert_pos >= self.MAX_RECENTS:
             return
@@ -421,6 +418,10 @@ class Section(QtGui.QWidget):
         # size is the parent width and height fixed to the margins
         return QtCore.QSize(self.parent().width(), 50)
 
+    @property
+    def buttons(self):
+        return self._list.buttons
+
 
 class RecentSection(Section):
     def __init__(self, name):
@@ -440,10 +441,6 @@ class CommandSection(Section):
         self._list.add_command(
             command_name, button_name, menu_name, icon, tooltip, is_menu_default
         )
-
-    @property
-    def buttons(self):
-        return self._list.buttons
 
 
 class CommandsView(QtGui.QWidget):
@@ -477,6 +474,10 @@ class CommandsView(QtGui.QWidget):
 
         self._settings = settings
 
+    @property
+    def recents(self):
+        return self._recents_widget
+
     def _on_parent_resized(self):
         """
         Special slot hooked up to the event filter.
@@ -492,10 +493,6 @@ class CommandsView(QtGui.QWidget):
         self._load_recents()
 
     def clear(self):
-        self._recent_commands_cache = {}
-        self._recents = {}
-        self._recents_widget = None
-
         if self._recents_widget:
             self.layout().removeWidget(self._recents_widget)
             self._recents_widget.deleteLater()
@@ -510,6 +507,9 @@ class CommandsView(QtGui.QWidget):
 
         # There should be only one item left, the stretcher.
         assert self.layout().count() == 1
+
+        self._recent_commands_cache = {}
+        self._recents = {}
 
     def _update_recents_list(self, command_name):
         self._recents[command_name] = {

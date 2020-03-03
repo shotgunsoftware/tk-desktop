@@ -28,7 +28,10 @@ else:
     sgtk.platform.qt.QtCore = QtCore
 
 
-from prj_commands import CommandsView
+from prj_commands import CommandsView, RecentList
+
+PROJECT = {"type": "Project", "id": 3}
+PROJECT_KEY = "project_recent_apps.3"
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -39,7 +42,7 @@ def qapplication():
 @pytest.fixture
 def simple_test_view():
     view = CommandsView(None, Settings())
-    view.set_project({"type": "Project", "id": 3}, ["Creative Tools", "Editorial"])
+    view.set_project(PROJECT, ["Creative Tools", "Editorial"])
     return view
 
 
@@ -77,14 +80,10 @@ def test_sections_sorted(show_recents, commands):
     view = CommandsView(
         None,
         Settings(
-            {
-                "project_recent_apps.3": {
-                    "command 0": {"timestamp": datetime.datetime.utcnow()}
-                }
-            }
+            {PROJECT_KEY: {"command 0": {"timestamp": datetime.datetime.utcnow()}}}
         ),
     )
-    view.set_project({"type": "Project", "id": 3}, groups, show_recents=show_recents)
+    view.set_project(PROJECT, groups, show_recents=show_recents)
 
     for idx, (name, group) in enumerate(commands):
         view.add_command("command %s" % idx, name, name, "", "", [group])
@@ -113,10 +112,17 @@ def test_sections_are_reused(simple_test_view):
     ]
 
 
-def test_clear_deletes_all_but_stretcher(simple_test_view):
+def test_clear_deletes_all_but_stretcher():
     """
     Ensure clearing removes all widget except for the stretcher
     """
+    view = CommandsView(
+        None,
+        Settings(
+            {PROJECT_KEY: {"maya_2020": {"timestamp": datetime.datetime.utcnow()}}}
+        ),
+    )
+    view.set_project(PROJECT, ["Creative Tools", "Editorial"], show_recents=True)
     commands = [
         ("Maya 2020", "Creative Tools"),
         ("3ds Max 2019", "Creative Tools"),
@@ -125,11 +131,17 @@ def test_clear_deletes_all_but_stretcher(simple_test_view):
         ("3ds Max 2020", "Creative Tools"),
     ]
     for idx, (name, group) in enumerate(commands):
-        simple_test_view.add_command("command %s" % idx, name, name, "", "", [group])
-    simple_test_view.clear()
+        view.add_command(_name_to_command(name), name, name, "", "", [group])
+    assert len(list(view.sections)) == 2
+    assert view.recents is not None
+
+    view.clear()
     # Ensure only one item is left and it's the stretcher, not a widget.
-    assert simple_test_view.layout().count() == 1
-    assert simple_test_view.layout().itemAt(0).widget() is None
+    assert view.layout().count() == 1
+    assert view.layout().itemAt(0).widget() is None
+
+    assert len(list(view.sections)) == 0
+    assert view.recents is None
 
 
 def test_unknown_sections_are_detected(simple_test_view):
@@ -212,6 +224,47 @@ def test_command_actions_get_triggered(
     mock.assert_called_with(expected_signal)
 
 
+@pytest.mark.parametrize(
+    "recents",
+    itertools.permutations(
+        [
+            # This will mix the maya entries based on their date time.
+            # Having the year of the last launch not match the
+            # version also means we're not likely to be sorting by
+            # menu name by mistake.
+            ("Maya 2017", datetime.datetime(2020, 1, 1)),
+            ("Maya 2018", datetime.datetime(2016, 1, 1)),
+            ("Maya 2019", datetime.datetime(2012, 1, 1)),
+            ("Maya 2020", datetime.datetime(2017, 1, 1)),
+        ]
+    ),
+)
+def test_recent_sorted_properly(recents, monkeypatch):
+    commands = [recent[0] for recent in recents]
+    settings = Settings(
+        {
+            PROJECT_KEY: {
+                _name_to_command(recent[0]): {"timestamp": recent[1]}
+                for recent in recents
+            }
+        }
+    )
+    monkeypatch.setattr(RecentList, "MAX_RECENTS", 3)
+    view = CommandsView(None, settings)
+    view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
+    _register_commands(view, commands)
+    assert [button.name for button in view.recents.buttons] == [
+        "Maya 2017",
+        "Maya 2020",
+        "Maya 2018",
+    ]
+
+
+def _name_to_command(name):
+    # e.g. turns "NukeX 12.5" into "nukex_125"
+    return name.lower().replace(" ", "_").replace(".", "")
+
+
 def _register_commands(view, names):
     """
     Adds a bunch of commands to the view.
@@ -225,13 +278,12 @@ def _register_commands(view, names):
             is_menu_default = True
         else:
             is_menu_default = False
-        print(name, is_menu_default)
-        # Turns "NukeX 12.5" into "nukex_125"
-        command_name = name.lower().replace(" ", "_").replace(".", "")
+
+        command_name = _name_to_command(name)
+
+        # e.g. extracts "Nuke Studio" out of "Nuke Studio 10.2"
         button_name = name.rsplit(" ", 1)[0]
 
-        # Keep everything but the version.
-        button_name = name.rsplit(" ", 1)[0]
         # Add each button.
         view.add_command(
             command_name,
