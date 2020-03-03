@@ -147,9 +147,7 @@ class RecentButton(QtGui.QPushButton):
         self._command_name = command_name
 
         self.clicked.connect(
-            lambda checked: self.command_triggered.emit(
-                six.ensure_str(self._command_name)
-            )
+            lambda: self.command_triggered.emit(six.ensure_str(self._command_name))
         )
 
     @property
@@ -216,7 +214,7 @@ class CommandButton(QtGui.QToolButton):
         self.setText(" %s" % button_name)
         self._set_default(command_name, tooltip, icon)
         self.clicked.connect(
-            lambda checked: self.command_triggered.emit(
+            lambda: self.command_triggered.emit(
                 six.ensure_str(self._default_command_name)
             )
         )

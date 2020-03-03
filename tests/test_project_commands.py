@@ -18,9 +18,16 @@ from mock import Mock
 # Patch sgtk to se can use Qt in the tests.
 import sgtk
 
-importer = sgtk.util.qt_importer.QtImporter()
-sgtk.platform.qt.QtGui = importer.QtGui
-sgtk.platform.qt.QtCore = importer.QtCore
+if True:
+    importer = sgtk.util.qt_importer.QtImporter()
+    sgtk.platform.qt.QtGui = importer.QtGui
+    sgtk.platform.qt.QtCore = importer.QtCore
+else:
+    from PySide import QtGui, QtCore
+
+    sgtk.platform.qt.QtGui = QtGui
+    sgtk.platform.qt.QtCore = QtCore
+
 
 from prj_commands import CommandsView
 
@@ -188,7 +195,9 @@ def test_versions_sorted_in_menu(simple_test_view, commands):
     "action,expected_signal",
     [("button", "maya_2019"), ("0", "maya_2018"), ("1", "maya_2019")],
 )
-def test_command_actions_get_triggered(simple_test_view, action, expected_signal):
+def test_command_actions_get_triggered(
+    simple_test_view, action, expected_signal, qapplication
+):
     commands = ["Maya 2018", "Maya 2019*"]
     _register_commands(simple_test_view, commands)
 
@@ -201,6 +210,7 @@ def test_command_actions_get_triggered(simple_test_view, action, expected_signal
     else:
         button.menu().actions()[int(action)].trigger()
 
+    qapplication.processEvents()
     mock.assert_called_with(expected_signal)
 
 
