@@ -156,6 +156,9 @@ class DesktopWindow(SystrayWindow):
                 return self._dlg._load_setting(key, None, True) or {}
 
         self._project_commands = CommandsView(self, ProjectCommandSettings(self))
+        self._project_commands.command_triggered.connect(
+            engine._handle_button_command_triggered
+        )
         self.ui.project_commands_area.setWidget(self._project_commands)
         self.project_overlay = LoadingProjectWidget(self._project_commands)
         self.install_apps_widget = NoAppsInstalledOverlay(self._project_commands)

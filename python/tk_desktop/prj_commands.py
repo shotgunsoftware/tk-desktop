@@ -113,7 +113,7 @@ class RecentButton(QtGui.QPushButton):
     SPACING = 5
     SIZER_LABEL = None
 
-    action_clicked = QtCore.Signal(str)
+    command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent, command_name, button_name, icon, tooltip, timestamp):
         super(RecentButton, self).__init__(parent)
@@ -150,7 +150,7 @@ class RecentButton(QtGui.QPushButton):
         self._command_name = command_name
 
         self.clicked.connect(
-            lambda checked: self.action_clicked.emit(self._command_name)
+            lambda checked: self.command_triggered.emit(self._command_name)
         )
 
     @property
@@ -202,7 +202,7 @@ class RecentButton(QtGui.QPushButton):
 
 class CommandButton(QtGui.QToolButton):
 
-    action_clicked = QtCore.Signal(str)
+    command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent, command_name, button_name, icon, tooltip):
         super(CommandButton, self).__init__(parent)
@@ -217,7 +217,7 @@ class CommandButton(QtGui.QToolButton):
         self.setText(" %s" % button_name)
         self._set_default(command_name, tooltip, icon)
         self.clicked.connect(
-            lambda checked: self.action_clicked.emit(self._default_command_name)
+            lambda checked: self.command_triggered.emit(self._default_command_name)
         )
 
         self._menu = SortedMenu(self)
@@ -248,7 +248,9 @@ class CommandButton(QtGui.QToolButton):
 
         action = self._menu.addAction(menu_name)
         action.setToolTip(tooltip)
-        action.triggered.connect(lambda action: self.action_clicked.emit(command_name))
+        action.triggered.connect(
+            lambda action: self.command_triggered.emit(command_name)
+        )
 
         if self._is_menu_empty:
             self._is_menu_empty = False
@@ -263,7 +265,7 @@ class CommandButton(QtGui.QToolButton):
 
 class RecentList(QtGui.QWidget):
 
-    action_clicked = QtCore.Signal(str)
+    command_triggered = QtCore.Signal(str)
     MAX_RECENTS = 6
 
     def __init__(self, parent):
@@ -273,9 +275,6 @@ class RecentList(QtGui.QWidget):
         self._layout.addStretch(1)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
-
-        print("recent", command_name, button_name, icon, tooltip, timestamp)
-
         buttons = list(self.buttons)
 
         # If we do not have any buttons, simply insert at the beginning.
@@ -303,7 +302,7 @@ class RecentList(QtGui.QWidget):
             return
 
         button = RecentButton(self, command_name, button_name, icon, tooltip, timestamp)
-        button.action_clicked.connect(self.action_clicked)
+        button.command_triggered.connect(self.command_triggered)
         self._layout.insertWidget(insert_pos, button)
 
         if (self._layout.count() - 1) > self.MAX_RECENTS:
@@ -317,7 +316,7 @@ class RecentList(QtGui.QWidget):
 
 class CommandList(QtGui.QWidget):
 
-    action_clicked = QtCore.Signal(str)
+    command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent):
         super(CommandList, self).__init__(parent)
@@ -340,7 +339,7 @@ class CommandList(QtGui.QWidget):
             self._buttons[button_name] = CommandButton(
                 self, command_name, button_name, icon, tooltip
             )
-            self._buttons[button_name].action_clicked.connect(self.action_clicked)
+            self._buttons[button_name].command_triggered.connect(self.command_triggered)
 
             for idx, name in enumerate(sorted(self._buttons)):
                 column = idx % 2
@@ -365,7 +364,7 @@ class CommandList(QtGui.QWidget):
 
 class Section(QtGui.QWidget):
 
-    action_clicked = QtCore.Signal(str)
+    command_triggered = QtCore.Signal(str)
 
     def __init__(self, name, WidgetListFactory):
         super(Section, self).__init__(parent=None)
@@ -396,7 +395,7 @@ class Section(QtGui.QWidget):
         margins.setBottom(0)
         self._layout.setContentsMargins(margins)
 
-        self._list.action_clicked.connect(self.action_clicked)
+        self._list.command_triggered.connect(self.command_triggered)
 
     @property
     def name(self):
@@ -431,29 +430,9 @@ class CommandSection(Section):
         )
 
 
-def _find_or_insert_in_layout(layout, interval, name, factory, first=0):
-    interval = list(interval)
-    for i in interval:
-        # We haven't reached the group yet!
-        current_group = layout.itemAt(i).widget()
-        if current_group.name < name:
-            # keep searching
-            continue
-        elif current_group.name > name:
-            # We just passed by the widget!
-            current_group = factory()
-            layout.insertWidget(i, current_group, alignment=QtCore.Qt.AlignTop)
-        break
-    else:
-        current_group = factory()
-        layout.insertWidget(first, current_group, alignment=QtCore.Qt.AlignTop)
-
-    return current_group
-
-
 class CommandsView(QtGui.QWidget):
 
-    action_clicked = QtCore.Signal(str)
+    command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent, settings):
         super(CommandsView, self).__init__(parent)
@@ -473,7 +452,7 @@ class CommandsView(QtGui.QWidget):
             filter.resized.connect(self._on_parent_resized)
             parent.installEventFilter(filter)
 
-        self.action_clicked.connect(self._update_recents_list)
+        self.command_triggered.connect(self._update_recents_list)
 
         # Caches the information about all commands so we can
         # retrieve it when updating recents
@@ -492,6 +471,7 @@ class CommandsView(QtGui.QWidget):
     def set_project(self, current_project, groups, show_recents=True):
         self._current_project = current_project
         self._show_recents = show_recents
+        self._groups = groups
         self._load_recents()
 
     def clear(self):
@@ -505,7 +485,6 @@ class CommandsView(QtGui.QWidget):
                 item.widget().deleteLater()
 
     def _update_recents_list(self, command_name):
-        print(command_name)
         self._recents[command_name] = {
             "timestamp": datetime.datetime.utcnow(),
             # This is present for backwards compatibility with
@@ -520,7 +499,7 @@ class CommandsView(QtGui.QWidget):
         # if action in recent list.
         if self._recents_widget is None:
             self._recents_widget = RecentSection("Recent")
-            self._recents_widget.action_clicked.connect(self.action_clicked)
+            self._recents_widget.command_triggered.connect(self.command_triggered)
             self._layout.insertWidget(0, self._recents_widget)
 
         timestamp = self._recents[command_name]["timestamp"]
@@ -546,13 +525,7 @@ class CommandsView(QtGui.QWidget):
     ):
         for group_name in groups:
             # Search for the requested group.
-            current_group = _find_or_insert_in_layout(
-                self._layout,
-                self._section_range(),
-                group_name,
-                lambda: self._command_section_factory(group_name),
-                first=1 if self._recents_widget else 0,
-            )
+            current_group = self._find_or_insert_section(group_name)
             current_group.add_command(
                 command_name, button_name, menu_name, icon, tooltip, is_menu_default
             )
@@ -562,20 +535,76 @@ class CommandsView(QtGui.QWidget):
                 "icon": icon,
                 "tooltip": tooltip,
             }
-
+        print(command_name, self._recents)
         if self._show_recents and command_name in self._recents:
             self._refresh_recent_list(command_name)
 
-    def _command_section_factory(self, group_name):
-        section = CommandSection(group_name)
-        section.action_clicked.connect(self.action_clicked)
-        return section
+    @property
+    def recents_visible(self):
+        return bool(self._recents_widget)
 
-    def _section_range(self):
+    @property
+    def sections(self):
         if self._recents_widget:
-            return range(1, self._layout.count() - 1)
+            first_section = 1
         else:
-            return range(self._layout.count() - 1)
+            first_section = 0
+
+        for i in range(first_section, self._layout.count() - 1):
+            yield self._layout.itemAt(i).widget()
+
+    def _find_or_insert_section(self, group_name):
+        if group_name not in self._groups:
+            raise RuntimeError(
+                "Unknown group %s. Expecting one of %s" % (group_name, self._groups)
+            )
+        # Due to visual glitches in PySide1, we're inserting sections as we need them
+        # instead of creating them all hidden up front.
+
+        # Skip over the recent widgets.
+        if self._recents_widget:
+            first_group_index = 1
+        else:
+            first_group_index = 0
+
+        # First, generate a collection of sections and their indices
+        name_to_pos = {section.name: idx for idx, section in enumerate(self.sections)}
+
+        # If the section already exists.
+        if group_name in name_to_pos:
+            return self._layout.itemAt(first_group_index + name_to_pos[group_name])
+
+        # The section does not exist!
+
+        # Let's the following groups are configured: A, B, C and D.
+        # We currently have groups C and D and we now want to insert B.
+        # Since we'll be using insertWidget, which inserts a widget right
+        # before another, we'll look for the first that we know that comes
+        # after B.
+
+        # Find the groups after the one we're searching for (B in the above example).
+        idx = self._groups.index(group_name)
+        groups_after = self._groups[idx + 1 :]
+
+        # Loop over the remaining groups (C and D in the above example)
+        for group_after in groups_after:
+            # If that group exists, we've found where we'll insert the group!
+            if group_after in name_to_pos:
+                insert_position = name_to_pos[group_after]
+                break
+        else:
+            # We haven't found any of the groups that come after the one
+            # we want to insert, which means we'll have to insert right before
+            # the stretch item.
+            insert_position = len(name_to_pos)
+
+        new_group = CommandSection(group_name)
+        new_group.command_triggered.connect(self.command_triggered)
+        self._layout.insertWidget(
+            insert_position + first_group_index, new_group, alignment=QtCore.Qt.AlignTop
+        )
+
+        return new_group
 
     def _store_recents(self):
         """
@@ -603,7 +632,6 @@ class CommandsView(QtGui.QWidget):
         """
         key = "project_recent_apps.%d" % self._current_project["id"]
         self._recents = self._settings.load(key) or {}
-        print(self._recents)
 
 
 class ResizeEventFilter(QtCore.QObject):
