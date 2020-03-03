@@ -13,6 +13,7 @@ import six
 import pytest
 import itertools
 import datetime
+from mock import Mock
 
 # Patch sgtk to se can use Qt in the tests.
 import sgtk
@@ -171,6 +172,38 @@ def test_button_reuse_in_section(simple_test_view):
     assert [button.name for button in section.buttons] == ["Maya", "Nuke", "NukeAssist"]
 
 
+@pytest.mark.parametrize(
+    "commands", itertools.permutations(["Maya 2017", "Maya 2018*", "Maya 2019",])
+)
+def test_versions_sorted_in_menu(simple_test_view, commands):
+    _register_commands(simple_test_view, commands)
+    maya_button = list(list(simple_test_view.sections)[0].buttons)[0]
+
+    assert list(
+        six.ensure_str(item.text()) for item in maya_button.menu().actions()
+    ) == ["Maya 2017", "Maya 2018*", "Maya 2019"]
+
+
+@pytest.mark.parametrize(
+    "action,expected_signal",
+    [("button", "maya_2019"), ("0", "maya_2018"), ("1", "maya_2019")],
+)
+def test_command_actions_get_triggered(simple_test_view, action, expected_signal):
+    commands = ["Maya 2018", "Maya 2019*"]
+    _register_commands(simple_test_view, commands)
+
+    mock = Mock()
+    simple_test_view.command_triggered.connect(mock)
+    button = list(list(simple_test_view.sections)[0].buttons)[0]
+
+    if action == "button":
+        button.click()
+    else:
+        button.menu().actions()[int(action)].trigger()
+
+    mock.assert_called_with(expected_signal)
+
+
 def _register_commands(view, names):
     """
     Adds a bunch of commands to the view.
@@ -179,15 +212,18 @@ def _register_commands(view, names):
     """
     defaults = {}
     for name in names:
-        # Turns "NukeX 12.5" into "nukex_125"
-        command_name = name.lower().replace(" ", "_").replace(".", "")
-        button_name = name.rsplit(" ", 1)[0]
-        # Keep everything but the version.
-        if button_name not in defaults:
-            defaults[button_name] = name
+        # Strip the start indicating a default menu entry.
+        if "*" in name:
+            name = name.replace("*", "")
             is_menu_default = True
         else:
             is_menu_default = False
+        print(name, is_menu_default)
+        # Turns "NukeX 12.5" into "nukex_125"
+        command_name = name.lower().replace(" ", "_").replace(".", "")
+        button_name = name.rsplit(" ", 1)[0]
+
+        # Keep everything but the version.
         button_name = name.rsplit(" ", 1)[0]
         # Add each button.
         view.add_command(

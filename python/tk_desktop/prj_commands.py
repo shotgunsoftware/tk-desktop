@@ -1,18 +1,19 @@
+# Copyright (c) 2020 Shotgun Software Inc.
+#
+# CONFIDENTIAL AND PROPRIETARY
+#
+# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
+# Source Code License included in this distribution package. See LICENSE.
+# By accessing, using, copying or modifying this work you indicate your
+# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
+# not expressly granted therein are reserved by Shotgun Software Inc.
+
 from __future__ import print_function
-
-if __name__ == "__main__":
-    import sgtk
-
-    importer = sgtk.util.qt_importer.QtImporter()
-    sgtk.platform.qt.QtGui = importer.QtGui
-    sgtk.platform.qt.QtCore = importer.QtCore
-
-    app = sgtk.platform.qt.QtGui.QApplication([])
-
 
 from sgtk.platform.qt import QtCore, QtGui
 from tank_vendor import six
 import datetime
+import functools
 
 p = QtGui.QPalette()
 highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
@@ -103,10 +104,6 @@ class DefaultGroupingHeader(QtGui.QPushButton):
 ICON_SIZE = QtCore.QSize(50, 50)
 
 
-class SortedMenu(QtGui.QMenu):
-    pass
-
-
 class RecentButton(QtGui.QPushButton):
     ICON_SIZE = QtCore.QSize(50, 50)
     MARGIN = 5
@@ -150,7 +147,9 @@ class RecentButton(QtGui.QPushButton):
         self._command_name = command_name
 
         self.clicked.connect(
-            lambda checked: self.command_triggered.emit(self._command_name)
+            lambda checked: self.command_triggered.emit(
+                six.ensure_str(self._command_name)
+            )
         )
 
     @property
@@ -217,12 +216,19 @@ class CommandButton(QtGui.QToolButton):
         self.setText(" %s" % button_name)
         self._set_default(command_name, tooltip, icon)
         self.clicked.connect(
-            lambda checked: self.command_triggered.emit(self._default_command_name)
+            lambda checked: self.command_triggered.emit(
+                six.ensure_str(self._default_command_name)
+            )
         )
+        self._actions = []
 
-        self._menu = SortedMenu(self)
+        self._menu = QtGui.QMenu(self)
         self._is_menu_empty = True
         self._button_name = button_name
+        # The data of an action contains the command name.
+        self._menu.triggered.connect(
+            lambda action: self.command_triggered.emit(six.ensure_str(action.data()))
+        )
 
         def cleanup():
             self.setAttribute(
@@ -244,17 +250,26 @@ class CommandButton(QtGui.QToolButton):
     def add_command(self, command_name, menu_name, icon, tooltip, is_menu_default):
         if is_menu_default:
             self._set_default(command_name, tooltip, icon)
-            menu_name = menu_name + "*"
-
-        action = self._menu.addAction(menu_name)
-        action.setToolTip(tooltip)
-        action.triggered.connect(
-            lambda action: self.command_triggered.emit(command_name)
-        )
-
-        if self._is_menu_empty:
-            self._is_menu_empty = False
+            action_name = menu_name + "*"
         else:
+            action_name = menu_name
+
+        # QMenu doesn't support insertion of an action in the middle of the menu
+        # so we'll recreate the items every single time one is added.
+        self._menu.clear()
+
+        # Keep track of the new item being added.
+        self._actions.append((command_name, menu_name, action_name, tooltip))
+
+        # For all actions on the menu name
+        for command_name, _, action_name, tooltip in sorted(self._actions):
+            action = self._menu.addAction(action_name)
+            action.setToolTip(tooltip)
+            action.setData(command_name)
+
+        if len(self._menu.actions()) > 1:
+            # If there is more than one available item in the menu
+            # show it.
             self.setPopupMode(self.MenuButtonPopup)
             self.setMenu(self._menu)
 
@@ -452,10 +467,10 @@ class CommandsView(QtGui.QWidget):
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self._show_recents = False
 
-        if parent:
-            filter = ResizeEventFilter(parent)
-            filter.resized.connect(self._on_parent_resized)
-            parent.installEventFilter(filter)
+        # if parent:
+        #     filter = ResizeEventFilter(parent)
+        #     filter.resized.connect(self._on_parent_resized)
+        #     parent.installEventFilter(filter)
 
         self.command_triggered.connect(self._update_recents_list)
 
@@ -654,129 +669,129 @@ class CommandsView(QtGui.QWidget):
         self._recents = self._settings.load(key) or {}
 
 
-class ResizeEventFilter(QtCore.QObject):
-    """
-    Event filter which emits a resized signal whenever
-    the monitored widget resizes. This is so that the overlay wrapper
-    class can be informed whenever the Widget gets a resize event.
-    """
+# class ResizeEventFilter(QtCore.QObject):
+#     """
+#     Event filter which emits a resized signal whenever
+#     the monitored widget resizes. This is so that the overlay wrapper
+#     class can be informed whenever the Widget gets a resize event.
+#     """
 
-    resized = QtCore.Signal()
+#     resized = QtCore.Signal()
 
-    def eventFilter(self, obj, event):
-        # peek at the message
-        if event.type() == QtCore.QEvent.Resize:
-            # re-broadcast any resize events
-            self.resized.emit()
-        # pass it on!
-        return False
+#     def eventFilter(self, obj, event):
+#         # peek at the message
+#         if event.type() == QtCore.QEvent.Resize:
+#             # re-broadcast any resize events
+#             self.resized.emit()
+#         # pass it on!
+#         return False
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    scrollarea = QtGui.QScrollArea()
-    scrollarea.resize(427, 715)
+#     scrollarea = QtGui.QScrollArea()
+#     scrollarea.resize(427, 715)
 
-    class ProjectCommandSettings(object):
-        def save(self, key, recents):
-            pass
+#     class ProjectCommandSettings(object):
+#         def save(self, key, recents):
+#             pass
 
-        def load(self, key):
-            return {
-                "nuke_studio_120": {
-                    "timestamp": datetime.datetime(2008, 1, 1),
-                    "added": True,
-                },
-                "maya_2019": {
-                    "timestamp": datetime.datetime(2005, 1, 1),
-                    "added": True,
-                },
-            }
+#         def load(self, key):
+#             return {
+#                 "nuke_studio_120": {
+#                     "timestamp": datetime.datetime(2008, 1, 1),
+#                     "added": True,
+#                 },
+#                 "maya_2019": {
+#                     "timestamp": datetime.datetime(2005, 1, 1),
+#                     "added": True,
+#                 },
+#             }
 
-    RecentList.MAX_RECENTS = 3
-    view = CommandsView(scrollarea, ProjectCommandSettings())
-    scrollarea.setWidget(view)
+#     RecentList.MAX_RECENTS = 3
+#     view = CommandsView(scrollarea, ProjectCommandSettings())
+#     scrollarea.setWidget(view)
 
-    view.set_project(
-        {"type": "Project", "id": 61},
-        ["Creative Tools", "Editorial Tools", "Automotive Tools"],
-    )
+#     view.set_project(
+#         {"type": "Project", "id": 61},
+#         ["Creative Tools", "Editorial Tools", "Automotive Tools"],
+#     )
 
-    commands = [
-        (
-            "Nuke Studio 12.0",
-            "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-            "tooltip nuke 12.0",
-            ["Creative Tools"],
-            True,
-        ),
-        (
-            "NukeX 12.5",
-            "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-            "tooltip nuke 12.0",
-            ["Creative Tools"],
-            True,
-        ),
-        (
-            "NukeX 12.0",
-            "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-            "tooltip nuke 12.0",
-            ["Creative Tools"],
-            False,
-        ),
-        (
-            "Nuke Assist 12.0",
-            "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-            "tooltip nuke 12.0",
-            ["Creative Tools"],
-            True,
-        ),
-        (
-            "Maya 2019",
-            "/Users/boismej/gitlocal/tk-maya/icon_256.png",
-            "tooltip maya 2019",
-            ["Creative Tools"],
-            True,
-        ),
-        (
-            "Maya 2020",
-            "/Users/boismej/gitlocal/tk-maya/icon_256.png",
-            "tooltip maya 2020",
-            ["Creative Tools"],
-            False,
-        ),
-    ]
+#     commands = [
+#         (
+#             "Nuke Studio 12.0",
+#             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
+#             "tooltip nuke 12.0",
+#             ["Creative Tools"],
+#             True,
+#         ),
+#         (
+#             "NukeX 12.5",
+#             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
+#             "tooltip nuke 12.0",
+#             ["Creative Tools"],
+#             True,
+#         ),
+#         (
+#             "NukeX 12.0",
+#             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
+#             "tooltip nuke 12.0",
+#             ["Creative Tools"],
+#             False,
+#         ),
+#         (
+#             "Nuke Assist 12.0",
+#             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
+#             "tooltip nuke 12.0",
+#             ["Creative Tools"],
+#             True,
+#         ),
+#         (
+#             "Maya 2019",
+#             "/Users/boismej/gitlocal/tk-maya/icon_256.png",
+#             "tooltip maya 2019",
+#             ["Creative Tools"],
+#             True,
+#         ),
+#         (
+#             "Maya 2020",
+#             "/Users/boismej/gitlocal/tk-maya/icon_256.png",
+#             "tooltip maya 2020",
+#             ["Creative Tools"],
+#             False,
+#         ),
+#     ]
 
-    commands = [
-        (
-            cmd[0].lower().replace(" ", "_").replace(".", ""),
-            cmd[0].rsplit(" ", 1)[0],
-            cmd[0],
-            cmd[1],
-            cmd[2],
-            cmd[3],
-            cmd[4],
-        )
-        for cmd in commands
-    ]
+#     commands = [
+#         (
+#             cmd[0].lower().replace(" ", "_").replace(".", ""),
+#             cmd[0].rsplit(" ", 1)[0],
+#             cmd[0],
+#             cmd[1],
+#             cmd[2],
+#             cmd[3],
+#             cmd[4],
+#         )
+#         for cmd in commands
+#     ]
 
-    if False:
+#     if False:
 
-        def add_button():
-            command = commands.pop(0)
-            view.add_command()
-            if commands:
-                QtCore.QTimer.singleShot(500, add_button)
-            else:
-                import subprocess
+#         def add_button():
+#             command = commands.pop(0)
+#             view.add_command()
+#             if commands:
+#                 QtCore.QTimer.singleShot(500, add_button)
+#             else:
+#                 import subprocess
 
-                # subprocess.Popen(["python", "-c", "from PySide2 import QtWidgets; QtWidgets.QApplication([]).exec_()"])
+#                 # subprocess.Popen(["python", "-c", "from PySide2 import QtWidgets; QtWidgets.QApplication([]).exec_()"])
 
-        QtCore.QTimer.singleShot(3000, add_button)
-    else:
-        for cmd in commands:
-            view.add_command(*cmd)
+#         QtCore.QTimer.singleShot(3000, add_button)
+#     else:
+#         for cmd in commands:
+#             view.add_command(*cmd)
 
-    scrollarea.show()
+#     scrollarea.show()
 
-    app.exec_()
+#     app.exec_()
