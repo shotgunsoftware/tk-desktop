@@ -13,7 +13,6 @@ from __future__ import print_function
 from sgtk.platform.qt import QtCore, QtGui
 from tank_vendor import six
 import datetime
-import functools
 
 p = QtGui.QPalette()
 highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)

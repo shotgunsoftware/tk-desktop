@@ -52,6 +52,7 @@ import threading
 import traceback
 
 from sgtk.util import pickle
+from tank_vendor import six
 
 # We can't assume that the project we're talking to has a recent tk-core
 # that ships with six, so we're detecting python 3 and making the right
@@ -475,7 +476,7 @@ class Handler(SimpleHTTPRequestHandler):
         self.send_header("Content-Length", len(raw_data))
         self.send_header("Connection", "close")
         self.end_headers()
-        self.wfile.write(raw_data)
+        self.wfile.write(six.ensure_binary(raw_data))
 
 
 ######################
@@ -582,7 +583,7 @@ class Connection(object):
         :param payload: Data to send.
         """
         payload = pickle.dumps((self._authkey, payload))
-        r = urlopen(self._address, data=payload)
+        r = urlopen(self._address, data=six.ensure_binary(payload))
         response = pickle.loads(r.read())
         if isinstance(response, Exception):
             raise response

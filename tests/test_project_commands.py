@@ -8,7 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import time
 import six
 import pytest
 import itertools
@@ -151,7 +150,6 @@ def test_button_sorting_in_section(actions, simple_test_view):
     """
     Ensure buttons are sorted properly in the list, no matter the order.
     """
-    products_seen = True
     _register_commands(simple_test_view, actions)
 
     creative_tools = list(simple_test_view.sections)[0]
@@ -180,7 +178,7 @@ def test_button_reuse_in_section(simple_test_view):
 
 
 @pytest.mark.parametrize(
-    "commands", itertools.permutations(["Maya 2017", "Maya 2018*", "Maya 2019",])
+    "commands", itertools.permutations(["Maya 2017", "Maya 2018*", "Maya 2019"])
 )
 def test_versions_sorted_in_menu(simple_test_view, commands):
     _register_commands(simple_test_view, commands)
@@ -220,7 +218,6 @@ def _register_commands(view, names):
 
     The names are expected to be of the form "Software VersionString"
     """
-    defaults = {}
     for name in names:
         # Strip the start indicating a default menu entry.
         if "*" in name:
