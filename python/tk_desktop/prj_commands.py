@@ -233,8 +233,8 @@ class CommandButton(QtGui.QToolButton):
         self._menu.aboutToHide.connect(cleanup)
 
     @property
-    def button_name(self):
-        self._button_name
+    def name(self):
+        return self._button_name
 
     def _set_default(self, command_name, tooltip, icon):
         self._default_command_name = command_name
@@ -429,6 +429,10 @@ class CommandSection(Section):
             command_name, button_name, menu_name, icon, tooltip, is_menu_default
         )
 
+    @property
+    def buttons(self):
+        return self._list.buttons
+
 
 class CommandsView(QtGui.QWidget):
 
@@ -443,6 +447,7 @@ class CommandsView(QtGui.QWidget):
         self._layout.addStretch(1)
         self._recents_widget = None
         self._recents = {}
+        self._groups = []
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self._show_recents = False
@@ -479,10 +484,20 @@ class CommandsView(QtGui.QWidget):
         self._recents = {}
         self._recents_widget = None
 
-        while self.layout().count() > 0:
-            item = self.layout().takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        if self._recents_widget:
+            self.layout().removeWidget(self._recents_widget)
+            self._recents_widget.deleteLater()
+            self._recents_widget = None
+
+        # Remove all the sections. Create a copy of the list
+        # buttons so we don't iterate and modify the list at the
+        # same time.
+        for section in list(self.sections):
+            self.layout().removeWidget(section)
+            section.deleteLater()
+
+        # There should be only one item left, the stretcher.
+        assert self.layout().count() == 1
 
     def _update_recents_list(self, command_name):
         self._recents[command_name] = {
@@ -535,7 +550,6 @@ class CommandsView(QtGui.QWidget):
                 "icon": icon,
                 "tooltip": tooltip,
             }
-        print(command_name, self._recents)
         if self._show_recents and command_name in self._recents:
             self._refresh_recent_list(command_name)
 
@@ -560,7 +574,6 @@ class CommandsView(QtGui.QWidget):
             )
         # Due to visual glitches in PySide1, we're inserting sections as we need them
         # instead of creating them all hidden up front.
-
         # Skip over the recent widgets.
         if self._recents_widget:
             first_group_index = 1
@@ -570,9 +583,13 @@ class CommandsView(QtGui.QWidget):
         # First, generate a collection of sections and their indices
         name_to_pos = {section.name: idx for idx, section in enumerate(self.sections)}
 
+        print("Searching for", group_name, "in", list(name_to_pos))
         # If the section already exists.
         if group_name in name_to_pos:
-            return self._layout.itemAt(first_group_index + name_to_pos[group_name])
+            print("Section already exists!")
+            return self._layout.itemAt(
+                first_group_index + name_to_pos[group_name]
+            ).widget()
 
         # The section does not exist!
 
@@ -590,14 +607,17 @@ class CommandsView(QtGui.QWidget):
         for group_after in groups_after:
             # If that group exists, we've found where we'll insert the group!
             if group_after in name_to_pos:
+                print("Inserting before", group_after)
                 insert_position = name_to_pos[group_after]
                 break
         else:
             # We haven't found any of the groups that come after the one
             # we want to insert, which means we'll have to insert right before
             # the stretch item.
+            print("Inserting at the end.")
             insert_position = len(name_to_pos)
 
+        print("Inserting at position %s" % (insert_position + first_group_index))
         new_group = CommandSection(group_name)
         new_group.command_triggered.connect(self.command_triggered)
         self._layout.insertWidget(

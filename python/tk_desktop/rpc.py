@@ -51,22 +51,18 @@ import logging
 import threading
 import traceback
 
+from sgtk.util import pickle
+
 # We can't assume that the project we're talking to has a recent tk-core
 # that ships with six, so we're detecting python 3 and making the right
 # imports on our own.
 PY3 = sys.version_info[0] >= 3
 if PY3:
-    import pickle
     from http.server import HTTPServer
     from http.server import SimpleHTTPRequestHandler
     from urllib.request import urlopen
     from queue import Queue
 else:
-    try:
-        import cPickle as pickle
-    except ImportError:
-        import pickle
-
     from BaseHTTPServer import HTTPServer
     from SimpleHTTPServer import SimpleHTTPRequestHandler
     from urllib import urlopen
@@ -473,7 +469,7 @@ class Handler(SimpleHTTPRequestHandler):
 
         :param body: Data to send back to the client.
         """
-        raw_data = pickle.dumps(body, protocol=0)
+        raw_data = pickle.dumps(body)
         self.send_response(200, self.responses[200])
         self.send_header("Content-Type", "text/text")
         self.send_header("Content-Length", len(raw_data))
@@ -585,7 +581,7 @@ class Connection(object):
 
         :param payload: Data to send.
         """
-        payload = pickle.dumps((self._authkey, payload), protocol=0)
+        payload = pickle.dumps((self._authkey, payload))
         r = urlopen(self._address, data=payload)
         response = pickle.loads(r.read())
         if isinstance(response, Exception):

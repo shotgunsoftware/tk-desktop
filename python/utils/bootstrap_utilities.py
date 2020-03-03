@@ -119,12 +119,12 @@ class Bootstrap(object):
         """
         # Import Toolkit, but make sure we're not inheriting the parent process's current
         # pipeline configuration.
-        self._proxy = _create_proxy(self._raw_data)
-
         sys.path.insert(0, self._core_python_path)
         import sgtk
 
         del os.environ["TANK_CURRENT_PC"]
+
+        self._proxy = _create_proxy(self._raw_data)
         try:
             # Set up logging with the rpc.
             self._handler = ProxyLoggingHandler(self._proxy)
