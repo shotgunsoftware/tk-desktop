@@ -260,6 +260,12 @@ def test_recent_sorted_properly(recents, monkeypatch):
     ]
 
 
+def test_recent_time_update_when_clicking():
+    # Make sure things get pushed in front.
+    # Make sure the settings are updated appropriately.
+    assert False
+
+
 def _name_to_command(name):
     # e.g. turns "NukeX 12.5" into "nukex_125"
     return name.lower().replace(" ", "_").replace(".", "")

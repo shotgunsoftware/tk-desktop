@@ -461,11 +461,6 @@ class CommandsView(QtGui.QWidget):
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self._show_recents = False
 
-        # if parent:
-        #     filter = ResizeEventFilter(parent)
-        #     filter.resized.connect(self._on_parent_resized)
-        #     parent.installEventFilter(filter)
-
         self.command_triggered.connect(self._update_recents_list)
 
         # Caches the information about all commands so we can
@@ -477,14 +472,6 @@ class CommandsView(QtGui.QWidget):
     @property
     def recents(self):
         return self._recents_widget
-
-    def _on_parent_resized(self):
-        """
-        Special slot hooked up to the event filter.
-        When associated widget is resized this slot is being called.
-        """
-        # resize overlay
-        self.resize(self.parentWidget().size())
 
     def set_project(self, current_project, groups, show_recents=True):
         self._current_project = current_project
@@ -664,131 +651,3 @@ class CommandsView(QtGui.QWidget):
         """
         key = "project_recent_apps.%d" % self._current_project["id"]
         self._recents = self._settings.load(key) or {}
-
-
-# class ResizeEventFilter(QtCore.QObject):
-#     """
-#     Event filter which emits a resized signal whenever
-#     the monitored widget resizes. This is so that the overlay wrapper
-#     class can be informed whenever the Widget gets a resize event.
-#     """
-
-#     resized = QtCore.Signal()
-
-#     def eventFilter(self, obj, event):
-#         # peek at the message
-#         if event.type() == QtCore.QEvent.Resize:
-#             # re-broadcast any resize events
-#             self.resized.emit()
-#         # pass it on!
-#         return False
-
-
-# if __name__ == "__main__":
-
-#     scrollarea = QtGui.QScrollArea()
-#     scrollarea.resize(427, 715)
-
-#     class ProjectCommandSettings(object):
-#         def save(self, key, recents):
-#             pass
-
-#         def load(self, key):
-#             return {
-#                 "nuke_studio_120": {
-#                     "timestamp": datetime.datetime(2008, 1, 1),
-#                     "added": True,
-#                 },
-#                 "maya_2019": {
-#                     "timestamp": datetime.datetime(2005, 1, 1),
-#                     "added": True,
-#                 },
-#             }
-
-#     RecentList.MAX_RECENTS = 3
-#     view = CommandsView(scrollarea, ProjectCommandSettings())
-#     scrollarea.setWidget(view)
-
-#     view.set_project(
-#         {"type": "Project", "id": 61},
-#         ["Creative Tools", "Editorial Tools", "Automotive Tools"],
-#     )
-
-#     commands = [
-#         (
-#             "Nuke Studio 12.0",
-#             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-#             "tooltip nuke 12.0",
-#             ["Creative Tools"],
-#             True,
-#         ),
-#         (
-#             "NukeX 12.5",
-#             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-#             "tooltip nuke 12.0",
-#             ["Creative Tools"],
-#             True,
-#         ),
-#         (
-#             "NukeX 12.0",
-#             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-#             "tooltip nuke 12.0",
-#             ["Creative Tools"],
-#             False,
-#         ),
-#         (
-#             "Nuke Assist 12.0",
-#             "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-#             "tooltip nuke 12.0",
-#             ["Creative Tools"],
-#             True,
-#         ),
-#         (
-#             "Maya 2019",
-#             "/Users/boismej/gitlocal/tk-maya/icon_256.png",
-#             "tooltip maya 2019",
-#             ["Creative Tools"],
-#             True,
-#         ),
-#         (
-#             "Maya 2020",
-#             "/Users/boismej/gitlocal/tk-maya/icon_256.png",
-#             "tooltip maya 2020",
-#             ["Creative Tools"],
-#             False,
-#         ),
-#     ]
-
-#     commands = [
-#         (
-#             cmd[0].lower().replace(" ", "_").replace(".", ""),
-#             cmd[0].rsplit(" ", 1)[0],
-#             cmd[0],
-#             cmd[1],
-#             cmd[2],
-#             cmd[3],
-#             cmd[4],
-#         )
-#         for cmd in commands
-#     ]
-
-#     if False:
-
-#         def add_button():
-#             command = commands.pop(0)
-#             view.add_command()
-#             if commands:
-#                 QtCore.QTimer.singleShot(500, add_button)
-#             else:
-#                 import subprocess
-
-#                 # subprocess.Popen(["python", "-c", "from PySide2 import QtWidgets; QtWidgets.QApplication([]).exec_()"])
-
-#         QtCore.QTimer.singleShot(3000, add_button)
-#     else:
-#         for cmd in commands:
-#             view.add_command(*cmd)
-
-#     scrollarea.show()
-
-#     app.exec_()
