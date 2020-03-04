@@ -17,9 +17,7 @@ import os
 import sys
 import datetime
 
-sys.path.insert(
-    0, os.path.join(os.path.dirname(__file__), "..", "python", "tk_desktop")
-)
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 sys.path.insert(
     0, os.path.join(os.path.dirname(__file__), "..", "..", "tk-core", "python")
 )
@@ -36,7 +34,8 @@ sgtk.platform.qt.QtCore = importer.QtCore
 QtGui = sgtk.platform.qt.QtGui
 QtCore = sgtk.platform.qt.QtCore
 
-from prj_commands import CommandsView, RecentList
+from tk_desktop.prj_commands import CommandsView, RecentList
+from tk_desktop.ui.desktop_window import Ui_DesktopWindow
 
 
 class ProjectCommandSettings(object):
@@ -59,12 +58,14 @@ RecentList.MAX_RECENTS = 3
 
 app = importer.QtGui.QApplication([])
 
-scrollarea = QtGui.QScrollArea()
-scrollarea.resize(427, 715)
-scrollarea.setWidgetResizable(True)
+main = QtGui.QMainWindow()
+main.ui = Ui_DesktopWindow()
+main.ui.setupUi(main)
+# Change the current page so the project commands page is visible.
+main.ui.apps_tab.setCurrentIndex(1)
 
-view = CommandsView(scrollarea, ProjectCommandSettings())
-scrollarea.setWidget(view)
+view = CommandsView(main, ProjectCommandSettings())
+main.ui.project_commands_area.setWidget(view)
 
 view.set_project(
     {"type": "Project", "id": 61},
@@ -153,6 +154,6 @@ else:
     for cmd in commands:
         view.add_command(*cmd)
 
-scrollarea.show()
+main.show()
 
 app.exec_()
