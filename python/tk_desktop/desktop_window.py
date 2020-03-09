@@ -46,10 +46,6 @@ from .browser_integration_user_switch_dialog import BrowserIntegrationUserSwitch
 from .banner_widget import BannerWidget
 
 from .project_menu import ProjectMenu
-
-# from .project_commands_model import ProjectCommandModel
-# from .project_commands_model import ProjectCommandProxyModel
-# from .project_commands_widget import ProjectCommandDelegate
 from .prj_commands import CommandsView
 from . import rpc
 
@@ -160,9 +156,6 @@ class DesktopWindow(SystrayWindow):
             engine._handle_button_command_triggered
         )
         self.ui.project_commands_area.setWidget(self._project_commands)
-        self.project_overlay = LoadingProjectWidget(self._project_commands)
-        self.install_apps_widget = NoAppsInstalledOverlay(self._project_commands)
-        self.setup_project_widget = SetupProject(self._project_commands)
 
         self._project_menu = ProjectMenu(self)
         self.project_overlay = LoadingProjectWidget(self._project_commands)
@@ -284,16 +277,7 @@ class DesktopWindow(SystrayWindow):
 
         # Initialize the model to track project commands
         self._project_command_count = 0
-        # self._project_command_model = ProjectCommandModel(self)
-        # self._project_command_proxy = ProjectCommandProxyModel(self)
-        # self._project_command_proxy.setSourceModel(self._project_command_model)
-        # self._project_command_proxy.sort(0)
-        # self._project_commands.setModel(self._project_command_proxy)
 
-        # self._project_command_delegate = ProjectCommandDelegate(
-        #     self._project_commands
-        # )
-        # self._project_commands.setItemDelegate(self._project_command_delegate)
         # self._project_commands.expanded_changed.connect(
         #     self.handle_project_command_expanded_changed
         # )
@@ -302,10 +286,6 @@ class DesktopWindow(SystrayWindow):
         # see discussion at https://stackoverflow.com/questions/15331256
         # self._project_commands.verticalScrollBar().valueChanged.connect(
         #     self._project_commands.updateEditorGeometries
-        # )
-
-        # self._project_command_model.command_triggered.connect(
-        #     engine._handle_button_command_triggered
         # )
 
         # load and initialize cached projects
