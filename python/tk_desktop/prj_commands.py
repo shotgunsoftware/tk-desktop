@@ -499,12 +499,17 @@ class CommandsView(QtGui.QWidget):
 
         size = self.parentWidget().size()
 
-        if self._recents_widget:
-            self._recents_widget.setMaximumWidth(size.width())
-
-        print(size.width())
-
         self.resize(size)
+
+        width = self._main_window.width()
+        if self._main_window.verticalScrollBar().isVisible():
+            width -= self._main_window.verticalScrollBar().width()
+
+        if self._recents_widget:
+            self._recents_widget.setMaximumWidth(width)
+
+        for section in self.sections:
+            section.setMaximumWidth(width)
 
     def sizeHint(self):
         return QtCore.QSize(self._main_window.viewport().width(), 30)

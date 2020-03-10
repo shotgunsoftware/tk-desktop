@@ -92,7 +92,7 @@ class ProjectCommandSettings(object):
 
 
 app = importer.QtGui.QApplication([])
-
+app.setStyle("plastique")
 
 css_file = os.path.join(os.path.dirname(__file__), "..", "style.qss")
 with open(css_file) as f:
