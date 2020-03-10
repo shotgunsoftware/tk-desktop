@@ -664,7 +664,9 @@
          <item>
           <widget class="QScrollArea" name="project_commands_area">
            <property name="styleSheet">
-            <string notr="true">border: 0, 0, 0, 0</string>
+            <string notr="true">QScrollArea {
+border: 0, 0, 0, 0
+}</string>
            </property>
            <property name="widgetResizable">
             <bool>true</bool>
@@ -677,8 +679,8 @@
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>98</width>
-              <height>28</height>
+              <width>100</width>
+              <height>30</height>
              </rect>
             </property>
            </widget>

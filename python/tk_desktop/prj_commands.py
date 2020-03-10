@@ -14,6 +14,10 @@ from sgtk.platform.qt import QtCore, QtGui
 from tank_vendor import six
 import datetime
 
+from sgtk.platform import get_logger
+
+logger = get_logger(__name__)
+
 p = QtGui.QPalette()
 highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
 
@@ -76,6 +80,7 @@ class DefaultGroupingHeader(QtGui.QPushButton):
         self.setFlat(True)
         self.setCheckable(True)
         self.setChecked(True)
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
         self.setStyleSheet(
             """
             text-align: left;
@@ -282,11 +287,7 @@ class BaseIconList(QtGui.QWidget):
         super(BaseIconList, self).__init__(parent)
         self._layout = layout
         self.setLayout(layout)
-
-        margins = self._layout.contentsMargins()
-        margins.setLeft(0)
-        margins.setRight(0)
-        self._layout.setContentsMargins(margins)
+        self._layout.setContentsMargins(0, 0, 0, 0)
 
 
 class RecentList(BaseIconList):
@@ -414,7 +415,7 @@ class Section(QtGui.QWidget):
         margins.setBottom(0)
         margins.setLeft(10)
         margins.setRight(10)
-        self._layout.setContentsMargins(margins)
+        self._layout.setContentsMargins(10, 0, 10, 0)
 
         self._list.command_triggered.connect(self.command_triggered)
 
@@ -472,7 +473,7 @@ class CommandsView(QtGui.QWidget):
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self._show_recents = False
 
-        self._layout.setContentsMargins(0, 0, 0, 0)
+        self._layout.setContentsMargins(0, 10, 0, 0)
 
         self.setSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Preferred)
 
@@ -497,10 +498,10 @@ class CommandsView(QtGui.QWidget):
         """
         # resize overlay
 
-        size = self.parentWidget().size()
+        self.resize(self.parentWidget().size())
+        self._restrict_children()
 
-        self.resize(size)
-
+    def _restrict_children(self):
         width = self._main_window.width()
         if self._main_window.verticalScrollBar().isVisible():
             width -= self._main_window.verticalScrollBar().width()
@@ -590,12 +591,16 @@ class CommandsView(QtGui.QWidget):
             )
             # Caches information about the command so that if it is a recent
             self._recent_commands_cache[command_name] = {
-                "menu_name": menu_name,
+                # Single action buttons, like the Publish button, do not have a menu,
+                # so use the name of the button directly.
+                "menu_name": menu_name or button_name,
                 "icon": icon,
                 "tooltip": tooltip,
             }
         if self._show_recents and command_name in self._recents:
             self._refresh_recent_list(command_name)
+
+        self._restrict_children()
 
     @property
     def recents_visible(self):
@@ -627,10 +632,10 @@ class CommandsView(QtGui.QWidget):
         # First, generate a collection of sections and their indices
         name_to_pos = {section.name: idx for idx, section in enumerate(self.sections)}
 
-        print("Searching for", group_name, "in", list(name_to_pos))
+        logger.debug("Searching for %s in %s", group_name, list(name_to_pos))
         # If the section already exists.
         if group_name in name_to_pos:
-            print("Section already exists!")
+            logger.debug("Section already exists!")
             return self._layout.itemAt(
                 first_group_index + name_to_pos[group_name]
             ).widget()
@@ -651,17 +656,17 @@ class CommandsView(QtGui.QWidget):
         for group_after in groups_after:
             # If that group exists, we've found where we'll insert the group!
             if group_after in name_to_pos:
-                print("Inserting before", group_after)
+                logger.debug("Inserting before %s", group_after)
                 insert_position = name_to_pos[group_after]
                 break
         else:
             # We haven't found any of the groups that come after the one
             # we want to insert, which means we'll have to insert right before
             # the stretch item.
-            print("Inserting at the end.")
+            logger.debug("Inserting at the end.")
             insert_position = len(name_to_pos)
 
-        print("Inserting at position %s" % (insert_position + first_group_index))
+        logger.debug("Inserting at position %s", (insert_position + first_group_index))
         new_group = CommandSection(group_name)
         new_group.command_triggered.connect(self.command_triggered)
         self._layout.insertWidget(

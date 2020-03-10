@@ -279,12 +279,14 @@ class Ui_DesktopWindow(object):
         self.horizontalLayout_8.setStretch(2, 1)
         self.verticalLayout_2.addWidget(self.configuration_frame)
         self.project_commands_area = QtGui.QScrollArea(self.project_page)
-        self.project_commands_area.setStyleSheet("border: 0, 0, 0, 0")
+        self.project_commands_area.setStyleSheet("QScrollArea {\n"
+"border: 0, 0, 0, 0\n"
+"}")
         self.project_commands_area.setWidgetResizable(True)
         self.project_commands_area.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
         self.project_commands_area.setObjectName("project_commands_area")
         self.scrollAreaWidgetContents_3 = QtGui.QWidget()
-        self.scrollAreaWidgetContents_3.setGeometry(QtCore.QRect(0, 0, 98, 28))
+        self.scrollAreaWidgetContents_3.setGeometry(QtCore.QRect(0, 0, 100, 30))
         self.scrollAreaWidgetContents_3.setObjectName("scrollAreaWidgetContents_3")
         self.project_commands_area.setWidget(self.scrollAreaWidgetContents_3)
         self.verticalLayout_2.addWidget(self.project_commands_area)
