@@ -663,6 +663,9 @@
          </item>
          <item>
           <widget class="QScrollArea" name="project_commands_area">
+           <property name="styleSheet">
+            <string notr="true">border: 0, 0, 0, 0</string>
+           </property>
            <property name="widgetResizable">
             <bool>true</bool>
            </property>
