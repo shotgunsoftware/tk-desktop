@@ -151,7 +151,9 @@ class DesktopWindow(SystrayWindow):
             def load(self, key):
                 return self._dlg._load_setting(key, None, True) or {}
 
-        self._project_commands = CommandsView(self, ProjectCommandSettings(self))
+        self._project_commands = CommandsView(
+            self, ProjectCommandSettings(self.project_commands_area)
+        )
         self._project_commands.command_triggered.connect(
             engine._handle_button_command_triggered
         )

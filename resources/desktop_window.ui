@@ -666,13 +666,16 @@
            <property name="widgetResizable">
             <bool>true</bool>
            </property>
+           <property name="alignment">
+            <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+           </property>
            <widget class="QWidget" name="scrollAreaWidgetContents_3">
             <property name="geometry">
              <rect>
               <x>0</x>
               <y>0</y>
-              <width>425</width>
-              <height>563</height>
+              <width>98</width>
+              <height>28</height>
              </rect>
             </property>
            </widget>

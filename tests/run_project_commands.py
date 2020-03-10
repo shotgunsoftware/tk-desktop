@@ -38,25 +38,67 @@ from tk_desktop.prj_commands import CommandsView, RecentList
 from tk_desktop.ui.desktop_window import Ui_DesktopWindow
 
 
+products = [
+    "Nuke Studio 12.0",
+    "Nuke Studio 12.5*",
+    "Nuke Studio 11.0",
+    "Nuke 12.0*",
+    "Nuke 12.5",
+    "Nuke 11.0",
+    "Maya 2018",
+    "Maya 2019",
+    "Maya 2020*",
+    "3dsMax 2018",
+    "3dsMax 2019*",
+    "3dsMax 2020",
+]
+
+defaults = [
+    products[1],
+    products[3],
+    products[8],
+    products[10],
+]
+
+commands = [
+    (
+        product.lower().replace(" ", "_").replace(".", ""),
+        product.rsplit(" ", 1)[0],
+        product,
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "..",
+            "tk-%s" % product.split(" ", 1)[0].lower(),
+            "icon_256.png",
+        ),
+        "Tooltip %s" % product,
+        ["The Foundry" if "Nuke" in product else "Autodesk"],
+        product in defaults,
+    )
+    for product in products
+]
+
+
 class ProjectCommandSettings(object):
     def save(self, key, recents):
         pass
 
     def load(self, key):
         return {
-            "nuke_studio_120": {
-                "timestamp": datetime.datetime(2008, 1, 1),
-                "added": True,
-            },
-            "maya_2019": {"timestamp": datetime.datetime(2005, 1, 1), "added": True,},
+            command: {"timestamp": datetime.datetime.now()}
+            for command, _, _, _, _, _, _ in commands
         }
 
 
-# Monkey patch the MAX_RECENTS so we don't have to create too many
-# commands for testing.
-RecentList.MAX_RECENTS = 3
-
 app = importer.QtGui.QApplication([])
+
+
+css_file = os.path.join(os.path.dirname(__file__), "..", "style.qss")
+with open(css_file) as f:
+    css = app.styleSheet() + "\n\n" + f.read()
+app.setStyleSheet(css)
+
 
 main = QtGui.QMainWindow()
 main.ui = Ui_DesktopWindow()
@@ -64,71 +106,14 @@ main.ui.setupUi(main)
 # Change the current page so the project commands page is visible.
 main.ui.apps_tab.setCurrentIndex(1)
 
-view = CommandsView(main, ProjectCommandSettings())
+view = CommandsView(main.ui.project_commands_area, ProjectCommandSettings())
 main.ui.project_commands_area.setWidget(view)
 
 view.set_project(
-    {"type": "Project", "id": 61},
-    ["Creative Tools", "Editorial Tools", "Automotive Tools"],
+    {"type": "Project", "id": 61}, ["Autodesk", "The Foundry"],
 )
+main.updateGeometry()
 
-commands = [
-    (
-        "Nuke Studio 12.0",
-        "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-        "tooltip nuke 12.0",
-        ["Creative Tools"],
-        True,
-    ),
-    (
-        "NukeX 12.5",
-        "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-        "tooltip nuke 12.0",
-        ["Creative Tools"],
-        True,
-    ),
-    (
-        "NukeX 12.0",
-        "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-        "tooltip nuke 12.0",
-        ["Creative Tools"],
-        False,
-    ),
-    (
-        "Nuke Assist 12.0",
-        "/Users/boismej/gitlocal/tk-nuke/icon_256.png",
-        "tooltip nuke 12.0",
-        ["Creative Tools"],
-        True,
-    ),
-    (
-        "Maya 2019",
-        "/Users/boismej/gitlocal/tk-maya/icon_256.png",
-        "tooltip maya 2019",
-        ["Creative Tools"],
-        True,
-    ),
-    (
-        "Maya 2020",
-        "/Users/boismej/gitlocal/tk-maya/icon_256.png",
-        "tooltip maya 2020",
-        ["Creative Tools"],
-        False,
-    ),
-]
-
-commands = [
-    (
-        cmd[0].lower().replace(" ", "_").replace(".", ""),
-        cmd[0].rsplit(" ", 1)[0],
-        cmd[0],
-        cmd[1],
-        cmd[2],
-        cmd[3],
-        cmd[4],
-    )
-    for cmd in commands
-]
 
 # Setting this to true will add
 if "--async" in sys.argv:

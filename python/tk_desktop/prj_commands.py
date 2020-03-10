@@ -69,12 +69,8 @@ class DefaultGroupingHeader(QtGui.QPushButton):
         QtGui.QPushButton.__init__(self, parent)
 
         # cache the icons for collapsed/expanded
-        self.down_arrow = QtGui.QIcon(
-            "/Users/boismej/gitlocal/tk-desktop/resources/down_arrow.png"
-        )
-        self.right_arrow = QtGui.QIcon(
-            "/Users/boismej/gitlocal/tk-desktop/resources/right_arrow.png"
-        )
+        self.down_arrow = QtGui.QIcon(":tk-desktop/down_arrow.png")
+        self.right_arrow = QtGui.QIcon(":tk-desktop/right_arrow.png")
 
         # adjust the button look
         self.setFlat(True)
@@ -116,6 +112,11 @@ class RecentButton(QtGui.QPushButton):
 
         self.setFlat(True)
 
+        self.setSizePolicy(
+            QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding
+        )
+        self.setFocusPolicy(QtCore.Qt.NoFocus)
+
         layout = QtGui.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignHCenter)
         layout.setSpacing(self.SPACING)
@@ -142,6 +143,8 @@ class RecentButton(QtGui.QPushButton):
             self.icon_label.setPixmap(QtGui.QIcon().pixmap(self.ICON_SIZE))
         else:
             self.icon_label.setPixmap(QtGui.QIcon(icon).pixmap(self.ICON_SIZE))
+
+        self.setToolTip(tooltip)
 
         self._command_name = command_name
 
@@ -188,10 +191,9 @@ class RecentButton(QtGui.QPushButton):
         # limiting the number of recents, each one gets equal spacing
         # the spacing is the width of the view, without the spacing
         # divided up equally
-        limit = 6
-        space_to_divide = (
-            self.parent().width() - (self.SPACING * (limit + 1)) - self.MARGIN
-        )
+        limit = RecentList.MAX_RECENTS
+        parent = self.parent().parent().parent().parent().parent().viewport()
+        space_to_divide = parent.width() - (self.SPACING * (limit + 1)) - self.MARGIN
         width = space_to_divide / limit
         return QtCore.QSize(width, full_size.height())
 
@@ -203,7 +205,7 @@ class CommandButton(QtGui.QToolButton):
     def __init__(self, parent, command_name, button_name, icon, tooltip):
         super(CommandButton, self).__init__(parent)
         self.setSizePolicy(
-            QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.MinimumExpanding
+            QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding
         )
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self.setIconSize(ICON_SIZE)
@@ -275,16 +277,27 @@ class CommandButton(QtGui.QToolButton):
         return hint
 
 
-class RecentList(QtGui.QWidget):
+class BaseIconList(QtGui.QWidget):
+    def __init__(self, parent, layout):
+        super(BaseIconList, self).__init__(parent)
+        self._layout = layout
+        self.setLayout(layout)
+
+        margins = self._layout.contentsMargins()
+        margins.setLeft(0)
+        margins.setRight(0)
+        self._layout.setContentsMargins(margins)
+
+
+class RecentList(BaseIconList):
 
     command_triggered = QtCore.Signal(str)
     MAX_RECENTS = 6
 
     def __init__(self, parent):
-        super(RecentList, self).__init__(parent)
-        self._layout = QtGui.QHBoxLayout(self)
+        super(RecentList, self).__init__(parent, QtGui.QHBoxLayout())
         self.setLayout(self._layout)
-        self._layout.addStretch(1)
+        self._layout.setSpacing(0)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
         buttons = list(self.buttons)
@@ -323,15 +336,12 @@ class RecentList(QtGui.QWidget):
             yield self._layout.itemAt(i).widget()
 
 
-class CommandList(QtGui.QWidget):
+class CommandList(BaseIconList):
 
     command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent):
-        super(CommandList, self).__init__(parent)
-
-        self._layout = QtGui.QGridLayout(self)
-        self.setLayout(self._layout)
+        super(CommandList, self).__init__(parent, QtGui.QGridLayout())
         self._filler = QtGui.QWidget(self)
         self._buttons = {}
 
@@ -402,6 +412,8 @@ class Section(QtGui.QWidget):
         margins = self._layout.contentsMargins()
         margins.setTop(0)
         margins.setBottom(0)
+        margins.setLeft(10)
+        margins.setRight(10)
         self._layout.setContentsMargins(margins)
 
         self._list.command_triggered.connect(self.command_triggered)
@@ -413,10 +425,6 @@ class Section(QtGui.QWidget):
     def _toggled(self, checked):
         self._grouping.set_expanded(checked)
         self._list.setVisible(checked)
-
-    def sizeHint(self):
-        # size is the parent width and height fixed to the margins
-        return QtCore.QSize(self.parent().width(), 50)
 
     @property
     def buttons(self):
@@ -449,9 +457,12 @@ class CommandsView(QtGui.QWidget):
 
     def __init__(self, parent, settings):
         super(CommandsView, self).__init__(parent)
-        self.setObjectName("project_recent_commands_cache")
+        self.setObjectName("project_commands")
         self._layout = QtGui.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
+        # If we want the background color to apply to the entire surface of the widget
+        # in PySide instead of just under its children we need to set this flag.
+        self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
         self.setLayout(self._layout)
         self._layout.addStretch(1)
         self._recents_widget = None
@@ -461,6 +472,16 @@ class CommandsView(QtGui.QWidget):
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self._show_recents = False
 
+        self._layout.setContentsMargins(0, 0, 0, 0)
+
+        self.setSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Preferred)
+
+        filter = ResizeEventFilter(parent)
+        filter.resized.connect(self._on_parent_resized)
+        parent.installEventFilter(filter)
+
+        self._main_window = parent
+
         self.command_triggered.connect(self._update_recents_list)
 
         # Caches the information about all commands so we can
@@ -468,6 +489,25 @@ class CommandsView(QtGui.QWidget):
         self._recent_commands_cache = {}
 
         self._settings = settings
+
+    def _on_parent_resized(self):
+        """
+        Special slot hooked up to the event filter.
+        When associated widget is resized this slot is being called.
+        """
+        # resize overlay
+
+        size = self.parentWidget().size()
+
+        if self._recents_widget:
+            self._recents_widget.setMaximumWidth(size.width())
+
+        print(size.width())
+
+        self.resize(size)
+
+    def sizeHint(self):
+        return QtCore.QSize(self._main_window.viewport().width(), 30)
 
     @property
     def recents(self):
@@ -651,3 +691,21 @@ class CommandsView(QtGui.QWidget):
         """
         key = "project_recent_apps.%d" % self._current_project["id"]
         self._recents = self._settings.load(key) or {}
+
+
+class ResizeEventFilter(QtCore.QObject):
+    """
+    Event filter which emits a resized signal whenever
+    the monitored widget resizes. This is so that the overlay wrapper
+    class can be informed whenever the Widget gets a resize event.
+    """
+
+    resized = QtCore.Signal()
+
+    def eventFilter(self, obj, event):
+        # peek at the message
+        if event.type() == QtCore.QEvent.Resize:
+            # re-broadcast any resize events
+            self.resized.emit()
+        # pass it on!
+        return False
