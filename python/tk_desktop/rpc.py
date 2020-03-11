@@ -571,8 +571,8 @@ class DualRPCServer(object):
         self._multiprocessing_thread.close()
         self._http_thread.close()
 
-    def isAlive(self):
-        return self._multiprocessing_thread.isAlive() or self._http_thread.isAlive()
+    def is_alive(self):
+        return self._multiprocessing_thread.is_alive() or self._http_thread.is_alive()
 
 
 ##############################################################################

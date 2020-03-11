@@ -104,7 +104,9 @@ def fake_engine():
 
 # We want to test every server version with their respective client.
 # By using a parametrized server fixture, it means each test in this file
-# that directly or indirectly uses the fixutre will be called four times.
+# that directly or indirectly uses the fixture will be called four times.
+# Note that on Python 3, the multiprocessing server is never used by Desktop,
+# we can ignore those servers.
 @pytest.fixture(
     params=(
         [
@@ -258,7 +260,7 @@ def test_server_close(server, proxy):
     # Sleep long enough for the server to shut down, this is bigger
     # than the timeout, so we should be good.
     time.sleep(5)
-    assert not server.isAlive()
+    assert not server.is_alive()
 
     with pytest.raises(Exception) as exc:
         proxy.call("pass_arg", 1)
@@ -355,6 +357,7 @@ def test_bad_http_auth_key(fake_engine):
             assert str(exc.value) == "invalid auth key"
 
 
+@pytest.mark.skipif(six.PY3, reason="Multiprocessing server not supported on Python 3.")
 def test_bad_multi_auth_key(fake_engine):
     """
     Ensure connecting to a server with the wrong auth key will reject
