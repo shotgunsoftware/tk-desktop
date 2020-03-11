@@ -13,6 +13,7 @@ import six
 import sgtk
 
 import pytest
+import contextlib
 
 from rpc import (
     MultiprocessingRPCServerThread,
@@ -101,8 +102,16 @@ def fake_engine():
     return FakeEngine()
 
 
+# We want to test every server version with their respective client.
+# By using a parametrized server fixture, it means each test in this file
+# that directly or indirectly uses the fixutre will be called four times.
 @pytest.fixture(
-    params=[MultiprocessingRPCServerThread, HttpRPCServerThread, DualRPCServer]
+    params=[
+        (MultiprocessingRPCServerThread, MultiprocessingRPCProxy),
+        (HttpRPCServerThread, HttpRPCProxy),
+        (DualRPCServer, MultiprocessingRPCProxy),
+        (DualRPCServer, HttpRPCProxy),
+    ]
 )
 def server(fake_engine, request):
     """
@@ -111,14 +120,30 @@ def server(fake_engine, request):
 
     :returns: A RPCServerThread instance.
     """
-    rpc_server_factory = request.param
-    server = rpc_server_factory(fake_engine)
+    server_factory = request.param[0]
+    client_class = request.param[1]
+
+    server = server_factory(fake_engine)
     server.register_function(fake_engine.pass_arg)
     server.register_function(fake_engine.pass_named_arg)
     server.register_function(fake_engine.boom)
     server.register_function(fake_engine.long_call)
     server.register_function(fake_engine.pass_arg, "pass_arg_as_another_name")
     server.start()
+
+    if server_factory == DualRPCServer:
+        if client_class == HttpRPCProxy:
+            client_factory = lambda server: client_class(
+                server.pipes[1], server.authkey
+            )
+        else:
+            client_factory = lambda server: client_class(
+                server.pipes[0], server.authkey
+            )
+    else:
+        client_factory = lambda server: client_class(server.pipe, server.authkey)
+
+    server.client_factory = client_factory
     try:
         yield server
     finally:
@@ -133,17 +158,8 @@ def proxy(server):
 
     :returns: A RPCProxy instance.
     """
-    if server.__class__ == DualRPCServer:
-        proxy_factory = HttpRPCProxy
-        pipe = server.pipes[1]
-    elif server.__class__ == MultiprocessingRPCServerThread:
-        proxy_factory = MultiprocessingRPCProxy
-        pipe = server.pipe
-    else:
-        proxy_factory = HttpRPCProxy
-        pipe = server.pipe
 
-    client = proxy_factory(pipe, server.authkey)
+    client = server.client_factory(server)
     try:
         yield client
     finally:
@@ -322,19 +338,29 @@ def test_call_with_exception_raised(proxy):
         proxy.call("boom")
 
 
-def test_bad_auth_key(server):
+def test_bad_http_auth_key(fake_engine):
     """
     Ensure connecting to a server with the wrong auth key will reject
     the request.
     """
-    proxy = RPCProxy(server.pipe, "12345")
-    try:
-        with pytest.raises(ValueError) as exc:
-            proxy.call("list_functions")
-        assert str(exc.value) == "invalid auth key"
-    finally:
-        if "proxy" in locals():
-            proxy.close()
+    with contextlib.closing(HttpRPCServerThread(fake_engine)) as server:
+        server.start()
+        with contextlib.closing(HttpRPCProxy(server.pipe, "12345")) as proxy:
+            with pytest.raises(ValueError) as exc:
+                proxy.call("list_functions")
+            assert str(exc.value) == "invalid auth key"
+
+
+def test_bad_multi_auth_key(fake_engine):
+    """
+    Ensure connecting to a server with the wrong auth key will reject
+    the request.
+    """
+    with contextlib.closing(MultiprocessingRPCServerThread(fake_engine)) as server:
+        server.start()
+        with pytest.raises(Exception) as exc:
+            MultiprocessingRPCProxy(server.pipe, b"12345")
+        assert str(exc.value) == "digest sent was rejected"
 
 
 def test_calling_when_closed(proxy):

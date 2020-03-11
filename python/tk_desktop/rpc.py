@@ -137,13 +137,11 @@ class MultiprocessingRPCServerThread(threading.Thread):
             "list_functions": self.list_functions,
         }
 
-        self._stop = False  # used to shut down the thread cleanly
-        self.engine = (
-            engine  # need access to the engine to run functions in the main thread
-        )
-        self.authkey = authkey or str(
-            uuid.uuid1()
-        )  # generate a random key for authentication
+        self._is_closed = False  # used to shut down the thread cleanly
+        # need access to the engine to run functions in the main thread
+        self.engine = engine
+        # generate a random key for authentication
+        self.authkey = authkey or str(uuid.uuid1()).encode()
 
         # setup the server pipe
         if sys.platform == "win32":
@@ -158,13 +156,13 @@ class MultiprocessingRPCServerThread(threading.Thread):
         self.pipe = self.server.address
 
     def is_closed(self):
-        return self._stop
+        return self._is_closed
 
     def list_functions(self):
         """
         Default method that returns the list of functions registered with the server.
         """
-        return self._functions.keys()
+        return list(self._functions.keys())
 
     def register_function(self, func, name=None):
         """
@@ -176,7 +174,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
         # This method will be called from the main thread. If the server has been stopped, there
         # is no need to call the method.
         def wrapper(*args, **kwargs):
-            if self._stop:
+            if self._is_closed:
                 # Return special value indicating the server was stopped.
                 return self._SERVER_WAS_STOPPED
             return func(*args, **kwargs)
@@ -215,7 +213,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
 
             if not ready:
                 # nothing ready, see if we need to stop the server, if not keep waiting
-                if self._stop:
+                if self._is_closed:
                     break
                 continue
 
@@ -228,7 +226,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
                     has_data = connection.poll(self.LISTEN_TIMEOUT)
 
                     # see if we need to stop the server
-                    if self._stop:
+                    if self._is_closed:
                         break
 
                     # If we timed out waiting for data, go back to sleep.
@@ -280,7 +278,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
         logger.debug("server setting flag to stop")
-        self._stop = True
+        self._is_closed = True
 
 
 class MultiprocessingRPCProxy(object):
@@ -532,7 +530,7 @@ RPCServerThread = HttpRPCServerThread
 
 class DualRPCServer(object):
     def __init__(self, engine):
-        self._authkey = str(uuid.uuid1())
+        self._authkey = str(uuid.uuid1()).encode()
         self._multiprocessing_thread = MultiprocessingRPCServerThread(
             engine, self._authkey
         )
@@ -596,9 +594,8 @@ class Listener(object):
         self._server = HTTPServer(("localhost", 0), Handler)
         self._server.listener = self
 
-        self.authkey = authkey or str(
-            uuid.uuid1()
-        )  # generate a random key for authentication
+        # generate a random key for authentication
+        self.authkey = authkey or str(uuid.uuid1()).encode()
         self.engine = engine
         self._is_closed = False
 
