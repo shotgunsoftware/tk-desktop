@@ -13,6 +13,7 @@ Implements communication channels between the desktop app and the background pro
 """
 
 from .communication_base import CommunicationBase
+from .rpc import get_rpc_server_factory
 
 
 class ProjectCommunication(CommunicationBase):
@@ -35,8 +36,15 @@ class ProjectCommunication(CommunicationBase):
         # create the connection to the site engine.
         self._create_proxy(pipe, auth)
 
-        # register our side of the pipe as the current app proxy
-        self._create_server()
+        # register our side of the pipe as the current app proxy.
+        # Based on how the server expects us to connect to them, we'll
+        # use the right server to listen to their requests.
+        # This boils down to if the server suggested we use multiprocessing
+        # to connect back to them, we'll use that to receive their message
+        # since it's likely they are using that on their end as well.
+        # If the suggested we use http to connect back to them, then we'll listen
+        # on that as well.
+        self._create_server(get_rpc_server_factory(pipe))
         self.call("create_app_proxy", self.server_pipe, self.server_authkey)
         self._connected = True
 

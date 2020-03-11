@@ -14,7 +14,13 @@ import sgtk
 
 import pytest
 
-from rpc import RPCServerThread, RPCProxy
+from rpc import (
+    MultiprocessingRPCServerThread,
+    HttpRPCServerThread,
+    DualRPCServer,
+    MultiprocessingRPCProxy,
+    HttpRPCProxy,
+)
 
 
 class Boom(Exception):
@@ -95,15 +101,18 @@ def fake_engine():
     return FakeEngine()
 
 
-@pytest.fixture
-def server(fake_engine):
+@pytest.fixture(
+    params=[MultiprocessingRPCServerThread, HttpRPCServerThread, DualRPCServer]
+)
+def server(fake_engine, request):
     """
     Readies an RPCServerThread for use, preconfigure to be able to
     call method on a FakeEngine instance.
 
     :returns: A RPCServerThread instance.
     """
-    server = RPCServerThread(fake_engine)
+    rpc_server_factory = request.param
+    server = rpc_server_factory(fake_engine)
     server.register_function(fake_engine.pass_arg)
     server.register_function(fake_engine.pass_named_arg)
     server.register_function(fake_engine.boom)
@@ -124,7 +133,17 @@ def proxy(server):
 
     :returns: A RPCProxy instance.
     """
-    client = RPCProxy(server.pipe, server.authkey)
+    if server.__class__ == DualRPCServer:
+        proxy_factory = HttpRPCProxy
+        pipe = server.pipes[1]
+    elif server.__class__ == MultiprocessingRPCServerThread:
+        proxy_factory = MultiprocessingRPCProxy
+        pipe = server.pipe
+    else:
+        proxy_factory = HttpRPCProxy
+        pipe = server.pipe
+
+    client = proxy_factory(pipe, server.authkey)
     try:
         yield client
     finally:
@@ -161,7 +180,10 @@ def test_api_backward_and_forward_compatible(server, proxy):
     assert hasattr(server, "register_function")
     assert hasattr(server, "close")
     assert hasattr(server, "engine")
-    assert hasattr(server, "pipe")
+
+    if server.__class__ != DualRPCServer:
+        assert hasattr(server, "pipe")
+
     assert hasattr(server, "authkey")
 
     assert hasattr(proxy, "call_no_response")
@@ -215,7 +237,7 @@ def test_server_close(server, proxy):
 
     # Sleep long enough for the server to shut down, this is bigger
     # than the timeout, so we should be good.
-    time.sleep(2)
+    time.sleep(5)
     assert not server.isAlive()
 
     with pytest.raises(Exception) as exc:
@@ -224,7 +246,7 @@ def test_server_close(server, proxy):
     if sgtk.util.is_windows():
         assert "No connection could be made" in str(exc.value)
     else:
-        assert "Connection refused" in str(exc.value)
+        assert "Connection refused" in str(exc.value) or "Broken pipe" in str(exc.value)
 
 
 def test_proxy_close(proxy):
@@ -305,13 +327,14 @@ def test_bad_auth_key(server):
     Ensure connecting to a server with the wrong auth key will reject
     the request.
     """
+    proxy = RPCProxy(server.pipe, "12345")
     try:
-        proxy = RPCProxy(server.pipe, "12345")
         with pytest.raises(ValueError) as exc:
             proxy.call("list_functions")
         assert str(exc.value) == "invalid auth key"
     finally:
-        proxy.close()
+        if "proxy" in locals():
+            proxy.close()
 
 
 def test_calling_when_closed(proxy):
