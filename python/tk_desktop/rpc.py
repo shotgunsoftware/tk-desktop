@@ -151,7 +151,6 @@ class MultiprocessingRPCServerThread(threading.Thread):
         self.server = multiprocessing.connection.Listener(
             address=None, family=family, authkey=self.authkey
         )
-
         # grab the name of the pipe
         self.pipe = self.server.address
 
@@ -187,7 +186,8 @@ class MultiprocessingRPCServerThread(threading.Thread):
         they are closed.  Each message is a call into the function table.
         """
         logger.debug("server listening on '%s'", self.pipe)
-        while True:
+        while self._is_closed is False:
+            logger.debug("server thread is about to create a server")
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
                 # need to use win32 api for windows
@@ -212,22 +212,21 @@ class MultiprocessingRPCServerThread(threading.Thread):
                 ready = len(rd) > 0
 
             if not ready:
-                # nothing ready, see if we need to stop the server, if not keep waiting
-                if self._is_closed:
-                    break
+                logger.debug("server thread could not create server")
                 continue
 
-            # connection waiting to be read, accept it
-            connection = self.server.accept()
-            logger.debug("server accepted connection")
             try:
-                while True:
+                # connection waiting to be read, accept it
+                logger.debug("server about to accept connection")
+                connection = self.server.accept()
+                logger.debug("server accepted connection")
+                while self._is_closed is False:
                     # test to see if there is data waiting on the connection
                     has_data = connection.poll(self.LISTEN_TIMEOUT)
 
                     # see if we need to stop the server
                     if self._is_closed:
-                        break
+                        return
 
                     # If we timed out waiting for data, go back to sleep.
                     if not has_data:
@@ -274,10 +273,19 @@ class MultiprocessingRPCServerThread(threading.Thread):
             finally:
                 logger.debug("server closing")
                 connection.close()
+                logger.debug("server closed")
+        logger.debug("multiprocessing server thread shutting down")
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
         logger.debug("server setting flag to stop")
+        self.server.close()
+        if sys.platform == "win32":
+            # Unblocks the call to accept from the server loop on Windows
+            try:
+                MultiprocessingRPCProxy(self.pipe, self.authkey)
+            except Exception:
+                pass
         self._is_closed = True
 
 
@@ -324,14 +332,21 @@ class MultiprocessingRPCProxy(object):
 
         # wait until there is a result, pause to check if we have been closed
         while True:
-            if self._connection.poll(self.LISTEN_TIMEOUT):
-                # have a response waiting, grab it
-                break
-            else:
-                # no response waiting, see if we need to stop the client
+            try:
+                if self._connection.poll(self.LISTEN_TIMEOUT):
+                    # have a response waiting, grab it
+                    break
+                else:
+                    # On Unix, the poll return False, so we raise an error.
+                    if self._closed:
+                        raise RuntimeError("client closed while waiting for a response")
+                    continue
+            except IOError as e:
+                # On Windows, an IOError is raised.
                 if self._closed:
                     raise RuntimeError("client closed while waiting for a response")
-                continue
+                raise
+
         # read the result
         result = pickle.loads(self._connection.recv())
         logger.debug("client got result '%s'" % result)
@@ -431,7 +446,7 @@ class HttpRPCServerThread(threading.Thread):
         """
         logger.debug("requesting server thread to close")
         self._listener.close()
-        logger.debug("requested server thread close request to close")
+        logger.debug("requested server thread to close")
 
 
 class HttpRPCProxy(object):

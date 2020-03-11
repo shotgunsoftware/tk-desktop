@@ -164,7 +164,7 @@ def proxy(server):
 
     :returns: A RPCProxy instance.
     """
-
+    # time.sleep(1)
     client = server.client_factory(server)
     try:
         yield client
@@ -266,7 +266,9 @@ def test_server_close(server, proxy):
         proxy.call("pass_arg", 1)
 
     if sgtk.util.is_windows():
-        assert "No connection could be made" in str(exc.value)
+        assert "No connection could be made" in str(
+            exc.value
+        ) or "The pipe is being closed" in str(exc.value)
     else:
         assert "Connection refused" in str(exc.value) or "Broken pipe" in str(exc.value)
 
