@@ -328,12 +328,12 @@ class RecentList(BaseIconList):
         button.command_triggered.connect(self.command_triggered)
         self._layout.insertWidget(insert_pos, button)
 
-        if (self._layout.count() - 1) > self.MAX_RECENTS:
+        if (self._layout.count()) > self.MAX_RECENTS:
             self._layout.takeAt(self.MAX_RECENTS).widget().deleteLater()
 
     @property
     def buttons(self):
-        for i in range(self._layout.count() - 1):
+        for i in range(self._layout.count()):
             yield self._layout.itemAt(i).widget()
 
 

@@ -17,15 +17,9 @@ from mock import Mock
 # Patch sgtk to se can use Qt in the tests.
 import sgtk
 
-if True:
-    importer = sgtk.util.qt_importer.QtImporter()
-    sgtk.platform.qt.QtGui = importer.QtGui
-    sgtk.platform.qt.QtCore = importer.QtCore
-else:
-    from PySide import QtGui, QtCore
-
-    sgtk.platform.qt.QtGui = QtGui
-    sgtk.platform.qt.QtCore = QtCore
+importer = sgtk.util.qt_importer.QtImporter()
+sgtk.platform.qt.QtGui = importer.QtGui
+sgtk.platform.qt.QtCore = importer.QtCore
 
 
 from prj_commands import CommandsView, RecentList
@@ -41,7 +35,7 @@ def qapplication():
 
 @pytest.fixture
 def simple_test_view():
-    view = CommandsView(None, Settings())
+    view = CommandsView(sgtk.platform.qt.QtGui.QScrollArea(), Settings())
     view.set_project(PROJECT, ["Creative Tools", "Editorial"])
     return view
 
@@ -78,7 +72,7 @@ def test_sections_sorted(show_recents, commands):
     groups = ["Studio", "Creative Tools", "Editorial", "Automotive Tools"]
     # Create a view with some recents.
     view = CommandsView(
-        None,
+        sgtk.platform.qt.QtGui.QScrollArea(),
         Settings(
             {PROJECT_KEY: {"command 0": {"timestamp": datetime.datetime.utcnow()}}}
         ),
@@ -117,7 +111,7 @@ def test_clear_deletes_all_but_stretcher():
     Ensure clearing removes all widget except for the stretcher
     """
     view = CommandsView(
-        None,
+        sgtk.platform.qt.QtGui.QScrollArea(),
         Settings(
             {PROJECT_KEY: {"maya_2020": {"timestamp": datetime.datetime.utcnow()}}}
         ),
@@ -250,7 +244,7 @@ def test_recent_sorted_properly(recents, monkeypatch):
         }
     )
     monkeypatch.setattr(RecentList, "MAX_RECENTS", 3)
-    view = CommandsView(None, settings)
+    view = CommandsView(sgtk.platform.qt.QtGui.QScrollArea(), settings)
     view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
     _register_commands(view, commands)
     assert [button.name for button in view.recents.buttons] == [
