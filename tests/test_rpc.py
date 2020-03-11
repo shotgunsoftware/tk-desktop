@@ -106,33 +106,16 @@ def fake_engine():
 # By using a parametrized server fixture, it means each test in this file
 # that directly or indirectly uses the fixutre will be called four times.
 @pytest.fixture(
-    params=[
-        pytest.param(
+    params=(
+        [
             (MultiprocessingRPCServerThread, MultiprocessingRPCProxy),
-            marks=pytest.mark.skip(
-                "Multiprocessing in Python 3 is not  compatible with Python 2 so we won't even use it in practice."
-            )
-            if six.PY3
-            else None,
-        ),
-        (HttpRPCServerThread, HttpRPCProxy),
-        pytest.param(
             (DualRPCServer, MultiprocessingRPCProxy),
-            marks=pytest.mark.skip(
-                "Multiprocessing in Python 3 is not  compatible with Python 2 so we won't even use it in practice."
-            )
-            if six.PY3
-            else None,
-        ),
-        pytest.param(
             (DualRPCServer, HttpRPCProxy),
-            marks=pytest.mark.skip(
-                "Multiprocessing in Python 3 is not  compatible with Python 2 so we won't even use it in practice."
-            )
-            if six.PY3
-            else None,
-        ),
-    ]
+        ]
+        if six.PY2
+        else []
+    )
+    + [(HttpRPCServerThread, HttpRPCProxy)]
 )
 def server(fake_engine, request):
     """
