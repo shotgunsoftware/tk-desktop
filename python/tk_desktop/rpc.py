@@ -185,9 +185,9 @@ class MultiprocessingRPCServerThread(threading.Thread):
         Run the thread, accepting connections and then listening on them until
         they are closed.  Each message is a call into the function table.
         """
-        logger.debug("server listening on '%s'", self.pipe)
+        logger.debug("multi server listening on '%s'", self.pipe)
         while self._is_closed is False:
-            logger.debug("server thread is about to create a server")
+            logger.debug("multi server thread is about to create a server")
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
                 # need to use win32 api for windows
@@ -212,14 +212,14 @@ class MultiprocessingRPCServerThread(threading.Thread):
                 ready = len(rd) > 0
 
             if not ready:
-                logger.debug("server thread could not create server")
+                logger.debug("multi server thread could not create server")
                 continue
 
             try:
                 # connection waiting to be read, accept it
-                logger.debug("server about to accept connection")
+                logger.debug("multi server about to accept connection")
                 connection = self.server.accept()
-                logger.debug("server accepted connection")
+                logger.debug("multi server accepted connection")
                 while self._is_closed is False:
                     # test to see if there is data waiting on the connection
                     has_data = connection.poll(self.LISTEN_TIMEOUT)
@@ -235,7 +235,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
                     # data coming over the connection is a tuple of (name, args, kwargs)
                     (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
                     logger.debug(
-                        "server calling '%s(%s, %s)'" % (func_name, args, kwargs)
+                        "multi server calling '%s(%s, %s)'" % (func_name, args, kwargs)
                     )
 
                     try:
@@ -256,7 +256,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
                         # on the server side when calling send.
                         if self._SERVER_WAS_STOPPED != result:
                             # if the client expects the results, send them along
-                            logger.debug("server got result '%s'" % result)
+                            logger.debug("multi server got result '%s'" % result)
 
                             if respond:
                                 connection.send(pickle.dumps(result))
@@ -271,14 +271,14 @@ class MultiprocessingRPCServerThread(threading.Thread):
                 # just keep serving new connections
                 pass
             finally:
-                logger.debug("server closing")
+                logger.debug("multi server closing")
                 connection.close()
-                logger.debug("server closed")
-        logger.debug("multiprocessing server thread shutting down")
+                logger.debug("multi server closed")
+        logger.debug("multi server thread shutting down")
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
-        logger.debug("server setting flag to stop")
+        logger.debug("multi server setting flag to stop")
         self.server.close()
         if sys.platform == "win32":
             # Unblocks the call to accept from the server loop on Windows
@@ -308,14 +308,14 @@ class MultiprocessingRPCProxy(object):
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
-        logger.debug("client connecting to to %s", pipe)
+        logger.debug("multi client connecting to to %s", pipe)
         self._connection = multiprocessing.connection.Client(
             address=pipe, family=family, authkey=authkey
         )
-        logger.debug("client connected to %s", pipe)
+        logger.debug("multi client connected to %s", pipe)
 
     def call_no_response(self, name, *args, **kwargs):
-        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "multi client calling '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
@@ -323,7 +323,7 @@ class MultiprocessingRPCProxy(object):
         self._connection.send(pickle.dumps((False, name, args, kwargs)))
 
     def call(self, name, *args, **kwargs):
-        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "multi client waiting call '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
@@ -349,7 +349,7 @@ class MultiprocessingRPCProxy(object):
 
         # read the result
         result = pickle.loads(self._connection.recv())
-        logger.debug("client got result '%s'" % result)
+        logger.debug("multi client got result '%s'" % result)
         # if an exception was returned raise it on the client side
         if isinstance(result, Exception):
             raise result
@@ -427,7 +427,7 @@ class HttpRPCServerThread(threading.Thread):
         Run the thread, accepting connections and then listening on them until
         they are closed.  Each message is a call into the function table.
         """
-        logger.debug("server thread listening on '%s'", self.pipe)
+        logger.debug("http server thread listening on '%s'", self.pipe)
         try:
             self._listener.serve_forever()
         except BaseException:
@@ -438,15 +438,15 @@ class HttpRPCServerThread(threading.Thread):
             # Let's also be thorough and catch BaseException to make
             # sure CTRL-C still ends this thread peacefully.
             pass
-        logger.debug("server thread shutting down")
+        logger.debug("http server thread shutting down")
 
     def close(self):
         """
         Signal the server to shut down connections and stop the run loop.
         """
-        logger.debug("requesting server thread to close")
+        logger.debug("requesting http server thread to close")
         self._listener.close()
-        logger.debug("requested server thread to close")
+        logger.debug("requested http server thread to close")
 
 
 class HttpRPCProxy(object):
@@ -476,7 +476,7 @@ class HttpRPCProxy(object):
         :param args: Arguments to pass to the method
         :param kwargs: Keyword arguments to pass to the method.
         """
-        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "http client calling '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
@@ -494,7 +494,7 @@ class HttpRPCProxy(object):
         :param args: Arguments to pass to the method
         :param kwargs: Keyword arguments to pass to the method.
         """
-        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "http client waiting call '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
@@ -502,7 +502,7 @@ class HttpRPCProxy(object):
         result = self._connection.send(True, name, args, kwargs)
         if self._closed:
             raise RuntimeError("client closed while waiting for a response")
-        logger.debug("client got result '%s'" % result)
+        logger.debug("http client got result '%s'" % result)
         # if an exception was returned raise it on the client side
         if isinstance(result, Exception):
             raise result
@@ -734,7 +734,7 @@ class Handler(SimpleHTTPRequestHandler):
         response = None
         try:
             (authkey, (is_blocking, func_name, args, kwargs)) = self._read_request()
-            logger.debug("server calling '%s(%s, %s)'" % (func_name, args, kwargs))
+            logger.debug("http server calling '%s(%s, %s)'" % (func_name, args, kwargs))
 
             # Make sure the right credentials were sent.
             if authkey != self.server.listener.authkey:
@@ -755,7 +755,7 @@ class Handler(SimpleHTTPRequestHandler):
                 self._engine.async_execute_in_main_thread(func, *args, **kwargs)
                 response = None
 
-            logger.debug("'%s' result: '%s" % (func_name, response))
+            logger.debug("http '%s' result: '%s" % (func_name, response))
         except Exception as e:
             response = e
             # if any of the above fails send the exception back to the client
