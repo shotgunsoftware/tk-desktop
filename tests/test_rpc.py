@@ -135,15 +135,11 @@ def server(fake_engine, request):
     # since several seconds can elapse between the moment the server is started
     # and the moment the client connects, so we'll fix the flaky tests by adding
     # a 1 second sleep, which fixes the problem
-    if (
-        sgtk.util.is_windows()
-        and original_client_factory.__class__ == MultiprocessingRPCProxy
-    ):
-        client_factory = lambda pipe, auth: time.sleep(2) or original_client_factory(
+    if sgtk.util.is_windows() and original_client_factory == MultiprocessingRPCProxy:
+        client_factory = lambda pipe, auth: time.sleep(1) or original_client_factory(
             pipe, auth
         )
     else:
-        print("original factory")
         client_factory = original_client_factory
 
     server = server_factory(fake_engine)
@@ -167,6 +163,7 @@ def server(fake_engine, request):
         yield server
     finally:
         server.close()
+        server.join()
 
 
 @pytest.fixture
@@ -215,7 +212,7 @@ def test_api_backward_and_forward_compatible(server, proxy):
     assert hasattr(server, "close")
     assert hasattr(server, "engine")
 
-    if server.__class__ != DualRPCServer:
+    if isinstance(server, DualRPCServer) is False:
         assert hasattr(server, "pipe")
 
     assert hasattr(server, "authkey")
@@ -270,11 +267,8 @@ def test_server_close(server, proxy):
     Ensure closing the server actually closes it.
     """
     server.close()
+    server.join()
     assert server.is_closed()
-
-    # Sleep long enough for the server to shut down, this is bigger
-    # than the timeout, so we should be good.
-    time.sleep(5)
     assert not server.is_alive()
 
     with pytest.raises(Exception) as exc:
@@ -400,7 +394,7 @@ def test_calling_when_closed(proxy):
     Ensure calling a method on the clietn when it is closed fails.
     """
     proxy.close()
-    client_type = "multi" if proxy.__class__ == MultiprocessingRPCProxy else "http"
+    client_type = "multi" if isinstance(proxy, MultiprocessingRPCProxy) else "http"
     with pytest.raises(RuntimeError) as exc:
         proxy.call("anything")
     assert (

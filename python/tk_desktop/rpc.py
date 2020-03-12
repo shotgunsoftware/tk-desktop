@@ -74,9 +74,30 @@ else:
 class SafeLogger(object):
     def __init__(self):
         self.__logger = None
+        if self._is_debugging_rpc():
+            self._simple_thread_ids = {}
+            self._id_generation_lock = threading.Lock()
+
+    def _is_debugging_rpc(self):
+        return "TK_DESKTOP_RPC_DEBUG" in os.environ
+
+    def _get_simple_thread_id(self):
+        ident = threading.current_thread()
+        if ident not in self._simple_thread_ids:
+            with self._id_generation_lock:
+                self._simple_thread_ids[threading.current_thread()] = len(
+                    self._simple_thread_ids
+                )
+        return self._simple_thread_ids[threading.current_thread()]
 
     def debug(self, *args, **kwargs):
         if self._logger:
+            if self._is_debugging_rpc():
+                args = list(args)
+                if threading.current_thread().getName() != "MainThread":
+                    args[0] = "Thread %d - " % self._get_simple_thread_id() + args[0]
+                else:
+                    args[0] = "Main Thread - " + args[0]
             self._logger.debug(*args, **kwargs)
 
     def warning(self, *args, **kwargs):
@@ -101,7 +122,7 @@ class SafeLogger(object):
             else:
                 self.__logger = LogManager.get_logger(__name__)
                 # Only log debug messages if they are specifically requested.
-                if True:
+                if self._is_debugging_rpc():
                     self.__logger.setLevel(logging.DEBUG)
                 else:
                     self.__logger.setLevel(logging.INFO)
@@ -198,6 +219,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
                     )
                     ready = True
                 except WindowsError as e:
+                    logger.debug("Error during WaitNamedPipe:", exc_info=True)
                     if e.args[0] not in (
                         mpc_win32.ERROR_SEM_TIMEOUT,
                         mpc_win32.ERROR_PIPE_BUSY,
@@ -271,9 +293,11 @@ class MultiprocessingRPCServerThread(threading.Thread):
                 # just keep serving new connections
                 pass
             finally:
-                logger.debug("multi server closing")
-                connection.close()
-                logger.debug("multi server closed")
+                # It's possible we failed accepting, so the variable may not be defined.
+                if "connection" in locals():
+                    logger.debug("multi server closing")
+                    connection.close()
+                    logger.debug("multi server closed")
         logger.debug("multi server thread shutting down")
 
     def close(self):
@@ -588,6 +612,10 @@ class DualRPCServer(object):
 
     def is_alive(self):
         return self._multiprocessing_thread.is_alive() or self._http_thread.is_alive()
+
+    def join(self):
+        self._multiprocessing_thread.join()
+        self._http_thread.join()
 
 
 ##############################################################################
