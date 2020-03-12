@@ -49,6 +49,7 @@ import uuid
 import select
 import logging
 import threading
+import time
 import traceback
 import multiprocessing.connection
 
@@ -98,6 +99,7 @@ class SafeLogger(object):
                     args[0] = "Thread %d - " % self._get_simple_thread_id() + args[0]
                 else:
                     args[0] = "Main Thread - " + args[0]
+                args[0] = "%f - %s" % (time.time(), args[0])
             self._logger.debug(*args, **kwargs)
 
     def warning(self, *args, **kwargs):
