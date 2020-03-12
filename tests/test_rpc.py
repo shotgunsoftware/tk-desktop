@@ -165,7 +165,8 @@ def server(fake_engine, request):
     try:
         yield server
     finally:
-        server.close()
+        if server.is_closed() is False:
+            server.close()
         server.join()
 
 
