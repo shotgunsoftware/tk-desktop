@@ -135,6 +135,12 @@ def server(fake_engine, request):
     # since several seconds can elapse between the moment the server is started
     # and the moment the client connects, so we'll fix the flaky tests by adding
     # a 1 second sleep, which fixes the problem
+    # if sgtk.util.is_windows() and original_client_factory == MultiprocessingRPCProxy:
+    #     client_factory = lambda pipe, auth: time.sleep(1) or original_client_factory(
+    #         pipe, auth
+    #     )
+    # else:
+    #     client_factory = original_client_factory
     client_factory = lambda pipe, auth: time.sleep(1) or original_client_factory(
         pipe, auth
     )
@@ -175,7 +181,8 @@ def proxy(server):
     try:
         yield client
     finally:
-        client.close()
+        if client.is_closed() is False:
+            client.close()
 
 
 def test_list_functions(server):
