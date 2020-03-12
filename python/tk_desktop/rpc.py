@@ -101,7 +101,7 @@ class SafeLogger(object):
             else:
                 self.__logger = LogManager.get_logger(__name__)
                 # Only log debug messages if they are specifically requested.
-                if "TK_DESKTOP_RPC_DEBUG" in os.environ:
+                if True:
                     self.__logger.setLevel(logging.DEBUG)
                 else:
                     self.__logger.setLevel(logging.INFO)
