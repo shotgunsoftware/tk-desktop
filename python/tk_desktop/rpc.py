@@ -852,9 +852,9 @@ class AsyncDispatcher(threading.Thread):
         Queue a payload to be sent asynchronously.
         :param payload: Data to send.
         """
-        print("async dispatcher is queuing", payload)
+        logger.debug("async dispatcher is queuing %s", payload)
         self._queue.put(payload)
-        print("async disptcher has queued", payload)
+        logger.debug("async disptcher has queued %s", payload)
 
     def shutdown(self):
         """
