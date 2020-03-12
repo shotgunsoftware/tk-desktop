@@ -110,9 +110,9 @@ def fake_engine():
 @pytest.fixture(
     params=(
         [
-            (MultiprocessingRPCServerThread, MultiprocessingRPCProxy),
-            (DualRPCServer, MultiprocessingRPCProxy),
-            (DualRPCServer, HttpRPCProxy),
+            # (MultiprocessingRPCServerThread, MultiprocessingRPCProxy),
+            # (DualRPCServer, MultiprocessingRPCProxy),
+            # (DualRPCServer, HttpRPCProxy),
         ]
         if six.PY2
         else []
