@@ -135,7 +135,10 @@ def server(fake_engine, request):
     # since several seconds can elapse between the moment the server is started
     # and the moment the client connects, so we'll fix the flaky tests by adding
     # a 1 second sleep, which fixes the problem
-    if sgtk.util.is_windows() and client_factory.__class__ == MultiprocessingRPCProxy:
+    if (
+        sgtk.util.is_windows()
+        and original_client_factory.__class__ == MultiprocessingRPCProxy
+    ):
         client_factory = lambda pipe, auth: time.sleep(1) or original_client_factory(
             pipe, auth
         )
@@ -152,7 +155,7 @@ def server(fake_engine, request):
     server.start()
 
     if server_factory == DualRPCServer:
-        if client_factory == HttpRPCProxy:
+        if original_client_factory == HttpRPCProxy:
             factory = lambda server: client_factory(server.pipes[1], server.authkey)
         else:
             factory = lambda server: client_factory(server.pipes[0], server.authkey)
