@@ -400,10 +400,14 @@ def test_calling_when_closed(proxy):
     Ensure calling a method on the clietn when it is closed fails.
     """
     proxy.close()
+    client_type = "multi" if proxy.__class__ == MultiprocessingRPCProxy else "http"
     with pytest.raises(RuntimeError) as exc:
         proxy.call("anything")
-    assert str(exc.value) == "closed client waiting call 'anything((), {})'"
+    assert (
+        str(exc.value)
+        == "closed %s client waiting call 'anything((), {})'" % client_type
+    )
 
     with pytest.raises(RuntimeError) as exc:
         proxy.call_no_response("anything")
-    assert str(exc.value) == "closed client calling 'anything((), {})'"
+    assert str(exc.value) == "closed %s client calling 'anything((), {})'" % client_type
