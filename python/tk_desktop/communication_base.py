@@ -12,7 +12,7 @@
 Implements communication channels between the desktop app and the background process.
 """
 
-from .rpc import rpc_proxy_factory
+from .rpc import get_rpc_proxy_factory
 
 from sgtk import LogManager
 
@@ -24,14 +24,13 @@ class CommunicationBase(object):
     Communication channel base class.
     """
 
-    def __init__(self, engine, rpc_server_factory):
+    def __init__(self, engine):
         """
         :param engine: Toolkit engine.
         """
         self._engine = engine
         self._msg_server = None
         self._proxy = None
-        self._rpc_server_factory = rpc_server_factory
 
     @property
     def is_connected(self):
@@ -113,6 +112,7 @@ class CommunicationBase(object):
         self._msg_server = rpc_server_factory(self._engine)
         self._msg_server.start()
 
+    # FIXME: This should be moved to the ProjectCommunication
     @property
     def server_pipe(self):
         """

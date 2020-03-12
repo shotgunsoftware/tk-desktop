@@ -91,10 +91,11 @@ class DesktopEngineProjectImplementation(object):
         # pull the data on how to connect to the GUI proxy from the tk instance
         bootstrap_data = self._engine.sgtk._desktop_data
         proxy_pipe = bootstrap_data["proxy_pipe"]
+        http_pipe = bootstrap_data.get("http_pipe")
         proxy_auth = bootstrap_data["proxy_auth"]
 
         self._project_comm.connect_to_server(
-            proxy_pipe, proxy_auth, self._signal_disconnect
+            http_pipe or proxy_pipe, proxy_auth, self._signal_disconnect
         )
         # Stop logging to disk
         sgtk.LogManager().uninitialize_base_file_handler()

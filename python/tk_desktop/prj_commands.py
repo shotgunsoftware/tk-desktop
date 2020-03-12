@@ -10,6 +10,7 @@
 
 from __future__ import print_function
 
+print("new stuff imported!")
 from sgtk.platform.qt import QtCore, QtGui
 from tank_vendor import six
 import datetime
