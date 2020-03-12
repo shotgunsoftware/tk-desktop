@@ -852,7 +852,9 @@ class AsyncDispatcher(threading.Thread):
         Queue a payload to be sent asynchronously.
         :param payload: Data to send.
         """
+        print("async dispatcher is queuing", payload)
         self._queue.put(payload)
+        print("async disptcher has queued", payload)
 
     def shutdown(self):
         """
@@ -862,7 +864,9 @@ class AsyncDispatcher(threading.Thread):
         self._shut_down_requested = True
         # Insert dummy data to wake up the thread
         # if nothing is currently in the queue
+        logger.debug("requesting async dispatcher to shut down")
         self._queue.put(None)
+        logger.debug("requested async dispatcher to shut down")
 
     def run(self):
         """
@@ -877,11 +881,14 @@ class AsyncDispatcher(threading.Thread):
                 payload = self._queue.get()
                 # If a shutdown request was made.
                 if self._shut_down_requested:
+                    logger.debug("async dispatcher is shutting down.")
                     break
                 # We're in the background thread, so we can send
                 # a blocking request now, as urlopen is blocking
                 # anyway.
+                logger.debug("async dispatcher got async payload, sending %s", payload)
                 self._connection._send(payload)
+                logger.debug("async dispatcher sent payload %s", payload)
             except Exception:
                 logger.exception("Error was raised from RPC dispatching thread:")
 
@@ -933,8 +940,11 @@ class Connection(object):
         :param payload: Data to send.
         """
         payload = pickle.dumps((self._authkey, payload))
+        logger.debug("http connection is about to send")
         r = urlopen(self._address, data=six.ensure_binary(payload))
+        logger.debug("http connection has sent")
         response = pickle.loads(r.read())
+        logger.debug("http connection has received result")
         if isinstance(response, Exception):
             raise response
         return response
