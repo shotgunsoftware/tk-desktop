@@ -430,14 +430,14 @@ class HttpRPCServerThread(threading.Thread):
         logger.debug("http server thread listening on '%s'", self.pipe)
         try:
             self._listener.serve_forever()
-        except BaseException:
+        except BaseException as e:
             # Not catching the error here seems to not clean up the
             # server connection and it can deadlock the main thread.
             # Keep this except in place or you'll freeze when hitting
             # the back arrow on the project page of the desktop window.
             # Let's also be thorough and catch BaseException to make
             # sure CTRL-C still ends this thread peacefully.
-            pass
+            logger.debug("caught exception when serving forever:", exc_info=True)
         logger.debug("http server thread shutting down")
 
     def close(self):
