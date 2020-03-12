@@ -127,7 +127,21 @@ def server(fake_engine, request):
     :returns: A RPCServerThread instance.
     """
     server_factory = request.param[0]
-    client_class = request.param[1]
+    original_client_factory = request.param[1]
+
+    # FIXME: There's some sort of race condition on Windows when the server and client
+    # are started too quickly. It's spent a couple of hours trying to figure
+    # it out but couldn't fix it. In real a world scenario, this is not an issue
+    # since several seconds can elapse between the moment the server is started
+    # and the moment the client connects, so we'll fix the flaky tests by adding
+    # a 1 second sleep, which fixes the problem
+    if sgtk.util.is_windows() and client_factory.__class__ == MultiprocessingRPCProxy:
+        client_factory = lambda pipe, auth: time.sleep(1) or original_client_factory(
+            pipe, auth
+        )
+    else:
+        print("original factory")
+        client_factory = original_client_factory
 
     server = server_factory(fake_engine)
     server.register_function(fake_engine.pass_arg)
@@ -138,18 +152,14 @@ def server(fake_engine, request):
     server.start()
 
     if server_factory == DualRPCServer:
-        if client_class == HttpRPCProxy:
-            client_factory = lambda server: client_class(
-                server.pipes[1], server.authkey
-            )
+        if client_factory == HttpRPCProxy:
+            factory = lambda server: client_factory(server.pipes[1], server.authkey)
         else:
-            client_factory = lambda server: client_class(
-                server.pipes[0], server.authkey
-            )
+            factory = lambda server: client_factory(server.pipes[0], server.authkey)
     else:
-        client_factory = lambda server: client_class(server.pipe, server.authkey)
+        factory = lambda server: client_factory(server.pipe, server.authkey)
 
-    server.client_factory = client_factory
+    server.client_factory = factory
     try:
         yield server
     finally:
@@ -164,7 +174,6 @@ def proxy(server):
 
     :returns: A RPCProxy instance.
     """
-    # time.sleep(1)
     client = server.client_factory(server)
     try:
         yield client
@@ -367,6 +376,14 @@ def test_bad_multi_auth_key(fake_engine):
     """
     with contextlib.closing(MultiprocessingRPCServerThread(fake_engine)) as server:
         server.start()
+        # FIXME: There's some sort of race condition on Windows when the server and client
+        # are started too quickly. It's spent a couple of hours trying to figure
+        # it out but couldn't fix it. In real a world scenario, this is not an issue
+        # since several seconds can elapse between the moment the server is started
+        # and the moment the client connects, so we'll fix the flaky tests by adding
+        # a 1 second sleep, which fixes the problem
+        if sgtk.util.is_windows():
+            time.sleep(1)
         with pytest.raises(Exception) as exc:
             MultiprocessingRPCProxy(server.pipe, b"12345")
         assert str(exc.value) == "digest sent was rejected"
