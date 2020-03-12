@@ -255,11 +255,14 @@ def await_value(obj, attr, expected):
     Waits at most 5 seconds for a value.
     """
     before = time.time()
-    while before + 10 > time.time():
+    while before + 5 > time.time():
         if getattr(obj, attr, None) == expected:
             return
 
-    raise RuntimeError("Waited more than 5 seconds for value to settle.")
+    raise RuntimeError(
+        "Waited more than 5 seconds for value to settle. Expected %s, got %s"
+        % (expected, getattr(obj, attr, None))
+    )
 
 
 def test_server_close(server, proxy):
