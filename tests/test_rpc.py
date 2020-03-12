@@ -139,7 +139,7 @@ def server(fake_engine, request):
         sgtk.util.is_windows()
         and original_client_factory.__class__ == MultiprocessingRPCProxy
     ):
-        client_factory = lambda pipe, auth: time.sleep(1) or original_client_factory(
+        client_factory = lambda pipe, auth: time.sleep(2) or original_client_factory(
             pipe, auth
         )
     else:
