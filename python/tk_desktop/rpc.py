@@ -80,7 +80,7 @@ class SafeLogger(object):
             self._id_generation_lock = threading.Lock()
 
     def _is_debugging_rpc(self):
-        return "TK_DESKTOP_RPC_DEBUG" in os.environ
+        return True  # "TK_DESKTOP_RPC_DEBUG" in os.environ
 
     def _get_simple_thread_id(self):
         ident = threading.current_thread()
@@ -543,11 +543,11 @@ class HttpRPCProxy(object):
         """
         return self._closed
 
-    def close(self):
+    def close(self, join=False):
         """
         Close the connection to the server.
         """
-        self._connection.close()
+        self._connection.close(join)
         self._closed = True
 
 
@@ -911,11 +911,13 @@ class Connection(object):
         self._async_dipsatcher = AsyncDispatcher(self)
         self._async_dipsatcher.start()
 
-    def close(self):
+    def close(self, join=False):
         """
         Close the connection to the server.
         """
         self._async_dipsatcher.shutdown()
+        if join:
+            self._async_dipsatcher.join()
 
     def send(self, is_blocking, func_name, args, kwargs):
         """
