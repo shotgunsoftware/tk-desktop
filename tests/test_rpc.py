@@ -260,7 +260,7 @@ def await_value(obj, attr, expected):
     Waits at most 5 seconds for a value.
     """
     before = time.time()
-    while before + 5 > time.time():
+    while before + 10 > time.time():
         if getattr(obj, attr, None) == expected:
             return
 
