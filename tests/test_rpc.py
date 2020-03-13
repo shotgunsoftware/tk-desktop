@@ -19,9 +19,25 @@ from rpc import (
     MultiprocessingRPCServerThread,
     HttpRPCServerThread,
     DualRPCServer,
-    MultiprocessingRPCProxy,
+    MultiprocessingRPCProxy as MultiprocessingRPCProxyImp,
     HttpRPCProxy,
 )
+
+if sgtk.util.is_windows():
+    # FIXME: There's some sort of race condition on Windows when the server and client
+    # are started too quickly. I've spent a couple of hours trying to figure
+    # it out but couldn't fix it. In real a world scenario, this is not an issue
+    # since several seconds can elapse between the moment the server is started
+    # and the moment the client connects, so we'll fix the flaky tests by adding
+    # a 1 second sleep, which fixes the problem both locally in my VM and in the CI.
+    class MultiprocessingRPCProxy(MultiprocessingRPCProxyImp):
+        def __init__(self, pipe, auth):
+            time.sleep(1)
+            super(MultiprocessingRPCProxy, self).__init__(pipe, auth)
+
+
+else:
+    MultiprocessingRPCProxy = MultiprocessingRPCProxyImp
 
 
 class Boom(Exception):
@@ -129,23 +145,10 @@ def server(fake_engine, request):
 
     :returns: A RPCServerThread instance.
     """
-    server_factory = request.param[0]
-    original_client_factory = request.param[1]
+    server_class = request.param[0]
+    client_class = request.param[1]
 
-    # FIXME: There's some sort of race condition on Windows when the server and client
-    # are started too quickly. I've spent a couple of hours trying to figure
-    # it out but couldn't fix it. In real a world scenario, this is not an issue
-    # since several seconds can elapse between the moment the server is started
-    # and the moment the client connects, so we'll fix the flaky tests by adding
-    # a 1 second sleep, which fixes the problem both locally in my VM and in the CI.
-    if sgtk.util.is_windows() and original_client_factory == MultiprocessingRPCProxy:
-        client_factory = lambda pipe, auth: time.sleep(1) or original_client_factory(
-            pipe, auth
-        )
-    else:
-        client_factory = original_client_factory
-
-    server = server_factory(fake_engine)
+    server = server_class(fake_engine)
     server.register_function(fake_engine.pass_arg)
     server.register_function(fake_engine.pass_named_arg)
     server.register_function(fake_engine.boom)
@@ -153,13 +156,13 @@ def server(fake_engine, request):
     server.register_function(fake_engine.pass_arg, "pass_arg_as_another_name")
     server.start()
 
-    if server_factory == DualRPCServer:
-        if original_client_factory == HttpRPCProxy:
-            factory = lambda server: client_factory(server.pipes[1], server.authkey)
+    if server_class == DualRPCServer:
+        if client_class == HttpRPCProxy:
+            factory = lambda server: client_class(server.pipes[1], server.authkey)
         else:
-            factory = lambda server: client_factory(server.pipes[0], server.authkey)
+            factory = lambda server: client_class(server.pipes[0], server.authkey)
     else:
-        factory = lambda server: client_factory(server.pipe, server.authkey)
+        factory = lambda server: client_class(server.pipe, server.authkey)
 
     server.client_factory = factory
     try:
@@ -254,15 +257,15 @@ def test_call_named_arg(fake_engine, proxy):
 
 def await_value(obj, attr, expected):
     """
-    Waits at most 5 seconds for a value.
+    Waits at most 10 seconds for a value.
     """
     before = time.time()
-    while before + 5 > time.time():
+    while before + 10 > time.time():
         if getattr(obj, attr, None) == expected:
             return
 
     raise RuntimeError(
-        "Waited more than 5 seconds for value to settle. Expected %s, got %s"
+        "Waited more than 10 seconds for value to settle. Expected %s, got %s"
         % (expected, getattr(obj, attr, None))
     )
 
@@ -383,14 +386,6 @@ def test_bad_multi_auth_key(fake_engine):
     """
     with contextlib.closing(MultiprocessingRPCServerThread(fake_engine)) as server:
         server.start()
-        # FIXME: There's some sort of race condition on Windows when the server and client
-        # are started too quickly. It's spent a couple of hours trying to figure
-        # it out but couldn't fix it. In real a world scenario, this is not an issue
-        # since several seconds can elapse between the moment the server is started
-        # and the moment the client connects, so we'll fix the flaky tests by adding
-        # a 1 second sleep, which fixes the problem
-        if sgtk.util.is_windows():
-            time.sleep(1)
         with pytest.raises(Exception) as exc:
             MultiprocessingRPCProxy(server.pipe, b"12345")
         assert str(exc.value) == "digest sent was rejected"
