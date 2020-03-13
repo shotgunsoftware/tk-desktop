@@ -80,7 +80,7 @@ class SafeLogger(object):
             self._id_generation_lock = threading.Lock()
 
     def _is_debugging_rpc(self):
-        return True  # "TK_DESKTOP_RPC_DEBUG" in os.environ
+        return "TK_DESKTOP_RPC_DEBUG" in os.environ
 
     def _get_simple_thread_id(self):
         ident = threading.current_thread()
