@@ -260,7 +260,7 @@ def await_value(obj, attr, expected):
     Waits at most 5 seconds for a value.
     """
     before = time.time()
-    while before + 10 > time.time():
+    while before + 5 > time.time():
         if getattr(obj, attr, None) == expected:
             return
 
@@ -298,18 +298,20 @@ def test_proxy_close(proxy):
     assert proxy.is_closed()
 
 
-def test_call_no_response(fake_engine, proxy):
+@pytest.mark.parametrize(
+    "method, attr, value",
+    [
+        ("pass_arg", "arg", 3),
+        ("pass_named_arg", "named_arg", 4),
+        ("pass_arg_as_another_name", "arg", 3.14),
+    ],
+)
+def test_call_no_response(fake_engine, proxy, method, attr, value):
     """
     Ensures an asynchronous call actually happens.
     """
-    assert proxy.call_no_response("pass_arg", 3) is None
-    await_value(fake_engine, "arg", 3)
-
-    assert proxy.call_no_response("pass_named_arg", 4) is None
-    await_value(fake_engine, "named_arg", 4)
-
-    assert proxy.call_no_response("pass_arg_as_another_name", 3.14) is None
-    await_value(fake_engine, "arg", 3.14)
+    assert proxy.call_no_response(method, value) is None
+    await_value(fake_engine, attr, value)
 
 
 def test_call_unknown_method(proxy):
