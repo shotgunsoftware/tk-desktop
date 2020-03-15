@@ -83,7 +83,6 @@ class FakeEngine:
         """
         Stores are and returns it.
         """
-        print("pass arg called", arg)
         self.arg = arg
         return arg
 
@@ -91,7 +90,6 @@ class FakeEngine:
         """
         Stores named argument and returns it.
         """
-        print("pass named arg called", named_arg)
         self.named_arg = named_arg
         return named_arg
 
@@ -99,7 +97,6 @@ class FakeEngine:
         """
         Method with a different name
         """
-        print("set something called", something)
         self.something = something
         return something
 

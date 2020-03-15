@@ -25,8 +25,6 @@ import imp
 import logging
 import inspect
 
-print("bootstrap utulities imported!!!")
-
 
 class ProxyLoggingHandler(logging.Handler):
     """
@@ -90,10 +88,6 @@ def _create_proxy(data):
     # We're not guanranteed if the py or pyc file will be passed back to us
     # from the desktop due to write permissions on the folder.
     rpc_lib = imp.load_source("rpc", data["rpc_lib_path"])
-    print(
-        "proxy created",
-        data["proxy_data"].get("proxy_pipe") or data["proxy_data"]["proxy_pipe"],
-    )
     return rpc_lib.RPCProxy(
         data["proxy_data"].get("http_pipe") or data["proxy_data"]["proxy_pipe"],
         data["proxy_data"]["proxy_auth"],

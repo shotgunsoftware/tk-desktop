@@ -562,7 +562,7 @@ def get_rpc_server_factory(pipe):
     if pipe.startswith("http://"):
         return HttpRPCServerThread
     else:
-        return MultiprocessingRPCProxy
+        return MultiprocessingRPCServerThread
 
 
 RPCProxy = HttpRPCProxy
