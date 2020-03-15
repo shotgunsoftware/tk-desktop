@@ -102,7 +102,10 @@ class CommunicationBase(object):
         """
         logger.info("Connecting to gui pipe %s" % pipe)
         self._proxy = get_rpc_proxy_factory(pipe)(pipe, authkey)
-        logger.debug("Connected to the proxy server.")
+        logger.info(
+            "%s connected to proxy server using %s(%s)."
+            % (type(self).__name__, type(self._proxy).__name__, pipe)
+        )
 
     def _create_server(self, rpc_server_factory):
         """
