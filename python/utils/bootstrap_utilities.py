@@ -48,10 +48,9 @@ class ProxyLoggingHandler(logging.Handler):
         # Note any changes made here, should also be considered for the
         # `DesktopEngineProjectImplementation._emit_log_message` method in the
         # desktop_engine_project_implementation module.
-        print(record)
+
         # Do not send logs if the connection is closed!
         if self._proxy.is_closed():
-            print("closed!")
             return
 
         # If we have exception details, we need to format these and combine them with the message, as the traceback
@@ -64,6 +63,9 @@ class ProxyLoggingHandler(logging.Handler):
         else:
             msg = record.msg
 
+        # Pickling objects so string interpolation can happen in the other process
+        # is a bad idea, especially when dealing with Python 2/3 discrepancies,
+        # so we'll do the interpolation here.
         if record.args:
             msg = msg % record.args
 

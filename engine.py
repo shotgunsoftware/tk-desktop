@@ -248,6 +248,7 @@ class DesktopEngine(Engine):
 
             base["dialog_base"] = ProxyDialog
             self._has_ui = True
+            self._has_qt = True
             # Strip the name since PySide has a \n at the end for some reason.
             self.log_debug(
                 "Successfully initialized %s '%s' located in %s."
