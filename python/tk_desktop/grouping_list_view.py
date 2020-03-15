@@ -259,7 +259,7 @@ class GroupingListView(ActionListView):
 
         # go through each top level row to assign an appropriate delegate
         invalidIndex = QtCore.QModelIndex()
-        for row in range(0, self.model().rowCount()):
+        for row in xrange(0, self.model().rowCount()):
             # map the row back to source model
             source_index = self.model().index(row, 0, invalidIndex)
             for proxy in proxy_models:

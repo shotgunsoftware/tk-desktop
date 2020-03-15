@@ -252,7 +252,7 @@ class GroupingModel(QtGui.QStandardItemModel):
         return state
 
     def set_expanded_state(self, state):
-        for (group_key, expanded) in state.items():
+        for (group_key, expanded) in state.iteritems():
             if group_key in self.__groups:
                 self.set_group_expanded(group_key, expanded)
 
@@ -322,7 +322,7 @@ class GroupingModel(QtGui.QStandardItemModel):
         if not parent.isValid():
             return
 
-        for row in range(start, end + 1):
+        for row in xrange(start, end + 1):
             item = self.item(row, 0)
             group_key = item.data(self.GROUP_ROLE)
             item_type = item.data(self.ITEM_TYPE_ROLE)

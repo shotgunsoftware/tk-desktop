@@ -1,4 +1,4 @@
-s  # Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2013 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -70,7 +70,7 @@ class AbstractCommandDelegate(views.EditSelectedWidgetDelegate):
     def _create_widget(self, parent):
         w = self._create_button(parent)
         w.setVisible(False)
-        w.clicked.connect(lambda checked: self._handle_clicked())
+        w.clicked.connect(self._handle_clicked)
         return w
 
     def _on_before_paint(self, widget, model_index, style_options, selected=False):

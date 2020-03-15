@@ -11,7 +11,6 @@
 import datetime
 import time
 import re
-import functools
 
 from sgtk.platform.qt import QtCore, QtGui
 
@@ -63,7 +62,7 @@ class ProjectCommandProxyModel(GroupingProxyModel):
                 return 1
             return 0
 
-        recents.sort(key=functools.cmp_to_key(recent_item_cmp))
+        recents.sort(cmp=recent_item_cmp)
 
         # see if the index of this item in that list is within our restriction
         rows_in_order = [r.row() for r in recents]
@@ -275,8 +274,8 @@ class ProjectCommandModel(GroupingModel):
             return 0
 
         # Sort the lists of children
-        default_children.sort(key=functools.cmp_to_key(child_cmp))
-        other_children.sort(key=functools.cmp_to_key(child_cmp))
+        default_children.sort(cmp=child_cmp)
+        other_children.sort(cmp=child_cmp)
 
         return default_children + other_children
 
@@ -375,7 +374,7 @@ class ProjectCommandModel(GroupingModel):
             }
         """
         recents = {}
-        for name, details in self.__recents.items():
+        for name, details in self.__recents.iteritems():
             recents[name] = {"timestamp": details["timestamp"], "added": False}
         key = "project_recent_apps.%d" % self.__project["id"]
         self.parent()._save_setting(key, recents, site_specific=True)

@@ -13,7 +13,7 @@ import os
 import sys
 import optparse
 
-import pickle
+import cPickle as pickle
 
 
 def main():
@@ -28,8 +28,6 @@ def main():
     # and the methods from the utility module should be used to start the
     # desktop engine and run the Qt event loop for the engine.
     utilities = None
-    with open(opts.data, "rb") as fh:
-        data = pickle.load(fh)
     try:
         sys.path.append(os.path.dirname(opts.utilities))
         (module_name, _) = os.path.splitext(os.path.basename((opts.utilities)))
@@ -40,6 +38,7 @@ def main():
         # The pickle file comes from the app launching this instance of the
         # desktop engine.  It contains the information needed to connect
         # back to that app and let it serve as the GUI proxy for the engine.
+        data = pickle.load(open(opts.data, "rb"))
 
         # launch the engine
         #

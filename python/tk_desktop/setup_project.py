@@ -11,7 +11,7 @@
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
 from sgtk import TankErrorProjectIsSetup
-from .error_dialog import ErrorDialog
+from error_dialog import ErrorDialog
 
 from .ui import setup_project
 
@@ -19,7 +19,7 @@ import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator
 
 
-# adminui = sgtk.platform.import_framework("tk-framework-adminui", "setup_project")
+adminui = sgtk.platform.import_framework("tk-framework-adminui", "setup_project")
 
 
 class SetupProject(QtGui.QWidget):
