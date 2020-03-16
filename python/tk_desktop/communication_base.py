@@ -115,14 +115,6 @@ class CommunicationBase(object):
         self._msg_server = rpc_server_factory(self._engine)
         self._msg_server.start()
 
-    # FIXME: This should be moved to the ProjectCommunication
-    @property
-    def server_pipe(self):
-        """
-        :returns: The server's pipe.
-        """
-        return self._msg_server.pipe
-
     @property
     def server_authkey(self):
         """

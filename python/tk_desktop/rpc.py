@@ -12,24 +12,22 @@
 This module exposes the necessary low-level components to have the site and project
 engine's of the Shotgun Desktop communicate with each other.
 
-
-
 This module exposes the classes necessary for two way communication between both
-process of the Shotgun Desktop.
+process of the Shotgun Desktop. There's the legacy communication protocol that works
+well enough for Python 2, MultiprocessingRPCServerThread and MultiprocessingRPCProxy,
+but is incompatible with Python 3. There's the new protocol, implemented by
+HttpRPCServerThread and HttpRPCProxy which works between Python 2 and Python 3.
 
-The two main classes, and those that are part of the API, are RPCServerThread and
-RPCProxy and they are defined at the top of this file. Every other classes are part
-of the internal API of this module. The module is expected to be stored on disk as
-a single file by older versions of tk-desktop, so we can't turn it into a module
-with multiple files.
+The Http based implementation is a bit more complicated and involves a few
+more classes internally.
 
 The relationship between the classes are as follow:
 
-- RPCServerThread owns the Listener.
-- The Listener is used to register methods and owns an HTTPServer that the Handler
+- HttpRPCServerThread owns the Listener.
+- The Listener is used to register methods and owns an HTTPServer that the Connection
   will invoke.
 
-- The RPCProxy owns a Connection object to send data to the server.
+- The HttpRPCProxy owns a Connection object to send data to the server.
 - The Connection class owns an AsyncDispatcher that allows it to send fire-and-forget
   data to the server.
 """
@@ -49,6 +47,7 @@ from tank_vendor.six.moves.queue import Queue
 from tank_vendor.six.moves.BaseHTTPServer import HTTPServer
 from tank_vendor.six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
 from tank_vendor.six.moves.urllib.request import urlopen
+from tank_vendor import six
 
 from sgtk import LogManager
 
@@ -805,7 +804,7 @@ class Handler(SimpleHTTPRequestHandler):
 
         :returns: The data that was sent.
         """
-        if PY3:
+        if six.PY3:
             content_len = int(self.headers.get("content-length", 0))
         else:
             content_len = int(self.headers.getheader("content-length", 0))
