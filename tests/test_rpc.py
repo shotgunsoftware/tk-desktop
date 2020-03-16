@@ -105,7 +105,7 @@ class FakeEngine:
 
     def long_call(self, close_proxy, return_value=None):
         if close_proxy:
-            _close_proxy(self.proxy)
+            self.proxy.close()
         time.sleep(3)
         return return_value
 
@@ -173,17 +173,16 @@ def server(fake_engine, request):
 @pytest.fixture
 def proxy(server):
     """
-    Creates a proxy that can communicate with the RPCServerThread
-    fixture.
+    Creates a proxy that can communicate with the server fixture.
 
-    :returns: A RPCProxy instance.
+    :returns: A proxy instance.
     """
     client = server.client_factory(server)
     try:
         yield client
     finally:
         if client.is_closed() is False:
-            _close_proxy(client)
+            client.close()
 
 
 def test_list_functions(server):
@@ -291,7 +290,7 @@ def test_proxy_close(proxy):
     """
     Ensure closing a proxy actually closes it.
     """
-    _close_proxy(proxy)
+    proxy.close()
     assert proxy.is_closed()
 
 
@@ -388,18 +387,11 @@ def test_bad_multi_auth_key(fake_engine):
         assert str(exc.value) == "digest sent was rejected"
 
 
-def _close_proxy(proxy):
-    if isinstance(proxy, HttpRPCProxy):
-        proxy.close(join=True)
-    else:
-        proxy.close()
-
-
 def test_calling_when_closed(proxy):
     """
     Ensure calling a method on the clietn when it is closed fails.
     """
-    _close_proxy(proxy)
+    proxy.close()
     client_type = "multi" if isinstance(proxy, MultiprocessingRPCProxy) else "http"
     with pytest.raises(RuntimeError) as exc:
         proxy.call("anything")

@@ -28,8 +28,6 @@ The relationship between the classes are as follow:
   will invoke.
 
 - The HttpRPCProxy owns a Connection object to send data to the server.
-- The Connection class owns an AsyncDispatcher that allows it to send fire-and-forget
-  data to the server.
 """
 
 import os
@@ -263,7 +261,10 @@ class MultiprocessingRPCServerThread(threading.Thread):
 
                     try:
                         if func_name not in self._functions:
-                            logger.error("unknown function call: '%s'" % func_name)
+                            logger.error(
+                                "unknown function call: '%s', expecting one of '%s'"
+                                % (func_name, self.list_functions())
+                            )
                             raise ValueError("unknown function call: '%s'" % func_name)
 
                         # grab the function from the function table
@@ -480,9 +481,6 @@ class HttpRPCProxy(object):
 
     Return attributes on the object as methods that will result in an RPC call
     whose results are returned as the return value of the method.
-
-    DO NOT MODIFY THE INTERFACE OF THIS CLASS. IT IS USED ACROSS VERSIONS OF THE DESKTOP
-    ENGINE AND SHOULD NOT BE MODIFIED UNDER ANY CIRCUMSTANCES.
     """
 
     def __init__(self, pipe, authkey):
@@ -542,15 +540,17 @@ class HttpRPCProxy(object):
         """
         return self._closed
 
-    def close(self, join=False):
+    def close(self):
         """
         Close the connection to the server.
         """
-        self._connection.close(join)
         self._closed = True
 
 
 def get_rpc_proxy_factory(pipe):
+    """
+    Return the right client type based on the pipe.
+    """
     if pipe.startswith("http://"):
         return HttpRPCProxy
     else:
@@ -558,6 +558,9 @@ def get_rpc_proxy_factory(pipe):
 
 
 def get_rpc_server_factory(pipe):
+    """
+    Return the right server type based on the pipe.
+    """
     if pipe.startswith("http://"):
         return HttpRPCServerThread
     else:
@@ -766,12 +769,18 @@ class Handler(SimpleHTTPRequestHandler):
             logger.debug("http server calling '%s(%s, %s)'" % (func_name, args, kwargs))
 
             # Make sure the right credentials were sent.
-            if authkey != self.server.listener.authkey:
+            # Pickling through sgtk.util.pickle converts any binary string to string
+            # so the authkey we received needs to be compared against
+            # the str version.
+            if authkey != six.ensure_str(self.server.listener.authkey):
                 raise ValueError("invalid auth key")
 
             # Make sure the function exists.
             if func_name not in self._functions:
-                logger.error("unknown function call: '%s'" % func_name)
+                logger.error(
+                    "unknown function call: '%s', expecting one of '%s'"
+                    % (func_name, list(self._functions))
+                )
                 raise ValueError("unknown function call: '%s'" % func_name)
 
             # grab the function from the function table
@@ -832,68 +841,6 @@ class Handler(SimpleHTTPRequestHandler):
 
 ######################
 # Client side classes
-
-
-class AsyncDispatcher(threading.Thread):
-    """
-    Asynchronously sends payloads to the server.
-    """
-
-    def __init__(self, connection):
-        """
-        :param connection: The Connection object to use to send payloads.
-        """
-        super(AsyncDispatcher, self).__init__()
-        self._queue = Queue()
-        self._shut_down_requested = False
-        self._connection = connection
-
-    def send(self, payload):
-        """
-        Queue a payload to be sent asynchronously.
-        :param payload: Data to send.
-        """
-        logger.debug("async dispatcher is queuing %s", payload)
-        self._queue.put(payload)
-        logger.debug("async disptcher has queued %s", payload)
-
-    def shutdown(self):
-        """
-        Stop the dispatching thread.
-        """
-        # Sets the shut down now flag
-        self._shut_down_requested = True
-        # Insert dummy data to wake up the thread
-        # if nothing is currently in the queue
-        logger.debug("requesting async dispatcher to shut down")
-        self._queue.put(None)
-        logger.debug("requested async dispatcher to shut down")
-
-    def run(self):
-        """
-        Dispatch payloads to the server.
-
-        This method returns when ``shutdown`` is called on the AsyncDispatcher.
-        """
-        while True:
-            # Job might raise an error, but we don't care
-            # this was an asynchronous call.
-            try:
-                payload = self._queue.get()
-                # If a shutdown request was made.
-                if self._shut_down_requested:
-                    logger.debug("async dispatcher is shutting down.")
-                    break
-                # We're in the background thread, so we can send
-                # a blocking request now, as urlopen is blocking
-                # anyway.
-                logger.debug("async dispatcher got async payload, sending %s", payload)
-                self._connection._send(payload)
-                logger.debug("async dispatcher sent payload %s", payload)
-            except Exception:
-                logger.exception("Error was raised from RPC dispatching thread:")
-
-
 class Connection(object):
     """
     Connection to the other process's server.
@@ -907,17 +854,6 @@ class Connection(object):
         self._address = address
         self._authkey = authkey
 
-        self._async_dipsatcher = AsyncDispatcher(self)
-        self._async_dipsatcher.start()
-
-    def close(self, join=False):
-        """
-        Close the connection to the server.
-        """
-        self._async_dipsatcher.shutdown()
-        if join:
-            self._async_dipsatcher.join()
-
     def send(self, is_blocking, func_name, args, kwargs):
         """
         Call a function on the server synchronously or not.
@@ -927,27 +863,17 @@ class Connection(object):
             method. If ``False``, the call will be queued for delivery and the method
             returns None.
         """
-        payload = (is_blocking, func_name, args, kwargs)
-        if is_blocking:
-            return self._send(payload)
-        else:
-            self._async_dipsatcher.send(payload)
-
-    def _send(self, payload):
-        """
-        Send a payload to the server.
-
-        The call will block until the server completes the task and the value/exception
-        will be returned/raised by this method.
-
-        :param payload: Data to send.
-        """
-        payload = pickle.dumps((self._authkey, payload))
-        logger.debug("http connection is about to send")
-        r = urlopen(self._address, data=six.ensure_binary(payload))
-        logger.debug("http connection has sent")
-        response = pickle.loads(r.read())
-        logger.debug("http connection has received result")
-        if isinstance(response, Exception):
-            raise response
-        return response
+        payload = [is_blocking, func_name, args, kwargs]
+        payload = pickle.dumps([self._authkey, payload])
+        # if is_blocking:
+        request = urlopen(self._address, data=six.ensure_binary(payload))
+        try:
+            if is_blocking:
+                logger.debug("http connection has sent")
+                response = pickle.loads(request.read())
+                logger.debug("http connection has received result")
+                if isinstance(response, Exception):
+                    raise response
+                return response
+        finally:
+            request.close()

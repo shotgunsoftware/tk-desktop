@@ -34,7 +34,6 @@ class ProxyLoggingHandler(logging.Handler):
     def __init__(self, proxy):
         """
         :param proxy: Connection to the main process.
-        :type proxy: rpc.RPCProxy
         """
         # Call the __init__ directly since Python 2.6's logging.Handler doesn't
         # derive from object and hence doesn't support 'super'.
@@ -84,7 +83,6 @@ def _create_proxy(data):
     Create a proxy based on the data received from the Shotgun Desktop.
 
     :returns: A connection back to the Shotgun Desktop.
-    :rtype: RPCProxy
     """
     # Connect to the main desktop process so we can send updates to it.
     # We're not guanranteed if the py or pyc file will be passed back to us
@@ -153,7 +151,7 @@ class Bootstrap(object):
             # until the parent process is killed. The error is never reported
             # as a result.
             #
-            # Instead, we'll handle the exception here and use the RPCProxy
+            # Instead, we'll handle the exception here and use the proxy
             # connection we already have.
             handle_error(self._raw_data, self._proxy)
             exc.sgtk_exception_handled = True
@@ -290,7 +288,7 @@ def handle_error(data, proxy=None):
     project) this will actually fail silently, which is alright as the main
     process doesnt't care about this one anymore.
 
-    :param proxy: An optional RPCProxy object to use when sending the
+    :param proxy: An optional proxy object to use when sending the
         error to the server. If a proxy is not given, a client connection
         will be created on the fly.
     """
@@ -304,7 +302,7 @@ def handle_error(data, proxy=None):
 
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
 
-    # If we were given an RPCProxy object and it's open, use that
+    # If we were given an proxy object and it's open, use that
     # to send the message.
     if proxy is not None and not proxy.is_closed():
         proxy.call("engine_startup_error", exc_value, "".join(lines))

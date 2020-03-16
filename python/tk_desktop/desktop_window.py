@@ -14,7 +14,6 @@ import os
 import sys
 import tempfile
 import subprocess
-import cPickle as pickle
 import pprint
 import inspect
 from collections import OrderedDict
@@ -24,6 +23,7 @@ from sgtk.platform import constants
 
 import sgtk
 from sgtk.util import shotgun
+from sgtk.util import pickle
 from sgtk.bootstrap import ToolkitManager
 
 from tank_vendor import shotgun_authentication as sg_auth
