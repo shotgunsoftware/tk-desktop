@@ -9,22 +9,13 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-VERY IMPORTANT. READ THIS BEFORE MODIFYING THIS FILE!!!!!
-
 This module exposes the necessary low-level components to have the site and project
 engine's of the Shotgun Desktop communicate with each other.
 
-This API needs to remain fixed as it needs to be backward and forward compatible
-with different versions of tk-desktop on both sides. This API used to be
-implemented on top of the multiprocessing module, but unfortunately
-the multiprocessing module in Python 3 forces data to be sent with pickle version 3
-which is not understood by Python 2. Therefore, a new implementation was written
-from scratch using HTTPServer and urllib.urlopen.
 
-Also, this file needs to remain backwards compatible with older tk-core's, so
-we can't import methods from Toolkit that may be too recent. For now, this
-file is compatible with 0.18 and up, as it uses the LogManager, which
-was introduced in 0.18.
+
+This module exposes the classes necessary for two way communication between both
+process of the Shotgun Desktop.
 
 The two main classes, and those that are part of the API, are RPCServerThread and
 RPCProxy and they are defined at the top of this file. Every other classes are part
@@ -54,37 +45,54 @@ import traceback
 import multiprocessing.connection
 
 from sgtk.util import pickle
-from tank_vendor import six
+from tank_vendor.six.moves.queue import Queue
+from tank_vendor.six.moves.BaseHTTPServer import HTTPServer
+from tank_vendor.six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
+from tank_vendor.six.moves.urllib.request import urlopen
 
-# We can't assume that the project we're talking to has a recent tk-core
-# that ships with six, so we're detecting python 3 and making the right
-# imports on our own.
-PY3 = sys.version_info[0] >= 3
-if PY3:
-    from http.server import HTTPServer
-    from http.server import SimpleHTTPRequestHandler
-    from urllib.request import urlopen
-    from queue import Queue
-else:
-    from BaseHTTPServer import HTTPServer
-    from SimpleHTTPServer import SimpleHTTPRequestHandler
-    from urllib import urlopen
-    from Queue import Queue
+from sgtk import LogManager
 
 
-class SafeLogger(object):
+class Logger(object):
+    """
+    Wrapper around a logger object. It augments the logged information when
+    TK_DESKTOP_RPC_DEBUG is turned on.
+
+    One could argue why we need this, when a simple logger formatter would do
+    to print the thread id and current time.
+    The problem is that the logger formatter option prints the real thread id,
+    which is hard to read because it is a 64bit value. When looking at test logs,
+    this makes it hard to differentiate between tests. Doing in this way makes
+    it a lot easier. Threads could also be named, but then in a test suite
+    you wouldn't be able to differentiate between a message coming from a test
+    or leaking from another test, which has been an issue in the past.
+    """
+
     def __init__(self):
-        self.__logger = None
+        self._logger = LogManager.get_logger(__name__)
+        # Only log debug messages if they are specifically requested.
         if self._is_debugging_rpc():
             self._simple_thread_ids = {}
             self._id_generation_lock = threading.Lock()
+            self._logger.setLevel(logging.DEBUG)
+        else:
+            self._logger.setLevel(logging.INFO)
 
     def _is_debugging_rpc(self):
+        """
+        True if debug logging should be activated, False otherwise.
+        """
         return "TK_DESKTOP_RPC_DEBUG" in os.environ
 
     def _get_simple_thread_id(self):
+        """
+        Translates the current thread object into a simple integer for
+        easy debugging.
+        """
         ident = threading.current_thread()
+        # If we've never seen this thread object before
         if ident not in self._simple_thread_ids:
+            # Generate a new thread id.
             with self._id_generation_lock:
                 self._simple_thread_ids[threading.current_thread()] = len(
                     self._simple_thread_ids
@@ -92,46 +100,38 @@ class SafeLogger(object):
         return self._simple_thread_ids[threading.current_thread()]
 
     def debug(self, *args, **kwargs):
-        if self._logger:
-            if self._is_debugging_rpc():
-                args = list(args)
-                if threading.current_thread().getName() != "MainThread":
-                    args[0] = "Thread %d - " % self._get_simple_thread_id() + args[0]
-                else:
-                    args[0] = "Main Thread - " + args[0]
-                args[0] = "%f - %s" % (time.time(), args[0])
-            self._logger.debug(*args, **kwargs)
+        """
+        Log debug message.
+        """
+        if self._is_debugging_rpc():
+            args = list(args)
+            if threading.current_thread().getName() != "MainThread":
+                args[0] = "Thread %d - " % self._get_simple_thread_id() + args[0]
+            else:
+                args[0] = "Main Thread - " + args[0]
+            args[0] = "%f - %s" % (time.time(), args[0])
+        self._logger.debug(*args, **kwargs)
 
     def warning(self, *args, **kwargs):
-        if self._logger:
-            self._logger.error(*args, **kwargs)
+        """
+        Log warning message.
+        """
+        self._logger.error(*args, **kwargs)
 
     def error(self, *args, **kwargs):
-        if self._logger:
-            self._logger.error(*args, **kwargs)
+        """
+        Log error message.
+        """
+        self._logger.error(*args, **kwargs)
 
     def exception(self, *args, **kwargs):
-        if self._logger:
-            self._logger.exception(*args, **kwargs)
-
-    @property
-    def _logger(self):
-        if self.__logger is None:
-            try:
-                from sgtk import LogManager
-            except ImportError:
-                return None
-            else:
-                self.__logger = LogManager.get_logger(__name__)
-                # Only log debug messages if they are specifically requested.
-                if self._is_debugging_rpc():
-                    self.__logger.setLevel(logging.DEBUG)
-                else:
-                    self.__logger.setLevel(logging.INFO)
-        return self.__logger
+        """
+        Log exception message.
+        """
+        self._logger.exception(*args, **kwargs)
 
 
-logger = SafeLogger()
+logger = Logger()
 
 
 class MultiprocessingRPCServerThread(threading.Thread):
