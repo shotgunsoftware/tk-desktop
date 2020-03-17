@@ -132,7 +132,7 @@ class DesktopEngineSiteImplementation(object):
             # matched commands.
             apps_command_index = 0
             # skip the commands from the selectors preceding "Apps"
-            for index in xrange(apps_index):
+            for index in range(apps_index):
                 selector = selectors[index]
                 # skip all the commands that fit the current selector
                 # insert as the last command in the worst case
@@ -344,7 +344,7 @@ class DesktopEngineSiteImplementation(object):
         # Let the desktop window know all commands for the project have been registered.
         self.desktop_window.on_project_commands_finished()
 
-    def _handle_button_command_triggered(self, group, name):
+    def _handle_button_command_triggered(self, name):
         """ Button clicked from a registered command. """
         self.refresh_user_credentials()
         self.site_comm.call_no_response("trigger_callback", "__commands", name)

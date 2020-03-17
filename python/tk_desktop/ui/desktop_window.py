@@ -278,28 +278,18 @@ class Ui_DesktopWindow(object):
         self.horizontalLayout_8.setStretch(1, 1)
         self.horizontalLayout_8.setStretch(2, 1)
         self.verticalLayout_2.addWidget(self.configuration_frame)
-        self.project_commands = GroupingListView(self.project_page)
-        self.project_commands.setMouseTracking(True)
-        self.project_commands.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.project_commands.setFrameShape(QtGui.QFrame.NoFrame)
-        self.project_commands.setFrameShadow(QtGui.QFrame.Plain)
-        self.project_commands.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.project_commands.setAutoScroll(False)
-        self.project_commands.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
-        self.project_commands.setProperty("showDropIndicator", False)
-        self.project_commands.setDragDropMode(QtGui.QAbstractItemView.NoDragDrop)
-        self.project_commands.setTextElideMode(QtCore.Qt.ElideMiddle)
-        self.project_commands.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
-        self.project_commands.setMovement(QtGui.QListView.Static)
-        self.project_commands.setFlow(QtGui.QListView.LeftToRight)
-        self.project_commands.setProperty("isWrapping", True)
-        self.project_commands.setResizeMode(QtGui.QListView.Adjust)
-        self.project_commands.setLayoutMode(QtGui.QListView.Batched)
-        self.project_commands.setViewMode(QtGui.QListView.IconMode)
-        self.project_commands.setWordWrap(True)
-        self.project_commands.setSelectionRectVisible(False)
-        self.project_commands.setObjectName("project_commands")
-        self.verticalLayout_2.addWidget(self.project_commands)
+        self.project_commands_area = QtGui.QScrollArea(self.project_page)
+        self.project_commands_area.setStyleSheet("QScrollArea {\n"
+"border: 0, 0, 0, 0\n"
+"}")
+        self.project_commands_area.setWidgetResizable(True)
+        self.project_commands_area.setAlignment(QtCore.Qt.AlignLeading|QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop)
+        self.project_commands_area.setObjectName("project_commands_area")
+        self.scrollAreaWidgetContents_3 = QtGui.QWidget()
+        self.scrollAreaWidgetContents_3.setGeometry(QtCore.QRect(0, 0, 100, 30))
+        self.scrollAreaWidgetContents_3.setObjectName("scrollAreaWidgetContents_3")
+        self.project_commands_area.setWidget(self.scrollAreaWidgetContents_3)
+        self.verticalLayout_2.addWidget(self.project_commands_area)
         self.apps_tab.addWidget(self.project_page)
         self.tab_view.addWidget(self.apps_tab)
         self.border_layout.addWidget(self.tab_view)
@@ -379,7 +369,6 @@ class Ui_DesktopWindow(object):
         DesktopWindow.setTabOrder(self.projects, self.user_button)
         DesktopWindow.setTabOrder(self.user_button, self.search_button)
         DesktopWindow.setTabOrder(self.search_button, self.search_text)
-        DesktopWindow.setTabOrder(self.search_text, self.project_commands)
 
     def retranslateUi(self, DesktopWindow):
         DesktopWindow.setWindowTitle(QtGui.QApplication.translate("DesktopWindow", "Shotgun", None, QtGui.QApplication.UnicodeUTF8))
@@ -414,5 +403,4 @@ class Ui_DesktopWindow(object):
         self.actionRegenerate_Certificates.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Regenerates browser integration certificates", None, QtGui.QApplication.UnicodeUTF8))
 
 from ..action_list_view import ActionListView
-from ..grouping_list_view import GroupingListView
 from . import resources_rc
