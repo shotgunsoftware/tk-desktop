@@ -70,7 +70,7 @@ class ProxyLoggingHandler(logging.Handler):
 
         try:
             self._proxy.call_no_response("proxy_log", record.levelno, msg, [])
-        except Exception as e:
+        except Exception:
             # Ignore log failures, this is important, as we don't want logging to
             # cause issues.
             pass
@@ -313,5 +313,5 @@ def handle_error(data, proxy=None):
     finally:
         try:
             proxy.close()
-        except Exception as e:
+        except Exception:
             pass
