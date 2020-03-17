@@ -93,6 +93,9 @@ class DefaultGroupingHeader(QtGui.QPushButton):
         # default is to be expanded
         self.set_expanded(True)
 
+    def is_expanded(self):
+        return self.isChecked()
+
     def set_expanded(self, is_expanded):
         """ Set the widget to be expanded or collapsed """
         if is_expanded:
@@ -385,6 +388,7 @@ class CommandList(BaseIconList):
 class Section(QtGui.QWidget):
 
     command_triggered = QtCore.Signal(str)
+    expand_toggled = QtCore.Signal(str, bool)
 
     def __init__(self, name, WidgetListFactory):
         super(Section, self).__init__(parent=None)
@@ -426,6 +430,10 @@ class Section(QtGui.QWidget):
     def _toggled(self, checked):
         self._grouping.set_expanded(checked)
         self._list.setVisible(checked)
+        selfexpand_toggled.emit(self._name, checked)
+
+    def is_expanded(self):
+        return self._grouping.is_expanded()
 
     @property
     def buttons(self):
@@ -524,6 +532,7 @@ class CommandsView(QtGui.QWidget):
         self._show_recents = show_recents
         self._groups = groups
         self._load_recents()
+        self._load_expanded()
 
     def clear(self):
         if self._recents_widget:
@@ -701,6 +710,18 @@ class CommandsView(QtGui.QWidget):
         """
         key = "project_recent_apps.%d" % self._current_project["id"]
         self._recents = self._settings.load(key) or {}
+
+    def _update_expanded_state(self, section_name, is_expanded):
+        self._expanded_state[section_name.upper()] = is_expanded
+        self._save_expanded()
+
+    def _load_expanded(self):
+        key = "project_expanded_state.%d" % self._current_project["id"]
+        self._expanded_state = self._settings.load(key) or {}
+
+    def _save_expanded(self):
+        key = "project_expanded_state.%d" % self._current_project["id"]
+        self._settings.save(key, self._expanded_state)
 
 
 class ResizeEventFilter(QtCore.QObject):

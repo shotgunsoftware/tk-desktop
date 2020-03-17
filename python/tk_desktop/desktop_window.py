@@ -280,10 +280,6 @@ class DesktopWindow(SystrayWindow):
         # Initialize the model to track project commands
         self._project_command_count = 0
 
-        # self._project_commands.expanded_changed.connect(
-        #     self.handle_project_command_expanded_changed
-        # )
-
         # fix for floating delegate bug
         # see discussion at https://stackoverflow.com/questions/15331256
         # self._project_commands.verticalScrollBar().valueChanged.connect(
@@ -669,12 +665,6 @@ class DesktopWindow(SystrayWindow):
                 )
                 if choice == QtGui.QMessageBox.Yes:
                     self._restart_desktop()
-
-    def handle_project_command_expanded_changed(self, group_key, expanded):
-        pass
-        # expanded_state = self._project_command_model.get_expanded_state()
-        # key = "project_expanded_state.%d" % self.current_project["id"]
-        # self._save_setting(key, expanded_state, site_specific=True)
 
     def handle_project_thumbnail_updated(self, item):
         project = item.data(ShotgunModel.SG_DATA_ROLE)
@@ -1096,10 +1086,6 @@ class DesktopWindow(SystrayWindow):
             self.current_project, groups, show_recents=show_recents
         )
         self.project_overlay.hide()
-
-        key = "project_expanded_state.%d" % self.current_project["id"]
-        expanded_state = self._load_setting(key, {}, True)
-        # self._project_commands.set_expanded_state(expanded_state)
 
     def clear_app_uis(self):
         # empty the project commands
