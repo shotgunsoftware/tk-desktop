@@ -9,25 +9,24 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-This module exposes the necessary low-level components to have the site and project
-engine's of the Shotgun Desktop communicate with each other.
-
-This module exposes the classes necessary for two way communication between both
-process of the Shotgun Desktop. There's the legacy communication protocol that works
+This module exposes the components for two way communication between both
+processes of the Shotgun Desktop. There's the legacy communication protocol that works
 well enough for Python 2, MultiprocessingRPCServerThread and MultiprocessingRPCProxy,
-but is incompatible with Python 3. There's the new protocol, implemented by
-HttpRPCServerThread and HttpRPCProxy which works between Python 2 and Python 3.
+but is incompatible with Python 3. This is because the Python 3 version of
+multiprocessing.connection is forcing the pickle protocol to version 3, which does
+not exist in Python 2.
+
+To get around this, there's now a Http based implementation of the protocol that works
+between Python 2 and 3 processes. It is implemented by HttpRPCServerThread and
+HttpRPCProxy.
 
 The Http based implementation is a bit more complicated and involves a few
-more classes internally.
-
-The relationship between the classes are as follow:
+more classes internally. The relationship between the classes are as follow:
 
 - HttpRPCServerThread owns the Listener.
 - The Listener is used to register methods and owns an HTTPServer that the Connection
   will invoke.
-
-- The HttpRPCProxy owns a Connection object to send data to the server.
+- The HttpRPCProxy owns a Connection object to send data to the HTTPServer.
 """
 
 import os
@@ -41,7 +40,6 @@ import traceback
 import multiprocessing.connection
 
 from sgtk.util import pickle
-from tank_vendor.six.moves.queue import Queue
 from tank_vendor.six.moves.BaseHTTPServer import HTTPServer
 from tank_vendor.six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
 from tank_vendor.six.moves.urllib.request import urlopen
@@ -306,13 +304,17 @@ class MultiprocessingRPCServerThread(threading.Thread):
         """Signal the server to shut down connections and stop the run loop."""
         logger.debug("multi server setting flag to stop")
         self.server.close()
+        self._is_closed = True
         if sys.platform == "win32":
-            # Unblocks the call to accept from the server loop on Windows
+            # The accept call blocks until a client is available.
+            # Unfortunately closing the connection on Windows does not
+            # cause accept to unblock and raise an error, so we have to force
+            # accept to unblock by connecting to the server. The server thread
+            # will then test the _is_closed flag and shut down.
             try:
                 MultiprocessingRPCProxy(self.pipe, self.authkey)
             except Exception:
                 pass
-        self._is_closed = True
 
 
 class MultiprocessingRPCProxy(object):
@@ -363,12 +365,13 @@ class MultiprocessingRPCProxy(object):
                     # have a response waiting, grab it
                     break
                 else:
-                    # On Unix, the poll return False, so we raise an error.
+                    # If the connection was closed while we polled, raise an error.
                     if self._closed:
                         raise RuntimeError("client closed while waiting for a response")
                     continue
-            except IOError as e:
-                # On Windows, an IOError is raised.
+            except IOError:
+                # An exception is raised on Windows when the connection is closed
+                # during polling instead of simply returning False.
                 if self._closed:
                     raise RuntimeError("client closed while waiting for a response")
                 raise
@@ -438,7 +441,7 @@ class HttpRPCServerThread(threading.Thread):
 
     def list_functions(self):
         """
-        Default method that returns the list of functions registered with the server.
+        Return the list of functions registered with the server.
         """
         return self._listener.list_functions()
 
@@ -567,11 +570,29 @@ def get_rpc_server_factory(pipe):
         return MultiprocessingRPCServerThread
 
 
+# These are present for backwards compatibility. Clients can take over part of the
+# bootstrap code and they'll likely to want to instantiate those classes.
+# When they do, we want them to use the Http based ones, not the pickle ones.
 RPCProxy = HttpRPCProxy
 RPCServerThread = HttpRPCServerThread
 
 
 class DualRPCServer(object):
+    """
+    Run both the Http and Multiprocessing based servers at the same time.
+
+    This allows older and newer versions of tk-desktop to be launched in
+    the without having to try to guess which server to spin up.
+
+    Such a guess would be impossible anyway because there is no way to
+    guarantee which version of tk-desktop will be launched in the background.
+
+    This class mimicks the interface of MultiprocessingRPCServerThread and
+    HttpRPCServerThread so they are interchangeable in the code. Since both
+    of these classes were threads, they also implement thread methods like
+    start, is_alive and join.
+    """
+
     def __init__(self, engine):
         self._authkey = str(uuid.uuid1()).encode()
         self._multiprocessing_thread = MultiprocessingRPCServerThread(
@@ -582,42 +603,75 @@ class DualRPCServer(object):
     @property
     def pipes(self):
         """
-        Connection. strings to both servers
+        Connection strings to both servers.
+
+        :returns: Tuple of connection strings.
         """
         return (self._multiprocessing_thread.pipe, self._http_thread.pipe)
 
     @property
     def engine(self):
+        """
+        Current engine.
+        """
         return self._multiprocessing_thread.engine
 
     @property
     def authkey(self):
+        """
+        Credential to connect to this server.
+        """
         return self._authkey
 
     def is_closed(self):
+        """
+        :returns: ``True`` if the server is closed, ``False`` if not.
+        """
         # Both are closed or both are opened, so no need to ask both.
         return self._multiprocessing_thread.is_closed()
 
     def list_functions(self):
+        """
+        Return the list of functions registered with the server.
+        """
         # Both have the same functions, so no need to ask both.
         return self._multiprocessing_thread.list_functions()
 
     def register_function(self, func, name=None):
+        """
+        Register a function with the server.
+
+        :param callable func: Method to call.
+        :param name: Optional. If set, the function will be named as the parameter states.
+            Otherwise, func.__name__ will be used.
+        """
         self._multiprocessing_thread.register_function(func, name)
         self._http_thread.register_function(func, name)
 
     def start(self):
+        """
+        Start the server.
+        """
         self._multiprocessing_thread.start()
         self._http_thread.start()
 
     def close(self):
+        """
+        Close the server.
+        """
         self._multiprocessing_thread.close()
         self._http_thread.close()
 
     def is_alive(self):
+        """
+        :returns: `True` if the server is still alive, ``False`` otherwise.
+        """
         return self._multiprocessing_thread.is_alive() or self._http_thread.is_alive()
 
     def join(self):
+        """
+        Wait for the server to be closed.
+        """
         self._multiprocessing_thread.join()
         self._http_thread.join()
 
@@ -627,8 +681,6 @@ class DualRPCServer(object):
 
 ######################
 # Server side classes
-
-
 class Listener(object):
     """
     Server that allows methods to be called from a remote process.

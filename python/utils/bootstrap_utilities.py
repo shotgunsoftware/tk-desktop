@@ -62,20 +62,18 @@ class ProxyLoggingHandler(logging.Handler):
         else:
             msg = record.msg
 
-        # Pickling objects so string interpolation can happen in the other process
-        # is a bad idea, especially when dealing with Python 2/3 discrepancies,
-        # so we'll do the interpolation here.
+        # Do the string interpolation this side of the communication. This is important
+        # because Python 2 and 3 may serialize objects differently and Toolkit objects
+        # may be coming from different versions of the API.
         if record.args:
             msg = msg % record.args
 
         try:
             self._proxy.call_no_response("proxy_log", record.levelno, msg, [])
-        except Exception:
-            # If something couldn't be pickled, don't fret too much about it,
-            # we'll format it ourselves instead.
-            self._proxy.call_no_response(
-                "proxy_log", record.levelno, (msg % record.args), []
-            )
+        except Exception as e:
+            # Ignore log failures, this is important, as we don't want logging to
+            # cause issues.
+            pass
 
 
 def _create_proxy(data):

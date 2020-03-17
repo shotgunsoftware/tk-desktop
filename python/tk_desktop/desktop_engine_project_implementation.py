@@ -173,6 +173,8 @@ class DesktopEngineProjectImplementation(object):
         Called when the engine is being torn-down.
         """
         # We're about to disconenct from the server, reenable file based logging.
+        # Do this in a try/finally to ensure that whatever happens we are guaranteed to
+        # shut down the communication with the server when we're done.
         try:
             self._enable_file_based_logging()
         finally:
@@ -389,6 +391,9 @@ class DesktopEngineProjectImplementation(object):
             else:
                 msg = record.msg
 
+            # Do the string interpolation this side of the communication. This is important
+            # because Python 2 and 3 may serialize objects differently and Toolkit objects
+            # may be coming from different versions of the API.
             if record.args:
                 msg = msg % record.args
 
