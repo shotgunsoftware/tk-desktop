@@ -459,7 +459,7 @@ class HttpRPCServerThread(threading.Thread):
         logger.debug("http server thread listening on '%s'", self.pipe)
         try:
             self._listener.serve_forever()
-        except BaseException as e:
+        except BaseException:
             # Not catching the error here seems to not clean up the
             # server connection and it can deadlock the main thread.
             # Keep this except in place or you'll freeze when hitting
@@ -572,7 +572,8 @@ def get_rpc_server_factory(pipe):
 
 # These are present for backwards compatibility. Clients can take over part of the
 # bootstrap code and they'll likely to want to instantiate those classes.
-# When they do, we want them to use the Http based ones, not the pickle ones.
+# When they do, we want them to use the Http based ones since those are compatible
+# with Python 2 and 3.
 RPCProxy = HttpRPCProxy
 RPCServerThread = HttpRPCServerThread
 

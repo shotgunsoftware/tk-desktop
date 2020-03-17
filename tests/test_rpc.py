@@ -45,8 +45,6 @@ class Boom(Exception):
     Test exception that will be launched from an RPC call.
     """
 
-    pass
-
 
 class ComplexValue(object):
     """
@@ -81,29 +79,39 @@ class FakeEngine:
 
     def pass_arg(self, arg):
         """
-        Stores are and returns it.
+        Store arg and return it.
         """
         self.arg = arg
         return arg
 
     def pass_named_arg(self, named_arg="arg"):
         """
-        Stores named argument and returns it.
+        Store named_arg and return it.
         """
         self.named_arg = named_arg
         return named_arg
 
     def set_something(self, something):
         """
-        Method with a different name
+        Store something and return it.
         """
         self.something = something
         return something
 
     def boom(self):
+        """
+        This method raises an error which should be re-raised on the
+        other side of the RPC.
+        """
         raise Boom()
 
     def long_call(self, close_proxy, return_value=None):
+        """
+        Simulate a long call. Optionally close the proxy while this is
+        happening.
+
+        :returns: The value specified in return_value.
+        """
         if close_proxy:
             self.proxy.close()
         time.sleep(3)
@@ -118,16 +126,15 @@ def fake_engine():
     return FakeEngine()
 
 
-# We want to test every server version with their respective client.
-# By using a parametrized server fixture, it means each test in this file
-# that directly or indirectly uses the fixture will be called four times.
+# We need to test the Http and Multiprocessing proxy connecting to each server
+# type.
 # Note that on Python 3, the multiprocessing server is never used by Desktop,
-# we can ignore those servers.
+# so we can ignore those servers.
 @pytest.fixture(
     params=(
         [
-            (MultiprocessingRPCServerThread, MultiprocessingRPCProxy),
             (DualRPCServer, MultiprocessingRPCProxy),
+            (MultiprocessingRPCServerThread, MultiprocessingRPCProxy),
             (DualRPCServer, HttpRPCProxy),
         ]
         if six.PY2
@@ -304,7 +311,7 @@ def test_proxy_close(proxy):
 )
 def test_call_no_response(fake_engine, proxy, method, attr, value):
     """
-    Ensures an asynchronous call actually happens.
+    Ensure an asynchronous call actually happens.
     """
     assert proxy.call_no_response(method, value) is None
     await_value(fake_engine, attr, value)
@@ -312,7 +319,7 @@ def test_call_no_response(fake_engine, proxy, method, attr, value):
 
 def test_call_unknown_method(proxy):
     """
-    Ensures unknown method raise an error.
+    Ensure unknown method raise an error.
     """
     with pytest.raises(ValueError) as exc:
         proxy.call("unknown")
@@ -324,7 +331,7 @@ def test_call_unknown_method(proxy):
 
 def test_call_with_wrong_arguments(proxy):
     """
-    Ensures passing the wrong number of arguments raise an error.
+    Ensure passing the wrong number of arguments raise an error.
     """
     with pytest.raises(TypeError) as exc:
         proxy.call("pass_arg", 1, 2, 3)
