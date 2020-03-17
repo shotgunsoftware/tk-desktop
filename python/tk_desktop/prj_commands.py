@@ -90,14 +90,12 @@ class DefaultGroupingHeader(QtGui.QPushButton):
         """
         )
 
-        # default is to be expanded
-        self.set_expanded(True)
-
     def is_expanded(self):
         return self.isChecked()
 
     def set_expanded(self, is_expanded):
         """ Set the widget to be expanded or collapsed """
+        self.setChecked(is_expanded)
         if is_expanded:
             self.setIcon(self.down_arrow)
         else:
@@ -404,7 +402,7 @@ class Section(QtGui.QWidget):
 
         self._list = WidgetListFactory(self)
         self._layout.addWidget(self._list)
-        self._grouping.toggled.connect(self._toggled)
+        self._grouping.toggled.connect(self.set_expanded)
 
         self._line = QtGui.QFrame()
         self._line.setFrameShape(QtGui.QFrame.HLine)
@@ -427,13 +425,14 @@ class Section(QtGui.QWidget):
     def name(self):
         return self._name
 
-    def _toggled(self, checked):
-        self._grouping.set_expanded(checked)
-        self._list.setVisible(checked)
-        selfexpand_toggled.emit(self._name, checked)
-
     def is_expanded(self):
         return self._grouping.is_expanded()
+
+    def set_expanded(self, checked):
+        print(self._name, checked)
+        self._grouping.set_expanded(checked)
+        self._list.setVisible(checked)
+        self.expand_toggled.emit(self._name, checked)
 
     @property
     def buttons(self):
@@ -568,7 +567,9 @@ class CommandsView(QtGui.QWidget):
         # if action in recent list.
         if self._recents_widget is None:
             self._recents_widget = RecentSection("Recent")
+            self._recents_widget.set_expanded(self._expanded_state.get("RECENT", True))
             self._recents_widget.command_triggered.connect(self.command_triggered)
+            self._recents_widget.expand_toggled.connect(self._update_expanded_state)
             self._layout.insertWidget(0, self._recents_widget)
 
         timestamp = self._recents[command_name]["timestamp"]
@@ -677,7 +678,9 @@ class CommandsView(QtGui.QWidget):
 
         logger.debug("Inserting at position %s", (insert_position + first_group_index))
         new_group = CommandSection(group_name)
+        new_group.set_expanded(self._expanded_state.get(new_group.name.upper(), True))
         new_group.command_triggered.connect(self.command_triggered)
+        new_group.expand_toggled.connect(self._update_expanded_state)
         self._layout.insertWidget(
             insert_position + first_group_index, new_group, alignment=QtCore.Qt.AlignTop
         )
