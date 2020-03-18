@@ -184,6 +184,10 @@ def proxy(server):
 
     :returns: A proxy instance.
     """
+    # The client_factory attribute comes from the server fixture, which
+    # indicates which kind of proxy we want to use to talk to this server
+    # instance. We need to pass in the server instance as a parameter
+    # so we can extract the right pipe from it.
     client = server.client_factory(server)
     try:
         yield client
