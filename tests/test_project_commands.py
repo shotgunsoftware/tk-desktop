@@ -247,17 +247,46 @@ def test_recent_sorted_properly(recents, monkeypatch):
     view = CommandsView(sgtk.platform.qt.QtGui.QScrollArea(), settings)
     view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
     _register_commands(view, commands)
-    assert [button.name for button in view.recents.buttons] == [
+    assert _get_recents_title(view) == [
         "Maya 2017",
         "Maya 2020",
         "Maya 2018",
     ]
 
 
-# def test_recent_time_update_when_clicking():
-#     # Make sure things get pushed in front.
-#     # Make sure the settings are updated appropriately.
-#     assert False
+def _get_recents_title(view):
+    return [button.name for button in view.recents.buttons]
+
+
+def _get(iterator, position):
+    return list(iterator)[position]
+
+
+def test_recent_time_update_when_clicking():
+    settings = Settings()
+    view = CommandsView(sgtk.platform.qt.QtGui.QScrollArea(), settings)
+    view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
+    _register_commands(view, ["Maya 2017", "Maya 2018*", "Maya 2019"])
+
+    # There should be no recents tab for now.
+    assert view.recents is None
+
+    creative_tools = _get(view.sections, 0)
+    maya_button = _get(creative_tools.buttons, 0)
+    maya_button.click()
+    # But when we click a button, one should appear
+    assert view.recents is not None
+    # The button should have triggered a Maya 2018 launch since it
+    # is the default.
+    assert _get(view.recents.buttons, 0).name == "Maya 2018"
+    # We need to make sure this doesn't happen within the same timestamp,
+    actions = list(maya_button.menu().actions())
+    actions[0].trigger()  # This is Maya 2017
+    assert _get_recents_title(view) == ["Maya 2017", "Maya 2018"]
+    actions[1].trigger()  # This is Maya 2018
+    assert _get_recents_title(view) == ["Maya 2018", "Maya 2017"]
+    actions[2].trigger()  # This is Maya 2019
+    assert _get_recents_title(view) == ["Maya 2019", "Maya 2018", "Maya 2017"]
 
 
 def _name_to_command(name):
@@ -270,6 +299,18 @@ def _register_commands(view, names):
     Adds a bunch of commands to the view.
 
     The names are expected to be of the form "Software VersionString"
+
+    This will yield a list of values that make each of those unique
+    commands.
+
+    For example, "Maya 2019.5*" would yield the following:
+        command name: maya_20195
+        button name: Maya
+        name: Maya 2019
+        icon: None
+        groups: ["Creative Tools"]
+        tooltip: ""
+        is_menu_defaut: True (would have been false if * wasn't included)
     """
     for name in names:
         # Strip the start indicating a default menu entry.

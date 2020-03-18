@@ -304,20 +304,27 @@ class RecentList(BaseIconList):
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
         buttons = list(self.buttons)
 
-        # If we do have something, search for where to insert the
-        # button.
+        # First seach if this button is already present. If it is, move it
+        # to the front.
         for idx, button in enumerate(buttons):
             # This button already exist. Make it the first button!
             if button.command_name == command_name:
+                print("already found! moving to front", command_name)
                 self._layout.removeWidget(button)
                 self._layout.insertWidget(0, button)
                 return
+
+        # If the button didn't exist, then we need to figure where to
+        # insert it.
+        for idx, button in enumerate(buttons):
             # The timestamp of this command is earlier that the current
             # button, so we'll insert here.
-            elif timestamp >= button.timestamp:
+            if timestamp >= button.timestamp:
+                print("inserting new button", command_name)
                 insert_pos = idx
                 break
         else:
+            print("inserting at end", command_name)
             # We haven't found anything, so we'll insert one past the
             # last button in the UI.
             insert_pos = len(buttons)
