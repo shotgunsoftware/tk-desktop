@@ -347,7 +347,7 @@ class DesktopEngineProjectImplementation(object):
             elif sgtk.util.is_windows():
                 cmd = 'cmd.exe /C start "Folder" "%s"' % disk_location
             else:
-                raise Exception("Platform '%s' is not supported." % system)
+                raise Exception("Platform '%s' is not supported." % sys.platform)
 
             exit_code = os.system(cmd)
             if exit_code != 0:
