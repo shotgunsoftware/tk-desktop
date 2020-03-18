@@ -396,7 +396,7 @@ def test_bad_multi_auth_key(fake_engine):
 
 def test_calling_when_closed(proxy):
     """
-    Ensure calling a method on the clietn when it is closed fails.
+    Ensure calling a method on the client when it is closed fails.
     """
     proxy.close()
     client_type = "multi" if isinstance(proxy, MultiprocessingRPCProxy) else "http"

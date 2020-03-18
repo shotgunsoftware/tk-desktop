@@ -40,7 +40,7 @@ class ProjectCommunication(CommunicationBase):
         # create the connection to the site engine.
         self._create_proxy(pipe, auth)
 
-        # register our side of the pipe as the current app proxy.
+        # Register our side of the pipe as the current app proxy.
         # Based on how the server expects us to connect to them, we'll
         # use the right server to listen to their requests.
         # This boils down to if the server suggested we use multiprocessing
