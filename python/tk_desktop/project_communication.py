@@ -40,14 +40,16 @@ class ProjectCommunication(CommunicationBase):
         # create the connection to the site engine.
         self._create_proxy(pipe, auth)
 
-        # register our side of the pipe as the current app proxy.
-        # Based on how the server expects us to connect to them, we'll
-        # use the right server to listen to their requests.
-        # This boils down to if the server suggested we use multiprocessing
-        # to connect back to them, we'll use that to receive their message
-        # since it's likely they are using that on their end as well.
-        # If the suggested we use http to connect back to them, then we'll listen
-        # on that as well.
+        # Register our side of the pipe as the current app proxy.
+        # Based on the pipe we received, which is either multiprocessing based
+        # or http based, we'll create the right server to listen to request
+        # from the main desktop process.
+        #
+        # The logic is this: If the main desktop process supports http,
+        # we'll always use that to connect back because this is the safest
+        # way to exchange data. If the main desktop process didn't support http
+        # then the pipe will be a file path and therefore get_rpc_server_factory
+        # will return a multiprocessing-based server.
         self._create_server(get_rpc_server_factory(pipe))
         self.call("create_app_proxy", self.server_pipe, self.server_authkey)
         self._connected = True

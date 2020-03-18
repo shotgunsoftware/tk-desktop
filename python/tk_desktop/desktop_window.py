@@ -1467,7 +1467,7 @@ class DesktopWindow(SystrayWindow):
             # startup server pipe to listen
             engine.startup_rpc()
 
-            # seerialize the info needed to bootstrap the project python
+            # serialize the info needed to bootstrap the project python
             desktop_data = {
                 "core_python_path": core_python,
                 # Every settings that were used for discovering the pipeline configuration must be

@@ -91,9 +91,12 @@ class DesktopEngineProjectImplementation(object):
         # pull the data on how to connect to the GUI proxy from the tk instance
         bootstrap_data = self._engine.sgtk._desktop_data
         proxy_pipe = bootstrap_data["proxy_pipe"]
+        # Http pipe is a new parameter that wasn't present in older versions of the
+        # engine, so we only get it, not expect it.
         http_pipe = bootstrap_data.get("http_pipe")
         proxy_auth = bootstrap_data["proxy_auth"]
 
+        # We always prefer the HTTP pipe, as it works under every Python version.
         self._project_comm.connect_to_server(
             http_pipe or proxy_pipe, proxy_auth, self._signal_disconnect
         )
@@ -347,7 +350,7 @@ class DesktopEngineProjectImplementation(object):
             elif sgtk.util.is_windows():
                 cmd = 'cmd.exe /C start "Folder" "%s"' % disk_location
             else:
-                raise Exception("Platform '%s' is not supported." % system)
+                raise Exception("Platform '%s' is not supported." % sys.platform)
 
             exit_code = os.system(cmd)
             if exit_code != 0:
