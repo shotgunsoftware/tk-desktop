@@ -46,7 +46,7 @@ from .browser_integration_user_switch_dialog import BrowserIntegrationUserSwitch
 from .banner_widget import BannerWidget
 
 from .project_menu import ProjectMenu
-from .prj_commands import CommandsView
+from .prj_commands import ProjectCommands
 from . import rpc
 
 from .notifications import NotificationsManager, FirstLaunchNotification
@@ -151,7 +151,7 @@ class DesktopWindow(SystrayWindow):
             def load(self, key):
                 return self._dlg._load_setting(key, None, True) or {}
 
-        self._project_commands = CommandsView(
+        self._project_commands = ProjectCommands(
             self.ui.project_commands_area, ProjectCommandSettings(self)
         )
         self._project_commands.command_triggered.connect(
