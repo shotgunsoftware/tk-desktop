@@ -124,7 +124,7 @@ def test_clear_deletes_all_but_stretcher():
         ("Hiero 12", "Editorial"),
         ("3ds Max 2020", "Creative Tools"),
     ]
-    for idx, (name, group) in enumerate(commands):
+    for name, group in commands:
         view.add_command(_name_to_command(name), name, name, "", "", [group])
     assert len(list(view.sections)) == 2
     assert view.recents is not None

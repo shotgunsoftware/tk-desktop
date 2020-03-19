@@ -34,7 +34,7 @@ sgtk.platform.qt.QtCore = importer.QtCore
 QtGui = sgtk.platform.qt.QtGui
 QtCore = sgtk.platform.qt.QtCore
 
-from tk_desktop.prj_commands import CommandsView, RecentList
+from tk_desktop.prj_commands import CommandsView
 from tk_desktop.ui.desktop_window import Ui_DesktopWindow
 
 
@@ -115,7 +115,8 @@ view.set_project(
 main.updateGeometry()
 
 
-# Setting this to true will add
+# Setting this to true will add icons asynchronously and launch a background process
+# that will steal focus from the dialog, which should trigger a hover bug in PySide2.
 if "--async" in sys.argv:
 
     def add_button():

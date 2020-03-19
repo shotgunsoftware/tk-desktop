@@ -327,7 +327,7 @@ class RecentList(BaseIconList):
 
         # First seach if this button is already present. If it is, move it
         # to the front.
-        for idx, button in enumerate(buttons):
+        for button in buttons:
             # This button already exist. Make it the first button!
             if button.command_name == command_name:
                 print("already found! moving to front", command_name)
