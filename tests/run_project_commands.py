@@ -64,7 +64,7 @@ commands = [
     (
         product.lower().replace(" ", "_").replace(".", ""),
         product.rsplit(" ", 1)[0],
-        product,
+        product.replace("*", ""),
         os.path.join(
             os.path.dirname(__file__),
             "..",

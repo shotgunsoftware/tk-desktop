@@ -192,12 +192,12 @@ def test_versions_sorted_in_menu(simple_test_view, commands):
 
     assert list(
         six.ensure_str(item.text()) for item in maya_button.menu().actions()
-    ) == ["Maya 2017", "Maya 2018*", "Maya 2019"]
+    ) == ["Maya 2018*", "Maya 2017", "Maya 2019"]
 
 
 @pytest.mark.parametrize(
     "action,expected_signal",
-    [("button", "maya_2019"), ("0", "maya_2018"), ("1", "maya_2019")],
+    [("button", "maya_2019"), ("0", "maya_2019"), ("1", "maya_2018")],
 )
 def test_command_actions_get_triggered(
     simple_test_view, action, expected_signal, qapplication
@@ -279,11 +279,13 @@ def test_recent_time_update_when_clicking():
     # The button should have triggered a Maya 2018 launch since it
     # is the default.
     assert _get(view.recents.buttons, 0).name == "Maya 2018"
-    # We need to make sure this doesn't happen within the same timestamp,
     actions = list(maya_button.menu().actions())
-    actions[0].trigger()  # This is Maya 2017
+    # The first action is the default one, so clicking it shouldn't change anything.
+    actions[0].trigger()  # This is Maya 2018
+    assert _get_recents_title(view) == ["Maya 2018"]
+    actions[1].trigger()  # This is Maya 2017.
     assert _get_recents_title(view) == ["Maya 2017", "Maya 2018"]
-    actions[1].trigger()  # This is Maya 2018
+    actions[0].trigger()  # This is Maya 2018
     assert _get_recents_title(view) == ["Maya 2018", "Maya 2017"]
     actions[2].trigger()  # This is Maya 2019
     assert _get_recents_title(view) == ["Maya 2019", "Maya 2018", "Maya 2017"]

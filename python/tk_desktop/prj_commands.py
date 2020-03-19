@@ -12,6 +12,7 @@ from __future__ import print_function
 
 from sgtk.platform.qt import QtCore, QtGui
 from tank_vendor import six
+import functools
 import datetime
 
 from sgtk.platform import get_logger
@@ -267,16 +268,36 @@ class CommandButton(QtGui.QToolButton):
         self._actions.append((command_name, menu_name, action_name, tooltip))
 
         # For all actions on the menu name
-        for command_name, _, action_name, tooltip in sorted(self._actions):
+        for command_name, _, action_name, tooltip in sorted(
+            self._actions, key=functools.cmp_to_key(self._compare_menu_actions)
+        ):
             action = self._menu.addAction(action_name)
             action.setToolTip(tooltip)
             action.setData(command_name)
 
         if len(self._menu.actions()) > 1:
             # If there is more than one available item in the menu
-            # show it.
+            # show the menu.
             self.setPopupMode(self.MenuButtonPopup)
             self.setMenu(self._menu)
+
+    def _compare_menu_actions(self, lhs, rhs):
+        # extract the action name so we can sort based on that.
+        lhs = lhs[2]
+        rhs = rhs[2]
+
+        # The default action, denoted by a * in the menu, is always at the top.
+        # Everything else is sorted alphabetically.
+        if "*" in lhs:
+            return -1
+        elif "*" in rhs:
+            return 1
+        elif lhs < rhs:
+            return -1
+        elif lhs > rhs:
+            return 1
+        else:
+            return 0
 
     def sizeHint(self):
         hint = QtCore.QSize((self.parent().width() / 2) - 20, ICON_SIZE.height() + 8)
