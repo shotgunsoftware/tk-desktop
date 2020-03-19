@@ -11,7 +11,7 @@
 from sgtk.platform.qt import QtGui, QtCore
 from tank_vendor import six
 
-from .shared import ICON_SIZE, BUTTON_STYLE
+from .shared import ICON_SIZE, BUTTON_STYLE, MAX_RECENTS
 
 
 class RecentButton(QtGui.QPushButton):
@@ -105,7 +105,7 @@ class RecentButton(QtGui.QPushButton):
         # limiting the number of recents, each one gets equal spacing
         # the spacing is the width of the view, without the spacing
         # divided up equally
-        limit = RecentList.MAX_RECENTS
+        limit = MAX_RECENTS
         parent = self.parent().parent().parent().parent().parent().viewport()
         space_to_divide = parent.width() - (self.SPACING * (limit + 1)) - self.MARGIN
         width = space_to_divide / limit

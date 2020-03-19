@@ -12,12 +12,16 @@ from sgtk.platform.qt import QtCore, QtGui
 
 from .base_icon_list import BaseIconList
 from .recent_button import RecentButton
+from .shared import MAX_RECENTS
 
 
 class RecentList(BaseIconList):
+    """
+    Display and manage a list of RecentButton.
+    """
 
+    # Signaled when a recent button is clicked.
     command_triggered = QtCore.Signal(str)
-    MAX_RECENTS = 6
 
     def __init__(self, parent):
         super(RecentList, self).__init__(parent, QtGui.QHBoxLayout())
@@ -25,6 +29,17 @@ class RecentList(BaseIconList):
         self._layout.setSpacing(0)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
+        """
+        Add a command to the recent list of actions.
+
+        :param str command_name: Name of the toolkit command to run when this
+            command is selected.
+        :param str button_name: Name of the recent button.
+        :param str icon: Path to the icon file.
+        :param str tooltip: Tooltip for the button.
+        :param datetime.datetime timestamp: When the command was last executed.
+        """
+
         buttons = list(self.buttons)
 
         # First seach if this button is already present. If it is, move it
@@ -39,8 +54,8 @@ class RecentList(BaseIconList):
         # If the button didn't exist, then we need to figure where to
         # insert it.
         for idx, button in enumerate(buttons):
-            # The timestamp of this command is earlier that the current
-            # button, so we'll insert here.
+            # The timestamp of the command we're inserting is more recent
+            # than the current command, so we're inserting the command before.
             if timestamp >= button.timestamp:
                 insert_pos = idx
                 break
@@ -49,17 +64,23 @@ class RecentList(BaseIconList):
             # last button in the UI.
             insert_pos = len(buttons)
 
-        if insert_pos >= self.MAX_RECENTS:
+        # Don't try to insert past the maximum possible index.
+        if insert_pos >= MAX_RECENTS:
             return
 
         button = RecentButton(self, command_name, button_name, icon, tooltip, timestamp)
         button.command_triggered.connect(self.command_triggered)
         self._layout.insertWidget(insert_pos, button)
 
-        if (self._layout.count()) > self.MAX_RECENTS:
-            self._layout.takeAt(self.MAX_RECENTS).widget().deleteLater()
+        # If there are now more recents than we should have in the gui,
+        # drop the last one.
+        if (self._layout.count()) > MAX_RECENTS:
+            self._layout.takeAt(MAX_RECENTS).widget().deleteLater()
 
     @property
     def buttons(self):
+        """
+        An iterator over the buttons in the list.
+        """
         for i in range(self._layout.count()):
             yield self._layout.itemAt(i).widget()

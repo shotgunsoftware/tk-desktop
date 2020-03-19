@@ -23,7 +23,8 @@ sgtk.platform.qt.QtCore = importer.QtCore
 
 
 from project_commands import ProjectCommands
-from project_commands.recent_list import RecentList
+from project_commands import recent_list
+from project_commands import recent_button
 
 PROJECT = {"type": "Project", "id": 3}
 PROJECT_KEY = "project_recent_apps.3"
@@ -244,7 +245,8 @@ def test_recent_sorted_properly(recents, monkeypatch):
             }
         }
     )
-    monkeypatch.setattr(RecentList, "MAX_RECENTS", 3)
+    monkeypatch.setattr(recent_list, "MAX_RECENTS", 3)
+    monkeypatch.setattr(recent_button, "MAX_RECENTS", 3)
     view = ProjectCommands(sgtk.platform.qt.QtGui.QScrollArea(), settings)
     view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
     _register_commands(view, commands)

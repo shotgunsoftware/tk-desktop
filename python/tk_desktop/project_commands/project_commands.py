@@ -123,7 +123,7 @@ class ProjectCommands(QtGui.QWidget):
     def _refresh_recent_list(self, command_name):
         # if action in recent list.
         if self._recents_widget is None:
-            self._recents_widget = RecentSection("Recent")
+            self._recents_widget = RecentSection()
             self._recents_widget.set_expanded(self._expanded_state.get("RECENT", True))
             self._recents_widget.command_triggered.connect(self.command_triggered)
             self._recents_widget.expand_toggled.connect(self._update_expanded_state)

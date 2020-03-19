@@ -15,45 +15,73 @@ from .command_button import CommandButton
 
 
 class CommandList(BaseIconList):
+    """
+    Display and manage a list of commands that are grouped under one or more CommandButtons.
+    """
 
     command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent):
+        """
+        :param QtGui.QWidget: Parent widget.
+        """
+        # The Commands are displayed on a grid.
         super(CommandList, self).__init__(parent, QtGui.QGridLayout())
+        # The filler is a widget that prevents the button on the last row
+        # to take the whole row if there is only one.
         self._filler = QtGui.QWidget(self)
+        # This will hold the CommandButton instances index by the button name.
         self._buttons = {}
 
     def add_command(
         self, command_name, button_name, menu_name, icon, tooltip, is_menu_default
     ):
-        if button_name not in self._buttons:
+        """
+        Add a command to the list of command.
 
+        :param str command_name: Name of the toolkit command to run when this
+            command is selected.
+        :param str button_name: Name of the button to put this command under.
+        :param str menu_name: Name of the menu action in the dropdown.
+        :param str icon: Path to the icon file.
+        :param str tooltip: Tooltip for the button.
+        :param bool: If ``True``, clicking on the button will run this action.
+        """
+
+        # If this button does not currently exist.
+        if button_name not in self._buttons:
+            # Remove all buttons from the grid since we can't insert and move things
+            # around in such a layout.
             for btn in self._buttons:
                 self._layout.removeWidget(self._buttons[btn])
             self._layout.removeWidget(self._filler)
 
             self._layout.update()
+            # Create and hook up the button so clicks are propagated.
             self._buttons[button_name] = CommandButton(
                 self, command_name, button_name, icon, tooltip
             )
             self._buttons[button_name].command_triggered.connect(self.command_triggered)
 
+            # Adds two button per rows, use as many rows as needed.
             for idx, name in enumerate(sorted(self._buttons)):
                 column = idx % 2
                 row = idx // 2
                 self._layout.addWidget(self._buttons[name], row, column)
 
-            # if last column inserted was the first one, then add a filler so the grid
-            # doesn't space the button.
+            # If the last row had only one button, insert the filler so the
+            # button does not occupy the whole row.
             if column == 0:
                 self._layout.addWidget(self._filler, row, column + 1)
 
-        if menu_name is not None:
-            self._buttons[button_name].add_command(
-                command_name, menu_name, icon, tooltip, is_menu_default
-            )
+        self._buttons[button_name].add_command(
+            command_name, menu_name, icon, tooltip, is_menu_default
+        )
 
     @property
     def buttons(self):
+        """
+        An iterator over the buttons in the list.
+        """
         for i in range(len(self._buttons)):
             yield self._layout.itemAt(i).widget()

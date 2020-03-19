@@ -34,7 +34,7 @@ sgtk.platform.qt.QtCore = importer.QtCore
 QtGui = sgtk.platform.qt.QtGui
 QtCore = sgtk.platform.qt.QtCore
 
-from tk_desktop.prj_commands import ProjectCommands
+from tk_desktop.project_commands import ProjectCommands
 from tk_desktop.ui.desktop_window import Ui_DesktopWindow
 
 
@@ -45,6 +45,9 @@ products = [
     "Nuke 12.0*",
     "Nuke 12.5",
     "Nuke 11.0",
+    "Nuke Assist 12.0",
+    "Nuke Assist 12.5",
+    "Nuke Assist 11.0*",
     "Maya 2018",
     "Maya 2019",
     "Maya 2020*",

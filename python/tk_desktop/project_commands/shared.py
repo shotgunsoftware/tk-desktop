@@ -13,8 +13,11 @@ from sgtk.platform.qt import QtGui, QtCore
 p = QtGui.QPalette()
 highlight_col = p.color(QtGui.QPalette.Active, QtGui.QPalette.Highlight)
 
+
+# The minimum size of a button icon.
 ICON_SIZE = QtCore.QSize(50, 50)
 
+# The styling of the buttons.
 BUTTON_STYLE = """
 QToolButton {
     font-size: 15px;
@@ -48,3 +51,6 @@ QToolButton::menu-arrow:!hover { image:none; }
     "rgba(%s, %s, %s, 25%%)"
     % (highlight_col.red(), highlight_col.green(), highlight_col.blue(),),
 )
+
+# Maximum number of recents.
+MAX_RECENTS = 6

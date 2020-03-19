@@ -13,8 +13,22 @@ from .recent_list import RecentList
 
 
 class RecentSection(Section):
-    def __init__(self, name):
-        super(RecentSection, self).__init__(name, RecentList)
+    """
+    Manage a list of recent icons.
+    """
+
+    def __init__(self):
+        super(RecentSection, self).__init__("Recent", RecentList)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
+        """
+        Add a command to the recent list of actions.
+
+        :param str command_name: Name of the toolkit command to run when this
+            command is selected.
+        :param str button_name: Name of the recent button.
+        :param str icon: Path to the icon file.
+        :param str tooltip: Tooltip for the button.
+        :param datetime.datetime timestamp: When the command was last executed.
+        """
         self._list.add_command(command_name, button_name, icon, tooltip, timestamp)
