@@ -107,7 +107,7 @@ QWidget
     font-style: "Condensed Light";
 }
 
-#project_commands
+#command_panel
 {
     padding: 10px;
     background-color: rgb(40, 40, 40);

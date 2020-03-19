@@ -204,7 +204,7 @@ class DesktopEngineSiteImplementation(object):
             self.trigger_register_command, "trigger_register_command"
         )
         self.site_comm.register_function(
-            self.project_commands_finished, "project_commands_finished"
+            self.command_panel_finished, "command_panel_finished"
         )
 
     def engine_startup_error(self, error, tb=None):
@@ -337,12 +337,12 @@ class DesktopEngineSiteImplementation(object):
                 command_is_menu_default,
             )
 
-    def project_commands_finished(self):
+    def command_panel_finished(self):
         """
         Invoked when all commands found for a project have been registered.
         """
         # Let the desktop window know all commands for the project have been registered.
-        self.desktop_window.on_project_commands_finished()
+        self.desktop_window.on_command_panel_finished()
 
     def _handle_button_command_triggered(self, name):
         """ Button clicked from a registered command. """

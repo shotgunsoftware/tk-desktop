@@ -13,16 +13,16 @@ from sgtk.platform.qt import QtGui, QtCore
 
 
 from .recent_section import RecentSection
-from .commands_section import CommandsSection
+from .command_section import CommandSection
 
 
-class ProjectCommands(QtGui.QWidget):
+class CommandPanel(QtGui.QWidget):
 
     command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent, settings):
-        super(ProjectCommands, self).__init__(parent)
-        self.setObjectName("project_commands")
+        super(CommandPanel, self).__init__(parent)
+        self.setObjectName("command_panel")
         self._layout = QtGui.QVBoxLayout(self)
         self._layout.setContentsMargins(0, 0, 0, 0)
         # If we want the background color to apply to the entire surface of the widget
@@ -229,7 +229,7 @@ class ProjectCommands(QtGui.QWidget):
             # the stretch item.
             insert_position = len(name_to_pos)
 
-        new_group = CommandsSection(group_name)
+        new_group = CommandSection(group_name)
         new_group.set_expanded(self._expanded_state.get(new_group.name.upper(), True))
         new_group.command_triggered.connect(self.command_triggered)
         new_group.expand_toggled.connect(self._update_expanded_state)

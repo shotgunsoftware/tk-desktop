@@ -46,7 +46,7 @@ from .browser_integration_user_switch_dialog import BrowserIntegrationUserSwitch
 from .banner_widget import BannerWidget
 
 from .project_menu import ProjectMenu
-from .prj_commands import ProjectCommands
+from .command_panel import CommandPanel
 from . import rpc
 
 from .notifications import NotificationsManager, FirstLaunchNotification
@@ -151,24 +151,24 @@ class DesktopWindow(SystrayWindow):
             def load(self, key):
                 return self._dlg._load_setting(key, None, True) or {}
 
-        self._project_commands = ProjectCommands(
-            self.ui.project_commands_area, ProjectCommandSettings(self)
+        self._command_panel = CommandPanel(
+            self.ui.command_panel_area, ProjectCommandSettings(self)
         )
-        self._project_commands.command_triggered.connect(
+        self._command_panel.command_triggered.connect(
             engine._handle_button_command_triggered
         )
-        self.ui.project_commands_area.setWidget(self._project_commands)
+        self.ui.command_panel_area.setWidget(self._command_panel)
 
         self._project_menu = ProjectMenu(self)
-        self.project_overlay = LoadingProjectWidget(self._project_commands)
-        self.install_apps_widget = NoAppsInstalledOverlay(self._project_commands)
-        self.setup_project_widget = SetupProject(self._project_commands)
+        self.project_overlay = LoadingProjectWidget(self._command_panel)
+        self.install_apps_widget = NoAppsInstalledOverlay(self._command_panel)
+        self.setup_project_widget = SetupProject(self._command_panel)
         self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
-        self.update_project_config_widget = UpdateProjectConfig(self._project_commands)
+        self.update_project_config_widget = UpdateProjectConfig(self._command_panel)
         self.update_project_config_widget.update_finished.connect(
             self._on_update_finished
         )
-        self.setup_new_os_widget = SetupNewOS(self._project_commands)
+        self.setup_new_os_widget = SetupNewOS(self._command_panel)
 
         self._current_pipeline_descriptor = None
 
@@ -282,8 +282,8 @@ class DesktopWindow(SystrayWindow):
 
         # fix for floating delegate bug
         # see discussion at https://stackoverflow.com/questions/15331256
-        # self._project_commands.verticalScrollBar().valueChanged.connect(
-        #     self._project_commands.updateEditorGeometries
+        # self._command_panel.verticalScrollBar().valueChanged.connect(
+        #     self._command_panel.updateEditorGeometries
         # )
 
         # load and initialize cached projects
@@ -813,7 +813,7 @@ class DesktopWindow(SystrayWindow):
         engine.refresh_user_credentials()
         engine.site_comm.call_no_response("open_project_locations")
 
-    def on_project_commands_finished(self):
+    def on_command_panel_finished(self):
         """
         Invoked when all commands found for a project have been registered.
         """
@@ -999,7 +999,7 @@ class DesktopWindow(SystrayWindow):
     ########################################################################################
     # project view
     def get_app_widget(self, namespace=None):
-        return self._project_commands
+        return self._command_panel
 
     def add_to_project_menu(self, action):
         self._project_menu.add(action)
@@ -1028,7 +1028,7 @@ class DesktopWindow(SystrayWindow):
         :param bool is_menu_default: If this command is a menu item, indicate whether it should
                                      also be run by the command button.
         """
-        self._project_commands.add_command(
+        self._command_panel.add_command(
             name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
         )
         # self._project_command_proxy.invalidate()
@@ -1082,14 +1082,14 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
     def set_groups(self, groups, show_recents=True):
-        self._project_commands.set_project(
+        self._command_panel.set_project(
             self.current_project, groups, show_recents=show_recents
         )
         self.project_overlay.hide()
 
     def clear_app_uis(self):
         # empty the project commands
-        self._project_commands.clear()
+        self._command_panel.clear()
 
         # hide the pipeline configuration bar
         self.ui.configuration_frame.hide()

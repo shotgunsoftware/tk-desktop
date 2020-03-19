@@ -169,7 +169,7 @@ class DesktopEngineProjectImplementation(object):
             )
 
         # Let the proxy know command registration is complete
-        self._project_comm.call_no_response("project_commands_finished")
+        self._project_comm.call_no_response("command_panel_finished")
 
     def destroy_engine(self):
         """

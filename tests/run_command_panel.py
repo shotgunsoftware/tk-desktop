@@ -34,7 +34,7 @@ sgtk.platform.qt.QtCore = importer.QtCore
 QtGui = sgtk.platform.qt.QtGui
 QtCore = sgtk.platform.qt.QtCore
 
-from tk_desktop.project_commands import ProjectCommands
+from tk_desktop.command_panel import CommandPanel
 from tk_desktop.ui.desktop_window import Ui_DesktopWindow
 
 
@@ -109,8 +109,8 @@ main.ui.setupUi(main)
 # Change the current page so the project commands page is visible.
 main.ui.apps_tab.setCurrentIndex(1)
 
-view = ProjectCommands(main.ui.project_commands_area, ProjectCommandSettings())
-main.ui.project_commands_area.setWidget(view)
+view = CommandPanel(main.ui.command_panel_area, ProjectCommandSettings())
+main.ui.command_panel_area.setWidget(view)
 
 view.set_project(
     {"type": "Project", "id": 61}, ["Autodesk", "The Foundry"],

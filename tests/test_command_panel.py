@@ -22,9 +22,9 @@ sgtk.platform.qt.QtGui = importer.QtGui
 sgtk.platform.qt.QtCore = importer.QtCore
 
 
-from project_commands import ProjectCommands
-from project_commands import recent_list
-from project_commands import recent_button
+from command_panel import CommandPanel
+from command_panel import recent_list
+from command_panel import recent_button
 
 PROJECT = {"type": "Project", "id": 3}
 PROJECT_KEY = "project_recent_apps.3"
@@ -37,7 +37,7 @@ def qapplication():
 
 @pytest.fixture
 def simple_test_view():
-    view = ProjectCommands(sgtk.platform.qt.QtGui.QScrollArea(), Settings())
+    view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), Settings())
     view.set_project(PROJECT, ["Creative Tools", "Editorial"])
     return view
 
@@ -73,7 +73,7 @@ def test_sections_sorted(show_recents, commands):
     """
     groups = ["Studio", "Creative Tools", "Editorial", "Automotive Tools"]
     # Create a view with some recents.
-    view = ProjectCommands(
+    view = CommandPanel(
         sgtk.platform.qt.QtGui.QScrollArea(),
         Settings(
             {PROJECT_KEY: {"command 0": {"timestamp": datetime.datetime.utcnow()}}}
@@ -112,7 +112,7 @@ def test_clear_deletes_all_but_stretcher():
     """
     Ensure clearing removes all widget except for the stretcher
     """
-    view = ProjectCommands(
+    view = CommandPanel(
         sgtk.platform.qt.QtGui.QScrollArea(),
         Settings(
             {PROJECT_KEY: {"maya_2020": {"timestamp": datetime.datetime.utcnow()}}}
@@ -247,7 +247,7 @@ def test_recent_sorted_properly(recents, monkeypatch):
     )
     monkeypatch.setattr(recent_list, "MAX_RECENTS", 3)
     monkeypatch.setattr(recent_button, "MAX_RECENTS", 3)
-    view = ProjectCommands(sgtk.platform.qt.QtGui.QScrollArea(), settings)
+    view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), settings)
     view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
     _register_commands(view, commands)
     assert _get_recents_title(view) == [
@@ -267,7 +267,7 @@ def _get(iterator, position):
 
 def test_recent_time_update_when_clicking():
     settings = Settings()
-    view = ProjectCommands(sgtk.platform.qt.QtGui.QScrollArea(), settings)
+    view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), settings)
     view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
     _register_commands(view, ["Maya 2017", "Maya 2018*", "Maya 2019"])
 

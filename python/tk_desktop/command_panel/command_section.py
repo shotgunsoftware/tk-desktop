@@ -12,9 +12,9 @@ from .section import Section
 from .command_list import CommandList
 
 
-class CommandsSection(Section):
+class CommandSection(Section):
     def __init__(self, name):
-        super(CommandsSection, self).__init__(name, CommandList)
+        super(CommandSection, self).__init__(name, CommandList)
 
     def add_command(
         self, command_name, button_name, menu_name, icon, tooltip, is_menu_default

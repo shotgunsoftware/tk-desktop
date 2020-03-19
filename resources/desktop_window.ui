@@ -662,7 +662,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QScrollArea" name="project_commands_area">
+          <widget class="QScrollArea" name="command_panel_area">
            <property name="styleSheet">
             <string notr="true">QScrollArea {
 border: 0, 0, 0, 0
