@@ -12,6 +12,10 @@ from sgtk.platform.qt import QtGui
 
 
 class BaseIconList(QtGui.QWidget):
+    """
+    Base class for a list of icons inside a section.
+    """
+
     def __init__(self, parent, layout):
         super(BaseIconList, self).__init__(parent)
         self._layout = layout

@@ -15,7 +15,8 @@ class SectionHeader(QtGui.QPushButton):
     """
     Group header widget.
 
-    It displays the name of a section
+    It displays the name of a section with a arrow that can be clicked on to
+    expand and collapse the section.
     """
 
     def __init__(self, parent=None):
@@ -40,10 +41,18 @@ class SectionHeader(QtGui.QPushButton):
         )
 
     def is_expanded(self):
+        """
+        :returns: ``True`` if the widget displays the expanded state, ``False`` otherwise.
+        """
         return self.isChecked()
 
     def set_expanded(self, is_expanded):
-        """ Set the widget to be expanded or collapsed """
+        """
+        Set to the expanded or collapsed display state.
+
+        :param bool is_expanded: If set to ``True``, the widget will display
+            the expanded state, the collapsed state otherwise.
+        """
         self.setChecked(is_expanded)
         if is_expanded:
             self.setIcon(self.down_arrow)

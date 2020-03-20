@@ -17,43 +17,68 @@ from .command_section import CommandSection
 
 
 class CommandPanel(QtGui.QWidget):
+    """
+    Panel of buttons that is used to launch Toolkit commands. The panel itself
+    is not aware of Toolkit and simply emits command_triggered signals with the name
+    of the Toolkit command to execute.
 
+    The buttons are grouped into sections, which can be collapsed by the user.
+
+    There is an optional recent section that show the most recently launched commands.
+
+    The recent commands and the expanded or collapsed state of the sections is persisted
+    between used by the settings object passed in on creation.
+    """
+
+    # Emits the command name to execute.
     command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent, settings):
+        """
+        :param parent: Parent widget.
+        :param settings: Settings object to persist and restore state.
+        """
         super(CommandPanel, self).__init__(parent)
+        # The app style sheet styles this widget so give it the proper name.
         self.setObjectName("command_panel")
         self._layout = QtGui.QVBoxLayout(self)
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        # If we want the background color to apply to the entire surface of the widget
-        # in PySide instead of just under its children we need to set this flag.
-        self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
-        self.setLayout(self._layout)
+        self._layout.setContentsMargins(0, 10, 0, 0)
         self._layout.addStretch(1)
-        self._recents_widget = None
-        self._recents = {}
-        self._groups = []
+        self.setLayout(self._layout)
+
+        # We want the background color to apply to the entire surface of the widget
+        # in PySide instead of just under its children
+        self.setAttribute(QtCore.Qt.WA_StyledBackground, True)
         self.setMouseTracking(True)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
-        self._show_recents = False
-
-        self._layout.setContentsMargins(0, 10, 0, 0)
-
         self.setSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Preferred)
 
         filter = ResizeEventFilter(parent)
         filter.resized.connect(self._on_parent_resized)
         parent.installEventFilter(filter)
 
-        self._main_window = parent
-
         self.command_triggered.connect(self._update_recents_list)
 
-        # Caches the information about all commands so we can
-        # retrieve it when updating recents
-        self._recent_commands_cache = {}
-
+        # Settings object allowing to read and write settings.
         self._settings = settings
+        # The widget for the recently launched command. Will be None if
+        # the recent list is disabled or if there are no recent commands.
+        self._recents_widget = None
+        # Dictionary of the commands that were executed recently.
+        # Follows this structure:
+        # self._recents = {
+        #     'launch_nuke': {
+        #         'timestamp': datetime.datetime(2016, 5, 20, 21, 48, 17, 495234),
+        #         'added': False},
+        #     ...
+        # }
+        self._recents = {}
+        # Caches the information about all commands that are added to the panel.
+        # This helps when building the recent item menu.
+        self._command_info = {}
+        self._groups = []
+        self._show_recents = False
+        self._main_window = parent
 
     def _on_parent_resized(self):
         """
@@ -61,7 +86,6 @@ class CommandPanel(QtGui.QWidget):
         When associated widget is resized this slot is being called.
         """
         # resize overlay
-
         self.resize(self.parentWidget().size())
         self._restrict_children()
 
@@ -106,7 +130,7 @@ class CommandPanel(QtGui.QWidget):
         # There should be only one item left, the stretcher.
         assert self.layout().count() == 1
 
-        self._recent_commands_cache = {}
+        self._command_info = {}
         self._recents = {}
 
     def _update_recents_list(self, command_name):
@@ -130,7 +154,7 @@ class CommandPanel(QtGui.QWidget):
             self._layout.insertWidget(0, self._recents_widget)
 
         timestamp = self._recents[command_name]["timestamp"]
-        command = self._recent_commands_cache[command_name]
+        command = self._command_info[command_name]
 
         self._recents_widget.add_command(
             command_name,
@@ -157,7 +181,7 @@ class CommandPanel(QtGui.QWidget):
                 command_name, button_name, menu_name, icon, tooltip, is_menu_default
             )
             # Caches information about the command so that if it is a recent
-            self._recent_commands_cache[command_name] = {
+            self._command_info[command_name] = {
                 # Single action buttons, like the Publish button, do not have a menu,
                 # so use the name of the button directly.
                 "menu_name": menu_name or button_name,
