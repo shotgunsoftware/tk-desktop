@@ -20,9 +20,6 @@ class RecentList(BaseIconList):
     Display and manage a list of RecentButton.
     """
 
-    # Signaled when a recent button is clicked.
-    command_triggered = QtCore.Signal(str)
-
     def __init__(self, parent):
         super(RecentList, self).__init__(parent, QtGui.QHBoxLayout())
         self.setLayout(self._layout)

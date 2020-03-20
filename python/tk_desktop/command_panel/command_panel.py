@@ -73,48 +73,82 @@ class CommandPanel(QtGui.QWidget):
         #     ...
         # }
         self._recents = {}
-        # Caches the information about all commands that are added to the panel.
-        # This helps when building the recent item menu.
+        # Keeps track of all the command information so we can easily build the recent
+        # command list.
         self._command_info = {}
-        self._groups = []
+        # List of section names that the widget knows about. The sections
+        # will be displayed in that order.
+        self._section_names = []
+        # If True, the recent list will be displayed.
         self._show_recents = False
-        self._main_window = parent
+        # Keeps a reference to scroll view that owns this widget.
+        self._scroll_view_owner = parent
 
     def _on_parent_resized(self):
         """
-        Special slot hooked up to the event filter.
-        When associated widget is resized this slot is being called.
+        Called when the parent widget is resized.
         """
-        # resize overlay
+        # This widget always completely covers it's parent.
         self.resize(self.parentWidget().size())
+        # The children widgets need to be resized appropriately so they expand
+        # appropriately
         self._restrict_children()
 
     def _restrict_children(self):
-        width = self._main_window.width()
-        if self._main_window.verticalScrollBar().isVisible():
-            width -= self._main_window.verticalScrollBar().width()
-
+        """
+        Ensure each section is as side as possible.
+        """
+        width = self._get_optimal_width()
+        # Make sure all section have the proper width.
         if self._recents_widget:
             self._recents_widget.setMaximumWidth(width)
 
         for section in self.sections:
             section.setMaximumWidth(width)
 
+    def _get_optimal_width(self):
+        """
+        Compure the optimal width for the widget.
+        """
+        # The optimal width is the width of the scroll view minus the
+        # scroll bar with, if visible.
+        width = self._scroll_view_owner.width()
+        if self._scroll_view_owner.verticalScrollBar().isVisible():
+            width -= self._scroll_view_owner.verticalScrollBar().width()
+        return width
+
     def sizeHint(self):
-        return QtCore.QSize(self._main_window.viewport().width(), 30)
+        """
+        Hint Qt to the size we want.
+        """
+        return QtCore.QSize(self._get_optimal_width(), 30)
 
     @property
     def recents(self):
+        """
+        The RecentList widget. Will be None if there are no recent commands
+        or if the RecentList was disabled.
+        """
         return self._recents_widget
 
-    def set_project(self, current_project, groups, show_recents=True):
+    def configure(self, current_project, groups, show_recents=True):
+        """
+        Configure the widget.
+
+        :param dict current_project: The project we're displaying commands for.
+        :param list(str) groups: List of groups names to display.
+        :param bool show_recents: If True, recently launched commands will be displayed.
+        """
         self._current_project = current_project
         self._show_recents = show_recents
-        self._groups = groups
+        self._section_names = groups
         self._load_recents()
         self._load_expanded()
 
     def clear(self):
+        """
+        Clear the widget.
+        """
         if self._recents_widget:
             self.layout().removeWidget(self._recents_widget)
             self._recents_widget.deleteLater()
@@ -127,13 +161,18 @@ class CommandPanel(QtGui.QWidget):
             self.layout().removeWidget(section)
             section.deleteLater()
 
-        # There should be only one item left, the stretcher.
-        assert self.layout().count() == 1
-
         self._command_info = {}
         self._recents = {}
 
     def _update_recents_list(self, command_name):
+        """
+        Called when a command is launched from the panel.
+
+        This is used to keep the recent list updated.
+        """
+        if self._show_recents is False:
+            return
+
         self._recents[command_name] = {
             "timestamp": datetime.datetime.utcnow(),
             # This is present for backwards compatibility with
@@ -145,7 +184,14 @@ class CommandPanel(QtGui.QWidget):
         self._refresh_recent_list(command_name)
 
     def _refresh_recent_list(self, command_name):
-        # if action in recent list.
+        """
+        Update the recent list by adding the given command.
+
+        :param str command_name: Name of the command to add.
+        """
+        # If RecentSection has not been created yet, it's time to create one!
+        # This will happen when the first command is launched or when
+        # a previously launched command is added to the panel for the first time.
         if self._recents_widget is None:
             self._recents_widget = RecentSection()
             self._recents_widget.set_expanded(self._expanded_state.get("RECENT", True))
@@ -153,6 +199,8 @@ class CommandPanel(QtGui.QWidget):
             self._recents_widget.expand_toggled.connect(self._update_expanded_state)
             self._layout.insertWidget(0, self._recents_widget)
 
+        # Get all the information for this command so we can create a recent
+        # button.
         timestamp = self._recents[command_name]["timestamp"]
         command = self._command_info[command_name]
 
@@ -174,6 +222,18 @@ class CommandPanel(QtGui.QWidget):
         groups,
         is_menu_default=False,
     ):
+        """
+        Add a command to the panel.
+
+        :param str command_name: Name of the command.
+        :param str button_name: Name of the button for the group.
+        :param str menu_name: Name of the menu entry for the command.
+        :param str icon: Path to the icon for this command.
+        :param str tooltip: Toolkit for this action.
+        :param list(str) groups: List of groups this action should be added to.
+        :param bool is_menu_default: If True, this action will be the default
+            command of it's group.
+        """
         for group_name in groups:
             # Search for the requested group.
             current_group = self._find_or_insert_section(group_name)
@@ -208,9 +268,10 @@ class CommandPanel(QtGui.QWidget):
             yield self._layout.itemAt(i).widget()
 
     def _find_or_insert_section(self, group_name):
-        if group_name not in self._groups:
+        if group_name not in self._section_names:
             raise RuntimeError(
-                "Unknown group %s. Expecting one of %s" % (group_name, self._groups)
+                "Unknown group %s. Expecting one of %s"
+                % (group_name, self._section_names)
             )
         # Due to visual glitches in PySide1, we're inserting sections as we need them
         # instead of creating them all hidden up front.
@@ -238,8 +299,8 @@ class CommandPanel(QtGui.QWidget):
         # after B.
 
         # Find the groups after the one we're searching for (B in the above example).
-        idx = self._groups.index(group_name)
-        groups_after = self._groups[idx + 1 :]
+        idx = self._section_names.index(group_name)
+        groups_after = self._section_names[idx + 1 :]
 
         # Loop over the remaining groups (C and D in the above example)
         for group_after in groups_after:

@@ -19,8 +19,6 @@ class CommandList(BaseIconList):
     Display and manage a list of commands that are grouped under one or more CommandButtons.
     """
 
-    command_triggered = QtCore.Signal(str)
-
     def __init__(self, parent):
         """
         :param QtGui.QWidget: Parent widget.

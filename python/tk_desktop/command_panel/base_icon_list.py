@@ -8,13 +8,15 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from sgtk.platform.qt import QtGui
+from sgtk.platform.qt import QtGui, QtCore
 
 
 class BaseIconList(QtGui.QWidget):
     """
     Base class for a list of icons inside a section.
     """
+
+    command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent, layout):
         super(BaseIconList, self).__init__(parent)

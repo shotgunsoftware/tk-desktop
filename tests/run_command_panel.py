@@ -112,7 +112,7 @@ main.ui.apps_tab.setCurrentIndex(1)
 view = CommandPanel(main.ui.command_panel_area, ProjectCommandSettings())
 main.ui.command_panel_area.setWidget(view)
 
-view.set_project(
+view.configure(
     {"type": "Project", "id": 61}, ["Autodesk", "The Foundry"],
 )
 main.updateGeometry()

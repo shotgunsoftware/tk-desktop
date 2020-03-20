@@ -38,7 +38,7 @@ def qapplication():
 @pytest.fixture
 def simple_test_view():
     view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), Settings())
-    view.set_project(PROJECT, ["Creative Tools", "Editorial"])
+    view.configure(PROJECT, ["Creative Tools", "Editorial"])
     return view
 
 
@@ -79,13 +79,16 @@ def test_sections_sorted(show_recents, commands):
             {PROJECT_KEY: {"command 0": {"timestamp": datetime.datetime.utcnow()}}}
         ),
     )
-    view.set_project(PROJECT, groups, show_recents=show_recents)
+    view.configure(PROJECT, groups, show_recents=show_recents)
 
     for idx, (name, group) in enumerate(commands):
         view.add_command("command %s" % idx, name, name, "", "", [group])
 
     assert [section.name for section in view.sections] == groups
-    assert view.recents_visible == show_recents
+    if show_recents:
+        assert view.recents is not None
+    else:
+        assert view.recents is None
 
 
 def test_sections_are_reused(simple_test_view):
@@ -118,7 +121,7 @@ def test_clear_deletes_all_but_stretcher():
             {PROJECT_KEY: {"maya_2020": {"timestamp": datetime.datetime.utcnow()}}}
         ),
     )
-    view.set_project(PROJECT, ["Creative Tools", "Editorial"], show_recents=True)
+    view.configure(PROJECT, ["Creative Tools", "Editorial"], show_recents=True)
     commands = [
         ("Maya 2020", "Creative Tools"),
         ("3ds Max 2019", "Creative Tools"),
@@ -248,7 +251,7 @@ def test_recent_sorted_properly(recents, monkeypatch):
     monkeypatch.setattr(recent_list, "MAX_RECENTS", 3)
     monkeypatch.setattr(recent_button, "MAX_RECENTS", 3)
     view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), settings)
-    view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
+    view.configure(PROJECT, ["Creative Tools"], show_recents=True)
     _register_commands(view, commands)
     assert _get_recents_title(view) == [
         "Maya 2017",
@@ -268,7 +271,7 @@ def _get(iterator, position):
 def test_recent_time_update_when_clicking():
     settings = Settings()
     view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), settings)
-    view.set_project(PROJECT, ["Creative Tools"], show_recents=True)
+    view.configure(PROJECT, ["Creative Tools"], show_recents=True)
     _register_commands(view, ["Maya 2017", "Maya 2018*", "Maya 2019"])
 
     # There should be no recents tab for now.
@@ -292,6 +295,22 @@ def test_recent_time_update_when_clicking():
     assert _get_recents_title(view) == ["Maya 2018", "Maya 2017"]
     actions[2].trigger()  # This is Maya 2019
     assert _get_recents_title(view) == ["Maya 2019", "Maya 2018", "Maya 2017"]
+
+
+def test_recents_not_added_when_disabled():
+    settings = Settings()
+    view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), settings)
+    view.configure(PROJECT, ["Creative Tools"], show_recents=False)
+
+    _register_commands(view, ["Maya 2017", "Maya 2018*", "Maya 2019"])
+
+    assert view.recents is None
+
+    creative_tools = _get(view.sections, 0)
+    maya_button = _get(creative_tools.buttons, 0)
+    maya_button.click()
+
+    assert view.recents is None
 
 
 def _name_to_command(name):

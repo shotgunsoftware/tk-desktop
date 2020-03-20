@@ -46,3 +46,5 @@ The following graph shows those relationships
 """
 
 from .command_panel import CommandPanel
+
+__all__ = ("CommandPanel",)

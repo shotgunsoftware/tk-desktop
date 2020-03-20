@@ -1082,7 +1082,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
     def set_groups(self, groups, show_recents=True):
-        self._command_panel.set_project(
+        self._command_panel.configure(
             self.current_project, groups, show_recents=show_recents
         )
         self.project_overlay.hide()
