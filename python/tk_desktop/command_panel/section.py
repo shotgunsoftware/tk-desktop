@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from sgtk.platform.qt import QtGui, QtCore
-from .default_grouping_header import DefaultGroupingHeader
+from .section_header import SectionHeader
 
 
 class Section(QtGui.QWidget):
@@ -40,7 +40,7 @@ class Section(QtGui.QWidget):
         self._name = name
 
         # Create the header.
-        self._grouping = DefaultGroupingHeader()
+        self._grouping = SectionHeader()
         self._grouping.setText(name.upper())
         self._grouping.toggled.connect(self.set_expanded)
         self._layout.addWidget(self._grouping)

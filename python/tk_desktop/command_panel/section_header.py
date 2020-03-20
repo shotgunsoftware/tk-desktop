@@ -11,8 +11,12 @@
 from sgtk.platform.qt import QtCore, QtGui
 
 
-class DefaultGroupingHeader(QtGui.QPushButton):
-    """ Default widget for a group header """
+class SectionHeader(QtGui.QPushButton):
+    """
+    Group header widget.
+
+    It displays the name of a section
+    """
 
     def __init__(self, parent=None):
         QtGui.QPushButton.__init__(self, parent)

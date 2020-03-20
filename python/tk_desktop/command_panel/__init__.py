@@ -18,7 +18,7 @@ At the root sits the "CommandPanel" class. It contains a "RecentSection" and one
 "CommandSection"s
 
 The "RecentSection" contains a list of "RecentButton" while the "CommandSection" contains
-a list of "CommandButton". Both have a "DefaultGroupingHeader" which allows to expand and
+a list of "CommandButton". Both have a "SectionHeader" which allows to expand and
 collapse the section.
 
 The section classes themselves hold either a "CommandList" and "RecentList", which are the
@@ -30,7 +30,7 @@ and "CommandSection", while "BaseIconList" is the base class of "CommandList" an
 The following graph shows those relationships
 
 |                                                          <- RecentSection  <- CommandPanel
-| + Recent  <- DefaultGroupingHeader                       <- RecentSection  <- CommandPanel
+| + Recent  <- SectionHeader                       <- RecentSection  <- CommandPanel
 |                                            <- RecentList <- RecentSection  <- CommandPanel
 |     logo       logo     <- 2 RecentButtons <- RecentList <- RecentSection  <- CommandPanel
 |   Maya 2019   Nuke 12.0                    <- RecentList <- RecentSection  <- CommandPanel
