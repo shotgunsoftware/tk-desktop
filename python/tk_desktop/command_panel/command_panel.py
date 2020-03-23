@@ -173,13 +173,7 @@ class CommandPanel(QtGui.QWidget):
         if self._show_recents is False:
             return
 
-        self._recents[command_name] = {
-            "timestamp": datetime.datetime.utcnow(),
-            # This is present for backwards compatibility with
-            # previous version of desktop. we do not actually use this
-            # value for this implementation.
-            "added": False,
-        }
+        self._recents[command_name] = {"timestamp": datetime.datetime.utcnow()}
         self._store_recents()
         self._refresh_recent_list(command_name)
 
@@ -254,28 +248,38 @@ class CommandPanel(QtGui.QWidget):
         self._restrict_children()
 
     @property
-    def recents_visible(self):
-        return bool(self._recents_widget)
-
-    @property
     def sections(self):
+        """
+        An iterator over the different sections.
+
+        This does not include the Recent list.
+        """
         if self._recents_widget:
             first_section = 1
         else:
             first_section = 0
 
+        # The last widget is the spacer, so we stop iterating before it.
         for i in range(first_section, self._layout.count() - 1):
             yield self._layout.itemAt(i).widget()
 
     def _find_or_insert_section(self, group_name):
+        """
+        Search for a section with the given name. If the section is not found,
+        it is inserted at the expected position.
+        """
+        # Do not create a group if it is not supported.
         if group_name not in self._section_names:
             raise RuntimeError(
                 "Unknown group %s. Expecting one of %s"
                 % (group_name, self._section_names)
             )
+
         # Due to visual glitches in PySide1, we're inserting sections as we need them
         # instead of creating them all hidden up front.
-        # Skip over the recent widgets.
+
+        # Skip over the recent widget when looking for where to insert the
+        # new section.
         if self._recents_widget:
             first_group_index = 1
         else:
@@ -284,7 +288,7 @@ class CommandPanel(QtGui.QWidget):
         # First, generate a collection of sections and their indices
         name_to_pos = {section.name: idx for idx, section in enumerate(self.sections)}
 
-        # If the section already exists.
+        # If the section already exists, then return it.
         if group_name in name_to_pos:
             return self._layout.itemAt(
                 first_group_index + name_to_pos[group_name]
@@ -292,10 +296,10 @@ class CommandPanel(QtGui.QWidget):
 
         # The section does not exist!
 
-        # Let's the following groups are configured: A, B, C and D.
+        # Let's pretend the following groups are configured: A, B, C and D.
         # We currently have groups C and D and we now want to insert B.
         # Since we'll be using insertWidget, which inserts a widget right
-        # before another, we'll look for the first that we know that comes
+        # before another, we'll look for the first widget that we know that comes
         # after B.
 
         # Find the groups after the one we're searching for (B in the above example).
@@ -326,16 +330,19 @@ class CommandPanel(QtGui.QWidget):
 
     def _store_recents(self):
         """
-        Stores a list of recently launched apps in the user settings. Resets the "added" key so
-        when the settings are loaded again, each item will be added to the list. They are stored as
-        a dictionary in the following format::
+        Store a list of recently launched apps in the user settings.
 
-            self._recents = {
+        They are stored as a dictionary in the following format::
+
+            {
                 'launch_nuke': {
                     'timestamp': datetime.datetime(2016, 5, 20, 21, 48, 17, 495234),
                     'added': False},
                 ...
             }
+
+        Do not edit this format. We're keeping it to be backwards compatible with
+        previous versions of the engine.
         """
         recents = {}
         for name, details in self._recents.items():
@@ -352,16 +359,33 @@ class CommandPanel(QtGui.QWidget):
         self._recents = self._settings.load(key) or {}
 
     def _update_expanded_state(self, section_name, is_expanded):
+        """
+        Update the state of the expanded flag the given section and stores the
+        new state in the settings.
+
+        They are stored as a dictionary in the following format::
+            {
+                'RECENT': True,
+                'CREATIVE TOOLS': False,
+                ...
+            }
+
+        Do not edit this format. We're keeping it to be backwards compatible with
+        previous versions of the engine.
+
+        :param str section_name: Name of the section.
+        :param bool is_expanded: True if the section is expanded, False otherwise.
+        """
         self._expanded_state[section_name.upper()] = is_expanded
-        self._save_expanded()
-
-    def _load_expanded(self):
-        key = "project_expanded_state.%d" % self._current_project["id"]
-        self._expanded_state = self._settings.load(key) or {}
-
-    def _save_expanded(self):
         key = "project_expanded_state.%d" % self._current_project["id"]
         self._settings.save(key, self._expanded_state)
+
+    def _load_expanded(self):
+        """
+        Load the expanded state for all the sections.
+        """
+        key = "project_expanded_state.%d" % self._current_project["id"]
+        self._expanded_state = self._settings.load(key) or {}
 
 
 class ResizeEventFilter(QtCore.QObject):
