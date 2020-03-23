@@ -51,7 +51,13 @@ from sgtk import LogManager
 class Logger(object):
     """
     Wrapper around a logger object. It augments the logged information when
-    TK_DESKTOP_RPC_DEBUG is turned on.
+    TK_DESKTOP_RPC_DEBUG is turned on. It also prevents logging from every single
+    RPC call, which would slow down the logging process. In fact, logging
+    from the Shotgun Desktop with this environment variable sends the subprocess
+    into an infinite loop as logging anything from the background process
+    means doing an RPC call. If from the RPC module we log messages as well,
+    we end up in an infinite logging loop an the project never finishes loading.
+    As such, TK_DESKTOP_RPC_DEBUG should only be used when running tests.
 
     One could argue why we need this, when a simple logger formatter would do
     to print the thread id and current time.
@@ -107,11 +113,17 @@ class Logger(object):
             args[0] = "%f - %s" % (time.time(), args[0])
         self._logger.debug(*args, **kwargs)
 
+    def info(self, *args, **kwargs):
+        """
+        Log warning message.
+        """
+        self._logger.info(*args, **kwargs)
+
     def warning(self, *args, **kwargs):
         """
         Log warning message.
         """
-        self._logger.error(*args, **kwargs)
+        self._logger.warning(*args, **kwargs)
 
     def error(self, *args, **kwargs):
         """
@@ -206,6 +218,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
         logger.debug("multi server listening on '%s'", self.pipe)
         while self._is_closed is False:
             logger.debug("multi server thread is about to create a server")
+            ready = False
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
                 # need to use win32 api for windows
@@ -234,6 +247,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
                 logger.debug("multi server thread could not create server")
                 continue
 
+            connection = None
             try:
                 # connection waiting to be read, accept it
                 logger.debug("multi server about to accept connection")
@@ -294,7 +308,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
                 pass
             finally:
                 # It's possible we failed accepting, so the variable may not be defined.
-                if "connection" in locals():
+                if connection is not None:
                     logger.debug("multi server closing")
                     connection.close()
                     logger.debug("multi server closed")
@@ -856,8 +870,10 @@ class Handler(SimpleHTTPRequestHandler):
 
     def log_request(self, code=None, size=None):
         """
-        Prevent the server from outputting to stdout every single time
-        a query is processed by the server.
+        This method is called every time a request has been completed to log
+        a message to stdout.
+
+        We're turning it into a no-op as to not flood the terminal.
         """
 
     def _read_request(self):
@@ -918,9 +934,11 @@ class Connection(object):
         """
         payload = [is_blocking, func_name, args, kwargs]
         payload = pickle.dumps([self._authkey, payload])
-        # if is_blocking:
         request = urlopen(self._address, data=six.ensure_binary(payload))
         try:
+            # urlopen will connect to the server and send the data. Once the data
+            # is sent, the call returns. You can then close the connection
+            # or optionally call read to get the response back.
             if is_blocking:
                 logger.debug("http connection has sent")
                 response = pickle.loads(request.read())
