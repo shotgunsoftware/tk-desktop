@@ -39,11 +39,17 @@ import time
 import traceback
 import multiprocessing.connection
 
+# We have to import Python's pickle to serialize our data.
+# tk-core's sgtk.util.pickle module assumes too much about the data
+# type that is stored in the pickle and assumes the output of a dump
+# can always be turned into a utf-8 encoded string, which is false.
+# Therefore, we'll simply take the raw pickle and send it over the wire.
 from sgtk.util import pickle
 from tank_vendor.six.moves.BaseHTTPServer import HTTPServer
 from tank_vendor.six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
 from tank_vendor.six.moves.urllib.request import urlopen
 from tank_vendor import six
+from tank_vendor.six.moves import cPickle as py_pickle
 
 from sgtk import LogManager
 
@@ -899,7 +905,10 @@ class Handler(SimpleHTTPRequestHandler):
 
         :param body: Data to send back to the client.
         """
-        raw_data = pickle.dumps(body)
+        # Lock to protocol 2 so we can be compatible with Python 2.
+        # Using Python's pickle directly ensure's smaller payloads and is
+        # actually faster since less conversions are taking place.
+        raw_data = py_pickle.dumps(body, protocol=2)
         self.send_response(200, self.responses[200])
         self.send_header("Content-Type", "text/text")
         self.send_header("Content-Length", len(raw_data))
@@ -933,7 +942,10 @@ class Connection(object):
             returns None.
         """
         payload = [is_blocking, func_name, args, kwargs]
-        payload = pickle.dumps([self._authkey, payload])
+        # Lock to protocol 2 so we can be compatible with Python 2.
+        # Using Python's pickle directly ensure's smaller payloads and is
+        # actually faster since less conversions are taking place.
+        payload = py_pickle.dumps([self._authkey, payload], protocol=2)
         request = urlopen(self._address, data=six.ensure_binary(payload))
         try:
             # urlopen will connect to the server and send the data. Once the data
