@@ -160,13 +160,14 @@ def server(fake_engine, request):
     server.register_function(fake_engine.pass_arg, "pass_arg_as_another_name")
     server.start()
 
-    if server_class == DualRPCServer:
-        if client_class == HttpRPCProxy:
-            factory = lambda server: client_class(server.pipes[1], server.authkey)
+    def factory(server):
+        if server_class == DualRPCServer:
+            if client_class == HttpRPCProxy:
+                return client_class(server.pipes[1], server.authkey)
+            else:
+                return client_class(server.pipes[0], server.authkey)
         else:
-            factory = lambda server: client_class(server.pipes[0], server.authkey)
-    else:
-        factory = lambda server: client_class(server.pipe, server.authkey)
+            return client_class(server.pipe, server.authkey)
 
     server.client_factory = factory
     try:
