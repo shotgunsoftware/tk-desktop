@@ -1,5 +1,48 @@
-*.py[cod]
+*.py[co]
 
-# PyCharm project settings
+# ignore pytest caches
+.cache
+
+# Ignore vim temporary and swap files
+*~
+[._]*.s[a-w][a-z]
+[._]s[a-w][a-z]
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
 .idea
+.project
+.pydevproject
+.settings
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+coverage.xml
+coverage_html_report
+htmlcov
+
+#Translations
+*.mo
+
+#Mr Developer
+.mr.developer.cfg
+
+# os files
 .DS_Store
+
+# pyenv
+.python-version

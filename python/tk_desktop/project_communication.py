@@ -13,6 +13,11 @@ Implements communication channels between the desktop app and the background pro
 """
 
 from .communication_base import CommunicationBase
+from .rpc import get_rpc_server_factory
+
+from sgtk.platform import get_logger
+
+logger = get_logger(__name__)
 
 
 class ProjectCommunication(CommunicationBase):
@@ -29,13 +34,23 @@ class ProjectCommunication(CommunicationBase):
 
     def connect_to_server(self, pipe, auth, disconnect_callback):
         """
-        Sets up a server to communicate with the background process and connects to the site engine.
+        Sets up a server to communicate with the foreground process and connects
+        back to the site engine.
         """
         # create the connection to the site engine.
         self._create_proxy(pipe, auth)
 
-        # register our side of the pipe as the current app proxy
-        self._create_server()
+        # Register our side of the pipe as the current app proxy.
+        # Based on the pipe we received, which is either multiprocessing based
+        # or http based, we'll create the right server to listen to request
+        # from the main desktop process.
+        #
+        # The logic is this: If the main desktop process supports http,
+        # we'll always use that to connect back because this is the safest
+        # way to exchange data. If the main desktop process didn't support http
+        # then the pipe will be a file path and therefore get_rpc_server_factory
+        # will return a multiprocessing-based server.
+        self._create_server(get_rpc_server_factory(pipe))
         self.call("create_app_proxy", self.server_pipe, self.server_authkey)
         self._connected = True
 
@@ -46,6 +61,13 @@ class ProjectCommunication(CommunicationBase):
             disconnect_callback()
 
         self.register_function(wrapper, "signal_disconnect")
+
+    @property
+    def server_pipe(self):
+        """
+        :returns: The server's pipe.
+        """
+        return self._msg_server.pipe
 
     def shut_down(self):
         """

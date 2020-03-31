@@ -8,22 +8,11 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from __future__ import with_statement
 import os
 import sys
 
 from tank_test.tank_test_base import TankTestBase, SealedMock
 from tank_test.tank_test_base import setUpModule  # noqa
-
-notifications_path = os.path.abspath(
-    os.path.join(
-        os.path.dirname(__file__),  # tk-desktop/tests
-        "..",  # tk-desktop
-        "python",  # tk-desktop/python
-        "tk_desktop",  # tk-desktop/python/tk_desktop
-    )
-)
-sys.path.insert(0, notifications_path)
 
 import notifications
 
