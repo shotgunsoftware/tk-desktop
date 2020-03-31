@@ -249,7 +249,6 @@ def test_recent_sorted_properly(recents, monkeypatch):
         }
     )
     monkeypatch.setattr(recent_list, "MAX_RECENTS", 3)
-    monkeypatch.setattr(recent_button, "MAX_RECENTS", 3)
     view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), settings)
     view.configure(PROJECT, ["Creative Tools"], show_recents=True)
     _register_commands(view, commands)
