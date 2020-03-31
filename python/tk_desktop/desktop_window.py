@@ -16,11 +16,13 @@ import tempfile
 import subprocess
 import pprint
 import inspect
+import re
 from collections import OrderedDict
+
 
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
-
+from tank_vendor import six
 import sgtk
 from sgtk.util import shotgun
 from sgtk.bootstrap import ToolkitManager
@@ -67,6 +69,10 @@ settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings
 desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 ShotgunModel = shotgun_model.ShotgunModel
+
+DESKTOP_CANT_CONNECT_RE = re.compile(
+    "(address type of .* unrecognized)|(No module named 'urlparse')"
+)
 
 log = get_logger(__name__)
 
@@ -1210,29 +1216,30 @@ class DesktopWindow(SystrayWindow):
         sg_patch_ver = connection.server_info["version"][2]
         return sg_major_ver, sg_minor_ver, sg_patch_ver
 
-    def engine_startup_error(self, error, tb):
+    def engine_startup_error(self, exception_type, exception_str, tb):
         """
         Handle an error starting up the engine for the app proxy.
 
         :param error: Exception object that was raised during bootstrap.
         :param tb: Traceback of the exception raised during bootstrap.
         """
+        print("ALLLLLLOOO!: ", exception_str.replace("\n", ""))
         engine = sgtk.platform.current_engine()
         trigger_project_config = False
         # If missing engine init error, we're know we have to setup the project.
-        if isinstance(error, sgtk.platform.TankMissingEngineError):
-            message = "Error starting engine!\n\n%s" % error.message
+        if exception_type == "sgtk.platform.TankMissingEngineError":
+            message = "Error starting engine!\n\n%s" % exception_str
             trigger_project_config = True
         # However, this exception type hasn't always existed, so take care of that
         # case also.
-        elif isinstance(error, sgtk.platform.TankEngineInitError):
-            message = "Error starting engine!\n\n%s" % error.message
+        elif exception_type == "sgtk.platform.TankEngineInitError":
+            message = "Error starting engine!\n\n%s" % exception_str
             # match directly on the error message until something less fragile can be put in place
-            if error.message.startswith("Cannot find an engine instance tk-desktop"):
+            if exception_str.startswith("Cannot find an engine instance tk-desktop"):
                 trigger_project_config = True
-        elif isinstance(error, sgtk.bootstrap.TankMissingTankNameError):
+        elif exception_type == "sgtk.bootstrap.TankMissingTankNameError":
             message = "Error starting engine!\n\n%s\n\n%s" % (
-                error.message.replace("tank_name", "<b>tank_name</b>"),
+                exception_str.replace("tank_name", "<b>tank_name</b>"),
                 "Visit your "
                 "<b><a style='color: {0}' href='{1}/detail/Project/{2}'>project</a></b> "
                 "page to set the field.".format(
@@ -1241,8 +1248,20 @@ class DesktopWindow(SystrayWindow):
                     self.current_project["id"],
                 ),
             )
+        elif six.PY3 and DESKTOP_CANT_CONNECT_RE.search(
+            exception_str.replace("\n", "")
+        ):
+            # We replace \n since regex doesn't parse past a \n
+            message = (
+                "It appears you may still be running older components "
+                "that are not Python 3 compatible. We recommend you upgrade "
+                "the following components in your project to these versions:\n"
+                "- tk-core: v0.19.5\n"
+                "- tk-desktop: v2.5.0\n"
+                "- tk-framework-desktopserver: v1.3.10"
+            )
         else:
-            message = "Error\n\n%s" % error.message
+            message = "Error\n\n%s" % exception_str
 
         if (
             trigger_project_config
@@ -1451,14 +1470,15 @@ class DesktopWindow(SystrayWindow):
             # Find the interpreter the config wants to use.
             try:
                 path_to_python = config_descriptor.python_interpreter
-            except TankFileDoesNotExistError:
+            except TankFileDoesNotExistError as e:
+                print(e)
                 if sys.platform == "darwin":
                     path_to_python = os.path.join(sys.prefix, "bin", "python")
                 elif sys.platform == "win32":
                     path_to_python = os.path.join(sys.prefix, "python.exe")
                 else:
                     path_to_python = os.path.join(sys.prefix, "bin", "python")
-
+            print(path_to_python)
             # Create a descriptor for the current core and gets its PYTHONPATH.
             core_python = sgtk.get_sgtk_module_path()
 
