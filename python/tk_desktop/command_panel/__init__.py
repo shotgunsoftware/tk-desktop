@@ -30,7 +30,7 @@ and "CommandSection", while "BaseIconList" is the base class of "CommandList" an
 The following graph shows those relationships
 
 |                                                          <- RecentSection  <- CommandPanel
-| + Recent  <- SectionHeader                       <- RecentSection  <- CommandPanel
+| + Recent          <- SectionHeader                       <- RecentSection  <- CommandPanel
 |                                            <- RecentList <- RecentSection  <- CommandPanel
 |     logo       logo     <- 2 RecentButtons <- RecentList <- RecentSection  <- CommandPanel
 |   Maya 2019   Nuke 12.0                    <- RecentList <- RecentSection  <- CommandPanel
