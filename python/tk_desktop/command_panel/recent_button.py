@@ -11,7 +11,7 @@
 from sgtk.platform.qt import QtGui, QtCore
 from tank_vendor import six
 
-from .shared import ICON_SIZE, BUTTON_STYLE, MAX_RECENTS
+from .shared import ICON_SIZE, BUTTON_STYLE
 
 
 class RecentButton(QtGui.QPushButton):
