@@ -27,7 +27,7 @@ class RecentList(BaseIconList):
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
         """
-        Add a command to the recent list of actions.
+        Add a command to the recent list of commands.
 
         :param str command_name: Name of the toolkit command to run when this
             command is selected.

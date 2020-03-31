@@ -40,7 +40,7 @@ class CommandList(BaseIconList):
         :param str command_name: Name of the toolkit command to run when this
             command is selected.
         :param str button_name: Name of the button to put this command under.
-        :param str menu_name: Name of the menu action in the dropdown.
+        :param str menu_name: Name of the menu item in the dropdown.
         :param str icon: Path to the icon file.
         :param str tooltip: Tooltip for the button.
         :param bool: If ``True``, clicking on the button will run this action.

@@ -223,9 +223,9 @@ class CommandPanel(QtGui.QWidget):
         :param str button_name: Name of the button for the group.
         :param str menu_name: Name of the menu entry for the command.
         :param str icon: Path to the icon for this command.
-        :param str tooltip: Toolkit for this action.
-        :param list(str) groups: List of groups this action should be added to.
-        :param bool is_menu_default: If True, this action will be the default
+        :param str tooltip: Toolkit for this command.
+        :param list(str) groups: List of groups this command should be added to.
+        :param bool is_menu_default: If True, this command will be the default
             command of it's group.
         """
         for group_name in groups:
@@ -236,7 +236,7 @@ class CommandPanel(QtGui.QWidget):
             )
             # Caches information about the command so that if it is a recent
             self._command_info[command_name] = {
-                # Single action buttons, like the Publish button, do not have a menu,
+                # Single command buttons, like the Publish button, do not have a menu,
                 # so use the name of the button directly.
                 "menu_name": menu_name or button_name,
                 "icon": icon,

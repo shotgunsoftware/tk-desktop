@@ -24,8 +24,8 @@ class CommandButton(QtGui.QToolButton):
     on the dropdown arrow on the right, a list of all the applications can be launched
     will be displayed.
 
-    The default action will be at the top and a * will be next to its name. If only
-    one action is available on the button, the dropdown will not be displayed.
+    The default command will be at the top and a * will be next to its name. If only
+    one command is available on the button, the dropdown will not be displayed.
     """
 
     # Triggered when the button is clicked or a menu action is triggered.
@@ -50,8 +50,8 @@ class CommandButton(QtGui.QToolButton):
 
         self.setText(" %s" % button_name)
 
-        # The first action is always the default one. This ensures a default
-        # action is always set when you click on the button. If another action
+        # The first command is always the default one. This ensures a default
+        # command is always set when you click on the button. If another command
         # is registered later as the default, it will become the new default.
         self._set_default(command_name, tooltip, icon)
 
@@ -59,7 +59,7 @@ class CommandButton(QtGui.QToolButton):
         self.clicked.connect(
             lambda: self.command_triggered.emit(self._default_command_name)
         )
-        self._actions = []
+        self._commands = []
 
         # This menu will implement the drop down behaviour of the tool button.
         self._menu = QtGui.QMenu(self)
@@ -145,11 +145,11 @@ class CommandButton(QtGui.QToolButton):
         self._menu.clear()
 
         # Keep track of the new item being added.
-        self._actions.append((command_name, menu_name, action_name, tooltip))
+        self._commands.append((command_name, menu_name, action_name, tooltip))
 
         # For all actions on the menu name
         for command_name, _, action_name, tooltip in sorted(
-            self._actions, key=functools.cmp_to_key(self._compare_menu_actions)
+            self._commands, key=functools.cmp_to_key(self._compare_menu_actions)
         ):
             action = self._menu.addAction(action_name)
             action.setToolTip(tooltip)

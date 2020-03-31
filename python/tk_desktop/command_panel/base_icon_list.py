@@ -14,11 +14,17 @@ from sgtk.platform.qt import QtGui, QtCore
 class BaseIconList(QtGui.QWidget):
     """
     Base class for a list of icons inside a section.
+
+    It provides the command_triggered signal and customizes the layout.
     """
 
     command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent, layout):
+        """
+        :param parent: Parent widget.
+        :param layout: Qt layout for this widget.
+        """
         super(BaseIconList, self).__init__(parent)
         self._layout = layout
         self.setLayout(layout)

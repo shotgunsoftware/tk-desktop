@@ -15,6 +15,11 @@ from .shared import ICON_SIZE, BUTTON_STYLE, MAX_RECENTS
 
 
 class RecentButton(QtGui.QPushButton):
+    """
+    The RecentButton has an icon and text underneath it and can launch
+    a single action, unlike the CommandButton.
+    """
+
     MARGIN = 5
     SPACING = 5
     SIZER_LABEL = None
@@ -22,8 +27,16 @@ class RecentButton(QtGui.QPushButton):
     command_triggered = QtCore.Signal(str)
 
     def __init__(self, parent, command_name, button_name, icon, tooltip, timestamp):
+        """
+        :param str command_name: Name of the command.
+        :param str button_name: Name of the button.
+        :param str icon: Path to the icon for this command.
+        :param str tooltip: Toolkit for this command.
+        :param datetime.datetime timestamp: When the command was last launched.
+        """
         super(RecentButton, self).__init__(parent)
 
+        # No borders
         self.setFlat(True)
 
         self.setSizePolicy(
@@ -68,18 +81,34 @@ class RecentButton(QtGui.QPushButton):
 
     @property
     def name(self):
+        """
+        Name of the button.
+        """
         return six.ensure_str(self.text_label.text())
 
     @property
     def timestamp(self):
+        """
+        Time when this command was last executed.
+        """
         return self._timestamp
 
     @property
     def command_name(self):
+        """
+        Name of the command.
+        """
         return self._command_name
 
     @classmethod
     def size_for_text(cls, text):
+        """
+        Compute the size required to display the text on this button.
+
+        :param str text: Text to display.
+
+        :returns: QSize required to display it.
+        """
         # setup a label that we will use to get height
         if cls.SIZER_LABEL is None:
             cls.SIZER_LABEL = QtGui.QLabel()
@@ -97,6 +126,9 @@ class RecentButton(QtGui.QPushButton):
         return QtCore.QSize(width + 2 * cls.MARGIN, height)
 
     def sizeHint(self):
+        """
+        Tell Qt how much space we need.
+        """
         # get the text size from the sizer label
         text = self.text_label.text()
         full_size = self.size_for_text(text)
