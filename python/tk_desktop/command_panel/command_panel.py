@@ -12,6 +12,7 @@ import datetime
 from sgtk.platform.qt import QtGui, QtCore
 
 
+from .shared import MAX_RECENTS
 from .recent_section import RecentSection
 from .command_section import CommandSection
 
@@ -105,6 +106,12 @@ class CommandPanel(QtGui.QWidget):
 
         for section in self.sections:
             section.setMaximumWidth(width)
+
+        if self._recents_widget:
+            for button in self._recents_widget.buttons:
+                # Evenly space each button so they all have the same size.
+                button.setMinimumWidth(width // MAX_RECENTS)
+                button.setMaximumWidth(width // MAX_RECENTS)
 
     def _get_optimal_width(self):
         """
