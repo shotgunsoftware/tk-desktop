@@ -18,6 +18,7 @@ import collections
 from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
+from tank_vendor import six
 
 from sgtk import LogManager
 

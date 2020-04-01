@@ -173,8 +173,9 @@ class DesktopWindow(SystrayWindow):
         self._project_menu = ProjectMenu(self)
         self.project_overlay = LoadingProjectWidget(self._command_panel)
         self.install_apps_widget = NoAppsInstalledOverlay(self._command_panel)
-        self.setup_project_widget = SetupProject(self._command_panel)
-        self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
+        if six.PY2:
+            self.setup_project_widget = SetupProject(self._command_panel)
+            self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
         self.update_project_config_widget = UpdateProjectConfig(self._command_panel)
         self.update_project_config_widget.update_finished.connect(
             self._on_update_finished
@@ -1110,7 +1111,8 @@ class DesktopWindow(SystrayWindow):
         self.ui.configuration_frame.hide()
 
         # hide the setup project ui if it is shown
-        self.setup_project_widget.hide()
+        if six.PY2:
+            self.setup_project_widget.hide()
         self.update_project_config_widget.hide()
         self.setup_new_os_widget.hide()
         self.install_apps_widget.hide()
@@ -1379,8 +1381,9 @@ class DesktopWindow(SystrayWindow):
                     # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
                     # bootstrap.
                     self.ui.actionAdvanced_Project_Setup.setVisible(False)
-                    self.setup_project_widget.project = project
-                    self.setup_project_widget.show()
+                    if six.PY2:
+                        self.setup_project_widget.project = project
+                        self.setup_project_widget.show()
                     # Stop here, we don't want to launch Python at this point.
                     return
             else:
