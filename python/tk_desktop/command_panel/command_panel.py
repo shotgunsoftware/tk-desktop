@@ -100,7 +100,7 @@ class CommandPanel(QtGui.QWidget):
         Ensure each section is as side as possible.
         """
         width = self._get_optimal_width()
-        # Make sure all section have the proper width.
+        # Make sure all sections have the proper width.
         if self._recents_widget:
             self._recents_widget.setMaximumWidth(width)
 
@@ -118,7 +118,7 @@ class CommandPanel(QtGui.QWidget):
         Compure the optimal width for the widget.
         """
         # The optimal width is the width of the scroll view minus the
-        # scroll bar with, if visible.
+        # scroll bar width, if visible.
         width = self._scroll_view_owner.width()
         if self._scroll_view_owner.verticalScrollBar().isVisible():
             width -= self._scroll_view_owner.verticalScrollBar().width()
@@ -367,7 +367,7 @@ class CommandPanel(QtGui.QWidget):
 
     def _update_expanded_state(self, section_name, is_expanded):
         """
-        Update the state of the expanded flag the given section and stores the
+        Update the state of the expanded flag for the given section and store the
         new state in the settings.
 
         They are stored as a dictionary in the following format::

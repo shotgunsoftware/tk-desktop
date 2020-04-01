@@ -14,7 +14,7 @@ from .command_list import CommandList
 
 class CommandSection(Section):
     """
-    Implement the section that contains a list of CommandButton.
+    Implement the section that contains a list of "CommandButton"s.
     """
 
     def __init__(self, name):

@@ -18,7 +18,7 @@ from .shared import ICON_SIZE, BUTTON_STYLE
 
 class CommandButton(QtGui.QToolButton):
     """
-    Button that allows to launch one of many commands.
+    A button that allows launching one of many commands.
 
     When clicking on the button itself, the default command is executed. When clicking
     on the dropdown arrow on the right, a list of all the applications can be launched
@@ -128,7 +128,7 @@ class CommandButton(QtGui.QToolButton):
         # At this point, we can probably guess that there won't be any group under this
         # button as the app doesn't provide menu names for commands, and as such we don't
         # need to create an action under a menu that will only ever contain one action and
-        # thus won't be displayed, but this actually make the code more complex, so we'll
+        # thus won't be displayed, but this actually makes the code more complex, so we'll
         # simply use the command name as the menu action name.
         if menu_name is None:
             menu_name = command_name
