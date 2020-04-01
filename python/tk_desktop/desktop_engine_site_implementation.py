@@ -204,7 +204,7 @@ class DesktopEngineSiteImplementation(object):
             self.trigger_register_command, "trigger_register_command"
         )
         self.site_comm.register_function(
-            self.command_panel_finished, "command_panel_finished"
+            self.project_commands_finished, "project_commands_finished"
         )
 
     def engine_startup_error(self, python_version, error, tb=None):
@@ -337,12 +337,12 @@ class DesktopEngineSiteImplementation(object):
                 command_is_menu_default,
             )
 
-    def command_panel_finished(self):
+    def project_commands_finished(self):
         """
         Invoked when all commands found for a project have been registered.
         """
         # Let the desktop window know all commands for the project have been registered.
-        self.desktop_window.on_command_panel_finished()
+        self.desktop_window.on_project_commands_finished()
 
     def _handle_button_command_triggered(self, name):
         """ Button clicked from a registered command. """
@@ -470,7 +470,8 @@ class DesktopEngineSiteImplementation(object):
         # our websocket integration only if there is no server running from the desktop startup.
         # Note that the server argument is set regardless of whether the server launched or crashed,
         # so we have to actually get its value instead of merely checking for existence.
-        if server is None:
+        # Note: browser integration is not supported when running Python 3 inside Desktop.
+        if server is None and six.PY2:
             # Initialize all of this after the style-sheet has been applied so any prompt are also
             # styled after the Shotgun Desktop's visual-style.
             if splash:

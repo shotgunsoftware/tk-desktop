@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-Simple script that allows to tet the Project Commands view without having to launch the
+Simple script that allows to test the Project Commands view without having to launch the
 Shotgun Desktop.
 """
 

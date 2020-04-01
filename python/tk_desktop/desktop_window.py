@@ -37,7 +37,10 @@ from .ui import desktop_window
 from .systray import SystrayWindow
 from .about_screen import AboutScreen
 from .no_apps_installed_overlay import NoAppsInstalledOverlay
-from .setup_project import SetupProject
+
+# This only works in Python 2 for now.
+if six.PY2:
+    from .setup_project import SetupProject
 from .setup_new_os import SetupNewOS
 from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
@@ -66,7 +69,9 @@ overlay_widget = sgtk.platform.import_framework(
     "tk-framework-qtwidgets", "overlay_widget"
 )
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
-desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+# This framework is not compatible with Python 3 at the moment.
+if six.PY2:
+    desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 ShotgunModel = shotgun_model.ShotgunModel
 
@@ -250,8 +255,10 @@ class DesktopWindow(SystrayWindow):
 
         advanced_menu.addAction(self.toggle_debug_action)
 
+        # This framework is not compatible with Python 3 at the moment
         if (
-            desktop_server_framework.can_run_server()
+            six.PY2
+            and desktop_server_framework.can_run_server()
             and desktop_server_framework.can_regenerate_certificates()
         ):
             advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
@@ -345,9 +352,11 @@ class DesktopWindow(SystrayWindow):
             self.handle_project_thumbnail_updated
         )
 
-        desktop_server_framework.add_different_user_requested_callback(
-            self._on_different_user
-        )
+        # This framework is not compatible with Python 3 at the moment.
+        if six.PY2:
+            desktop_server_framework.add_different_user_requested_callback(
+                self._on_different_user
+            )
 
         # Set of sites that are being ignored when browser integration requests happen. This set is not
         # persisted when the desktop is closed.
@@ -819,7 +828,7 @@ class DesktopWindow(SystrayWindow):
         engine.refresh_user_credentials()
         engine.site_comm.call_no_response("open_project_locations")
 
-    def on_command_panel_finished(self):
+    def on_project_commands_finished(self):
         """
         Invoked when all commands found for a project have been registered.
         """
@@ -1364,7 +1373,8 @@ class DesktopWindow(SystrayWindow):
             ):
                 # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
                 if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
-                    self.ui.actionAdvanced_Project_Setup.setVisible(True)
+                    # The admin UI does not work in Python 3 for now.
+                    self.ui.actionAdvanced_Project_Setup.setVisible(six.PY2)
                 else:
                     # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
                     # bootstrap.
@@ -1469,14 +1479,13 @@ class DesktopWindow(SystrayWindow):
             try:
                 path_to_python = config_descriptor.python_interpreter
             except TankFileDoesNotExistError as e:
-                print(e)
                 if sys.platform == "darwin":
                     path_to_python = os.path.join(sys.prefix, "bin", "python")
                 elif sys.platform == "win32":
                     path_to_python = os.path.join(sys.prefix, "python.exe")
                 else:
                     path_to_python = os.path.join(sys.prefix, "bin", "python")
-            print(path_to_python)
+
             # Create a descriptor for the current core and gets its PYTHONPATH.
             core_python = sgtk.get_sgtk_module_path()
 

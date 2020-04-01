@@ -8,7 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtGui
 
 from .base_icon_list import BaseIconList
 from .command_button import CommandButton

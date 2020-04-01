@@ -24,7 +24,6 @@ sgtk.platform.qt.QtCore = importer.QtCore
 
 from command_panel import CommandPanel
 from command_panel import recent_list
-from command_panel import recent_button
 
 PROJECT = {"type": "Project", "id": 3}
 PROJECT_KEY = "project_recent_apps.3"

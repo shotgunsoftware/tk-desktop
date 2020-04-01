@@ -97,7 +97,7 @@ class CommandPanel(QtGui.QWidget):
 
     def _restrict_children(self):
         """
-        Ensure each section is as side as possible.
+        Ensure each section is as wide as possible.
         """
         width = self._get_optimal_width()
         # Make sure all sections have the proper width.
@@ -115,7 +115,7 @@ class CommandPanel(QtGui.QWidget):
 
     def _get_optimal_width(self):
         """
-        Compure the optimal width for the widget.
+        Compute the optimal width for the widget.
         """
         # The optimal width is the width of the scroll view minus the
         # scroll bar width, if visible.
@@ -241,7 +241,9 @@ class CommandPanel(QtGui.QWidget):
             current_group.add_command(
                 command_name, button_name, menu_name, icon, tooltip, is_menu_default
             )
-            # Caches information about the command so that if it is a recent
+            # Caches information about the command so that if we need to show a recent
+            # button for it we have it at the ready instead of retrieving it from the
+            # button itself.
             self._command_info[command_name] = {
                 # Single command buttons, like the Publish button, do not have a menu,
                 # so use the name of the button directly.

@@ -19,7 +19,7 @@ import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator
 
 
-# adminui = sgtk.platform.import_framework("tk-framework-adminui", "setup_project")
+adminui = sgtk.platform.import_framework("tk-framework-adminui", "setup_project")
 
 
 class SetupProject(QtGui.QWidget):

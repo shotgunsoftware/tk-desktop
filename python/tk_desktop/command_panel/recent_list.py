@@ -8,7 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtGui
 
 from .base_icon_list import BaseIconList
 from .recent_button import RecentButton
@@ -61,7 +61,9 @@ class RecentList(BaseIconList):
             # last button in the UI.
             insert_pos = len(buttons)
 
-        # Don't try to insert past the maximum possible index.
+        # Since all the launches are tracked, but only the most recent are displayed,
+        # it's possible we're going to try to insert commands that are older than the
+        # MAX_RECENTS ones. When that happens, we can simply quit.
         if insert_pos >= MAX_RECENTS:
             return
 
