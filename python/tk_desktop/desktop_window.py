@@ -1223,7 +1223,6 @@ class DesktopWindow(SystrayWindow):
         :param error: Exception object that was raised during bootstrap.
         :param tb: Traceback of the exception raised during bootstrap.
         """
-        print("ALLLLLLOOO!: ", exception_str.replace("\n", ""))
         engine = sgtk.platform.current_engine()
         trigger_project_config = False
         # If missing engine init error, we're know we have to setup the project.
@@ -1255,10 +1254,9 @@ class DesktopWindow(SystrayWindow):
             message = (
                 "It appears you may still be running older components "
                 "that are not Python 3 compatible. We recommend you upgrade "
-                "the following components in your project to these versions:\n"
-                "- tk-core: v0.19.5\n"
-                "- tk-desktop: v2.5.0\n"
-                "- tk-framework-desktopserver: v1.3.10"
+                "to these versions or newer in your project:\n"
+                "- tk-desktop: v2.5.0+\n"
+                "- tk-framework-desktopserver: v1.3.10+"
             )
         else:
             message = "Error\n\n%s" % exception_str
@@ -1272,7 +1270,7 @@ class DesktopWindow(SystrayWindow):
             self.show_update_project_config()
         else:
             # just show the error in the window
-            display_message = "%s\n\nSee the console for more details." % message
+            display_message = "%s\n\nSee the console for error details." % message
             self.project_overlay.show_error_message(display_message)
 
             # add the traceback if available
