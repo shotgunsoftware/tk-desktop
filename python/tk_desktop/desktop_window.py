@@ -1281,7 +1281,7 @@ class DesktopWindow(SystrayWindow):
             self.show_update_project_config()
         else:
             # just show the error in the window
-            display_message = "%s\n\nSee the console for error details." % message
+            display_message = "%s\n\nSee the console for the error details." % message
             self.project_overlay.show_error_message(display_message)
 
             # add the traceback if available
