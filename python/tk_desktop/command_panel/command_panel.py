@@ -107,6 +107,16 @@ class CommandPanel(QtGui.QWidget):
         for section in self.sections:
             section.setMaximumWidth(width)
 
+        self._restrict_recent_buttons(width)
+
+    def _restrict_recent_buttons(self, width):
+        """
+        Restrict the size of recent buttons so that we can fit up to
+        MAX_RECENTS buttons on the dialog.
+
+        :param int width: Size of a button.
+        """
+        width = width or self._get_optimal_width()
         if self._recents_widget:
             for button in self._recents_widget.buttons:
                 # Evenly space each button so they all have the same size.
@@ -183,6 +193,7 @@ class CommandPanel(QtGui.QWidget):
         self._recents[command_name] = {"timestamp": datetime.datetime.utcnow()}
         self._store_recents()
         self._refresh_recent_list(command_name)
+        self._restrict_recent_buttons(self._get_optimal_width())
 
     def _refresh_recent_list(self, command_name):
         """
