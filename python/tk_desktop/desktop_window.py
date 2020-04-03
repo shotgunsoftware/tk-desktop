@@ -75,8 +75,12 @@ if six.PY2:
 
 ShotgunModel = shotgun_model.ShotgunModel
 
+# Possible match for this regex:
+# - "address type of /var/tmp/something-pipe123"
+# - a stack trace with the exception containing "No module named 'urlparse'"
+# https://regex101.com/r/Ss2J3p/1
 DESKTOP_CANT_CONNECT_RE = re.compile(
-    "(address type of .* unrecognized)|(No module named 'urlparse')"
+    r"(address type of [\w\W\s]+ unrecognized)|(No module named 'urlparse')"
 )
 
 log = get_logger(__name__)
@@ -122,6 +126,32 @@ class ConfigDownloadThread(QtCore.QThread):
             self.download_failed.emit(str(e))
 
 
+class ProjectCommandSettings(object):
+    """
+    Decoupling the UI state persistance from the widget to simplify testing.
+    """
+
+    def __init__(self, dlg):
+        self._dlg = dlg
+
+    def save(self, key, value):
+        """
+        Save key/value pair into persistent storage.
+
+        :param str key: Name of the setting to save.
+        :param dict value: Value of the setting to save.
+        """
+        self._dlg._save_setting(key, value, site_specific=True)
+
+    def load(self, key):
+        """
+        Load value for given key in the settings.
+
+        :returns: Dict of the value or an empty dict if missing.
+        """
+        return self._dlg._load_setting(key, None, True) or {}
+
+
 class DesktopWindow(SystrayWindow):
     """ Dockable window for the Shotgun system tray """
 
@@ -152,16 +182,6 @@ class DesktopWindow(SystrayWindow):
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
 
-        class ProjectCommandSettings(object):
-            def __init__(self, dlg):
-                self._dlg = dlg
-
-            def save(self, key, recents):
-                self._dlg._save_setting(key, recents, site_specific=True)
-
-            def load(self, key):
-                return self._dlg._load_setting(key, None, True) or {}
-
         self._command_panel = CommandPanel(
             self.ui.command_panel_area, ProjectCommandSettings(self)
         )
@@ -173,6 +193,7 @@ class DesktopWindow(SystrayWindow):
         self._project_menu = ProjectMenu(self)
         self.project_overlay = LoadingProjectWidget(self._command_panel)
         self.install_apps_widget = NoAppsInstalledOverlay(self._command_panel)
+        # setup project does not work on Python 3 yet.
         if six.PY2:
             self.setup_project_widget = SetupProject(self._command_panel)
             self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
@@ -293,12 +314,6 @@ class DesktopWindow(SystrayWindow):
 
         # Initialize the model to track project commands
         self._project_command_count = 0
-
-        # fix for floating delegate bug
-        # see discussion at https://stackoverflow.com/questions/15331256
-        # self._command_panel.verticalScrollBar().valueChanged.connect(
-        #     self._command_panel.updateEditorGeometries
-        # )
 
         # load and initialize cached projects
         self._project_model = SgProjectModel(self, self.ui.projects)
@@ -530,14 +545,6 @@ class DesktopWindow(SystrayWindow):
                 win32api.SetDllDirectory(self._previous_dll_directory)
             except StandardError:
                 log.warning("Could not restore DllDirectory under Windows.")
-
-    # def event(self, event):
-    #     if event.type() == QtCore.QEvent.WindowActivate:
-    #         event = QtCore.QEvent(QtCore.QEvent.Leave)
-    #         QtGui.QApplication.instance().postEvent(self, event)
-    #         event = QtCore.QEvent(QtCore.QEvent.Enter)
-    #         QtGui.QApplication.instance().postEvent(self, event)
-    #     return super(DesktopWindow, self).event(event)
 
     def register_tab(self, tab_name, tab_widget):
         """
@@ -1111,6 +1118,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.configuration_frame.hide()
 
         # hide the setup project ui if it is shown
+        # setup project does not work on Python 3
         if six.PY2:
             self.setup_project_widget.hide()
         self.update_project_config_widget.hide()
@@ -1258,10 +1266,7 @@ class DesktopWindow(SystrayWindow):
                     self.current_project["id"],
                 ),
             )
-        elif six.PY3 and DESKTOP_CANT_CONNECT_RE.search(
-            exception_str.replace("\n", "")
-        ):
-            # We replace \n since regex doesn't parse past a \n
+        elif six.PY3 and DESKTOP_CANT_CONNECT_RE.search(exception_str):
             message = (
                 "It appears you may still be running older components "
                 "that are not Python 3 compatible. We recommend you upgrade "
@@ -1381,6 +1386,7 @@ class DesktopWindow(SystrayWindow):
                     # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
                     # bootstrap.
                     self.ui.actionAdvanced_Project_Setup.setVisible(False)
+                    # setup project does not work on Python 3 yet.
                     if six.PY2:
                         self.setup_project_widget.project = project
                         self.setup_project_widget.show()
@@ -1481,7 +1487,7 @@ class DesktopWindow(SystrayWindow):
             # Find the interpreter the config wants to use.
             try:
                 path_to_python = config_descriptor.python_interpreter
-            except TankFileDoesNotExistError as e:
+            except TankFileDoesNotExistError:
                 if sys.platform == "darwin":
                     path_to_python = os.path.join(sys.prefix, "bin", "python")
                 elif sys.platform == "win32":

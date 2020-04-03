@@ -206,6 +206,10 @@ def test_versions_sorted_in_menu(simple_test_view, commands):
 def test_command_actions_get_triggered(
     simple_test_view, action, expected_signal, qapplication
 ):
+    """
+    Ensure command_triggered is called for the command button click or menu
+    selection.
+    """
     commands = ["Maya 2018", "Maya 2019*"]
     _register_commands(simple_test_view, commands)
 
@@ -238,6 +242,9 @@ def test_command_actions_get_triggered(
     ),
 )
 def test_recent_sorted_properly(recents, monkeypatch):
+    """
+    Ensure recent commands are sorted from most recently used to last.
+    """
     commands = [recent[0] for recent in recents]
     settings = Settings(
         {
@@ -259,14 +266,31 @@ def test_recent_sorted_properly(recents, monkeypatch):
 
 
 def _get_recents_title(view):
+    """
+    Get the name of each button in the recent's tab.
+
+    :param view: The command panel.
+
+    :returns: List of names of each button from most recent to last.
+    """
     return [button.name for button in view.recents.buttons]
 
 
-def _get(iterator, position):
+def _get_nth(iterator, position):
+    """
+    Retrieves the n-th item of a collection for which we have an iterator.
+    :param int position: Position of the item to retrieve.
+
+    :returns: The n-th item.
+    """
     return list(iterator)[position]
 
 
 def test_recent_time_update_when_clicking():
+    """
+    Make sure the list of recents get updated accordingly when you
+    click on the command buttons.
+    """
     settings = Settings()
     view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), settings)
     view.configure(PROJECT, ["Creative Tools"], show_recents=True)
@@ -275,14 +299,14 @@ def test_recent_time_update_when_clicking():
     # There should be no recents tab for now.
     assert view.recents is None
 
-    creative_tools = _get(view.sections, 0)
-    maya_button = _get(creative_tools.buttons, 0)
+    creative_tools = _get_nth(view.sections, 0)
+    maya_button = _get_nth(creative_tools.buttons, 0)
     maya_button.click()
     # But when we click a button, one should appear
     assert view.recents is not None
     # The button should have triggered a Maya 2018 launch since it
     # is the default.
-    assert _get(view.recents.buttons, 0).name == "Maya 2018"
+    assert _get_nth(view.recents.buttons, 0).name == "Maya 2018"
     actions = list(maya_button.menu().actions())
     # The first action is the default one, so clicking it shouldn't change anything.
     actions[0].trigger()  # This is Maya 2018
@@ -295,7 +319,10 @@ def test_recent_time_update_when_clicking():
     assert _get_recents_title(view) == ["Maya 2019", "Maya 2018", "Maya 2017"]
 
 
-def test_recents_not_added_when_disabled():
+def test_recents_not_added_when_disabled(qapplication):
+    """
+    Ensure recent buttons are not added when show_recents is false.
+    """
     settings = Settings()
     view = CommandPanel(sgtk.platform.qt.QtGui.QScrollArea(), settings)
     view.configure(PROJECT, ["Creative Tools"], show_recents=False)
@@ -304,14 +331,19 @@ def test_recents_not_added_when_disabled():
 
     assert view.recents is None
 
-    creative_tools = _get(view.sections, 0)
-    maya_button = _get(creative_tools.buttons, 0)
+    creative_tools = _get_nth(view.sections, 0)
+    maya_button = _get_nth(creative_tools.buttons, 0)
     maya_button.click()
+
+    qapplication.processEvents()
 
     assert view.recents is None
 
 
 def _name_to_command(name):
+    """
+    Converts a product name into a command string.
+    """
     # e.g. turns "NukeX 12.5" into "nukex_125"
     return name.lower().replace(" ", "_").replace(".", "")
 

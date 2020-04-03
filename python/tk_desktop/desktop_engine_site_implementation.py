@@ -208,14 +208,15 @@ class DesktopEngineSiteImplementation(object):
             self.project_commands_finished, "project_commands_finished"
         )
 
-    def engine_startup_error(self, python_version, error, tb=None):
+    def engine_startup_error(self, exception_type, exception_str, tb=None):
         """
         Handle an error starting up the engine for the app proxy.
 
-        :param error: Exception object that was raised during bootstrap.
+        :param str exception_type: Name of the exception that was raised during bootstrap.
+        :param str exception_str: Text of the exception that was raised during bootstrap.
         :param tb: Traceback of the exception raised during bootstrap.
         """
-        self.desktop_window.engine_startup_error(python_version, error, tb)
+        self.desktop_window.engine_startup_error(exception_type, exception_str, tb)
 
     def bootstrap_progress_callback(self, value, msg):
         """

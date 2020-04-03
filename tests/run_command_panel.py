@@ -90,7 +90,7 @@ class ProjectCommandSettings(object):
     def load(self, key):
         return {
             command: {"timestamp": datetime.datetime.now()}
-            for command, _, _, _, _, _, _ in commands
+            for command, _, _, _, _, _, _ in list(commands)[0:3]
         }
 
 
