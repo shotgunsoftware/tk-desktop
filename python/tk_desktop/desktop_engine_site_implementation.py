@@ -529,7 +529,7 @@ class DesktopEngineSiteImplementation(object):
         #
         # Since Python 3 builds of the Shotgun Desktop and greater do not support
         # the legacy authentication, we'll test for Python 2 and return False
-        # automaticallyin Python 3 environments.
+        # automatically in Python 3 environments.
         return six.PY2 and LooseVersion(self.app_version) < LooseVersion("1.1.0")
 
     def create_legacy_login_instance(self):
