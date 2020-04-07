@@ -523,7 +523,14 @@ class DesktopEngineSiteImplementation(object):
 
         :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
         """
-        return LooseVersion(self.app_version) < LooseVersion("1.1.0")
+        # Desktop versions have been using the vX.Y.Z notation for a while now.
+        # While this didn't pose a problem when using a LooseVersion comparison
+        # to the X.Y.Z notation, in Python 3 this blows up.
+        #
+        # Since Python 3 builds of the Shotgun Desktop and greater do not support
+        # the legacy authentication, we'll test for Python 2 and return False
+        # automaticallyin Python 3 environments.
+        return six.PY2 and LooseVersion(self.app_version) < LooseVersion("1.1.0")
 
     def create_legacy_login_instance(self):
         """
