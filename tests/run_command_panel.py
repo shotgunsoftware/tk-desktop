@@ -45,6 +45,8 @@ products = [
     "Nuke 12.0*",
     "Nuke 12.5",
     "Nuke 11.0",
+    "Nuke 9.0",
+    "Nuke 8.5",
     "Nuke Assist 12.0",
     "Nuke Assist 12.5",
     "Nuke Assist 11.0*",

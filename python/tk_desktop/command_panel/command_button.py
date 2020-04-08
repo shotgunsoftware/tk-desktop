@@ -10,6 +10,8 @@
 
 import functools
 
+from sgtk.deploy import util
+
 from sgtk.platform.qt import QtCore, QtGui
 from tank_vendor import six
 
@@ -178,9 +180,9 @@ class CommandButton(QtGui.QToolButton):
             return -1
         elif "*" in rhs:
             return 1
-        elif lhs < rhs:
+        elif util.is_version_newer(lhs, rhs):
             return -1
-        elif lhs > rhs:
+        elif util.is_version_older(lhs, rhs):
             return 1
         else:
             return 0

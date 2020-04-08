@@ -188,7 +188,8 @@ def test_button_reuse_in_section(simple_test_view):
 
 
 @pytest.mark.parametrize(
-    "commands", itertools.permutations(["Maya 2017", "Maya 2018*", "Maya 2019"])
+    "commands",
+    itertools.permutations(["Maya 2017", "Maya 2018*", "Maya 2019", "Maya 4.5"]),
 )
 def test_versions_sorted_in_menu(simple_test_view, commands):
     _register_commands(simple_test_view, commands)
@@ -196,7 +197,7 @@ def test_versions_sorted_in_menu(simple_test_view, commands):
 
     assert list(
         six.ensure_str(item.text()) for item in maya_button.menu().actions()
-    ) == ["Maya 2018*", "Maya 2017", "Maya 2019"]
+    ) == ["Maya 2018*", "Maya 2019", "Maya 2017", "Maya 4.5"]
 
 
 @pytest.mark.parametrize(
