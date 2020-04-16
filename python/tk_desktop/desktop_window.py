@@ -722,36 +722,6 @@ class DesktopWindow(SystrayWindow):
     def handle_hotkey_triggered(self):
         self.toggle_activate()
 
-    def set_activation_hotkey(self, shortcut, native_modifiers, native_key):
-        if osutils is None:
-            return
-
-        if shortcut.isEmpty():
-            self._save_setting("activation_hotkey", ("", "", ""), site_specific=True)
-            if self.__activation_hotkey is not None:
-                osutils.unregister_global_hotkey(self.__activation_hotkey)
-                self.__activation_hotkey = None
-        else:
-            if self.__activation_hotkey is not None:
-                osutils.unregister_global_hotkey(self.__activation_hotkey)
-            self.__activation_hotkey = osutils.register_global_hotkey(
-                native_modifiers, native_key, self.handle_hotkey_triggered
-            )
-            self._save_setting(
-                "activation_hotkey",
-                (shortcut[0], native_modifiers, native_key),
-                site_specific=True,
-            )
-
-    def handle_auto_start_changed(self, state):
-        if osutils is None:
-            return
-
-        if state == QtCore.Qt.Checked:
-            osutils.set_launch_at_login(True)
-        if state == QtCore.Qt.Unchecked:
-            osutils.set_launch_at_login(False)
-
     def handle_project_refresh_action(self):
         """
         Force a reload of the project model.
@@ -1054,7 +1024,6 @@ class DesktopWindow(SystrayWindow):
         self._command_panel.add_command(
             name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
         )
-        # self._project_command_proxy.invalidate()
         self._project_command_count += 1
 
     def _handle_project_data_changed(self):
@@ -1109,6 +1078,12 @@ class DesktopWindow(SystrayWindow):
             self.current_project, groups, show_recents=show_recents
         )
         self.project_overlay.hide()
+
+    def showEvent(self, event):
+        res = super(DesktopWindow, self).showEvent(event)
+        self.updateGeometry()
+        self._command_panel.fix_sizes()
+        return res
 
     def clear_app_uis(self):
         # empty the project commands
