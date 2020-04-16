@@ -85,9 +85,6 @@ class CommandPanel(QtGui.QWidget):
         # Keeps a reference to scroll view that owns this widget.
         self._scroll_view_owner = parent
 
-    def fix_sizes(self):
-        self._on_parent_resized()
-
     def _on_parent_resized(self):
         """
         Called when the parent widget is resized.
@@ -103,9 +100,6 @@ class CommandPanel(QtGui.QWidget):
         Ensure each section is as wide as possible.
         """
         width = self._get_optimal_width()
-        # Make sure all sections have the proper width.
-        if self._recents_widget:
-            self._recents_widget.setMaximumWidth(width)
 
         for section in self.sections:
             section.setMaximumWidth(width)
@@ -121,6 +115,7 @@ class CommandPanel(QtGui.QWidget):
         """
         width = width or self._get_optimal_width()
         if self._recents_widget:
+            self._recents_widget.setMaximumWidth(width)
             for button in self._recents_widget.buttons:
                 # Evenly space each button so they all have the same size.
                 button.setMinimumWidth(width // MAX_RECENTS)

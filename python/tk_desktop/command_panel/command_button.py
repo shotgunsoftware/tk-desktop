@@ -52,15 +52,8 @@ class CommandButton(QtGui.QToolButton):
 
         self.setText(" %s" % button_name)
 
-        # The first command is always the default one. This ensures a default
-        # command is always set when you click on the button. If another command
-        # is registered later as the default, it will become the new default.
-        self._set_default(command_name, tooltip, icon)
+        self._set_default(tooltip, icon)
 
-        # Make sure we emit the default command when the button is triggered.
-        self.clicked.connect(
-            lambda: self.command_triggered.emit(self._default_command_name)
-        )
         self._commands = []
 
         # This menu will implement the drop down behaviour of the tool button.
@@ -87,6 +80,9 @@ class CommandButton(QtGui.QToolButton):
 
         self._menu.aboutToHide.connect(cleanup)
 
+        # Clicking on the button triggers the first action.
+        self.clicked.connect(lambda: self._menu.actions()[0].trigger())
+
     @property
     def name(self):
         """
@@ -94,15 +90,13 @@ class CommandButton(QtGui.QToolButton):
         """
         return self._button_name
 
-    def _set_default(self, command_name, tooltip, icon):
+    def _set_default(self, tooltip, icon):
         """
         Set the default action when the button is clicked.
 
-        :param str command_name: Command to launch when the button is clicked.
         :param str tooltip: Tooltip for the button.
         :param str icon: Path to the icon.
         """
-        self._default_command_name = command_name
         self.setToolTip(tooltip)
         self.setIcon(QtGui.QIcon(icon))
 
@@ -137,23 +131,31 @@ class CommandButton(QtGui.QToolButton):
 
         # The default menu entry is always denoted with a star next to it.
         if is_menu_default:
-            self._set_default(command_name, tooltip, icon)
-            action_name = menu_name + "*"
-        else:
-            action_name = menu_name
+            self._set_default(tooltip, icon)
+            for command in self._commands:
+                command[3] = False
 
         # QMenu doesn't support insertion of an action in the middle of the menu
         # so we'll recreate the items every single time one is added.
         self._menu.clear()
 
+        # Only keep the last default as the default. This can happen when
+        # software entities are unproperly registered and multiple
+        # defaults are defined.
+
         # Keep track of the new item being added.
-        self._commands.append((command_name, menu_name, action_name, tooltip))
+        self._commands.append([command_name, menu_name, tooltip, is_menu_default])
 
         # For all actions on the menu name
-        for command_name, _, action_name, tooltip in sorted(
+        is_first = True
+        for command_name, menu_name, tooltip, is_menu_default in sorted(
             self._commands, key=functools.cmp_to_key(self._compare_menu_actions)
         ):
-            action = self._menu.addAction(action_name)
+            # Add an asterix to the first item since it is the default.
+            if is_first:
+                is_first = False
+                menu_name += "*"
+            action = self._menu.addAction(menu_name)
             action.setToolTip(tooltip)
             action.setData(command_name)
 
@@ -171,18 +173,21 @@ class CommandButton(QtGui.QToolButton):
         is always at the top.
         """
         # extract the action name so we can sort based on that.
-        lhs = lhs[2]
-        rhs = rhs[2]
+        lhs_action_name = lhs[1]
+        rhs_action_name = rhs[1]
+
+        lhs_is_default = lhs[3]
+        rhs_is_default = rhs[3]
 
         # The default action, denoted by a * in the menu, is always at the top.
         # Everything else is sorted alphabetically.
-        if "*" in lhs:
+        if lhs_is_default:
             return -1
-        elif "*" in rhs:
+        elif rhs_is_default:
             return 1
-        elif util.is_version_newer(lhs, rhs):
+        elif util.is_version_newer(lhs_action_name, rhs_action_name):
             return -1
-        elif util.is_version_older(lhs, rhs):
+        elif util.is_version_older(lhs_action_name, rhs_action_name):
             return 1
         else:
             return 0

@@ -312,11 +312,11 @@ def test_recent_time_update_when_clicking():
     # The first action is the default one, so clicking it shouldn't change anything.
     actions[0].trigger()  # This is Maya 2018
     assert _get_recents_title(view) == ["Maya 2018"]
-    actions[1].trigger()  # This is Maya 2017.
+    actions[2].trigger()  # This is Maya 2017.
     assert _get_recents_title(view) == ["Maya 2017", "Maya 2018"]
     actions[0].trigger()  # This is Maya 2018
     assert _get_recents_title(view) == ["Maya 2018", "Maya 2017"]
-    actions[2].trigger()  # This is Maya 2019
+    actions[1].trigger()  # This is Maya 2019
     assert _get_recents_title(view) == ["Maya 2019", "Maya 2018", "Maya 2017"]
 
 

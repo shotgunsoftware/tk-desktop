@@ -1079,12 +1079,6 @@ class DesktopWindow(SystrayWindow):
         )
         self.project_overlay.hide()
 
-    def showEvent(self, event):
-        res = super(DesktopWindow, self).showEvent(event)
-        self.updateGeometry()
-        self._command_panel.fix_sizes()
-        return res
-
     def clear_app_uis(self):
         # empty the project commands
         self._command_panel.clear()
