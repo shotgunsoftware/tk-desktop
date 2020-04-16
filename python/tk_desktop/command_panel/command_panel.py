@@ -85,6 +85,9 @@ class CommandPanel(QtGui.QWidget):
         # Keeps a reference to scroll view that owns this widget.
         self._scroll_view_owner = parent
 
+    def fix_sizes(self):
+        self._on_parent_resized()
+
     def _on_parent_resized(self):
         """
         Called when the parent widget is resized.
