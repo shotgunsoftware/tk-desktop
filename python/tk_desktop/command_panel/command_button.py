@@ -131,9 +131,8 @@ class CommandButton(QtGui.QToolButton):
 
         # The default menu entry is always denoted with a star next to it.
         if is_menu_default:
-            self._set_default(tooltip, icon)
             for command in self._commands:
-                command[3] = False
+                command[-1] = False
 
         # QMenu doesn't support insertion of an action in the middle of the menu
         # so we'll recreate the items every single time one is added.
@@ -144,16 +143,17 @@ class CommandButton(QtGui.QToolButton):
         # defaults are defined.
 
         # Keep track of the new item being added.
-        self._commands.append([command_name, menu_name, tooltip, is_menu_default])
+        self._commands.append([command_name, menu_name, tooltip, icon, is_menu_default])
 
         # For all actions on the menu name
         is_first = True
-        for command_name, menu_name, tooltip, is_menu_default in sorted(
+        for command_name, menu_name, tooltip, icon, is_menu_default in sorted(
             self._commands, key=functools.cmp_to_key(self._compare_menu_actions)
         ):
             # Add an asterix to the first item since it is the default.
             if is_first:
                 is_first = False
+                self._set_default(tooltip, icon)
                 menu_name += "*"
             action = self._menu.addAction(menu_name)
             action.setToolTip(tooltip)
