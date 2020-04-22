@@ -161,7 +161,10 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
             # sort by last_accessed_by_current_user
             def key_for_project(project):
                 return (
-                    project["last_accessed_by_current_user"],
+                    # If project has never accessed (last_access_by_current_user == None), use 0
+                    # in the key. Otherwise we'll end up comparing floats and None, which blows
+                    # up in Python 3.
+                    project["last_accessed_by_current_user"] or 0,
                     project["name"],
                     project["id"],
                 )

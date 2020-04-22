@@ -17,7 +17,7 @@ import sgtk
 overlay = sgtk.platform.import_framework("tk-framework-qtwidgets", "overlay_widget")
 
 
-class LoadingProjectWidget(QtGui.QWidget):
+class LoadingProjectWidget(QtGui.QFrame):
     """
     Shows a Shotgun progress widget with a text box containing details of how
     far along we are in the bootstrap process. It also supports displaying
@@ -39,6 +39,7 @@ class LoadingProjectWidget(QtGui.QWidget):
         self._ui.setupUi(self)
 
         self._overlay = overlay.ShotgunOverlayWidget(self)
+        self._overlay.setMargin(20)
 
         # hook up a listener to the parent window so we
         # can resize the overlay at the same time as the parent window

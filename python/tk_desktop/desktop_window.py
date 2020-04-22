@@ -78,9 +78,10 @@ ShotgunModel = shotgun_model.ShotgunModel
 # Possible match for this regex:
 # - "address type of /var/tmp/something-pipe123"
 # - a stack trace with the exception containing "No module named 'urlparse'"
-# https://regex101.com/r/Ss2J3p/1
+# - a stack trace for a syntax error, likely coming from an older Desktop (could be a false positive!)
+# https://regex101.com/r/Ss2J3p/2
 DESKTOP_CANT_CONNECT_RE = re.compile(
-    r"(address type of [\w\W\s]+ unrecognized)|(No module named 'urlparse')"
+    r"(address type of [\w\W\s]+ unrecognized)|(No module named 'urlparse')|(invalid syntax \(communication_base.py, line 141\))"
 )
 
 log = get_logger(__name__)
@@ -1235,7 +1236,7 @@ class DesktopWindow(SystrayWindow):
                     self.current_project["id"],
                 ),
             )
-        elif six.PY3 and DESKTOP_CANT_CONNECT_RE.search(exception_str):
+        elif DESKTOP_CANT_CONNECT_RE.search(exception_str):
             message = (
                 "It appears you may still be running older components "
                 "that are not Python 3 compatible. We recommend you upgrade "
