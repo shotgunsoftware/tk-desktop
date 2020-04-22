@@ -147,7 +147,7 @@ class CommandButton(QtGui.QToolButton):
 
         # For all actions on the menu name
         is_first = True
-        for command_name, menu_name, tooltip, icon, is_menu_default in sorted(
+        for command_name, menu_name, tooltip, icon, _ in sorted(
             self._commands, key=functools.cmp_to_key(self._compare_menu_actions)
         ):
             # Add an asterix to the first item since it is the default.
