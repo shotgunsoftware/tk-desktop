@@ -113,7 +113,6 @@ class CommandPanel(QtGui.QWidget):
 
         :param int width: Size of a button.
         """
-        width = width or self._get_optimal_width()
         if self._recents_widget:
             self._recents_widget.setMaximumWidth(width)
             for button in self._recents_widget.buttons:
