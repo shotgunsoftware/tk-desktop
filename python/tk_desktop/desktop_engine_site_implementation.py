@@ -18,6 +18,7 @@ import collections
 from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
+from tank_vendor import six
 
 from sgtk import LogManager
 
@@ -132,7 +133,7 @@ class DesktopEngineSiteImplementation(object):
             # matched commands.
             apps_command_index = 0
             # skip the commands from the selectors preceding "Apps"
-            for index in xrange(apps_index):
+            for index in range(apps_index):
                 selector = selectors[index]
                 # skip all the commands that fit the current selector
                 # insert as the last command in the worst case
@@ -207,14 +208,15 @@ class DesktopEngineSiteImplementation(object):
             self.project_commands_finished, "project_commands_finished"
         )
 
-    def engine_startup_error(self, error, tb=None):
+    def engine_startup_error(self, exception_type, exception_str, tb=None):
         """
         Handle an error starting up the engine for the app proxy.
 
-        :param error: Exception object that was raised during bootstrap.
+        :param str exception_type: Name of the exception that was raised during bootstrap.
+        :param str exception_str: Text of the exception that was raised during bootstrap.
         :param tb: Traceback of the exception raised during bootstrap.
         """
-        self.desktop_window.engine_startup_error(error, tb)
+        self.desktop_window.engine_startup_error(exception_type, exception_str, tb)
 
     def bootstrap_progress_callback(self, value, msg):
         """
@@ -344,10 +346,14 @@ class DesktopEngineSiteImplementation(object):
         # Let the desktop window know all commands for the project have been registered.
         self.desktop_window.on_project_commands_finished()
 
-    def _handle_button_command_triggered(self, group, name):
+    def _handle_button_command_triggered(self, name):
         """ Button clicked from a registered command. """
         self.refresh_user_credentials()
-        self.site_comm.call_no_response("trigger_callback", "__commands", name)
+        # Make sure the string is a str and not unicode. This happens in
+        # Python 2.7.
+        self.site_comm.call_no_response(
+            "trigger_callback", "__commands", six.ensure_str(name)
+        )
 
     # Leave app_version as is for backwards compatibility.
     def run(self, splash, version, **kwargs):
@@ -470,7 +476,8 @@ class DesktopEngineSiteImplementation(object):
         # our websocket integration only if there is no server running from the desktop startup.
         # Note that the server argument is set regardless of whether the server launched or crashed,
         # so we have to actually get its value instead of merely checking for existence.
-        if server is None:
+        # Note: browser integration is not supported when running Python 3 inside Desktop.
+        if server is None and six.PY2:
             # Initialize all of this after the style-sheet has been applied so any prompt are also
             # styled after the Shotgun Desktop's visual-style.
             if splash:
@@ -520,7 +527,14 @@ class DesktopEngineSiteImplementation(object):
 
         :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
         """
-        return LooseVersion(self.app_version) < LooseVersion("1.1.0")
+        # Desktop versions have been using the vX.Y.Z notation for a while now.
+        # While this didn't pose a problem when using a LooseVersion comparison
+        # to the X.Y.Z notation, in Python 3 this blows up.
+        #
+        # Since Python 3 builds of the Shotgun Desktop and greater do not support
+        # the legacy authentication, we'll test for Python 2 and return False
+        # automatically in Python 3 environments.
+        return six.PY2 and LooseVersion(self.app_version) < LooseVersion("1.1.0")
 
     def create_legacy_login_instance(self):
         """

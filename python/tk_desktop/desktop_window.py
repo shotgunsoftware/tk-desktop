@@ -16,11 +16,13 @@ import tempfile
 import subprocess
 import pprint
 import inspect
+import re
 from collections import OrderedDict
+
 
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
-
+from tank_vendor import six
 import sgtk
 from sgtk.util import shotgun
 from sgtk.bootstrap import ToolkitManager
@@ -35,7 +37,10 @@ from .ui import desktop_window
 from .systray import SystrayWindow
 from .about_screen import AboutScreen
 from .no_apps_installed_overlay import NoAppsInstalledOverlay
-from .setup_project import SetupProject
+
+# This only works in Python 2 for now.
+if six.PY2:
+    from .setup_project import SetupProject
 from .setup_new_os import SetupNewOS
 from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
@@ -46,9 +51,7 @@ from .browser_integration_user_switch_dialog import BrowserIntegrationUserSwitch
 from .banner_widget import BannerWidget
 
 from .project_menu import ProjectMenu
-from .project_commands_model import ProjectCommandModel
-from .project_commands_model import ProjectCommandProxyModel
-from .project_commands_widget import ProjectCommandDelegate
+from .command_panel import CommandPanel
 from . import rpc
 
 from .notifications import NotificationsManager, FirstLaunchNotification
@@ -66,9 +69,20 @@ overlay_widget = sgtk.platform.import_framework(
     "tk-framework-qtwidgets", "overlay_widget"
 )
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
-desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+# This framework is not compatible with Python 3 at the moment.
+if six.PY2:
+    desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 ShotgunModel = shotgun_model.ShotgunModel
+
+# Possible match for this regex:
+# - "address type of /var/tmp/something-pipe123"
+# - a stack trace with the exception containing "No module named 'urlparse'"
+# - a stack trace for a syntax error, likely coming from an older Desktop (could be a false positive!)
+# https://regex101.com/r/Ss2J3p/2
+DESKTOP_CANT_CONNECT_RE = re.compile(
+    r"(address type of [\w\W\s]+ unrecognized)|(No module named 'urlparse')|(invalid syntax \(communication_base.py, line 141\))"
+)
 
 log = get_logger(__name__)
 
@@ -113,6 +127,32 @@ class ConfigDownloadThread(QtCore.QThread):
             self.download_failed.emit(str(e))
 
 
+class ProjectCommandSettings(object):
+    """
+    Decoupling the UI state persistance from the widget to simplify testing.
+    """
+
+    def __init__(self, dlg):
+        self._dlg = dlg
+
+    def save(self, key, value):
+        """
+        Save key/value pair into persistent storage.
+
+        :param str key: Name of the setting to save.
+        :param dict value: Value of the setting to save.
+        """
+        self._dlg._save_setting(key, value, site_specific=True)
+
+    def load(self, key):
+        """
+        Load value for given key in the settings.
+
+        :returns: Dict of the value or an empty dict if missing.
+        """
+        return self._dlg._load_setting(key, None, True) or {}
+
+
 class DesktopWindow(SystrayWindow):
     """ Dockable window for the Shotgun system tray """
 
@@ -142,18 +182,27 @@ class DesktopWindow(SystrayWindow):
         # setup the window
         self.ui = desktop_window.Ui_DesktopWindow()
         self.ui.setupUi(self)
-        self._project_menu = ProjectMenu(self)
-        self.project_overlay = LoadingProjectWidget(self.ui.project_commands)
-        self.install_apps_widget = NoAppsInstalledOverlay(self.ui.project_commands)
-        self.setup_project_widget = SetupProject(self.ui.project_commands)
-        self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
-        self.update_project_config_widget = UpdateProjectConfig(
-            self.ui.project_commands
+
+        self._command_panel = CommandPanel(
+            self.ui.command_panel_area, ProjectCommandSettings(self)
         )
+        self._command_panel.command_triggered.connect(
+            engine._handle_button_command_triggered
+        )
+        self.ui.command_panel_area.setWidget(self._command_panel)
+
+        self._project_menu = ProjectMenu(self)
+        self.project_overlay = LoadingProjectWidget(self._command_panel)
+        self.install_apps_widget = NoAppsInstalledOverlay(self._command_panel)
+        # setup project does not work on Python 3 yet.
+        if six.PY2:
+            self.setup_project_widget = SetupProject(self._command_panel)
+            self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
+        self.update_project_config_widget = UpdateProjectConfig(self._command_panel)
         self.update_project_config_widget.update_finished.connect(
             self._on_update_finished
         )
-        self.setup_new_os_widget = SetupNewOS(self.ui.project_commands)
+        self.setup_new_os_widget = SetupNewOS(self._command_panel)
 
         self._current_pipeline_descriptor = None
 
@@ -229,8 +278,10 @@ class DesktopWindow(SystrayWindow):
 
         advanced_menu.addAction(self.toggle_debug_action)
 
+        # This framework is not compatible with Python 3 at the moment
         if (
-            desktop_server_framework.can_run_server()
+            six.PY2
+            and desktop_server_framework.can_run_server()
             and desktop_server_framework.can_regenerate_certificates()
         ):
             advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
@@ -264,32 +315,6 @@ class DesktopWindow(SystrayWindow):
 
         # Initialize the model to track project commands
         self._project_command_count = 0
-        self._project_command_model = ProjectCommandModel(self)
-        self._project_command_proxy = ProjectCommandProxyModel(self)
-        self._project_command_proxy.setSourceModel(self._project_command_model)
-        self._project_command_proxy.sort(0)
-        self.ui.project_commands.setModel(self._project_command_proxy)
-
-        # limit how many recent commands are shown
-        self._project_command_proxy.set_recents_limit(6)
-
-        self._project_command_delegate = ProjectCommandDelegate(
-            self.ui.project_commands
-        )
-        self.ui.project_commands.setItemDelegate(self._project_command_delegate)
-        self.ui.project_commands.expanded_changed.connect(
-            self.handle_project_command_expanded_changed
-        )
-
-        # fix for floating delegate bug
-        # see discussion at https://stackoverflow.com/questions/15331256
-        self.ui.project_commands.verticalScrollBar().valueChanged.connect(
-            self.ui.project_commands.updateEditorGeometries
-        )
-
-        self._project_command_model.command_triggered.connect(
-            engine._handle_button_command_triggered
-        )
 
         # load and initialize cached projects
         self._project_model = SgProjectModel(self, self.ui.projects)
@@ -344,9 +369,11 @@ class DesktopWindow(SystrayWindow):
             self.handle_project_thumbnail_updated
         )
 
-        desktop_server_framework.add_different_user_requested_callback(
-            self._on_different_user
-        )
+        # This framework is not compatible with Python 3 at the moment.
+        if six.PY2:
+            desktop_server_framework.add_different_user_requested_callback(
+                self._on_different_user
+            )
 
         # Set of sites that are being ignored when browser integration requests happen. This set is not
         # persisted when the desktop is closed.
@@ -548,7 +575,7 @@ class DesktopWindow(SystrayWindow):
             Event fired when a tab is selected by the user
             """
             # update the state of tab buttons
-            for i in xrange(self.ui.tabs.count()):
+            for i in range(self.ui.tabs.count()):
                 button = self.ui.tabs.itemAt(i).widget()
                 button.setProperty("active", button == tab_button)
                 # apply style update
@@ -663,11 +690,6 @@ class DesktopWindow(SystrayWindow):
                 if choice == QtGui.QMessageBox.Yes:
                     self._restart_desktop()
 
-    def handle_project_command_expanded_changed(self, group_key, expanded):
-        expanded_state = self._project_command_model.get_expanded_state()
-        key = "project_expanded_state.%d" % self.current_project["id"]
-        self._save_setting(key, expanded_state, site_specific=True)
-
     def handle_project_thumbnail_updated(self, item):
         project = item.data(ShotgunModel.SG_DATA_ROLE)
         if self.current_project is None or project["id"] != self.current_project["id"]:
@@ -700,36 +722,6 @@ class DesktopWindow(SystrayWindow):
 
     def handle_hotkey_triggered(self):
         self.toggle_activate()
-
-    def set_activation_hotkey(self, shortcut, native_modifiers, native_key):
-        if osutils is None:
-            return
-
-        if shortcut.isEmpty():
-            self._save_setting("activation_hotkey", ("", "", ""), site_specific=True)
-            if self.__activation_hotkey is not None:
-                osutils.unregister_global_hotkey(self.__activation_hotkey)
-                self.__activation_hotkey = None
-        else:
-            if self.__activation_hotkey is not None:
-                osutils.unregister_global_hotkey(self.__activation_hotkey)
-            self.__activation_hotkey = osutils.register_global_hotkey(
-                native_modifiers, native_key, self.handle_hotkey_triggered
-            )
-            self._save_setting(
-                "activation_hotkey",
-                (shortcut[0], native_modifiers, native_key),
-                site_specific=True,
-            )
-
-    def handle_auto_start_changed(self, state):
-        if osutils is None:
-            return
-
-        if state == QtCore.Qt.Checked:
-            osutils.set_launch_at_login(True)
-        if state == QtCore.Qt.Unchecked:
-            osutils.set_launch_at_login(False)
 
     def handle_project_refresh_action(self):
         """
@@ -1001,7 +993,7 @@ class DesktopWindow(SystrayWindow):
     ########################################################################################
     # project view
     def get_app_widget(self, namespace=None):
-        return self.ui.project_commands
+        return self._command_panel
 
     def add_to_project_menu(self, action):
         self._project_menu.add(action)
@@ -1030,10 +1022,10 @@ class DesktopWindow(SystrayWindow):
         :param bool is_menu_default: If this command is a menu item, indicate whether it should
                                      also be run by the command button.
         """
-        self._project_command_model.add_command(
+        self._command_panel.add_command(
             name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
         )
-        self._project_command_proxy.invalidate()
+        self._force_panel_resize()
         self._project_command_count += 1
 
     def _handle_project_data_changed(self):
@@ -1084,24 +1076,44 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
     def set_groups(self, groups, show_recents=True):
-        self._project_command_model.set_project(
+        self._command_panel.configure(
             self.current_project, groups, show_recents=show_recents
         )
         self.project_overlay.hide()
 
-        key = "project_expanded_state.%d" % self.current_project["id"]
-        expanded_state = self._load_setting(key, {}, True)
-        self._project_command_model.set_expanded_state(expanded_state)
+    def showEvent(self, event):
+        """
+        Called when the dialog is shown.
+        """
+        res = super(DesktopWindow, self).showEvent(event)
+        # If icons were added while the dialog was hidden (this happens
+        # in pinned mode), the widgets haven't been properly laid out
+        # so we're forcing it to happen again.
+        self._force_panel_resize()
+        return res
+
+    def _force_panel_resize(self):
+        """
+        Force the command panel area to recompute the size of
+        its children.
+        """
+        # On Windows, we need to force a geometry update
+        # and widget resize so we do not get a horizontal
+        # scroll in the command panel.
+        self.ui.command_panel_area.updateGeometry()
+        self.ui.command_panel_area.adjustSize()
 
     def clear_app_uis(self):
         # empty the project commands
-        self._project_command_model.clear()
+        self._command_panel.clear()
 
         # hide the pipeline configuration bar
         self.ui.configuration_frame.hide()
 
         # hide the setup project ui if it is shown
-        self.setup_project_widget.hide()
+        # setup project does not work on Python 3
+        if six.PY2:
+            self.setup_project_widget.hide()
         self.update_project_config_widget.hide()
         self.setup_new_os_widget.hide()
         self.install_apps_widget.hide()
@@ -1135,7 +1147,7 @@ class DesktopWindow(SystrayWindow):
 
         # find the project in the model
         model = self._project_selection_model.model()
-        for i in xrange(model.rowCount()):
+        for i in range(model.rowCount()):
             index = model.index(i, 0)
 
             if hasattr(model, "mapToSource"):
@@ -1216,7 +1228,7 @@ class DesktopWindow(SystrayWindow):
         sg_patch_ver = connection.server_info["version"][2]
         return sg_major_ver, sg_minor_ver, sg_patch_ver
 
-    def engine_startup_error(self, error, tb):
+    def engine_startup_error(self, exception_type, exception_str, tb):
         """
         Handle an error starting up the engine for the app proxy.
 
@@ -1226,19 +1238,19 @@ class DesktopWindow(SystrayWindow):
         engine = sgtk.platform.current_engine()
         trigger_project_config = False
         # If missing engine init error, we're know we have to setup the project.
-        if isinstance(error, sgtk.platform.TankMissingEngineError):
-            message = "Error starting engine!\n\n%s" % error.message
+        if exception_type == "sgtk.platform.TankMissingEngineError":
+            message = "Error starting engine!\n\n%s" % exception_str
             trigger_project_config = True
         # However, this exception type hasn't always existed, so take care of that
         # case also.
-        elif isinstance(error, sgtk.platform.TankEngineInitError):
-            message = "Error starting engine!\n\n%s" % error.message
+        elif exception_type == "sgtk.platform.TankEngineInitError":
+            message = "Error starting engine!\n\n%s" % exception_str
             # match directly on the error message until something less fragile can be put in place
-            if error.message.startswith("Cannot find an engine instance tk-desktop"):
+            if exception_str.startswith("Cannot find an engine instance tk-desktop"):
                 trigger_project_config = True
-        elif isinstance(error, sgtk.bootstrap.TankMissingTankNameError):
+        elif exception_type == "sgtk.bootstrap.TankMissingTankNameError":
             message = "Error starting engine!\n\n%s\n\n%s" % (
-                error.message.replace("tank_name", "<b>tank_name</b>"),
+                exception_str.replace("tank_name", "<b>tank_name</b>"),
                 "Visit your "
                 "<b><a style='color: {0}' href='{1}/detail/Project/{2}'>project</a></b> "
                 "page to set the field.".format(
@@ -1247,8 +1259,16 @@ class DesktopWindow(SystrayWindow):
                     self.current_project["id"],
                 ),
             )
+        elif DESKTOP_CANT_CONNECT_RE.search(exception_str):
+            message = (
+                "It appears you may still be running older components "
+                "that are not Python 3 compatible. We recommend you upgrade "
+                "to these versions or newer in your project:\n"
+                "- tk-desktop: v2.5.0+\n"
+                "- tk-framework-desktopserver: v1.3.10+"
+            )
         else:
-            message = "Error\n\n%s" % error.message
+            message = "Error\n\n%s" % exception_str
 
         if (
             trigger_project_config
@@ -1259,7 +1279,7 @@ class DesktopWindow(SystrayWindow):
             self.show_update_project_config()
         else:
             # just show the error in the window
-            display_message = "%s\n\nSee the console for more details." % message
+            display_message = "%s\n\nSee the console for the error details." % message
             self.project_overlay.show_error_message(display_message)
 
             # add the traceback if available
@@ -1353,13 +1373,16 @@ class DesktopWindow(SystrayWindow):
             ):
                 # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
                 if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
-                    self.ui.actionAdvanced_Project_Setup.setVisible(True)
+                    # The admin UI does not work in Python 3 for now.
+                    self.ui.actionAdvanced_Project_Setup.setVisible(six.PY2)
                 else:
                     # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
                     # bootstrap.
                     self.ui.actionAdvanced_Project_Setup.setVisible(False)
-                    self.setup_project_widget.project = project
-                    self.setup_project_widget.show()
+                    # setup project does not work on Python 3 yet.
+                    if six.PY2:
+                        self.setup_project_widget.project = project
+                        self.setup_project_widget.show()
                     # Stop here, we don't want to launch Python at this point.
                     return
             else:
@@ -1618,13 +1641,13 @@ class DesktopWindow(SystrayWindow):
         new_page.show()
         new_page.raise_()
 
-        anim_old = QtCore.QPropertyAnimation(current_page, "pos", self)
+        anim_old = QtCore.QPropertyAnimation(current_page, b"pos", self)
         anim_old.setDuration(500)
         anim_old.setStartValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
         anim_old.setEndValue(QtCore.QPoint(curr_pos.x() - offsetx, curr_pos.y()))
         anim_old.setEasingCurve(QtCore.QEasingCurve.OutBack)
 
-        anim_new = QtCore.QPropertyAnimation(new_page, "pos", self)
+        anim_new = QtCore.QPropertyAnimation(new_page, b"pos", self)
         anim_new.setDuration(500)
         anim_new.setStartValue(QtCore.QPoint(curr_pos.x() + offsetx, curr_pos.y()))
         anim_new.setEndValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
@@ -1673,7 +1696,7 @@ class DesktopWindow(SystrayWindow):
                 pass
 
         body = "<center>"
-        for name, version in versions.iteritems():
+        for name, version in versions.items():
             body += "    {0} {1}<br/>".format(name, version)
         body += "</center>"
 

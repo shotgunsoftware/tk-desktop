@@ -53,7 +53,7 @@ class FuzzyMatcher:
 
             if highlighter is not None:
                 highlighted = string[0 : match.start(1)]
-                for group in xrange(1, match.lastindex + 1):
+                for group in range(1, match.lastindex + 1):
                     if group == match.lastindex:
                         remainder = string[match.end(group) :]
                     else:
@@ -122,7 +122,7 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
 
         # grab the full list of projects from the model
         projects = []
-        for row in xrange(src_model.rowCount()):
+        for row in range(src_model.rowCount()):
             item = src_model.item(row, 0)
             project = item.data(ShotgunModel.SG_DATA_ROLE)
             if project is not None:
@@ -161,7 +161,10 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
             # sort by last_accessed_by_current_user
             def key_for_project(project):
                 return (
-                    project["last_accessed_by_current_user"],
+                    # If project has never accessed (last_access_by_current_user == None), use 0
+                    # in the key. Otherwise we'll end up comparing floats and None, which blows
+                    # up in Python 3.
+                    project["last_accessed_by_current_user"] or 0,
                     project["name"],
                     project["id"],
                 )

@@ -11,7 +11,7 @@
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
 from sgtk import TankErrorProjectIsSetup
-from error_dialog import ErrorDialog
+from .error_dialog import ErrorDialog
 
 from .ui import setup_project
 

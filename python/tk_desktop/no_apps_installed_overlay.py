@@ -24,7 +24,7 @@ shotgun_data = sgtk.platform.import_framework(
 
 class NoAppsInstalledOverlay(QtGui.QWidget):
     """
-    Widget displayed in the desktop Window's project_commands wiget when no
+    Widget displayed in the desktop Window's command_panel wiget when no
     "button" commands are found for the current project. Displays site
     Software entity icons and a link to a Shotgun Support article detailing
     how to configure Software entities.

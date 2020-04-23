@@ -303,13 +303,17 @@ def handle_error(data, proxy=None):
     # If we were given an proxy object and it's open, use that
     # to send the message.
     if proxy is not None and not proxy.is_closed():
-        proxy.call_no_response("engine_startup_error", exc_value, "".join(lines))
+        proxy.call_no_response(
+            "engine_startup_error", exc_type.__name__, str(exc_value), "".join(lines),
+        )
         return
 
     proxy = _create_proxy(data)
 
     try:
-        proxy.call_no_response("engine_startup_error", exc_value, "".join(lines))
+        proxy.call_no_response(
+            "engine_startup_error", exc_type.__name__, str(exc_value), "".join(lines),
+        )
     finally:
         try:
             proxy.close()

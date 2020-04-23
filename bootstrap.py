@@ -38,7 +38,8 @@ def main():
         # The pickle file comes from the app launching this instance of the
         # desktop engine.  It contains the information needed to connect
         # back to that app and let it serve as the GUI proxy for the engine.
-        data = pickle.load(open(opts.data, "rb"))
+        with open(opts.data, "rb") as fh:
+            data = pickle.load(fh)
 
         # launch the engine
         #
