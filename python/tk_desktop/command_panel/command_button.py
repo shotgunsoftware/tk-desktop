@@ -176,8 +176,8 @@ class CommandButton(QtGui.QToolButton):
         lhs_action_name = lhs[1]
         rhs_action_name = rhs[1]
 
-        lhs_is_default = lhs[3]
-        rhs_is_default = rhs[3]
+        lhs_is_default = lhs[-1]
+        rhs_is_default = rhs[-1]
 
         # The default action, denoted by a * in the menu, is always at the top.
         # Everything else is sorted alphabetically.
