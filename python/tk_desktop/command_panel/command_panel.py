@@ -10,7 +10,7 @@
 
 import datetime
 from sgtk.platform.qt import QtGui, QtCore
-
+from tank_vendor import six
 
 from .shared import MAX_RECENTS
 from .recent_section import RecentSection
@@ -186,6 +186,10 @@ class CommandPanel(QtGui.QWidget):
         """
         if self._show_recents is False:
             return
+
+        # Make sure the string is a str and not unicode. This happens in
+        # Python 2.7.
+        command_name = six.ensure_str(command_name)
 
         self._recents[command_name] = {"timestamp": datetime.datetime.utcnow()}
         self._store_recents()
