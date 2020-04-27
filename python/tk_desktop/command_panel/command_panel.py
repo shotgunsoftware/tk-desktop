@@ -115,10 +115,6 @@ class CommandPanel(QtGui.QWidget):
         """
         if self._recents_widget:
             self._recents_widget.setMaximumWidth(width)
-            for button in self._recents_widget.buttons:
-                # Evenly space each button so they all have the same size.
-                button.setMinimumWidth(width // MAX_RECENTS)
-                button.setMaximumWidth(width // MAX_RECENTS)
 
     def _get_optimal_width(self):
         """
