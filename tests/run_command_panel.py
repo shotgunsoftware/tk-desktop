@@ -37,26 +37,30 @@ QtCore = sgtk.platform.qt.QtCore
 from tk_desktop.command_panel import CommandPanel
 from tk_desktop.ui.desktop_window import Ui_DesktopWindow
 
-
 products = [
-    "Nuke Studio 12.0",
-    "Nuke Studio 12.5*",
-    "Nuke Studio 11.0",
-    "Nuke 12.0*",
-    "Nuke 12.5",
-    "Nuke 11.0",
-    "Nuke 9.0",
-    "Nuke 8.5",
-    "Nuke Assist 12.0",
-    "Nuke Assist 12.5",
-    "Nuke Assist 11.0*",
-    "Maya 2018",
-    "Maya 2019",
-    "Maya 2020*",
-    "3dsMax 2018",
-    "3dsMax 2019*",
-    "3dsMax 2020",
+    "Mari 2.3",
+    "Hiero 11.0*",
+    "Hiero 11.5",
 ]
+
+for version in ["12.0", "12.5", "11.0"]:
+    products.append("Nuke %s" % version)
+    products.append("Nuke Studio %s" % version)
+    products.append("Nuke Assist %s" % version)
+
+for version in ["16.0", "17.1", "18.0"]:
+    products.append("Houdini %s" % version)
+    products.append("Houdini FX %s" % version)
+
+for year in [2018, 2019, 2020]:
+    products.append("Maya %s" % year)
+    products.append("3dsMax %s" % year)
+    products.append("Photoshop %s" % year)
+    products.append("Illustrator %s" % year)
+    products.append("Premiere %s" % year)
+    products.append("Flame %s" % year)
+    products.append("MotionBuilder %s" % year)
+
 
 defaults = [
     products[1],
@@ -64,6 +68,21 @@ defaults = [
     products[8],
     products[10],
 ]
+
+product_to_group = {
+    "Nuke": "The Foundry",
+    "Hiero": "The Foundry",
+    "Mari": "The Foundry",
+    "Houdini": "SideFX",
+    "3dsMax": "Autodesk",
+    "Maya": "Autodesk",
+    "MotionBuilder": "Autodesk",
+    "Flame": "Autodesk",
+    "Photoshop": "Adobe",
+    "Illustrator": "Adobe",
+    "Premiere": "Adobe",
+}
+
 
 commands = [
     (
@@ -78,7 +97,7 @@ commands = [
             "icon_256.png",
         ),
         "Tooltip %s" % product,
-        ["The Foundry" if "Nuke" in product else "Autodesk"],
+        [product_to_group[product.split(" ", 1)[0]]],
         product in defaults,
     )
     for product in products
@@ -92,7 +111,7 @@ class ProjectCommandSettings(object):
     def load(self, key):
         return {
             command: {"timestamp": datetime.datetime.now()}
-            for command, _, _, _, _, _, _ in list(commands)[0:3]
+            for command, _, _, _, _, _, _ in list(commands)[0:6]
         }
 
 
@@ -115,9 +134,10 @@ view = CommandPanel(main.ui.command_panel_area, ProjectCommandSettings())
 main.ui.command_panel_area.setWidget(view)
 
 view.configure(
-    {"type": "Project", "id": 61}, ["Autodesk", "The Foundry"],
+    {"type": "Project", "id": 61},
+    list(set(product_to_group.values())),
+    show_recents=True,
 )
-main.updateGeometry()
 
 
 # Setting this to true will add icons asynchronously and launch a background process
@@ -132,13 +152,13 @@ if "--async" in sys.argv:
         else:
             import subprocess
 
-            subprocess.Popen(
-                [
-                    sys.executable,
-                    "-c",
-                    "from PySide2 import QtWidgets; QtWidgets.QApplication([]).exec_()",
-                ]
-            )
+            # subprocess.Popen(
+            #     [
+            #         sys.executable,
+            #         "-c",
+            #         "from PySide2 import QtWidgets; QtWidgets.QApplication([]).exec_()",
+            #     ]
+            # )
 
     QtCore.QTimer.singleShot(1500, add_button)
 else:
@@ -146,5 +166,4 @@ else:
         view.add_command(*cmd)
 
 main.show()
-
 app.exec_()
