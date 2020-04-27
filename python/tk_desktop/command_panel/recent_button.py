@@ -47,9 +47,7 @@ class RecentButton(QtGui.QPushButton):
         layout = QtGui.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignHCenter)
         layout.setSpacing(self.SPACING)
-        layout.setContentsMargins(
-            self.SPACING, self.SPACING, self.SPACING, self.SPACING
-        )
+        layout.setContentsMargins(self.MARGIN, self.MARGIN, self.MARGIN, self.MARGIN)
 
         self._timestamp = timestamp
 
