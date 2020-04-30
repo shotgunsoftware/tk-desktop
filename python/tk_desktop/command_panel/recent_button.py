@@ -102,8 +102,8 @@ class RecentButton(QtGui.QPushButton):
         """
         Hint at the button size.
 
-        The button should occupy half the width of the panel and be a bit higher
-        than the icon.
+        The button should occupy 1/MAX_RECENTS's of the parent widget width
+        and be a bit higher than the icon.
         """
         hint = QtCore.QSize(
             (self.parentWidget().width() / MAX_RECENTS) - (self.SPACING * 2),
