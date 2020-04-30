@@ -16,6 +16,7 @@ Shotgun Desktop.
 import os
 import sys
 import datetime
+import subprocess
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 sys.path.insert(
@@ -109,9 +110,11 @@ class ProjectCommandSettings(object):
         pass
 
     def load(self, key):
+        # Grab the first 6 commands action names and advertise them as the
+        # more recent commands.
         return {
             command: {"timestamp": datetime.datetime.now()}
-            for command, _, _, _, _, _, _ in list(commands)[0:6]
+            for command in (c[0] for c in commands[0:6])
         }
 
 
@@ -140,30 +143,16 @@ view.configure(
 )
 
 
-# Setting this to true will add icons asynchronously and launch a background process
-# that will steal focus from the dialog, which should trigger a hover bug in PySide2.
-if "--async" in sys.argv:
+for cmd in commands:
+    view.add_command(*cmd)
 
-    def add_button():
-        command = commands.pop(0)
-        view.add_command(*command)
-        if commands:
-            QtCore.QTimer.singleShot(500, add_button)
-        else:
-            import subprocess
-
-            # subprocess.Popen(
-            #     [
-            #         sys.executable,
-            #         "-c",
-            #         "from PySide2 import QtWidgets; QtWidgets.QApplication([]).exec_()",
-            #     ]
-            # )
-
-    QtCore.QTimer.singleShot(1500, add_button)
-else:
-    for cmd in commands:
-        view.add_command(*cmd)
+subprocess.Popen(
+    [
+        sys.executable,
+        "-c",
+        "from PySide2 import QtWidgets; QtWidgets.QApplication([]).exec_()",
+    ]
+)
 
 main.show()
 app.exec_()
