@@ -1025,7 +1025,6 @@ class DesktopWindow(SystrayWindow):
         self._command_panel.add_command(
             name, button_name, menu_name, icon, command_tooltip, groups, is_menu_default
         )
-        self._force_panel_resize()
         self._project_command_count += 1
 
     def _handle_project_data_changed(self):
@@ -1080,28 +1079,6 @@ class DesktopWindow(SystrayWindow):
             self.current_project, groups, show_recents=show_recents
         )
         self.project_overlay.hide()
-
-    def showEvent(self, event):
-        """
-        Called when the dialog is shown.
-        """
-        res = super(DesktopWindow, self).showEvent(event)
-        # If icons were added while the dialog was hidden (this happens
-        # in pinned mode), the widgets haven't been properly laid out
-        # so we're forcing it to happen again.
-        self._force_panel_resize()
-        return res
-
-    def _force_panel_resize(self):
-        """
-        Force the command panel area to recompute the size of
-        its children.
-        """
-        # On Windows, we need to force a geometry update
-        # and widget resize so we do not get a horizontal
-        # scroll in the command panel.
-        self.ui.command_panel_area.updateGeometry()
-        self.ui.command_panel_area.adjustSize()
 
     def clear_app_uis(self):
         # empty the project commands

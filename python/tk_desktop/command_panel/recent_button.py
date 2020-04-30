@@ -11,7 +11,7 @@
 from sgtk.platform.qt import QtGui, QtCore
 from tank_vendor import six
 
-from .shared import ICON_SIZE, BUTTON_STYLE
+from .shared import ICON_SIZE, BUTTON_STYLE, MAX_RECENTS
 
 
 class RecentButton(QtGui.QPushButton):
@@ -47,9 +47,7 @@ class RecentButton(QtGui.QPushButton):
         layout = QtGui.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignHCenter)
         layout.setSpacing(self.SPACING)
-        layout.setContentsMargins(
-            self.SPACING, self.SPACING, self.SPACING, self.SPACING
-        )
+        layout.setContentsMargins(self.MARGIN, self.MARGIN, self.MARGIN, self.MARGIN)
 
         self._timestamp = timestamp
 
@@ -99,3 +97,16 @@ class RecentButton(QtGui.QPushButton):
         Name of the command.
         """
         return self._command_name
+
+    def sizeHint(self):
+        """
+        Hint at the button size.
+
+        The button should occupy 1/MAX_RECENTS's of the parent widget width
+        and be a bit higher than the icon.
+        """
+        hint = QtCore.QSize(
+            (self.parentWidget().width() / MAX_RECENTS) - (self.SPACING * 2),
+            ICON_SIZE.height() + 8,
+        )
+        return hint

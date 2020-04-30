@@ -22,7 +22,6 @@ class RecentList(BaseIconList):
 
     def __init__(self, parent):
         super(RecentList, self).__init__(parent, QtGui.QHBoxLayout())
-        self.setLayout(self._layout)
         self._layout.addStretch(1)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
