@@ -14,7 +14,7 @@ import os
 import sys
 import tempfile
 import subprocess
-import cPickle as pickle
+from sgtk.util import pickle
 import pprint
 import inspect
 import re

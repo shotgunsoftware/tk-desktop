@@ -144,6 +144,21 @@ class Logger(object):
 logger = Logger()
 
 
+class PickleV2Connection(object):
+    def __init__(self, conn):
+        self._conn = conn
+
+    def send(self, payload):
+        self._conn.send_bytes(py_pickle.dumps(payload))
+
+    def recv(self):
+        payload = self.recv_bytes()
+        return py_pickle.loads(payload)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
 class RPCServerThread(threading.Thread):
     """
     Run an RPC Server in a subthread.
@@ -254,7 +269,7 @@ class RPCServerThread(threading.Thread):
             try:
                 # connection waiting to be read, accept it
                 logger.debug("multi server about to accept connection")
-                connection = self.server.accept()
+                connection = PickleV2Connection(self.server.accept())
                 logger.debug("multi server accepted connection")
                 while self._is_closed is False:
                     # test to see if there is data waiting on the connection
@@ -329,7 +344,7 @@ class RPCServerThread(threading.Thread):
             # accept to unblock by connecting to the server. The server thread
             # will then test the _is_closed flag and shut down.
             try:
-                RPCProxy(self.pipe, six.ensure_binary(self.authkey))
+                RPCProxy(self.pipe, self.authkey)
             except Exception:
                 pass
 
@@ -353,9 +368,11 @@ class RPCProxy(object):
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
-        logger.debug("multi client connecting to to %s", pipe)
-        self._connection = multiprocessing.connection.Client(
-            address=pipe, family=family, authkey=six.ensure_binary(authkey)
+        logger.debug("client connecting to to %s", pipe)
+        self._connection = PickleV2Connection(
+            multiprocessing.connection.Client(
+                address=pipe, family=family, authkey=six.ensure_binary(authkey)
+            )
         )
         logger.debug("multi client connected to %s", pipe)
 

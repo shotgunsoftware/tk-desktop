@@ -13,7 +13,6 @@ Implements communication channels between the desktop app and the background pro
 """
 
 from .communication_base import CommunicationBase
-from .rpc import get_rpc_server_factory
 
 from sgtk.platform import get_logger
 
