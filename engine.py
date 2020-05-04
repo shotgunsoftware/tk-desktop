@@ -208,7 +208,7 @@ class DesktopEngine(Engine):
 
                 _requires_visibility_hack = (
                     True
-                    if sys.platform == "win32" and not self._is_site_engine
+                    if sgtk.util.is_windows() and not self._is_site_engine
                     else False
                 )
 

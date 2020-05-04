@@ -13,6 +13,11 @@ Implements communication channels between the desktop app and the background pro
 """
 
 from .communication_base import CommunicationBase
+from .rpc import get_rpc_server_factory
+
+from sgtk.platform import get_logger
+
+logger = get_logger(__name__)
 
 
 class ProjectCommunication(CommunicationBase):
@@ -29,7 +34,8 @@ class ProjectCommunication(CommunicationBase):
 
     def connect_to_server(self, pipe, auth, disconnect_callback):
         """
-        Sets up a server to communicate with the background process and connects to the site engine.
+        Sets up a server to communicate with the foreground process and connects
+        back to the site engine.
         """
         # create the connection to the site engine.
         self._create_proxy(pipe, auth)
@@ -46,6 +52,13 @@ class ProjectCommunication(CommunicationBase):
             disconnect_callback()
 
         self.register_function(wrapper, "signal_disconnect")
+
+    @property
+    def server_pipe(self):
+        """
+        :returns: The server's pipe.
+        """
+        return self._msg_server.pipe
 
     def shut_down(self):
         """
