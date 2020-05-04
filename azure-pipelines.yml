@@ -39,3 +39,5 @@ variables:
 
 jobs:
 - template: build-pipeline.yml@templates
+  parameters:
+    skip_tests: true

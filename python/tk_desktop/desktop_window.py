@@ -14,6 +14,7 @@ import os
 import sys
 import tempfile
 import subprocess
+import cPickle as pickle
 import pprint
 import inspect
 import re
@@ -1473,7 +1474,7 @@ class DesktopWindow(SystrayWindow):
             # startup server pipe to listen
             engine.startup_rpc()
 
-            # serialize the info needed to bootstrap the project python
+            # pickle up the info needed to bootstrap the project python
             desktop_data = {
                 "core_python_path": core_python,
                 # Every settings that were used for discovering the pipeline configuration must be
@@ -1489,14 +1490,13 @@ class DesktopWindow(SystrayWindow):
                 "project": self.current_project,
                 # Authentication credentials to connect back to this process.
                 "proxy_data": {
-                    "proxy_pipe": engine.site_comm.server_pipes[0],
+                    "proxy_pipe": engine.site_comm.server_pipe,
                     "proxy_auth": engine.site_comm.server_authkey,
-                    "http_pipe": engine.site_comm.server_pipes[1],
                 },
             }
             (_, pickle_data_file) = tempfile.mkstemp(suffix=".pkl")
             with open(pickle_data_file, "wb") as pickle_data_file_handle:
-                sgtk.util.pickle.dump(desktop_data, pickle_data_file_handle)
+                pickle.dump(desktop_data, pickle_data_file_handle)
 
             # update the values on the project updater in case they are needed
             self.update_project_config_widget.set_project_info(

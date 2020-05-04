@@ -21,6 +21,7 @@ engine is bootstrapped and finalized.
 import os
 import sys
 import traceback
+import cPickle as pickle
 import imp
 import logging
 import inspect
@@ -34,6 +35,7 @@ class ProxyLoggingHandler(logging.Handler):
     def __init__(self, proxy):
         """
         :param proxy: Connection to the main process.
+        :type proxy: rpc.RPCProxy
         """
         # Call the __init__ directly since Python 2.6's logging.Handler doesn't
         # derive from object and hence doesn't support 'super'.
@@ -62,33 +64,14 @@ class ProxyLoggingHandler(logging.Handler):
         else:
             msg = record.msg
 
-        # Do the string interpolation this side of the communication. This is important
-        # because Python 2 and 3 may serialize objects differently and Toolkit objects
-        # may be coming from different versions of the API.
-        if record.args:
-            msg = msg % record.args
-
         try:
-            self._proxy.call_no_response("proxy_log", record.levelno, msg, [])
+            self._proxy.call_no_response("proxy_log", record.levelno, msg, record.args)
         except Exception:
-            # Ignore log failures, this is important, as we don't want logging to
-            # cause issues.
-            pass
-
-
-def _create_proxy(data):
-    """
-    Create a proxy based on the data received from the Shotgun Desktop.
-
-    :returns: A connection back to the Shotgun Desktop.
-    """
-    # Connect to the main desktop process so we can send updates to it.
-    # We're not guanranteed if the py or pyc file will be passed back to us
-    # from the desktop due to write permissions on the folder.
-    rpc_lib = imp.load_source("rpc", data["rpc_lib_path"])
-    return rpc_lib.HttpRPCProxy(
-        data["proxy_data"]["http_pipe"], data["proxy_data"]["proxy_auth"],
-    )
+            # If something couldn't be pickled, don't fret too much about it,
+            # we'll format it ourselves instead.
+            self._proxy.call_no_response(
+                "proxy_log", record.levelno, (msg % record.args), []
+            )
 
 
 class Bootstrap(object):
@@ -123,7 +106,13 @@ class Bootstrap(object):
 
         del os.environ["TANK_CURRENT_PC"]
 
-        self._proxy = _create_proxy(self._raw_data)
+        # Connect to the main desktop process so we can send updates to it.
+        # We're not guanranteed if the py or pyc file will be passed back to us
+        # from the desktop due to write permissions on the folder.
+        rpc_lib = imp.load_source("rpc", self._rpc_lib_path)
+        self._proxy = rpc_lib.RPCProxy(
+            self._proxy_data["proxy_pipe"], self._proxy_data["proxy_auth"]
+        )
         try:
             # Set up logging with the rpc.
             self._handler = ProxyLoggingHandler(self._proxy)
@@ -149,7 +138,7 @@ class Bootstrap(object):
             # until the parent process is killed. The error is never reported
             # as a result.
             #
-            # Instead, we'll handle the exception here and use the proxy
+            # Instead, we'll handle the exception here and use the RPCProxy
             # connection we already have.
             handle_error(self._raw_data, self._proxy)
             exc.sgtk_exception_handled = True
@@ -286,7 +275,7 @@ def handle_error(data, proxy=None):
     project) this will actually fail silently, which is alright as the main
     process doesnt't care about this one anymore.
 
-    :param proxy: An optional proxy object to use when sending the
+    :param proxy: An optional RPCProxy object to use when sending the
         error to the server. If a proxy is not given, a client connection
         will be created on the fly.
     """
@@ -300,7 +289,7 @@ def handle_error(data, proxy=None):
 
     lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
 
-    # If we were given an proxy object and it's open, use that
+    # If we were given an RPCProxy object and it's open, use that
     # to send the message.
     if proxy is not None and not proxy.is_closed():
         proxy.call_no_response(
@@ -308,7 +297,12 @@ def handle_error(data, proxy=None):
         )
         return
 
-    proxy = _create_proxy(data)
+    from multiprocessing.connection import Client
+
+    if sys.platform == "win32":
+        family = "AF_PIPE"
+    else:
+        family = "AF_UNIX"
 
     try:
         proxy.call_no_response(
@@ -316,6 +310,6 @@ def handle_error(data, proxy=None):
         )
     finally:
         try:
-            proxy.close()
+            connection.close()
         except Exception:
             pass
