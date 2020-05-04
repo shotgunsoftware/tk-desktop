@@ -1492,7 +1492,6 @@ class DesktopWindow(SystrayWindow):
                 "proxy_data": {
                     "proxy_pipe": engine.site_comm.server_pipe,
                     "proxy_auth": engine.site_comm.server_authkey,
-                    "http_pipe": engine.site_comm.server_pipes[1],
                 },
             }
             (_, pickle_data_file) = tempfile.mkstemp(suffix=".pkl")

@@ -1,4 +1,4 @@
-# Copyright (c) 2014 Shotgun Software Inc.
+# Copyright (c) 2020 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -8,6 +8,26 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+"""
+This module exposes the components for two way communication between both
+processes of the Shotgun Desktop. There's the legacy communication protocol that works
+well enough for Python 2, RPCServerThread and RPCProxy,
+but is incompatible with Python 3. This is because the Python 3 version of
+multiprocessing.connection is forcing the pickle protocol to version 3, which does
+not exist in Python 2.
+
+To get around this, there's now a Http based implementation of the protocol that works
+between Python 2 and 3 processes. It is implemented by HttpRPCServerThread and
+HttpRPCProxy.
+
+The Http based implementation is a bit more complicated and involves a few
+more classes internally. The relationship between the classes are as follow:
+
+- HttpRPCServerThread owns the Listener.
+- The Listener is used to register methods and owns an HTTPServer that the Connection
+  will invoke.
+- The HttpRPCProxy owns a Connection object to send data to the HTTPServer.
+"""
 
 import os
 import sys
@@ -15,19 +35,113 @@ import uuid
 import select
 import logging
 import threading
+import time
 import traceback
-import cPickle as pickle
 import multiprocessing.connection
+
+# We have to import Python's pickle to serialize our data.
+# tk-core's sgtk.util.pickle module assumes too much about the data
+# type that is stored in the pickle and assumes the output of a dump
+# can always be turned into a utf-8 encoded string, which is false.
+# Therefore, we'll simply take the raw pickle and send it over the wire.
+from sgtk.util import pickle
+from tank_vendor import six
+from tank_vendor.six.moves import cPickle as py_pickle
 
 from sgtk import LogManager
 
-logger = LogManager.get_logger(__name__)
 
-# Only log debug messages if they are specifically requested.
-if "TK_DESKTOP_RPC_DEBUG" in os.environ:
-    logger.setLevel(logging.DEBUG)
-else:
-    logger.setLevel(logging.INFO)
+class Logger(object):
+    """
+    Wrapper around a logger object. It augments the logged information when
+    TK_DESKTOP_RPC_DEBUG is turned on. It also prevents logging from every single
+    RPC call, which would slow down the logging process. In fact, logging
+    from the Shotgun Desktop with this environment variable sends the subprocess
+    into an infinite loop as logging anything from the background process
+    means doing an RPC call. If from the RPC module we log messages as well,
+    we end up in an infinite logging loop an the project never finishes loading.
+    As such, TK_DESKTOP_RPC_DEBUG should only be used when running tests.
+
+    One could argue why we need this, when a simple logger formatter would do
+    to print the thread id and current time.
+    The problem is that the logger formatter option prints the real thread id,
+    which is hard to read because it is a 64bit value. When looking at test logs,
+    this makes it hard to differentiate between tests. Doing in this way makes
+    it a lot easier. Threads could also be named, but then in a test suite
+    you wouldn't be able to differentiate between a message coming from a test
+    or leaking from another test, which has been an issue in the past.
+    """
+
+    def __init__(self):
+        self._logger = LogManager.get_logger(__name__)
+        # Only log debug messages if they are specifically requested.
+        if self._is_debugging_rpc():
+            self._simple_thread_ids = {}
+            self._id_generation_lock = threading.Lock()
+            self._logger.setLevel(logging.DEBUG)
+        else:
+            self._logger.setLevel(logging.INFO)
+
+    def _is_debugging_rpc(self):
+        """
+        True if debug logging should be activated, False otherwise.
+        """
+        return "TK_DESKTOP_RPC_DEBUG" in os.environ
+
+    def _get_simple_thread_id(self):
+        """
+        Translates the current thread object into a simple integer for
+        easy debugging.
+        """
+        ident = threading.current_thread()
+        # If we've never seen this thread object before
+        if ident not in self._simple_thread_ids:
+            # Generate a new thread id.
+            with self._id_generation_lock:
+                self._simple_thread_ids[threading.current_thread()] = len(
+                    self._simple_thread_ids
+                )
+        return self._simple_thread_ids[threading.current_thread()]
+
+    def debug(self, *args, **kwargs):
+        """
+        Log debug message.
+        """
+        if self._is_debugging_rpc():
+            args = list(args)
+            if threading.current_thread().getName() != "MainThread":
+                args[0] = "Thread %d - " % self._get_simple_thread_id() + args[0]
+            else:
+                args[0] = "Main Thread - " + args[0]
+            args[0] = "%f - %s" % (time.time(), args[0])
+        self._logger.debug(*args, **kwargs)
+
+    def info(self, *args, **kwargs):
+        """
+        Log warning message.
+        """
+        self._logger.info(*args, **kwargs)
+
+    def warning(self, *args, **kwargs):
+        """
+        Log warning message.
+        """
+        self._logger.warning(*args, **kwargs)
+
+    def error(self, *args, **kwargs):
+        """
+        Log error message.
+        """
+        self._logger.error(*args, **kwargs)
+
+    def exception(self, *args, **kwargs):
+        """
+        Log exception message.
+        """
+        self._logger.exception(*args, **kwargs)
+
+
+logger = Logger()
 
 
 class RPCServerThread(threading.Thread):
@@ -48,7 +162,7 @@ class RPCServerThread(threading.Thread):
     # doesn't propagate exceptions.
     _SERVER_WAS_STOPPED = "INTERNAL_DESKTOP_MESSAGE : SERVER_WAS_STOPPED"
 
-    def __init__(self, engine):
+    def __init__(self, engine, authkey=None):
         threading.Thread.__init__(self)
 
         # registry for methods to call for names that come via the connection
@@ -56,11 +170,11 @@ class RPCServerThread(threading.Thread):
             "list_functions": self.list_functions,
         }
 
-        self._stop = False  # used to shut down the thread cleanly
-        self.engine = (
-            engine  # need access to the engine to run functions in the main thread
-        )
-        self.authkey = str(uuid.uuid1())  # generate a random key for authentication
+        self._is_closed = False  # used to shut down the thread cleanly
+        # need access to the engine to run functions in the main thread
+        self.engine = engine
+        # generate a random key for authentication
+        self.authkey = authkey or str(uuid.uuid1()).encode()
 
         # setup the server pipe
         if sys.platform == "win32":
@@ -68,20 +182,19 @@ class RPCServerThread(threading.Thread):
         else:
             family = "AF_UNIX"
         self.server = multiprocessing.connection.Listener(
-            address=None, family=family, authkey=self.authkey
+            address=None, family=family, authkey=six.ensure_binary(self.authkey)
         )
-
         # grab the name of the pipe
         self.pipe = self.server.address
 
     def is_closed(self):
-        return self._stop
+        return self._is_closed
 
     def list_functions(self):
         """
         Default method that returns the list of functions registered with the server.
         """
-        return self._functions.keys()
+        return list(self._functions)
 
     def register_function(self, func, name=None):
         """
@@ -93,7 +206,7 @@ class RPCServerThread(threading.Thread):
         # This method will be called from the main thread. If the server has been stopped, there
         # is no need to call the method.
         def wrapper(*args, **kwargs):
-            if self._stop:
+            if self._is_closed:
                 # Return special value indicating the server was stopped.
                 return self._SERVER_WAS_STOPPED
             return func(*args, **kwargs)
@@ -105,8 +218,10 @@ class RPCServerThread(threading.Thread):
         Run the thread, accepting connections and then listening on them until
         they are closed.  Each message is a call into the function table.
         """
-        logger.debug("server listening on '%s'", self.pipe)
-        while True:
+        logger.debug("multi server listening on '%s'", self.pipe)
+        while self._is_closed is False:
+            logger.debug("multi server thread is about to create a server")
+            ready = False
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
                 # need to use win32 api for windows
@@ -117,6 +232,7 @@ class RPCServerThread(threading.Thread):
                     )
                     ready = True
                 except WindowsError as e:
+                    logger.debug("Error during WaitNamedPipe:", exc_info=True)
                     if e.args[0] not in (
                         mpc_win32.ERROR_SEM_TIMEOUT,
                         mpc_win32.ERROR_PIPE_BUSY,
@@ -131,22 +247,22 @@ class RPCServerThread(threading.Thread):
                 ready = len(rd) > 0
 
             if not ready:
-                # nothing ready, see if we need to stop the server, if not keep waiting
-                if self._stop:
-                    break
+                logger.debug("multi server thread could not create server")
                 continue
 
-            # connection waiting to be read, accept it
-            connection = self.server.accept()
-            logger.debug("server accepted connection")
+            connection = None
             try:
-                while True:
+                # connection waiting to be read, accept it
+                logger.debug("multi server about to accept connection")
+                connection = self.server.accept()
+                logger.debug("multi server accepted connection")
+                while self._is_closed is False:
                     # test to see if there is data waiting on the connection
                     has_data = connection.poll(self.LISTEN_TIMEOUT)
 
                     # see if we need to stop the server
-                    if self._stop:
-                        break
+                    if self._is_closed:
+                        return
 
                     # If we timed out waiting for data, go back to sleep.
                     if not has_data:
@@ -155,12 +271,15 @@ class RPCServerThread(threading.Thread):
                     # data coming over the connection is a tuple of (name, args, kwargs)
                     (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
                     logger.debug(
-                        "server calling '%s(%s, %s)'" % (func_name, args, kwargs)
+                        "multi server calling '%s(%s, %s)'" % (func_name, args, kwargs)
                     )
 
                     try:
                         if func_name not in self._functions:
-                            logger.error("unknown function call: '%s'" % func_name)
+                            logger.error(
+                                "unknown function call: '%s', expecting one of '%s'"
+                                % (func_name, self.list_functions())
+                            )
                             raise ValueError("unknown function call: '%s'" % func_name)
 
                         # grab the function from the function table
@@ -176,7 +295,7 @@ class RPCServerThread(threading.Thread):
                         # on the server side when calling send.
                         if self._SERVER_WAS_STOPPED != result:
                             # if the client expects the results, send them along
-                            logger.debug("server got result '%s'" % result)
+                            logger.debug("multi server got result '%s'" % result)
 
                             if respond:
                                 connection.send(pickle.dumps(result))
@@ -191,13 +310,28 @@ class RPCServerThread(threading.Thread):
                 # just keep serving new connections
                 pass
             finally:
-                logger.debug("server closing")
-                connection.close()
+                # It's possible we failed accepting, so the variable may not be defined.
+                if connection is not None:
+                    logger.debug("multi server closing")
+                    connection.close()
+                    logger.debug("multi server closed")
+        logger.debug("multi server thread shutting down")
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
-        logger.debug("server setting flag to stop")
-        self._stop = True
+        logger.debug("multi server setting flag to stop")
+        self.server.close()
+        self._is_closed = True
+        if sys.platform == "win32":
+            # The accept call blocks until a client is available.
+            # Unfortunately closing the connection on Windows does not
+            # cause accept to unblock and raise an error, so we have to force
+            # accept to unblock by connecting to the server. The server thread
+            # will then test the _is_closed flag and shut down.
+            try:
+                RPCProxy(self.pipe, six.ensure_binary(self.authkey))
+            except Exception:
+                pass
 
 
 class RPCProxy(object):
@@ -219,41 +353,49 @@ class RPCProxy(object):
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
-        logger.debug("client connecting to to %s", pipe)
+        logger.debug("multi client connecting to to %s", pipe)
         self._connection = multiprocessing.connection.Client(
-            address=pipe, family=family, authkey=authkey
+            address=pipe, family=family, authkey=six.ensure_binary(authkey)
         )
-        logger.debug("client connected to %s", pipe)
+        logger.debug("multi client connected to %s", pipe)
 
     def call_no_response(self, name, *args, **kwargs):
-        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "multi client calling '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
-            raise EOFError("closed " + msg)
+            raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
         logger.debug(msg)
         self._connection.send(pickle.dumps((False, name, args, kwargs)))
 
     def call(self, name, *args, **kwargs):
-        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "multi client waiting call '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
-            raise EOFError("closed " + msg)
+            raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
         logger.debug(msg)
         self._connection.send(pickle.dumps((True, name, args, kwargs)))
 
         # wait until there is a result, pause to check if we have been closed
         while True:
-            if self._connection.poll(self.LISTEN_TIMEOUT):
-                # have a response waiting, grab it
-                break
-            else:
-                # no response waiting, see if we need to stop the client
+            try:
+                if self._connection.poll(self.LISTEN_TIMEOUT):
+                    # have a response waiting, grab it
+                    break
+                else:
+                    # If the connection was closed while we polled, raise an error.
+                    if self._closed:
+                        raise RuntimeError("client closed while waiting for a response")
+                    continue
+            except IOError:
+                # An exception is raised on Windows when the connection is closed
+                # during polling instead of simply returning False.
                 if self._closed:
-                    raise EOFError("client closed while waiting for a response")
-                continue
+                    raise RuntimeError("client closed while waiting for a response")
+                raise
+
         # read the result
         result = pickle.loads(self._connection.recv())
-        logger.debug("client got result '%s'" % result)
+        logger.debug("multi client got result '%s'" % result)
         # if an exception was returned raise it on the client side
         if isinstance(result, Exception):
             raise result

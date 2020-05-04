@@ -21,7 +21,6 @@ engine is bootstrapped and finalized.
 import os
 import sys
 import traceback
-import cPickle as pickle
 import imp
 import logging
 import inspect
@@ -88,8 +87,8 @@ def _create_proxy(data):
     # We're not guanranteed if the py or pyc file will be passed back to us
     # from the desktop due to write permissions on the folder.
     rpc_lib = imp.load_source("rpc", data["rpc_lib_path"])
-    return rpc_lib.HttpRPCProxy(
-        data["proxy_data"]["http_pipe"], data["proxy_data"]["proxy_auth"],
+    return rpc_lib.RPCProxy(
+        data["proxy_data"]["proxy_pipe"], data["proxy_data"]["proxy_auth"],
     )
 
 

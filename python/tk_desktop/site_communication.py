@@ -12,7 +12,6 @@
 Implements communication channels between the desktop app and the background process.
 """
 
-from .rpc import DualRPCServer
 from sgtk.platform.qt import QtCore
 from .communication_base import CommunicationBase
 
@@ -42,10 +41,6 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         """
         CommunicationBase._create_proxy(self, pipe, authkey)
         self.proxy_created.emit()
-
-    @property
-    def server_pipes(self):
-        return self._msg_server.pipes
 
     def start_server(self):
         """
