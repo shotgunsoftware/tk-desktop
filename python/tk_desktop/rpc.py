@@ -149,10 +149,13 @@ class PickleV2Connection(object):
         self._conn = conn
 
     def send(self, payload):
-        self._conn.send_bytes(py_pickle.dumps(payload))
+        payload = py_pickle.dumps(payload, protocol=2)
+        payload = six.ensure_binary(payload)
+        self._conn.send_bytes(payload)
 
     def recv(self):
         payload = self.recv_bytes()
+        # return payload
         return py_pickle.loads(payload)
 
     def __getattr__(self, name):
