@@ -27,7 +27,7 @@ if sgtk.util.is_windows():
     class RPCProxy(RPCProxyImp):
         def __init__(self, pipe, auth):
             time.sleep(1)
-            super(MultiprocessingRPCProxy, self).__init__(pipe, auth)
+            super(RPCProxy, self).__init__(pipe, auth)
 
 
 else:
