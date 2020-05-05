@@ -91,9 +91,6 @@ class DesktopEngineProjectImplementation(object):
         # pull the data on how to connect to the GUI proxy from the tk instance
         bootstrap_data = self._engine.sgtk._desktop_data
         proxy_pipe = bootstrap_data["proxy_pipe"]
-        # Http pipe is a new parameter that wasn't present in older versions of the
-        # engine, so we only get it, not expect it.
-        http_pipe = bootstrap_data.get("http_pipe")
         proxy_auth = bootstrap_data["proxy_auth"]
 
         # We always prefer the HTTP pipe, as it works under every Python version.

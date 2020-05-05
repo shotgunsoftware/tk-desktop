@@ -8,27 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-"""
-This module exposes the components for two way communication between both
-processes of the Shotgun Desktop. There's the legacy communication protocol that works
-well enough for Python 2, RPCServerThread and RPCProxy,
-but is incompatible with Python 3. This is because the Python 3 version of
-multiprocessing.connection is forcing the pickle protocol to version 3, which does
-not exist in Python 2.
-
-To get around this, there's now a Http based implementation of the protocol that works
-between Python 2 and 3 processes. It is implemented by HttpRPCServerThread and
-HttpRPCProxy.
-
-The Http based implementation is a bit more complicated and involves a few
-more classes internally. The relationship between the classes are as follow:
-
-- HttpRPCServerThread owns the Listener.
-- The Listener is used to register methods and owns an HTTPServer that the Connection
-  will invoke.
-- The HttpRPCProxy owns a Connection object to send data to the HTTPServer.
-"""
-
 import os
 import sys
 import uuid
@@ -235,7 +214,7 @@ class RPCServerThread(threading.Thread):
         # need access to the engine to run functions in the main thread
         self.engine = engine
         # generate a random key for authentication
-        self.authkey = authkey or str(uuid.uuid1()).encode()
+        self.authkey = authkey or str(uuid.uuid1())
 
         # setup the server pipe
         if sys.platform == "win32":
