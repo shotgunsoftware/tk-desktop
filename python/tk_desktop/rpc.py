@@ -45,7 +45,17 @@ import multiprocessing.connection
 # can always be turned into a utf-8 encoded string, which is false.
 # Therefore, we'll simply take the raw pickle and send it over the wire.
 from tank_vendor import six
-from tank_vendor.six.moves import cPickle as pickle
+from tank_vendor.six.moves import cPickle as py_pickle
+from tank.util import pickle as tk_pickle
+
+
+class pickle:
+    loads = staticmethod(tk_pickle.loads)
+
+    @staticmethod
+    def dumps(payload):
+        return py_pickle.dumps(payload, protocol=2)
+
 
 from sgtk import LogManager
 
@@ -148,12 +158,16 @@ class PickleV2Connection(object):
         self._conn = conn
 
     def send(self, payload):
-        payload = pickle.dumps(payload, protocol=0)
+        payload = py_pickle.dumps(payload, protocol=0)
         payload = six.ensure_binary(payload)
         self._conn.send_bytes(payload)
 
     def recv(self):
-        return six.ensure_binary(self._conn.recv())
+        payload = self._conn.recv_bytes()
+        if six.PY3:
+            return py_pickle.loads(payload, encoding="bytes")
+        else:
+            return py_pickle.loads(payload)
 
     def __getattr__(self, name):
         return getattr(self._conn, name)
@@ -313,13 +327,13 @@ class RPCServerThread(threading.Thread):
                             logger.debug("multi server got result '%s'" % result)
 
                             if respond:
-                                connection.send(pickle.dumps(result, protocol=0))
+                                connection.send(pickle.dumps(result))
                     except Exception as e:
                         # if any of the above fails send the exception back to the client
                         logger.error("got exception '%s'" % e)
                         logger.debug("   traceback:\n%s" % traceback.format_exc())
                         if respond:
-                            connection.send(pickle.dumps(e, protocol=0))
+                            connection.send(pickle.dumps(e))
             except (EOFError, IOError):
                 # let these errors go
                 # just keep serving new connections
@@ -382,7 +396,7 @@ class RPCProxy(object):
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
         logger.debug(msg)
-        self._connection.send(pickle.dumps((False, name, args, kwargs), protocol=0))
+        self._connection.send(pickle.dumps((False, name, args, kwargs)))
 
     def call(self, name, *args, **kwargs):
         msg = "multi client waiting call '%s(%s, %s)'" % (name, args, kwargs)
@@ -390,7 +404,7 @@ class RPCProxy(object):
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
         logger.debug(msg)
-        self._connection.send(pickle.dumps((True, name, args, kwargs), protocol=0))
+        self._connection.send(pickle.dumps((True, name, args, kwargs)))
 
         # wait until there is a result, pause to check if we have been closed
         while True:
