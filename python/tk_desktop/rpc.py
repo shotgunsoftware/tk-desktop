@@ -46,7 +46,18 @@ import multiprocessing.connection
 # Therefore, we'll simply take the raw pickle and send it over the wire.
 from tank_vendor import six
 from tank_vendor.six.moves import cPickle as py_pickle
-from tank.util import pickle as tk_pickle
+from tank.util import pickle as tk_pickle, is_windows
+
+if is_windows():
+    # This is not ideal. We're importing a private Python module.
+    # However, if we didn't and instead relied on pywin32 then we would
+    # have to expect clients to install it.
+    if six.PY2:
+        mpc_win32 = multiprocessing.connection.win32
+    else:
+        # If we ever seen this code raising an error with a new Python version,
+        # it's likely because the attribute has changed name.
+        mpc_win32 = multiprocessing.connection._winapi
 
 
 class pickle:
@@ -274,8 +285,6 @@ class RPCServerThread(threading.Thread):
             ready = False
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
-                # need to use win32 api for windows
-                mpc_win32 = multiprocessing.connection.win32
                 try:
                     mpc_win32.WaitNamedPipe(
                         self.server.address, self.LISTEN_TIMEOUT * 1000
