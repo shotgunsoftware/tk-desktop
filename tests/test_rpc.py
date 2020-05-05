@@ -355,8 +355,8 @@ def test_calling_when_closed(proxy):
     proxy.close()
     with pytest.raises(RuntimeError) as exc:
         proxy.call("anything")
-    assert str(exc.value) == "closed multi client waiting call 'anything((), {})'"
+    assert str(exc.value) == "closed client waiting call 'anything((), {})'"
 
     with pytest.raises(RuntimeError) as exc:
         proxy.call_no_response("anything")
-    assert str(exc.value) == "closed multi client calling 'anything((), {})'"
+    assert str(exc.value) == "closed client calling 'anything((), {})'"
