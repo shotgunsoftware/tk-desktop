@@ -50,6 +50,17 @@ from tank.util import pickle as tk_pickle
 
 
 class pickle:
+    """
+    Provides a Python 2/3 compatible shim for the pickle module.
+
+    Unfortunately, the shim in tk-core returns a string instead
+    of a binary string, which would complicate the code here,
+    so we're doing to rely on the default implementation
+    so that the rest of the multiprocessing-based code and remain
+    the same instead of peppering the code with calls to protocol=2
+    and the right loads.
+    """
+
     loads = staticmethod(tk_pickle.loads)
 
     @staticmethod
@@ -153,13 +164,23 @@ class Logger(object):
 logger = Logger()
 
 
-class PickleV2Connection(object):
+class SafePickleConnection(object):
+    """
+    Wrap the multiprocessing.connection.Connection object
+    so that any calls to send and recv data is caught
+    and reimplemented in a way that works between Python 2 and
+    Python 3.
+
+    Python 3's Connection.send always uses protocol 3 of pickle,
+    which Python 2 does not understand. So we now force the
+    protocol to 2 all the time.
+    """
+
     def __init__(self, conn):
         self._conn = conn
 
     def send(self, payload):
-        payload = py_pickle.dumps(payload, protocol=0)
-        payload = six.ensure_binary(payload)
+        payload = py_pickle.dumps(payload, protocol=2)
         self._conn.send_bytes(payload)
 
     def recv(self):
@@ -283,7 +304,7 @@ class RPCServerThread(threading.Thread):
             try:
                 # connection waiting to be read, accept it
                 logger.debug("multi server about to accept connection")
-                connection = PickleV2Connection(self.server.accept())
+                connection = SafePickleConnection(self.server.accept())
                 logger.debug("multi server accepted connection")
                 while self._is_closed is False:
                     # test to see if there is data waiting on the connection
@@ -383,7 +404,7 @@ class RPCProxy(object):
         else:
             family = "AF_UNIX"
         logger.debug("client connecting to to %s", pipe)
-        self._connection = PickleV2Connection(
+        self._connection = SafePickleConnection(
             multiprocessing.connection.Client(
                 address=pipe, family=family, authkey=six.ensure_binary(authkey)
             )
