@@ -341,9 +341,6 @@ class DesktopEngineProjectImplementation(object):
         paths = self._engine.context.filesystem_locations
 
         for disk_location in paths:
-            # get the setting
-            system = sys.platform
-
             # run the app
             if sgtk.util.is_linux():
                 cmd = 'xdg-open "%s"' % disk_location
