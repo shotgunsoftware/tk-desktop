@@ -279,9 +279,9 @@ class RPCServerThread(threading.Thread):
         Run the thread, accepting connections and then listening on them until
         they are closed.  Each message is a call into the function table.
         """
-        logger.debug("multi server listening on '%s'", self.pipe)
+        logger.debug("server listening on '%s'", self.pipe)
         while self._is_closed is False:
-            logger.debug("multi server thread is about to create a server")
+            logger.debug("server thread is about to create a server")
             ready = False
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
@@ -306,15 +306,15 @@ class RPCServerThread(threading.Thread):
                 ready = len(rd) > 0
 
             if not ready:
-                logger.debug("multi server thread could not create server")
+                logger.debug("server thread could not create server")
                 continue
 
             connection = None
             try:
                 # connection waiting to be read, accept it
-                logger.debug("multi server about to accept connection")
+                logger.debug("server about to accept connection")
                 connection = SafePickleConnection(self.server.accept())
-                logger.debug("multi server accepted connection")
+                logger.debug("server accepted connection")
                 while self._is_closed is False:
                     # test to see if there is data waiting on the connection
                     has_data = connection.poll(self.LISTEN_TIMEOUT)
@@ -330,7 +330,7 @@ class RPCServerThread(threading.Thread):
                     # data coming over the connection is a tuple of (name, args, kwargs)
                     (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
                     logger.debug(
-                        "multi server calling '%s(%s, %s)'" % (func_name, args, kwargs)
+                        "server calling '%s(%s, %s)'" % (func_name, args, kwargs)
                     )
 
                     try:
@@ -354,7 +354,7 @@ class RPCServerThread(threading.Thread):
                         # on the server side when calling send.
                         if self._SERVER_WAS_STOPPED != result:
                             # if the client expects the results, send them along
-                            logger.debug("multi server got result '%s'" % result)
+                            logger.debug("server got result '%s'" % result)
 
                             if respond:
                                 connection.send(pickle.dumps(result))
@@ -371,14 +371,14 @@ class RPCServerThread(threading.Thread):
             finally:
                 # It's possible we failed accepting, so the variable may not be defined.
                 if connection is not None:
-                    logger.debug("multi server closing")
+                    logger.debug("server closing")
                     connection.close()
-                    logger.debug("multi server closed")
-        logger.debug("multi server thread shutting down")
+                    logger.debug("server closed")
+        logger.debug("server thread shutting down")
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
-        logger.debug("multi server setting flag to stop")
+        logger.debug("server setting flag to stop")
         self.server.close()
         self._is_closed = True
         if sys.platform == "win32":
@@ -418,10 +418,10 @@ class RPCProxy(object):
                 address=pipe, family=family, authkey=six.ensure_binary(authkey)
             )
         )
-        logger.debug("multi client connected to %s", pipe)
+        logger.debug("client connected to %s", pipe)
 
     def call_no_response(self, name, *args, **kwargs):
-        msg = "multi client calling '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
@@ -429,7 +429,7 @@ class RPCProxy(object):
         self._connection.send(pickle.dumps((False, name, args, kwargs)))
 
     def call(self, name, *args, **kwargs):
-        msg = "multi client waiting call '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
@@ -462,7 +462,7 @@ class RPCProxy(object):
             if self._closed:
                 raise RuntimeError("client closed while waiting for a response")
 
-        logger.debug("multi client got result '%s'" % result)
+        logger.debug("client got result '%s'" % result)
         # if an exception was returned raise it on the client side
         if isinstance(result, Exception):
             raise result
