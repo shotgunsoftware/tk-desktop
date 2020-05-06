@@ -13,7 +13,6 @@ Implements communication channels between the desktop app and the background pro
 """
 
 from .communication_base import CommunicationBase
-from .rpc import get_rpc_server_factory
 
 from sgtk.platform import get_logger
 
@@ -40,17 +39,8 @@ class ProjectCommunication(CommunicationBase):
         # create the connection to the site engine.
         self._create_proxy(pipe, auth)
 
-        # Register our side of the pipe as the current app proxy.
-        # Based on the pipe we received, which is either multiprocessing based
-        # or http based, we'll create the right server to listen to request
-        # from the main desktop process.
-        #
-        # The logic is this: If the main desktop process supports http,
-        # we'll always use that to connect back because this is the safest
-        # way to exchange data. If the main desktop process didn't support http
-        # then the pipe will be a file path and therefore get_rpc_server_factory
-        # will return a multiprocessing-based server.
-        self._create_server(get_rpc_server_factory(pipe))
+        # register our side of the pipe as the current app proxy
+        self._create_server()
         self.call("create_app_proxy", self.server_pipe, self.server_authkey)
         self._connected = True
 

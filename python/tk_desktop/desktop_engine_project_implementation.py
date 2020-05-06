@@ -91,14 +91,11 @@ class DesktopEngineProjectImplementation(object):
         # pull the data on how to connect to the GUI proxy from the tk instance
         bootstrap_data = self._engine.sgtk._desktop_data
         proxy_pipe = bootstrap_data["proxy_pipe"]
-        # Http pipe is a new parameter that wasn't present in older versions of the
-        # engine, so we only get it, not expect it.
-        http_pipe = bootstrap_data.get("http_pipe")
         proxy_auth = bootstrap_data["proxy_auth"]
 
         # We always prefer the HTTP pipe, as it works under every Python version.
         self._project_comm.connect_to_server(
-            http_pipe or proxy_pipe, proxy_auth, self._signal_disconnect
+            proxy_pipe, proxy_auth, self._signal_disconnect
         )
         # Stop logging to disk
         sgtk.LogManager().uninitialize_base_file_handler()
@@ -341,7 +338,6 @@ class DesktopEngineProjectImplementation(object):
         paths = self._engine.context.filesystem_locations
 
         for disk_location in paths:
-
             # run the app
             if sgtk.util.is_linux():
                 cmd = 'xdg-open "%s"' % disk_location
@@ -404,6 +400,7 @@ class DesktopEngineProjectImplementation(object):
                 self._project_comm.call_no_response(
                     "proxy_log", record.levelno, msg, []
                 )
+                return
             except Exception:
                 # Ignore log failures, this is important, as we don't want logging to
                 # cause issues.

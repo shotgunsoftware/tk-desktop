@@ -8,27 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-"""
-This module exposes the components for two way communication between both
-processes of the Shotgun Desktop. There's the legacy communication protocol that works
-well enough for Python 2, MultiprocessingRPCServerThread and MultiprocessingRPCProxy,
-but is incompatible with Python 3. This is because the Python 3 version of
-multiprocessing.connection is forcing the pickle protocol to version 3, which does
-not exist in Python 2.
-
-To get around this, there's now a Http based implementation of the protocol that works
-between Python 2 and 3 processes. It is implemented by HttpRPCServerThread and
-HttpRPCProxy.
-
-The Http based implementation is a bit more complicated and involves a few
-more classes internally. The relationship between the classes are as follow:
-
-- HttpRPCServerThread owns the Listener.
-- The Listener is used to register methods and owns an HTTPServer that the Connection
-  will invoke.
-- The HttpRPCProxy owns a Connection object to send data to the HTTPServer.
-"""
-
 import os
 import sys
 import uuid
@@ -44,12 +23,40 @@ import multiprocessing.connection
 # type that is stored in the pickle and assumes the output of a dump
 # can always be turned into a utf-8 encoded string, which is false.
 # Therefore, we'll simply take the raw pickle and send it over the wire.
-from sgtk.util import pickle
-from tank_vendor.six.moves.BaseHTTPServer import HTTPServer
-from tank_vendor.six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
-from tank_vendor.six.moves.urllib.request import urlopen
 from tank_vendor import six
 from tank_vendor.six.moves import cPickle as py_pickle
+from tank.util import pickle as tk_pickle, is_windows
+
+if is_windows():
+    # This is not ideal. We're importing a private Python module.
+    # However, if we didn't and instead relied on pywin32 then we would
+    # have to expect clients to install it.
+    if six.PY2:
+        mpc_win32 = multiprocessing.connection.win32
+    else:
+        # If we ever seen this code raising an error with a new Python version,
+        # it's likely because the attribute has changed name.
+        mpc_win32 = multiprocessing.connection._winapi
+
+
+class pickle:
+    """
+    Provides a Python 2/3 compatible shim for the pickle module.
+
+    Unfortunately, the shim in tk-core returns a string instead
+    of a binary string, which would complicate the code here,
+    so we're doing to rely on the default implementation
+    so that the rest of the multiprocessing-based code and remain
+    the same instead of peppering the code with calls to protocol=2
+    and the right loads.
+    """
+
+    loads = staticmethod(tk_pickle.loads)
+
+    @staticmethod
+    def dumps(payload):
+        return py_pickle.dumps(payload, protocol=2)
+
 
 from sgtk import LogManager
 
@@ -147,7 +154,37 @@ class Logger(object):
 logger = Logger()
 
 
-class MultiprocessingRPCServerThread(threading.Thread):
+class SafePickleConnection(object):
+    """
+    Wrap the multiprocessing.connection.Connection object
+    so that any calls to send and recv data is caught
+    and reimplemented in a way that works between Python 2 and
+    Python 3.
+
+    Python 3's Connection.send always uses protocol 3 of pickle,
+    which Python 2 does not understand. So we now force the
+    protocol to 2 all the time.
+    """
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def send(self, payload):
+        payload = py_pickle.dumps(payload, protocol=2)
+        self._conn.send_bytes(payload)
+
+    def recv(self):
+        payload = self._conn.recv_bytes()
+        if six.PY3:
+            return py_pickle.loads(payload, encoding="bytes")
+        else:
+            return py_pickle.loads(payload)
+
+    def __getattr__(self, name):
+        return getattr(self._conn, name)
+
+
+class RPCServerThread(threading.Thread):
     """
     Run an RPC Server in a subthread.
 
@@ -177,7 +214,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
         # need access to the engine to run functions in the main thread
         self.engine = engine
         # generate a random key for authentication
-        self.authkey = authkey or str(uuid.uuid1()).encode()
+        self.authkey = authkey or str(uuid.uuid1())
 
         # setup the server pipe
         if sys.platform == "win32":
@@ -185,7 +222,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
         else:
             family = "AF_UNIX"
         self.server = multiprocessing.connection.Listener(
-            address=None, family=family, authkey=self.authkey
+            address=None, family=family, authkey=six.ensure_binary(self.authkey)
         )
         # grab the name of the pipe
         self.pipe = self.server.address
@@ -221,14 +258,12 @@ class MultiprocessingRPCServerThread(threading.Thread):
         Run the thread, accepting connections and then listening on them until
         they are closed.  Each message is a call into the function table.
         """
-        logger.debug("multi server listening on '%s'", self.pipe)
+        logger.debug("server listening on '%s'", self.pipe)
         while self._is_closed is False:
-            logger.debug("multi server thread is about to create a server")
+            logger.debug("server thread is about to create a server")
             ready = False
             # test to see if there is a connection waiting on the pipe
             if sys.platform == "win32":
-                # need to use win32 api for windows
-                mpc_win32 = multiprocessing.connection.win32
                 try:
                     mpc_win32.WaitNamedPipe(
                         self.server.address, self.LISTEN_TIMEOUT * 1000
@@ -250,15 +285,15 @@ class MultiprocessingRPCServerThread(threading.Thread):
                 ready = len(rd) > 0
 
             if not ready:
-                logger.debug("multi server thread could not create server")
+                logger.debug("server thread could not create server")
                 continue
 
             connection = None
             try:
                 # connection waiting to be read, accept it
-                logger.debug("multi server about to accept connection")
-                connection = self.server.accept()
-                logger.debug("multi server accepted connection")
+                logger.debug("server about to accept connection")
+                connection = SafePickleConnection(self.server.accept())
+                logger.debug("server accepted connection")
                 while self._is_closed is False:
                     # test to see if there is data waiting on the connection
                     has_data = connection.poll(self.LISTEN_TIMEOUT)
@@ -274,7 +309,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
                     # data coming over the connection is a tuple of (name, args, kwargs)
                     (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
                     logger.debug(
-                        "multi server calling '%s(%s, %s)'" % (func_name, args, kwargs)
+                        "server calling '%s(%s, %s)'" % (func_name, args, kwargs)
                     )
 
                     try:
@@ -298,7 +333,7 @@ class MultiprocessingRPCServerThread(threading.Thread):
                         # on the server side when calling send.
                         if self._SERVER_WAS_STOPPED != result:
                             # if the client expects the results, send them along
-                            logger.debug("multi server got result '%s'" % result)
+                            logger.debug("server got result '%s'" % result)
 
                             if respond:
                                 connection.send(pickle.dumps(result))
@@ -315,14 +350,14 @@ class MultiprocessingRPCServerThread(threading.Thread):
             finally:
                 # It's possible we failed accepting, so the variable may not be defined.
                 if connection is not None:
-                    logger.debug("multi server closing")
+                    logger.debug("server closing")
                     connection.close()
-                    logger.debug("multi server closed")
-        logger.debug("multi server thread shutting down")
+                    logger.debug("server closed")
+        logger.debug("server thread shutting down")
 
     def close(self):
         """Signal the server to shut down connections and stop the run loop."""
-        logger.debug("multi server setting flag to stop")
+        logger.debug("server setting flag to stop")
         self.server.close()
         self._is_closed = True
         if sys.platform == "win32":
@@ -332,12 +367,12 @@ class MultiprocessingRPCServerThread(threading.Thread):
             # accept to unblock by connecting to the server. The server thread
             # will then test the _is_closed flag and shut down.
             try:
-                MultiprocessingRPCProxy(self.pipe, self.authkey)
+                RPCProxy(self.pipe, self.authkey)
             except Exception:
                 pass
 
 
-class MultiprocessingRPCProxy(object):
+class RPCProxy(object):
     """
     Client side for an RPC Server.
 
@@ -356,14 +391,16 @@ class MultiprocessingRPCProxy(object):
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
-        logger.debug("multi client connecting to to %s", pipe)
-        self._connection = multiprocessing.connection.Client(
-            address=pipe, family=family, authkey=authkey
+        logger.debug("client connecting to to %s", pipe)
+        self._connection = SafePickleConnection(
+            multiprocessing.connection.Client(
+                address=pipe, family=family, authkey=six.ensure_binary(authkey)
+            )
         )
-        logger.debug("multi client connected to %s", pipe)
+        logger.debug("client connected to %s", pipe)
 
     def call_no_response(self, name, *args, **kwargs):
-        msg = "multi client calling '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "client calling '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
@@ -371,7 +408,7 @@ class MultiprocessingRPCProxy(object):
         self._connection.send(pickle.dumps((False, name, args, kwargs)))
 
     def call(self, name, *args, **kwargs):
-        msg = "multi client waiting call '%s(%s, %s)'" % (name, args, kwargs)
+        msg = "client waiting call '%s(%s, %s)'" % (name, args, kwargs)
         if self._closed:
             raise RuntimeError("closed " + msg)
         # send the call through with args and kwargs
@@ -397,8 +434,14 @@ class MultiprocessingRPCProxy(object):
                 raise
 
         # read the result
-        result = pickle.loads(self._connection.recv())
-        logger.debug("multi client got result '%s'" % result)
+        try:
+            result = pickle.loads(self._connection.recv())
+        except OSError:
+            # On Linux, an exception will be raised here instead.
+            if self._closed:
+                raise RuntimeError("client closed while waiting for a response")
+
+        logger.debug("client got result '%s'" % result)
         # if an exception was returned raise it on the client side
         if isinstance(result, Exception):
             raise result
@@ -413,550 +456,3 @@ class MultiprocessingRPCProxy(object):
         logger.debug("closing connection")
         self._connection.close()
         self._closed = True
-
-
-class HttpRPCServerThread(threading.Thread):
-    """
-    Run an RPC Server in a subthread.
-
-    Will listen on a named pipe for connection objects that are
-    pickled tuples in the form (name, list, dictionary) where name
-    is a lookup against functions registered with the server and
-    list/dictionary are treated as args/kwargs for the function call.
-    """
-
-    def __init__(self, engine, authkey=None):
-        """
-        :param engine: The tk-desktop engine.
-        """
-        super(HttpRPCServerThread, self).__init__()
-        self.engine = engine
-        # need access to the engine to run functions in the main thread
-        self._listener = Listener(engine, authkey)
-
-    @property
-    def pipe(self):
-        """
-        Connection string to the server.
-
-        Note that this property is named pipe to be backwards compatible with
-        previous versions of the API.
-        """
-        # Keep the IP hardcoded instead of set to localhost.
-        # localhost host is about 5 times slower on Windows.
-        return "http://127.0.0.1:%s" % self._listener.server_port
-
-    @property
-    def authkey(self):
-        """
-        Credential to connect to this server.
-        """
-        return self._listener.authkey
-
-    def is_closed(self):
-        """
-        :returns: ``True`` if the server is closed, ``False`` if not.
-        """
-        return self._listener.is_closed()
-
-    def list_functions(self):
-        """
-        Return the list of functions registered with the server.
-        """
-        return self._listener.list_functions()
-
-    def register_function(self, func, name=None):
-        """
-        Add a new function to the list of functions being served.
-        """
-        return self._listener.register_function(func, name)
-
-    def run(self):
-        """
-        Run the thread, accepting connections and then listening on them until
-        they are closed.  Each message is a call into the function table.
-        """
-        logger.debug("http server thread listening on '%s'", self.pipe)
-        try:
-            self._listener.serve_forever()
-        except BaseException:
-            # Not catching the error here seems to not clean up the
-            # server connection and it can deadlock the main thread.
-            # Keep this except in place or you'll freeze when hitting
-            # the back arrow on the project page of the desktop window.
-            # Let's also be thorough and catch BaseException to make
-            # sure CTRL-C still ends this thread peacefully.
-            logger.debug("caught exception when serving forever:", exc_info=True)
-        logger.debug("http server thread shutting down")
-
-    def close(self):
-        """
-        Signal the server to shut down connections and stop the run loop.
-        """
-        logger.debug("requesting http server thread to close")
-        self._listener.close()
-        logger.debug("requested http server thread to close")
-
-
-class HttpRPCProxy(object):
-    """
-    Client side for an RPC Server.
-
-    Return attributes on the object as methods that will result in an RPC call
-    whose results are returned as the return value of the method.
-    """
-
-    def __init__(self, pipe, authkey):
-        """
-        :param str pipe: Connection to the server.
-        :param str authkey: Credentials for the server.
-        """
-        self._closed = False
-        self._connection = Connection(pipe, authkey)
-
-    def call_no_response(self, name, *args, **kwargs):
-        """
-        Call a method on the server asynchronously.
-
-        :param str name: Name of the method to call.
-        :param args: Arguments to pass to the method
-        :param kwargs: Keyword arguments to pass to the method.
-        """
-        msg = "http client calling '%s(%s, %s)'" % (name, args, kwargs)
-        if self._closed:
-            raise RuntimeError("closed " + msg)
-        # send the call through with args and kwargs
-        logger.debug(msg)
-        self._connection.send(False, name, args, kwargs)
-
-    def call(self, name, *args, **kwargs):
-        """
-        Call a method on the server synchronously.
-
-        The call with return/raise the value/exception returned by the
-        server.
-
-        :param str name: Name of the method to call.
-        :param args: Arguments to pass to the method
-        :param kwargs: Keyword arguments to pass to the method.
-        """
-        msg = "http client waiting call '%s(%s, %s)'" % (name, args, kwargs)
-        if self._closed:
-            raise RuntimeError("closed " + msg)
-        # send the call through with args and kwargs
-        logger.debug(msg)
-        result = self._connection.send(True, name, args, kwargs)
-        if self._closed:
-            raise RuntimeError("client closed while waiting for a response")
-        logger.debug("http client got result '%s'" % result)
-        # if an exception was returned raise it on the client side
-        if isinstance(result, Exception):
-            raise result
-        # return the result as our own
-        return result
-
-    def is_closed(self):
-        """
-        Test if the connection to the server is still open.
-
-        :returns: ``True`` is close, ``False`` if not.
-        """
-        return self._closed
-
-    def close(self):
-        """
-        Close the connection to the server.
-        """
-        self._closed = True
-
-
-def get_rpc_proxy_factory(pipe):
-    """
-    Return the right client type based on the pipe.
-    """
-    if pipe.startswith("http://"):
-        return HttpRPCProxy
-    else:
-        return MultiprocessingRPCProxy
-
-
-def get_rpc_server_factory(pipe):
-    """
-    Return the right server type based on the pipe.
-    """
-    if pipe.startswith("http://"):
-        return HttpRPCServerThread
-    else:
-        return MultiprocessingRPCServerThread
-
-
-# These are present for backwards compatibility. Clients can take over part of the
-# bootstrap code and they'll likely to want to instantiate those classes.
-# When they do, we want them to use the Http based ones since those are compatible
-# with Python 2 and 3.
-RPCProxy = HttpRPCProxy
-RPCServerThread = HttpRPCServerThread
-
-
-class DualRPCServer(object):
-    """
-    Run both the Http and Multiprocessing based servers at the same time.
-
-    This allows older and newer versions of tk-desktop to be launched in
-    the without having to try to guess which server to spin up.
-
-    Such a guess would be impossible anyway because there is no way to
-    guarantee which version of tk-desktop will be launched in the background.
-
-    This class mimicks the interface of MultiprocessingRPCServerThread and
-    HttpRPCServerThread so they are interchangeable in the code. Since both
-    of these classes were threads, they also implement thread methods like
-    start, is_alive and join.
-    """
-
-    def __init__(self, engine):
-        self._authkey = str(uuid.uuid1()).encode()
-        self._multiprocessing_thread = MultiprocessingRPCServerThread(
-            engine, self._authkey
-        )
-        self._http_thread = HttpRPCServerThread(engine, self._authkey)
-
-    @property
-    def pipes(self):
-        """
-        Connection strings to both servers.
-
-        :returns: Tuple of connection strings.
-        """
-        return (self._multiprocessing_thread.pipe, self._http_thread.pipe)
-
-    @property
-    def engine(self):
-        """
-        Current engine.
-        """
-        return self._multiprocessing_thread.engine
-
-    @property
-    def authkey(self):
-        """
-        Credential to connect to this server.
-        """
-        return self._authkey
-
-    def is_closed(self):
-        """
-        :returns: ``True`` if the server is closed, ``False`` if not.
-        """
-        # Both are closed or both are opened, so no need to ask both.
-        return self._multiprocessing_thread.is_closed()
-
-    def list_functions(self):
-        """
-        Return the list of functions registered with the server.
-        """
-        # Both have the same functions, so no need to ask both.
-        return self._multiprocessing_thread.list_functions()
-
-    def register_function(self, func, name=None):
-        """
-        Register a function with the server.
-
-        :param callable func: Method to call.
-        :param name: Optional. If set, the function will be named as the parameter states.
-            Otherwise, func.__name__ will be used.
-        """
-        self._multiprocessing_thread.register_function(func, name)
-        self._http_thread.register_function(func, name)
-
-    def start(self):
-        """
-        Start the server.
-        """
-        self._multiprocessing_thread.start()
-        self._http_thread.start()
-
-    def close(self):
-        """
-        Close the server.
-        """
-        self._multiprocessing_thread.close()
-        self._http_thread.close()
-
-    def is_alive(self):
-        """
-        :returns: `True` if the server is still alive, ``False`` otherwise.
-        """
-        return self._multiprocessing_thread.is_alive() or self._http_thread.is_alive()
-
-    def join(self):
-        """
-        Wait for the server to be closed.
-        """
-        self._multiprocessing_thread.join()
-        self._http_thread.join()
-
-
-##############################################################################
-# Internal API starts here.
-
-######################
-# Server side classes
-class Listener(object):
-    """
-    Server that allows methods to be called from a remote process.
-    """
-
-    def __init__(self, engine, authkey=None):
-        """
-        :param engine: Current Toolkit engine.
-        """
-        self._server = HTTPServer(("localhost", 0), Handler)
-        self._server.listener = self
-
-        # generate a random key for authentication
-        self.authkey = authkey or str(uuid.uuid1()).encode()
-        self.engine = engine
-        self._is_closed = False
-
-        # registry for methods to call for names that come via the connection
-        self._functions = {"list_functions": self.list_functions}
-
-    def register_function(self, func, name=None):
-        """
-        Register a function with the server.
-
-        :param callable func: Method to call.
-        :param name: Optional. If set, the function will be named as the parameter states.
-            Otherwise, func.__name__ will be used.
-        """
-        if name is None:
-            name = func.__name__
-
-        # This method will be called from the main thread. If the server has been stopped, there
-        # is no need to call the method.
-        def wrapper(*args, **kwargs):
-            if self._is_closed:
-                return
-            return func(*args, **kwargs)
-
-        self._functions[name] = wrapper
-
-    def list_functions(self):
-        """
-        Return a list of functions that can be invoked on the server.
-        """
-        return list(self._functions)
-
-    def serve_forever(self):
-        """
-        Serve requests until the server is closed.
-        """
-        # Implement our own variant of serve_forever here.
-        # HTTPServer.serve_forever will serve requests until HTTPServer.shut_down
-        # is invoked. The problem with that flow is that if there is a request
-        # currently being handled, the shut_down() call will block until
-        # the request has been handled.
-        #
-        # This becomes an issue in this flow
-        #
-        # 1. Project engine makes an RPC call from the main thread.
-        # 2. Site engine makes an RPC call from the main thread.
-        # 3. Site engine receives the request to process the RPC and queues it for
-        #    execution in the main thread.
-        # 4. Project engine receives the request to process the RPC and queues it for
-        #    execution in the main thread.
-        # 5. At this point, both main threads are executing something and both
-        #    have a second event in queue.
-        # 6. Site engine wants to close the server thread using shut_down()
-        #
-        # 7. Deadlock!
-        #
-        # This happens because the site engine HTTP server is currently
-        # waiting for a response from the main thread and we've just asked
-        # from the main thread to shut_down(), which waits for the current
-        # request to terminate before returning.
-        #
-        # The solution to this problem is to implement the loop ourselves
-        # by calling handle_request manually. From the main thread
-        # we simply raise a flag which will not block the main thread. When
-        # the current event is done, the event queued by the server thread
-        # will be executed and the serve_forever method will unblock,
-        # read the flag and will be done.
-        self._server.timeout = 1
-        try:
-            while self._is_closed is False:
-                # This will wait for a request until the timeout
-                # is reached. This means that we'll wait at most
-                # one second before noticing we should be closing down.
-                self._server.handle_request()
-        finally:
-            self._server.socket.close()
-
-    def close(self):
-        """
-        Close the server.
-        """
-        self._is_closed = True
-
-    def is_closed(self):
-        """
-        :returns: ``True`` is the server is closed, ``False`` if not.
-        """
-        return self._is_closed
-
-    @property
-    def server_port(self):
-        """
-        :returns: Port number used by the server.
-        """
-        return self._server.server_port
-
-
-class Handler(SimpleHTTPRequestHandler):
-    """
-    Handle an HTTP request.
-    """
-
-    @property
-    def _functions(self):
-        """
-        Shorthand to access the listener's function list.
-        """
-        return self.server.listener._functions
-
-    @property
-    def _engine(self):
-        """
-        Shorthand to access the engine we're exposing methods for.
-        """
-        return self.server.listener.engine
-
-    def do_POST(self):
-        """
-        Handle request to execute a function from the listener.
-        """
-        response = None
-        try:
-            (authkey, (is_blocking, func_name, args, kwargs)) = self._read_request()
-            logger.debug("http server calling '%s(%s, %s)'" % (func_name, args, kwargs))
-
-            # Make sure the right credentials were sent.
-            # Pickling through sgtk.util.pickle converts any binary string to string
-            # so the authkey we received needs to be compared against
-            # the str version.
-            if authkey != six.ensure_str(self.server.listener.authkey):
-                raise ValueError("invalid auth key")
-
-            # Make sure the function exists.
-            if func_name not in self._functions:
-                logger.error(
-                    "unknown function call: '%s', expecting one of '%s'"
-                    % (func_name, list(self._functions))
-                )
-                raise ValueError("unknown function call: '%s'" % func_name)
-
-            # grab the function from the function table
-            func = self._functions[func_name]
-
-            # execute the function on the main thread, as it may to GUI work.
-            if is_blocking:
-                response = self._engine.execute_in_main_thread(func, *args, **kwargs)
-            else:
-                self._engine.async_execute_in_main_thread(func, *args, **kwargs)
-                response = None
-
-            logger.debug("http '%s' result: '%s" % (func_name, response))
-        except Exception as e:
-            response = e
-            # if any of the above fails send the exception back to the client
-            logger.exception("got exception during '%s" % func_name)
-        finally:
-            self._send_response(response)
-
-    def log_request(self, code=None, size=None):
-        """
-        This method is called every time a request has been completed to log
-        a message to stdout.
-
-        We're turning it into a no-op as to not flood the terminal.
-        """
-
-    def _read_request(self):
-        """
-        Read an incoming request and return the data.
-
-        :returns: The data that was sent.
-        """
-        if six.PY3:
-            content_len = int(self.headers.get("content-length", 0))
-        else:
-            content_len = int(self.headers.getheader("content-length", 0))
-
-        body = self.rfile.read(content_len)
-        try:
-            return pickle.loads(body)
-        except Exception:
-            raise RuntimeError("Response could not be unserialized: %s" % body)
-
-    def _send_response(self, body):
-        """
-        Send a response back to the client.
-
-        :param body: Data to send back to the client.
-        """
-        # Lock to protocol 2 so we can be compatible with Python 2.
-        # Using Python's pickle directly ensure's smaller payloads and is
-        # actually faster since less conversions are taking place.
-        raw_data = py_pickle.dumps(body, protocol=2)
-        self.send_response(200, self.responses[200])
-        self.send_header("Content-Type", "text/text")
-        self.send_header("Content-Length", len(raw_data))
-        self.send_header("Connection", "close")
-        self.end_headers()
-        self.wfile.write(six.ensure_binary(raw_data))
-
-
-######################
-# Client side classes
-class Connection(object):
-    """
-    Connection to the other process's server.
-    """
-
-    def __init__(self, address, authkey):
-        """
-        :param str address: Address of the server.
-        :param str authkey: Credentials to the server.
-        """
-        self._address = address
-        self._authkey = authkey
-
-    def send(self, is_blocking, func_name, args, kwargs):
-        """
-        Call a function on the server synchronously or not.
-
-        :param bool is_blocking: If ``True``, the call will block until the server
-            completes the task and the value/exception will be returned/raised by this
-            method. If ``False``, the call will be queued for delivery and the method
-            returns None.
-        """
-        payload = [is_blocking, func_name, args, kwargs]
-        # Lock to protocol 2 so we can be compatible with Python 2.
-        # Using Python's pickle directly ensure's smaller payloads and is
-        # actually faster since less conversions are taking place.
-        payload = py_pickle.dumps([self._authkey, payload], protocol=2)
-        request = urlopen(self._address, data=six.ensure_binary(payload))
-        try:
-            # urlopen will connect to the server and send the data. Once the data
-            # is sent, the call returns. You can then close the connection
-            # or optionally call read to get the response back.
-            if is_blocking:
-                logger.debug("http connection has sent")
-                response = pickle.loads(request.read())
-                logger.debug("http connection has received result")
-                if isinstance(response, Exception):
-                    raise response
-                return response
-        finally:
-            request.close()

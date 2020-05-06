@@ -12,7 +12,7 @@
 Implements communication channels between the desktop app and the background process.
 """
 
-from .rpc import get_rpc_proxy_factory
+from .rpc import RPCServerThread, RPCProxy
 
 from sgtk import LogManager
 
@@ -101,19 +101,23 @@ class CommunicationBase(object):
         Connects to the other process's RPC server.
         """
         logger.info("Connecting to gui pipe %s" % pipe)
-        self._proxy = get_rpc_proxy_factory(pipe)(pipe, authkey)
-        logger.info(
-            "%s connected to proxy server using %s(%s)."
-            % (type(self).__name__, type(self._proxy).__name__, pipe)
-        )
+        self._proxy = RPCProxy(pipe, authkey)
+        logger.debug("Connected to the proxy server.")
 
-    def _create_server(self, rpc_server_factory):
+    def _create_server(self):
         """
         Launches an RPC server.
         """
         logger.debug("Starting RPC server")
-        self._msg_server = rpc_server_factory(self._engine)
+        self._msg_server = RPCServerThread(self._engine)
         self._msg_server.start()
+
+    @property
+    def server_pipe(self):
+        """
+        :returns: The server's pipe.
+        """
+        return self._msg_server.pipe
 
     @property
     def server_authkey(self):

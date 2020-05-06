@@ -15,13 +15,7 @@ import sgtk
 import pytest
 import contextlib
 
-from rpc import (
-    MultiprocessingRPCServerThread,
-    HttpRPCServerThread,
-    DualRPCServer,
-    MultiprocessingRPCProxy as MultiprocessingRPCProxyImp,
-    HttpRPCProxy,
-)
+from rpc import RPCServerThread, RPCProxy as RPCProxyImp
 
 if sgtk.util.is_windows():
     # FIXME: There's some sort of race condition on Windows when the server and client
@@ -30,14 +24,14 @@ if sgtk.util.is_windows():
     # since several seconds can elapse between the moment the server is started
     # and the moment the client connects, so we'll fix the flaky tests by adding
     # a 1 second sleep, which fixes the problem both locally in my VM and in the CI.
-    class MultiprocessingRPCProxy(MultiprocessingRPCProxyImp):
+    class RPCProxy(RPCProxyImp):
         def __init__(self, pipe, auth):
             time.sleep(1)
-            super(MultiprocessingRPCProxy, self).__init__(pipe, auth)
+            super(RPCProxy, self).__init__(pipe, auth)
 
 
 else:
-    MultiprocessingRPCProxy = MultiprocessingRPCProxyImp
+    RPCProxy = RPCProxyImp
 
 
 class Boom(Exception):
@@ -126,22 +120,7 @@ def fake_engine():
     return FakeEngine()
 
 
-# We need to test the Http and Multiprocessing proxy connecting to each server
-# type.
-# Note that on Python 3, the multiprocessing server is never used by Desktop,
-# so we can ignore those servers.
-@pytest.fixture(
-    params=(
-        [
-            (DualRPCServer, MultiprocessingRPCProxy),
-            (MultiprocessingRPCServerThread, MultiprocessingRPCProxy),
-            (DualRPCServer, HttpRPCProxy),
-        ]
-        if six.PY2
-        else []
-    )
-    + [(HttpRPCServerThread, HttpRPCProxy)]
-)
+@pytest.fixture
 def server(fake_engine, request):
     """
     Readies an RPCServerThread for use, preconfigure to be able to
@@ -149,27 +128,13 @@ def server(fake_engine, request):
 
     :returns: A RPCServerThread instance.
     """
-    server_class = request.param[0]
-    client_class = request.param[1]
-
-    server = server_class(fake_engine)
+    server = RPCServerThread(fake_engine)
     server.register_function(fake_engine.pass_arg)
     server.register_function(fake_engine.pass_named_arg)
     server.register_function(fake_engine.boom)
     server.register_function(fake_engine.long_call)
     server.register_function(fake_engine.pass_arg, "pass_arg_as_another_name")
     server.start()
-
-    def factory(server):
-        if server_class == DualRPCServer:
-            if client_class == HttpRPCProxy:
-                return client_class(server.pipes[1], server.authkey)
-            else:
-                return client_class(server.pipes[0], server.authkey)
-        else:
-            return client_class(server.pipe, server.authkey)
-
-    server.client_factory = factory
     try:
         yield server
     finally:
@@ -189,7 +154,7 @@ def proxy(server):
     # indicates which kind of proxy we want to use to talk to this server
     # instance. We need to pass in the server instance as a parameter
     # so we can extract the right pipe from it.
-    client = server.client_factory(server)
+    client = RPCProxy(server.pipe, server.authkey)
     try:
         yield client
     finally:
@@ -227,9 +192,7 @@ def test_api_backward_and_forward_compatible(server, proxy):
     assert hasattr(server, "register_function")
     assert hasattr(server, "close")
     assert hasattr(server, "engine")
-
-    if isinstance(server, DualRPCServer) is False:
-        assert hasattr(server, "pipe")
+    assert hasattr(server, "pipe")
 
     assert hasattr(server, "authkey")
 
@@ -373,29 +336,15 @@ def test_call_with_exception_raised(proxy):
         proxy.call("boom")
 
 
-def test_bad_http_auth_key(fake_engine):
+def test_bad_auth_key(fake_engine):
     """
     Ensure connecting to a server with the wrong auth key will reject
     the request.
     """
-    with contextlib.closing(HttpRPCServerThread(fake_engine)) as server:
-        server.start()
-        with contextlib.closing(HttpRPCProxy(server.pipe, "12345")) as proxy:
-            with pytest.raises(ValueError) as exc:
-                proxy.call("list_functions")
-            assert str(exc.value) == "invalid auth key"
-
-
-@pytest.mark.skipif(six.PY3, reason="Multiprocessing server not supported on Python 3.")
-def test_bad_multi_auth_key(fake_engine):
-    """
-    Ensure connecting to a server with the wrong auth key will reject
-    the request.
-    """
-    with contextlib.closing(MultiprocessingRPCServerThread(fake_engine)) as server:
+    with contextlib.closing(RPCServerThread(fake_engine)) as server:
         server.start()
         with pytest.raises(Exception) as exc:
-            MultiprocessingRPCProxy(server.pipe, b"12345")
+            RPCProxy(server.pipe, b"12345")
         assert str(exc.value) == "digest sent was rejected"
 
 
@@ -404,14 +353,10 @@ def test_calling_when_closed(proxy):
     Ensure calling a method on the client when it is closed fails.
     """
     proxy.close()
-    client_type = "multi" if isinstance(proxy, MultiprocessingRPCProxy) else "http"
     with pytest.raises(RuntimeError) as exc:
         proxy.call("anything")
-    assert (
-        str(exc.value)
-        == "closed %s client waiting call 'anything((), {})'" % client_type
-    )
+    assert str(exc.value) == "closed client waiting call 'anything((), {})'"
 
     with pytest.raises(RuntimeError) as exc:
         proxy.call_no_response("anything")
-    assert str(exc.value) == "closed %s client calling 'anything((), {})'" % client_type
+    assert str(exc.value) == "closed client calling 'anything((), {})'"

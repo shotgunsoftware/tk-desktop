@@ -34,6 +34,7 @@ class ProxyLoggingHandler(logging.Handler):
     def __init__(self, proxy):
         """
         :param proxy: Connection to the main process.
+        :type proxy: rpc.RPCProxy
         """
         # Call the __init__ directly since Python 2.6's logging.Handler doesn't
         # derive from object and hence doesn't support 'super'.
@@ -86,8 +87,8 @@ def _create_proxy(data):
     # We're not guanranteed if the py or pyc file will be passed back to us
     # from the desktop due to write permissions on the folder.
     rpc_lib = imp.load_source("rpc", data["rpc_lib_path"])
-    return rpc_lib.HttpRPCProxy(
-        data["proxy_data"]["http_pipe"], data["proxy_data"]["proxy_auth"],
+    return rpc_lib.RPCProxy(
+        data["proxy_data"]["proxy_pipe"], data["proxy_data"]["proxy_auth"],
     )
 
 
