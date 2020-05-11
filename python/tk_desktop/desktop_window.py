@@ -528,11 +528,11 @@ class DesktopWindow(SystrayWindow):
                 # GetDLLDirectory throws an exception if none was set
                 try:
                     self._previous_dll_directory = win32api.GetDllDirectory(None)
-                except StandardError:
+                except Exception:
                     self._previous_dll_directory = None
 
                 win32api.SetDllDirectory(None)
-            except StandardError:
+            except Exception:
                 log.warning("Could not push DllDirectory under Windows.")
 
     def _pop_dll_state(self):
@@ -544,7 +544,7 @@ class DesktopWindow(SystrayWindow):
                 import win32api
 
                 win32api.SetDllDirectory(self._previous_dll_directory)
-            except StandardError:
+            except Exception:
                 log.warning("Could not restore DllDirectory under Windows.")
 
     def register_tab(self, tab_name, tab_widget):
