@@ -1241,7 +1241,7 @@ class DesktopWindow(SystrayWindow):
                 "It appears you may still be running older components "
                 "that are not Python 3 compatible. We recommend you upgrade "
                 "to these versions or newer in your project:\n"
-                "- tk-desktop: v2.5.0+\n"
+                "- tk-desktop: v2.5.3+\n"
                 "- tk-framework-desktopserver: v1.3.10+"
             )
         else:
