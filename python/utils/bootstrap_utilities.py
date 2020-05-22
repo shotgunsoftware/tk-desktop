@@ -223,10 +223,10 @@ class Bootstrap(object):
         """
         # First try to see if PySide or PyQt4 exist in the current environment before attempting to patch sys modules.
         try:
-            import PySide
+            import PySide  # noqa
         except ImportError:
             try:
-                import PyQt4
+                import PyQt4  # noqa
             except ImportError:
                 # PySide and PyQt4 don't exist so we need to patch the sys.modules to
                 # add PySide2 as if it was PySide. This is so if we are using a
