@@ -220,19 +220,30 @@ class Bootstrap(object):
     def _add_pyside2_as_pyside(self):
         """
         Imports PySide2 as if it was PySide.
-        :return:
         """
-        from sgtk.util.qt_importer import QtImporter
-        import PySide_mock
+        # First try to see if PySide or PyQt4 exist in the current environment before attempting to patch sys modules.
+        try:
+            import PySide
+        except ImportError:
+            try:
+                import PyQt4
+            except ImportError:
+                # PySide and PyQt4 don't exist so we need to patch the sys.modules to
+                # add PySide2 as if it was PySide. This is so if we are using a
+                # pre v2.5.3 release of tk-desktop it will be able to import QT.
+                from sgtk.util.qt_importer import QtImporter
+                # Importing PySide2 and storing it in sys.modules causes "from PySide import QtCore" not to work.
+                # It import the unpatched version, so we import an empty python file to use as the package.
+                import PySide_patch
 
-        PySide_mock.__name__ = "PySide"
-        PySide_mock.__package__ = "PySide"
+                PySide_patch.__name__ = "PySide"
+                PySide_patch.__package__ = "PySide"
 
-        importer = QtImporter()
+                importer = QtImporter()
 
-        sys.modules["PySide"] = PySide_mock
-        sys.modules["PySide.QtCore"] = importer.QtCore
-        sys.modules["PySide.QtGui"] = importer.QtGui
+                sys.modules["PySide"] = PySide_patch
+                sys.modules["PySide.QtCore"] = importer.QtCore
+                sys.modules["PySide.QtGui"] = importer.QtGui
 
 
 def start_engine(data):
