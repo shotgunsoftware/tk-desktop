@@ -232,6 +232,7 @@ class Bootstrap(object):
                 # add PySide2 as if it was PySide. This is so if we are using a
                 # pre v2.5.3 release of tk-desktop it will be able to import QT.
                 from sgtk.util.qt_importer import QtImporter
+
                 # Importing PySide2 and storing it in sys.modules causes "from PySide import QtCore" not to work.
                 # It import the unpatched version, so we import an empty python file to use as the package.
                 import PySide_patch
