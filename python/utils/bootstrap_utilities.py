@@ -148,6 +148,11 @@ class Bootstrap(object):
                 os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
             )
 
+            # If we are using an older version of desktop pre 2.5.4, then
+            # it will try to import PySide which won't be available.
+            # To keep things working, we will import PySide 2 as if it were PySide.
+            self._add_pyside2_as_pyside()
+
             # Prepare the manager based on everything the bootstrap manager expected of us.
             manager = sgtk.bootstrap.ToolkitManager(self._user)
             manager.restore_settings(self._manager_settings)
@@ -185,7 +190,7 @@ class Bootstrap(object):
         import sgtk
 
         # At this point we need to close the proxy because we can't have two proxies connected
-        # at the same sime, especially for logging, to the server.
+        # at the same time, especially for logging, to the server.
         # When the engine starts it will set up its own logging.
         self._proxy.close()
         if hasattr(sgtk, "LogManager"):
@@ -200,7 +205,7 @@ class Bootstrap(object):
         Reports bootstrap progress back to the main process.
         """
         # If the proxy hasn't been closed, report our progress.
-        # Note here that is we haven't closed the proxy ourselves in pre_engine_start_callback,
+        # Note here that if we haven't closed the proxy ourselves in pre_engine_start_callback,
         # but the main process has closed our connection, this code will raise an error.
         # This is great because if the host has closed the connection it means at their the process
         # crashes (yikes!) or that the user backed out of the project. In any case, it means
@@ -211,6 +216,23 @@ class Bootstrap(object):
             return
 
         self._proxy.call_no_response("bootstrap_progress", value, msg)
+
+    def _add_pyside2_as_pyside(self):
+        """
+        Imports PySide2 as if it was PySide.
+        :return:
+        """
+        from sgtk.util.qt_importer import QtImporter
+        import PySide_mock
+
+        PySide_mock.__name__ = "PySide"
+        PySide_mock.__package__ = "PySide"
+
+        importer = QtImporter()
+
+        sys.modules["PySide"] = PySide_mock
+        sys.modules["PySide.QtCore"] = importer.QtCore
+        sys.modules["PySide.QtGui"] = importer.QtGui
 
 
 def start_engine(data):
