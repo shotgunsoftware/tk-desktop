@@ -100,6 +100,7 @@ def _ensure_no_unicode(obj):
         return [_ensure_no_unicode(item) for item in obj]
     elif isinstance(obj, dict):
         return {_ensure_no_unicode(k): _ensure_no_unicode(v) for k, v in obj.items()}
+    # We can't use six here because Toolkit may not have been imported yet.
     elif sys.version_info[0] == 2 and isinstance(obj, unicode):
         return obj.encode("utf8")
     else:
