@@ -211,7 +211,7 @@ class SystrayWindow(QtGui.QMainWindow):
 
             # setup the animation to shrink the window to the systray
             # parent the anim to self to keep it from being garbage collected
-            anim = QtCore.QPropertyAnimation(self, "geometry", self)
+            anim = QtCore.QPropertyAnimation(self, b"geometry", self)
             anim.setDuration(300)
             anim.setStartValue(start)
             anim.setEndValue(final)
