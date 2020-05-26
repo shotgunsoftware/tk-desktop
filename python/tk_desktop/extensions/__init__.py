@@ -13,7 +13,6 @@ import sys
 import sgtk
 
 logger = sgtk.platform.get_logger(__name__)
-
 try:
     if sys.version_info[0] == 2:
         try:
@@ -46,14 +45,19 @@ try:
     is_mocked = False
 except Exception as e:
     logger.debug("Could not import osutils: ", exc_info=True)
+    print(e)
 
-    def activate_application():
-        pass
+    class osutils:
+        @staticmethod
+        def activate_application():
+            pass
 
-    def make_app_foreground():
-        pass
+        @staticmethod
+        def make_app_foreground():
+            pass
 
-    def make_app_background():
-        pass
+        @staticmethod
+        def make_app_background():
+            pass
 
     is_mocked = True

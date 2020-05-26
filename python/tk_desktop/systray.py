@@ -336,8 +336,7 @@ class SystrayWindow(QtGui.QMainWindow):
         """
         Toggles visibility when systray icon is clicked.
         """
-        active = self.isActiveWindow()
-        if active:
+        if self.isVisible():
             # shown and topmost, hide
             self.hide()
             osutils.make_app_background()
