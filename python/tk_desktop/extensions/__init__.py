@@ -10,9 +10,31 @@
 
 import sys
 
-if sys.platform == "darwin":
-    from .darwin import *
-elif sys.platform == "win32":
-    from .win32 import *
-elif sys.platform.startswith("linux"):
-    from .linux import *
+if sys.version_info[0] == 2:
+    try:
+        import PySide2
+
+        is_qt5 = True
+    except:
+        is_qt5 = False
+    if is_qt5:
+        if sys.platform == "darwin":
+            from .darwin_python2_qt5 import *
+        elif sys.platform == "win32":
+            from .win32_python2_qt5 import *
+        elif sys.platform.startswith("linux"):
+            from .linux_python2_qt5 import *
+    else:
+        if sys.platform == "darwin":
+            from .darwin_python2_qt4 import *
+        elif sys.platform == "win32":
+            from .win32_python2_qt4 import *
+        elif sys.platform.startswith("linux"):
+            from .linux_python2_qt4 import *
+else:
+    if sys.platform == "darwin":
+        from .darwin_python3_qt5 import *
+    elif sys.platform == "win32":
+        from .win32_python3_qt5 import *
+    elif sys.platform.startswith("linux"):
+        from .linux_python3_qt5 import *
