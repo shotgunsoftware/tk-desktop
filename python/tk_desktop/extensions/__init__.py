@@ -10,17 +10,9 @@
 
 import sys
 
-if sys.version_info[0] == 2:
-    if sys.platform == "darwin":
-        from .darwin_python2 import *
-    elif sys.platform == "win32":
-        from .win32_python2 import *
-    elif sys.platform.startswith("linux"):
-        from .linux_python2 import *
-else:
-    if sys.platform == "darwin":
-        from .darwin_python3 import *
-    elif sys.platform == "win32":
-        from .win32_python3 import *
-    elif sys.platform.startswith("linux"):
-        from .linux_python3 import *
+if sys.platform == "darwin":
+    from .darwin import *
+elif sys.platform == "win32":
+    from .win32 import *
+elif sys.platform.startswith("linux"):
+    from .linux import *
