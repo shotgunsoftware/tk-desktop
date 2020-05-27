@@ -16,24 +16,22 @@ logger = sgtk.platform.get_logger(__name__)
 try:
     if sys.version_info[0] == 2:
         try:
-            import PySide2 as _
+            # If we can't import PySide2, then we're in Shotgun Desktop 1.5.7 or less
+            # and we need to impo
+            import PySide2  # noqa
 
             is_qt5 = True
         except Exception:
             is_qt5 = False
-        if is_qt5:
-            if sys.platform == "darwin":
-                from .darwin_python2 import osutils
-            elif sys.platform == "win32":
-                from .win32_python2 import osutils
-            elif sys.platform.startswith("linux"):
+
+        if sys.platform == "darwin":
+            from .darwin_python2 import osutils
+        elif sys.platform == "win32":
+            from .win32_python2 import osutils
+        elif sys.platform.startswith("linux"):
+            if is_qt5:
                 from .linux_python2 import osutils
-        else:
-            if sys.platform == "darwin":
-                from .darwin_python2 import osutils
-            elif sys.platform == "win32":
-                from .win32_python2 import osutils
-            elif sys.platform.startswith("linux"):
+            else:
                 from .linux_python2_qt4 import osutils
     else:
         if sys.platform == "darwin":
@@ -44,8 +42,7 @@ try:
             from .linux_python3 import osutils
     osutils.is_mocked = False
 except Exception as e:
-    logger.debug("Could not import osutils: ", exc_info=True)
-    print(e)
+    logger.warning("Could not import osutils: %s", e, exc_info=True)
 
     class osutils:
         @staticmethod
