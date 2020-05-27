@@ -23,25 +23,25 @@ try:
             is_qt5 = False
         if is_qt5:
             if sys.platform == "darwin":
-                from .darwin_python2_qt5 import *
+                from .darwin_python2 import osutils
             elif sys.platform == "win32":
-                from .win32_python2 import *
+                from .win32_python2 import osutils
             elif sys.platform.startswith("linux"):
-                from .linux_python2_qt5 import *
+                from .linux_python2 import osutils
         else:
             if sys.platform == "darwin":
-                from .darwin_python2_qt4 import *
+                from .darwin_python2 import osutils
             elif sys.platform == "win32":
-                from .win32_python2 import *
+                from .win32_python2 import osutils
             elif sys.platform.startswith("linux"):
-                from .linux_python2_qt4 import *
+                from .linux_python2_qt4 import osutils
     else:
         if sys.platform == "darwin":
-            from .darwin_python3_qt5 import *
+            from .darwin_python3 import osutils
         elif sys.platform == "win32":
-            from .win32_python3_qt5 import *
+            from .win32_python3 import osutils
         elif sys.platform.startswith("linux"):
-            from .linux_python3_qt5 import *
+            from .linux_python3 import osutils
     osutils.is_mocked = False
 except Exception as e:
     logger.debug("Could not import osutils: ", exc_info=True)
