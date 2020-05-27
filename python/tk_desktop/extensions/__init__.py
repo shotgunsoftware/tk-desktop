@@ -13,36 +13,42 @@ import sys
 import sgtk
 
 logger = sgtk.platform.get_logger(__name__)
-try:
-    if sys.version_info[0] == 2:
-        try:
-            # If we can't import PySide2, then we're in Shotgun Desktop 1.5.7 or less
-            # and we need to impo
-            import PySide2  # noqa
 
-            is_qt5 = True
-        except Exception:
-            is_qt5 = False
-
-        if sys.platform == "darwin":
-            from .darwin_python2 import osutils
-        elif sys.platform == "win32":
-            from .win32_python2 import osutils
-        elif sys.platform.startswith("linux"):
-            if is_qt5:
-                from .linux_python2 import osutils
-            else:
-                from .linux_python2_qt4 import osutils
+if sys.platform.startswith("linux"):
+    try:
+        import PySide
+    except Exception as e:
+        # PySide 2 build of desktop does not require help
+        # making the application go in the foreground/background.
+        use_mocked_osutils = True
     else:
-        if sys.platform == "darwin":
+        # We're in a PySide 1 version of Shotgun Desktop, so try
+        # to import the old osutils
+        try:
+            from .linux_python2_qt4 import osutils
+        except Exception as e:
+            logger.warning("Could not load osutils: %s", e, exc_info=True)
+            use_mocked_osutils = True
+elif sys.plaform == "darwin":
+    # On macOS, the osutils are required to make the app move to the foreground
+    # or background in certain cases.
+    try:
+        if sys.version_info[0] == 2:
+            from .darwin_python2 import osutils
+        else:
             from .darwin_python3 import osutils
-        elif sys.platform == "win32":
-            from .win32_python3 import osutils
-        elif sys.platform.startswith("linux"):
-            from .linux_python3 import osutils
-    osutils.is_mocked = False
-except Exception as e:
-    logger.warning("Could not import osutils: %s", e, exc_info=True)
+    except Exception as e:
+        logger.warning("Could not load osutils: %s", e, exc_info=True)
+        use_mocked_osutils = True
+else:
+    # Not only has Windows' osutils been broken for years since it
+    # was a 32-bit compiled version of the extension, in practice
+    # none of the code has been necessary to get both PySide and PySide2
+    # versions of desktop running, so we'll use the mocked osutils there as
+    # well.
+    use_mocked_osutils = True
+
+if use_mocked_osutils:
 
     class osutils:
         @staticmethod
