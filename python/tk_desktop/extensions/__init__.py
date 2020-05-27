@@ -16,7 +16,7 @@ logger = sgtk.platform.get_logger(__name__)
 
 if sys.platform.startswith("linux"):
     try:
-        import PySide
+        import PySide  # noqa
     except Exception as e:
         # PySide 2 build of desktop does not require help
         # making the application go in the foreground/background.
