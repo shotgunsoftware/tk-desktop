@@ -16,7 +16,7 @@ logger = sgtk.platform.get_logger(__name__)
 try:
     if sys.version_info[0] == 2:
         try:
-            import PySide2
+            import PySide2 as _
 
             is_qt5 = True
         except Exception:
