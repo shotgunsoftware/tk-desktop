@@ -42,7 +42,7 @@ try:
             from .win32_python3_qt5 import *
         elif sys.platform.startswith("linux"):
             from .linux_python3_qt5 import *
-    is_mocked = False
+    osutils.is_mocked = False
 except Exception as e:
     logger.debug("Could not import osutils: ", exc_info=True)
     print(e)
@@ -60,4 +60,4 @@ except Exception as e:
         def make_app_background():
             pass
 
-    is_mocked = True
+        is_mocked = True
