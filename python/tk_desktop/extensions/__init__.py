@@ -25,14 +25,14 @@ try:
             if sys.platform == "darwin":
                 from .darwin_python2_qt5 import *
             elif sys.platform == "win32":
-                from .win32_python2_qt5 import *
+                from .win32_python2 import *
             elif sys.platform.startswith("linux"):
                 from .linux_python2_qt5 import *
         else:
             if sys.platform == "darwin":
                 from .darwin_python2_qt4 import *
             elif sys.platform == "win32":
-                from .win32_python2_qt4 import *
+                from .win32_python2 import *
             elif sys.platform.startswith("linux"):
                 from .linux_python2_qt4 import *
     else:
