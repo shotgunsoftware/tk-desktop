@@ -19,7 +19,7 @@ try:
             import PySide2
 
             is_qt5 = True
-        except:
+        except Exception:
             is_qt5 = False
         if is_qt5:
             if sys.platform == "darwin":
