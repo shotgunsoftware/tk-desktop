@@ -17,7 +17,7 @@ logger = sgtk.platform.get_logger(__name__)
 if sys.platform.startswith("linux"):
     try:
         import PySide  # noqa
-    except Exception as e:
+    except Exception:
         # PySide 2 build of desktop does not require help
         # making the application go in the foreground/background.
         use_mocked_osutils = True
