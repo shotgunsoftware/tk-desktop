@@ -14,22 +14,24 @@ import sgtk
 
 logger = sgtk.platform.get_logger(__name__)
 
+use_mocked_osutils = True
 if sys.platform.startswith("linux"):
     try:
         import PySide  # noqa
     except Exception:
         # PySide 2 build of desktop does not require help
         # making the application go in the foreground/background.
-        use_mocked_osutils = True
+        pass
     else:
         # We're in a PySide 1 version of Shotgun Desktop, so try
         # to import the old osutils
         try:
             from .linux_python2_qt4 import osutils
+
+            use_mocked_osutils = False
         except Exception as e:
             logger.warning("Could not load osutils: %s", e, exc_info=True)
-            use_mocked_osutils = True
-elif sys.plaform == "darwin":
+elif sys.platform == "darwin":
     # On macOS, the osutils are required to make the app move to the foreground
     # or background in certain cases.
     try:
@@ -37,16 +39,15 @@ elif sys.plaform == "darwin":
             from .darwin_python2 import osutils
         else:
             from .darwin_python3 import osutils
+        use_mocked_osutils = False
     except Exception as e:
         logger.warning("Could not load osutils: %s", e, exc_info=True)
-        use_mocked_osutils = True
-else:
-    # Not only has Windows' osutils been broken for years since it
-    # was a 32-bit compiled version of the extension, in practice
-    # none of the code has been necessary to get both PySide and PySide2
-    # versions of desktop running, so we'll use the mocked osutils there as
-    # well.
-    use_mocked_osutils = True
+
+# Not only has Windows' osutils been broken for years since it
+# was a 32-bit compiled version of the extension, in practice
+# none of the code has been necessary to get both PySide and PySide2
+# versions of desktop running, so there's no need to test for Windows
+# here.
 
 if use_mocked_osutils:
 
