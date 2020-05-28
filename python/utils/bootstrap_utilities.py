@@ -77,12 +77,6 @@ class ProxyLoggingHandler(logging.Handler):
             pass
 
 
-def _ensure_str(text):
-    if sys.version_info[0] == 2 and isinstance(text, unicode):
-        return str(text)
-    return text
-
-
 def _create_proxy(data):
     """
     Create a proxy based on the data received from the Shotgun Desktop.
@@ -147,13 +141,6 @@ class Bootstrap(object):
         import sgtk
 
         del os.environ["TANK_CURRENT_PC"]
-
-        self._raw_data["proxy_data"]["proxy_pipe"] = _ensure_str(
-            self._raw_data["proxy_data"]["proxy_pipe"]
-        )
-        self._raw_data["proxy_data"]["proxy_auth"] = _ensure_str(
-            self._raw_data["proxy_data"]["proxy_auth"]
-        )
 
         self._proxy = _create_proxy(self._raw_data)
         try:
