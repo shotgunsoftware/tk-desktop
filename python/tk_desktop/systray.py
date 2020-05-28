@@ -163,10 +163,8 @@ class SystrayWindow(QtGui.QMainWindow):
             self._set_window_mask()
             self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.FramelessWindowHint)
             self.show()
-            if osutils.is_mocked:
-                self.raise_()
-            else:
-                osutils.make_app_foreground()
+            self.raise_()
+            osutils.make_app_foreground()
         else:
             raise ValueError("Unknown value for state: %s" % value)
 
