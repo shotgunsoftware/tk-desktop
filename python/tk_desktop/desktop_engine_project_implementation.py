@@ -244,6 +244,22 @@ class DesktopEngineProjectImplementation(object):
         else:
             self._project_comm.shut_down()
 
+    def _deactivate_app(self):
+        """
+        This method will defocus the QApplication.
+        This is typically called from the timer in start_app so that the new application
+        doesn't steal focus from the main Shotgun Desktop application, and is only intended to be used
+        on MacOS.
+        """
+        try:
+            from .extensions import osutils
+
+            osutils.make_app_background()
+        except Exception:
+            # We should catch any error since the cost of failure just means the
+            # Desktop app won't jump into focus again, and the user will need to select it.
+            logger.exception("Failed to push proxy app to the background:")
+
     def start_app(self):
         """
         Starts the main processing look.
@@ -257,6 +273,21 @@ class DesktopEngineProjectImplementation(object):
                 app = self._initialize_application()
 
         if self._engine.has_ui:
+
+            from sgtk.platform.qt import QtCore
+
+            if sgtk.util.is_macos:
+                # If we are on Mac, then starting a QApplication even with no Windows
+                # will steal focus from any currently focused application.
+                # So we need to deactivate the QApplication after it is launched.
+                # We're using a QTimer so that it gets called after the app.exec_().
+                timer = QtCore.QTimer()
+                timer.timeout.connect(self._deactivate_app())
+                timer.setSingleShot(True)
+                # We don't need a time delay, as the signal won't be processed until
+                # after the app is started.
+                timer.start(0)
+
             result = 0
             while True:
                 if not self._project_comm.connected:
