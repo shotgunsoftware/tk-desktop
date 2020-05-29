@@ -212,6 +212,8 @@ class DesktopWindow(SystrayWindow):
         self.set_drag_widgets([self.ui.header, self.ui.footer])
 
         self.systray_state_changed.connect(self.handle_systray_state_changed)
+        # This stops the user from being able to exit the application via the native window close button.
+        # They can re open the window via the system tray icon.
         QtGui.QApplication.instance().setQuitOnLastWindowClosed(False)
 
         # Setup header buttons
