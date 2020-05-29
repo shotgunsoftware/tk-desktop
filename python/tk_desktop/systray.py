@@ -211,7 +211,7 @@ class SystrayWindow(QtGui.QMainWindow):
 
             # setup the animation to shrink the window to the systray
             # parent the anim to self to keep it from being garbage collected
-            anim = QtCore.QPropertyAnimation(self, "geometry", self)
+            anim = QtCore.QPropertyAnimation(self, b"geometry", self)
             anim.setDuration(300)
             anim.setStartValue(start)
             anim.setEndValue(final)
@@ -284,10 +284,6 @@ class SystrayWindow(QtGui.QMainWindow):
 
         side = self._guess_toolbar_side()
 
-        if side != self.__class__:
-            # anchor needs to be updated
-            self._set_window_mask()
-
         if side == self.DOCK_TOP:
             x = geo.x() + (geo.width() - self.rect().width()) / 2.0
             pos = QtCore.QPoint(x, geo.y() + geo.height())
@@ -311,6 +307,10 @@ class SystrayWindow(QtGui.QMainWindow):
 
         self.move(pos)
 
+        if side != self.__class__:
+            # anchor needs to be updated
+            self._set_window_mask()
+
     def systray_clicked(self):
         """ handler for single click on the system tray """
         self.toggle_activate()
@@ -326,10 +326,14 @@ class SystrayWindow(QtGui.QMainWindow):
         Ensures the Desktop's dialog is visible and on top of other windows.
         """
         if self.isHidden():
+            # Show the window before moving it so that the move happens correctly.
+            # Otherwise the first time the move happens after pinning, it causes the
+            # window to not be in the correct place.
+            self.show()
             # hidden, show and bring to the top
             if self.state == self.STATE_PINNED:
                 self.__move_to_systray()
-            self.show()
+
             self.raise_()
             self.activateWindow()
             if osutils is not None:
@@ -443,7 +447,6 @@ class SystrayWindow(QtGui.QMainWindow):
 
             if side == self.DOCK_TOP:
                 anchor_pixmap = self.__top_anchor
-                anchor_center = anchor_pixmap.rect().center()
                 points.append(QtCore.QPoint(mask_center.x(), rect.top()))
                 points.append(
                     QtCore.QPoint(mask_center.x() - anchor_height, mask.top())
