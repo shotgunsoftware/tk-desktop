@@ -56,10 +56,7 @@ from . import rpc
 
 from .notifications import NotificationsManager, FirstLaunchNotification
 
-try:
-    from .extensions import osutils
-except Exception:
-    osutils = None
+from .extensions import osutils
 
 # import our frameworks
 shotgun_model = sgtk.platform.import_framework(
@@ -956,7 +953,7 @@ class DesktopWindow(SystrayWindow):
             # If the dialog is pinned, it means it is also in background. We'll bring the app to the foreground
             # so keyboard focus is granted automatically to the BrowserIntegrationUserSwitchDialog instead
             # of being unfocussed.
-            if self.is_pinned() and osutils:
+            if self.is_pinned():
                 osutils.make_app_foreground()
 
             dialog.exec_()

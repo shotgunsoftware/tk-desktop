@@ -20,11 +20,7 @@ from .ui import resources_rc  # noqa
 
 from .systray_icon import ShotgunSystemTrayIcon
 
-try:
-    from .extensions import osutils
-except Exception:
-    osutils = None
-
+from .extensions import osutils
 
 logger = sgtk.platform.get_logger(__name__)
 
@@ -63,15 +59,13 @@ class SystrayWindow(QtGui.QMainWindow):
                     # and move the app to the background so there's no more icon in the tray.
                     if self._window.state == SystrayWindow.STATE_PINNED:
                         self._window.hide()
-                        if osutils is not None:
-                            osutils.make_app_background()
+                        osutils.make_app_background()
                 elif event.type() == QtCore.QEvent.ApplicationActivate:
                     # When the app gains focus and is in pinned mode, we bring the app to the background.
                     # Note that we are not showing the main dialog because there are multiple top levels
                     # windows that would have cause the application to activate.
                     if self._window.state == SystrayWindow.STATE_PINNED:
-                        if osutils is not None:
-                            osutils.make_app_foreground()
+                        osutils.make_app_foreground()
 
             return QtCore.QObject.eventFilter(self, obj, event)
 
@@ -163,17 +157,14 @@ class SystrayWindow(QtGui.QMainWindow):
             self._set_window_mask()
             self.__move_to_systray()
             self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
-            if osutils is not None:
-                osutils.make_app_background()
+            osutils.make_app_background()
 
         elif self.__state == self.STATE_WINDOWED:
             self._set_window_mask()
             self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.FramelessWindowHint)
             self.show()
-            if osutils is None:
-                self.raise_()
-            else:
-                osutils.make_app_foreground()
+            self.raise_()
+            osutils.make_app_foreground()
         else:
             raise ValueError("Unknown value for state: %s" % value)
 
@@ -336,25 +327,21 @@ class SystrayWindow(QtGui.QMainWindow):
 
             self.raise_()
             self.activateWindow()
-            if osutils is not None:
-                osutils.make_app_foreground()
+            osutils.make_app_foreground()
         else:
             # shown and not topmost, just bring to the top
             self.raise_()
             self.activateWindow()
-            if osutils is not None:
-                osutils.activate_application()
+            osutils.activate_application()
 
     def toggle_activate(self):
         """
         Toggles visibility when systray icon is clicked.
         """
-        active = self.isActiveWindow()
-        if active:
+        if self.isVisible():
             # shown and topmost, hide
             self.hide()
-            if osutils is not None:
-                osutils.make_app_background()
+            osutils.make_app_background()
         else:
             self.activate()
 
