@@ -25,6 +25,7 @@ from sgtk import LogManager
 import sgtk
 
 from .project_communication import ProjectCommunication
+from .extensions import osutils
 
 logger = LogManager.get_logger(__name__)
 
@@ -252,8 +253,6 @@ class DesktopEngineProjectImplementation(object):
         on MacOS.
         """
         try:
-            from .extensions import osutils
-
             osutils.make_app_background()
         except Exception:
             # We should catch any error since the cost of failure just means the
