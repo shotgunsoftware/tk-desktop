@@ -260,7 +260,7 @@ class DesktopEngineProjectImplementation(object):
 
                 app = QtGui.QApplication.instance()
                 app.applicationStateChanged.disconnect(self._qt5_defocus_app)
-            except:
+            except Exception:
                 logger.exception("Failed to disconnect signal")
 
     def _defocus_app(self):
