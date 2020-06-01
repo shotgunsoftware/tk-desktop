@@ -53,7 +53,7 @@ class DesktopEngineProjectImplementation(object):
             # can go as early as possible to the site's logger. But that's a bad idea, because it
             # introduces races condition between Qt discovery, QApplication instantiation and an early
             # request to shut down the process.
-            # Here's the flow of operations if we let during engine init to connec to the site engine.
+            # Here's the flow of operations if we let during engine init to connect to the site engine.
             #
             #  Site Engine                                Project Engine
             #          connects to site engine during engine_init
