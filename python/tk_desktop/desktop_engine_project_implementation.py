@@ -245,7 +245,25 @@ class DesktopEngineProjectImplementation(object):
         else:
             self._project_comm.shut_down()
 
-    def _deactivate_app(self):
+    def _qt5_defocus_app(self, *_):
+        """
+        This method calls the _deactivate_app method, and then
+         disconnects the signal, so this doesn't get fired again.
+        """
+        # The method gets passed the state, but the first state is always
+        # called after the Application takes focus, so we don't need to check it.
+        try:
+            self._defocus_app()
+        finally:
+            try:
+                from tank.platform.qt import QtGui
+
+                app = QtGui.QApplication.instance()
+                app.applicationStateChanged.disconnect(self._qt5_defocus_app)
+            except:
+                logger.exception("Failed to disconnect signal")
+
+    def _defocus_app(self):
         """
         This method will defocus the QApplication.
         This is typically called from the timer in start_app so that the new application
@@ -253,11 +271,14 @@ class DesktopEngineProjectImplementation(object):
         on MacOS.
         """
         try:
+            logger.debug("Pushing project QApplication instance to the background.")
             osutils.make_app_background()
         except Exception:
             # We should catch any error since the cost of failure just means the
             # Desktop app won't jump into focus again, and the user will need to select it.
-            logger.exception("Failed to push proxy app to the background:")
+            logger.exception(
+                "Failed to push project QApplication instance to the background:"
+            )
 
     def start_app(self):
         """
@@ -273,19 +294,22 @@ class DesktopEngineProjectImplementation(object):
 
         if self._engine.has_ui:
 
-            from sgtk.platform.qt import QtCore
-
-            if sgtk.util.is_macos:
-                # If we are on Mac, then starting a QApplication even with no Windows
+            if sgtk.util.is_macos():
+                # If we are on Mac with PySide2, then starting a QApplication even with no Windows
                 # will steal focus from any currently focused application.
                 # So we need to deactivate the QApplication after it is launched.
-                # We're using a QTimer so that it gets called after the app.exec_().
-                timer = QtCore.QTimer()
-                timer.timeout.connect(self._deactivate_app())
-                timer.setSingleShot(True)
-                # We don't need a time delay, as the signal won't be processed until
-                # after the app is started.
-                timer.start(0)
+                if hasattr(app, "applicationStateChanged"):
+                    # Qt 5 has a signal that is triggered when the application state changes which
+                    # we can use to track when teh app takes focus.
+                    app.applicationStateChanged.connect(self._qt5_defocus_app)
+                else:
+                    # Qt 4, doesn't have the same signal so we should revert to using a timer instead.
+                    from sgtk.platform.qt import QtCore
+
+                    timer = QtCore.QTimer()
+                    timer.timeout.connect(self._defocus_app)
+                    timer.setSingleShot(True)
+                    timer.start(0)
 
             result = 0
             while True:
