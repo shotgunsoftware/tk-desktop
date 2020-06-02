@@ -245,33 +245,21 @@ class DesktopEngineProjectImplementation(object):
         else:
             self._project_comm.shut_down()
 
-    def _qt5_defocus_app(self, *_):
+    def _defocus_app(self, *_):
         """
-        This method calls the _deactivate_app method, and then
-         disconnects the signal, so this doesn't get fired again.
+        This method will defocus the QApplication, and then
+        disconnects the signal, so this doesn't get fired again.
+        This is done so that the QApplication doesn't steal focus
+        from the main Shotgun Desktop application, and is only intended to be used
+        on MacOS.
         """
         # The method gets passed the state, but the first state is always
         # called after the Application takes focus, so we don't need to check it.
-        try:
-            self._defocus_app()
-        finally:
-            try:
-                from tank.platform.qt import QtGui
 
-                app = QtGui.QApplication.instance()
-                app.applicationStateChanged.disconnect(self._qt5_defocus_app)
-            except Exception:
-                logger.exception("Failed to disconnect signal")
-
-    def _defocus_app(self):
-        """
-        This method will defocus the QApplication.
-        This is typically called from the timer in start_app so that the new application
-        doesn't steal focus from the main Shotgun Desktop application, and is only intended to be used
-        on MacOS.
-        """
         try:
             logger.debug("Pushing project QApplication instance to the background.")
+            # This only seems to work with PySide2 on Python 3.
+            # In other states it just does nothing, so is harmless but useless.
             osutils.make_app_background()
         except Exception:
             # We should catch any error since the cost of failure just means the
@@ -279,6 +267,14 @@ class DesktopEngineProjectImplementation(object):
             logger.exception(
                 "Failed to push project QApplication instance to the background:"
             )
+        finally:
+            try:
+                from tank.platform.qt import QtGui
+
+                app = QtGui.QApplication.instance()
+                app.applicationStateChanged.disconnect(self._defocus_app)
+            except Exception:
+                logger.exception("Failed to disconnect signal")
 
     def start_app(self):
         """
@@ -301,15 +297,7 @@ class DesktopEngineProjectImplementation(object):
                 if hasattr(app, "applicationStateChanged"):
                     # Qt 5 has a signal that is triggered when the application state changes which
                     # we can use to track when teh app takes focus.
-                    app.applicationStateChanged.connect(self._qt5_defocus_app)
-                else:
-                    # Qt 4, doesn't have the same signal so we should revert to using a timer instead.
-                    from sgtk.platform.qt import QtCore
-
-                    timer = QtCore.QTimer()
-                    timer.timeout.connect(self._defocus_app)
-                    timer.setSingleShot(True)
-                    timer.start(0)
+                    app.applicationStateChanged.connect(self._defocus_app)
 
             result = 0
             while True:
