@@ -70,7 +70,18 @@ QWidget
 
 #project_subheader QPushButton
 {
-    background-color: transparent;
+    /*Setting the border to 0 actually makes the background
+     transparent when pressed in. Where as
+     background-color: transparent; didn't work with PySide2 Fusion style.*/
+    border: 0px;
+}
+
+#project_subheader QPushButton:pressed {
+    /*Fusion styled UIs don't indent the button contents when pressed,
+     When combined with a transparent background there is no indication
+     of it being pressed, so this makes it indent.*/
+    margin-left: 2px;
+    margin-top: 2px;
 }
 
 #configuration_frame
