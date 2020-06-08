@@ -15,6 +15,7 @@ import contextlib
 
 import sgtk
 from sgtk.platform.qt import QtCore, QtGui
+from sgtk.util import is_windows
 
 from .ui import resources_rc  # noqa
 
@@ -86,7 +87,13 @@ class SystrayWindow(QtGui.QMainWindow):
         self.filter = self.ApplicationEventFilter(self)
         QtGui.QApplication.instance().installEventFilter(self.filter)
 
-        self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
+        if not is_windows():
+            # Setting this on Windows doesn't actually alter the visual look when docked,
+            # however switching to and back from pinned mode results in a
+            # old style desktop window frame being used. So we just don't set the FramelessWindowHint
+            # on Windows.
+            # It feels like this fix doesn't get to the bottom of the true issue here though.
+            self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
         self.__state = None  # pinned or windowed
         self.__anchor_side = None  # which side the anchor is currently pinned on
@@ -156,12 +163,19 @@ class SystrayWindow(QtGui.QMainWindow):
         if self.__state == self.STATE_PINNED:
             self._set_window_mask()
             self.__move_to_systray()
-            self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            if not is_windows():
+                # Setting this on Windows doesn't actually alter the visual look when docked,
+                # however switching to and back from pinned mode results in a
+                # old style desktop window frame being used. So we just don't set the FramelessWindowHint
+                # on Windows.
+                # It feels like this fix doesn't get to the bottom of the true issue here though.
+                self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
             osutils.make_app_background()
 
         elif self.__state == self.STATE_WINDOWED:
             self._set_window_mask()
-            self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.FramelessWindowHint)
+            if not is_windows():
+                self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.FramelessWindowHint)
             self.show()
             self.raise_()
             osutils.make_app_foreground()
