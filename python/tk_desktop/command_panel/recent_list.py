@@ -22,7 +22,7 @@ class RecentList(BaseIconList):
 
     def __init__(self, parent):
         super(RecentList, self).__init__(parent, QtGui.QHBoxLayout())
-        self._layout.addStretch(1)
+        self._layout.setSpacing(3)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
         """
@@ -38,7 +38,7 @@ class RecentList(BaseIconList):
 
         buttons = list(self.buttons)
 
-        # First seach if this button is already present. If it is, move it
+        # First search if this button is already present. If it is, move it
         # to the front.
         for button in buttons:
             # This button already exist. Make it the first button!
@@ -70,10 +70,9 @@ class RecentList(BaseIconList):
         button.command_triggered.connect(self.command_triggered)
         self._layout.insertWidget(insert_pos, button)
 
-        # If there are now more recents than we should have in the gui,
-        # drop the last one. - 1 applies here because the last item is
-        # the stretcher, which isn't a button.
-        if (self._layout.count() - 1) > MAX_RECENTS:
+        # If there are now more recents than we should have in the GUI,
+        # drop the last one.
+        if self._layout.count() > MAX_RECENTS:
             self._layout.takeAt(MAX_RECENTS).widget().deleteLater()
 
     @property
@@ -81,7 +80,5 @@ class RecentList(BaseIconList):
         """
         An iterator over the buttons in the list.
         """
-        # - 1 applies here because the last item is the stretcher, which isn't a
-        # button.
-        for i in range(self._layout.count() - 1):
+        for i in range(self._layout.count()):
             yield self._layout.itemAt(i).widget()
