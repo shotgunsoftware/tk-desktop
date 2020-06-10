@@ -296,7 +296,7 @@ class DesktopEngineProjectImplementation(object):
                 # So we need to deactivate the QApplication after it is launched.
                 if hasattr(app, "applicationStateChanged"):
                     # Qt 5 has a signal that is triggered when the application state changes which
-                    # we can use to track when teh app takes focus.
+                    # we can use to track when the app takes focus.
                     app.applicationStateChanged.connect(self._defocus_app)
 
             result = 0
