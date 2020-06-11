@@ -280,7 +280,6 @@ class RPCServerThread(threading.Thread):
             else:
                 # Can use select on OSX and Linux.
                 try:
-                    logger.info("_socket %s" % self.server._listener._socket)
                     (rd, _, _) = select.select(
                         [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
                     )
