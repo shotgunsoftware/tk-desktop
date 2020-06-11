@@ -256,7 +256,7 @@ class RPCServerThread(threading.Thread):
     def run(self):
         """
         Run the thread, accepting connections and then listening on them until
-        they are closed.  Each message is a call into the function table.
+        they are closed. Each message is a call into the function table.
         """
         logger.debug("server listening on '%s'", self.pipe)
         while self._is_closed is False:
@@ -278,10 +278,18 @@ class RPCServerThread(threading.Thread):
                         raise
                     ready = False
             else:
-                # can use select on osx and linux
-                (rd, _, _) = select.select(
-                    [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
-                )
+                # Can use select on OSX and Linux.
+                try:
+                    logger.info("_socket %s" % self.server._listener._socket)
+                    (rd, _, _) = select.select(
+                        [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
+                    )
+                except select.error as e:
+                    if "Bad file descriptor" in e.args:
+                        # The socket was likely closed during this iteration of the loop
+                        # so we should break out of the loop.
+                        break
+                    raise
                 ready = len(rd) > 0
 
             if not ready:
