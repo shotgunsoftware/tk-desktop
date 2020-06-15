@@ -24,6 +24,12 @@ class RecentList(BaseIconList):
         super(RecentList, self).__init__(parent, QtGui.QHBoxLayout())
         self._layout.setSpacing(3)
 
+        # Fill the recents list with invisible stretchers to start with.
+        # Then as the actual recent items start to get populated the
+        # stretchers will be replaced.
+        for _ in range(MAX_RECENTS):
+            self._layout.addStretch()
+
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
         """
         Add a command to the recent list of commands.
@@ -37,12 +43,12 @@ class RecentList(BaseIconList):
         """
 
         buttons = list(self.buttons)
-
         # First search if this button is already present. If it is, move it
         # to the front.
         for button in buttons:
-            # This button already exist. Make it the first button!
-            if button.command_name == command_name:
+            # If this button already exists. Make it the first button!
+            # The button will be None if it is a placeholder stretcher
+            if button and button.command_name == command_name:
                 self._layout.removeWidget(button)
                 self._layout.insertWidget(0, button)
                 return
@@ -52,7 +58,7 @@ class RecentList(BaseIconList):
         for idx, button in enumerate(buttons):
             # The timestamp of the command we're inserting is more recent
             # than the current command, so we're inserting the command before.
-            if timestamp >= button.timestamp:
+            if button is None or timestamp >= button.timestamp:
                 insert_pos = idx
                 break
         else:
@@ -73,7 +79,10 @@ class RecentList(BaseIconList):
         # If there are now more recents than we should have in the GUI,
         # drop the last one.
         if self._layout.count() > MAX_RECENTS:
-            self._layout.takeAt(MAX_RECENTS).widget().deleteLater()
+            widget = self._layout.takeAt(MAX_RECENTS).widget()
+            # The widget maybe None if it is a stretcher object.
+            if widget:
+                widget.deleteLater()
 
     @property
     def buttons(self):
