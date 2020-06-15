@@ -47,8 +47,7 @@ class RecentList(BaseIconList):
         # to the front.
         for button in buttons:
             # If this button already exists. Make it the first button!
-            # The button will be None if it is a placeholder stretcher
-            if button and button.command_name == command_name:
+            if button.command_name == command_name:
                 self._layout.removeWidget(button)
                 self._layout.insertWidget(0, button)
                 return
@@ -58,7 +57,7 @@ class RecentList(BaseIconList):
         for idx, button in enumerate(buttons):
             # The timestamp of the command we're inserting is more recent
             # than the current command, so we're inserting the command before.
-            if button is None or timestamp >= button.timestamp:
+            if timestamp >= button.timestamp:
                 insert_pos = idx
                 break
         else:
@@ -90,4 +89,6 @@ class RecentList(BaseIconList):
         An iterator over the buttons in the list.
         """
         for i in range(self._layout.count()):
-            yield self._layout.itemAt(i).widget()
+            widget = self._layout.itemAt(i).widget()
+            if widget:
+                yield widget
