@@ -112,31 +112,6 @@ class FakeEngine:
         return return_value
 
 
-class CaptureErrorServer(RPCServerThread):
-    """
-    This is the RPCServerThread but it captures any errors
-    raised during the run and re-raises them in the join so that the tests fail.
-    The idea was taken from here: https://stackoverflow.com/a/31614591/4223964
-    """
-
-    def run(self):
-        self.exc = None
-        try:
-            super(CaptureErrorServer, self).run()
-        except BaseException as e:
-            self.exc = e
-
-    def join(self):
-        super(CaptureErrorServer, self).join()
-        # TODO: This is raising more errors than we want at the time writing
-        #  so it is commented out.
-        #  We should revisit it and address the errors at some point but they
-        #  are not affecting functionality at the moment nor are they that
-        #  visible to the user.
-        # if self.exc:
-        #     raise self.exc
-
-
 @pytest.fixture
 def fake_engine():
     """
@@ -153,7 +128,12 @@ def server(fake_engine, request):
 
     :returns: A RPCServerThread instance.
     """
-    server = CaptureErrorServer(fake_engine)
+
+    # FIXME: Any errors raised here when closing won't actually be caught by
+    #  our tests, because the error happens in a separate thread.
+    #  See the FIX ME in the RPCServerThread class for further details.
+
+    server = RPCServerThread(fake_engine)
     server.register_function(fake_engine.pass_arg)
     server.register_function(fake_engine.pass_named_arg)
     server.register_function(fake_engine.boom)

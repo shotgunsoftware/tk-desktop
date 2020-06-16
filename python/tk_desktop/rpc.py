@@ -194,6 +194,13 @@ class RPCServerThread(threading.Thread):
     list/dictionary are treated as args/kwargs for the function call.
     """
 
+    # FIXME: Any errors raised here when closing won't actually be caught by
+    #  our tests, because the error happens in a separate thread. This can be solved
+    #  by catching and storing the exception and then raising it in the join method
+    #  as suggested here: https://stackoverflow.com/a/31614591/4223964
+    #  This is currently not implemented because it raises errors in our tests
+    #  that we at the time of writing don't have time to fix, but have no impact on user experience.
+
     # timeout in seconds to wait for a request
     LISTEN_TIMEOUT = 2
 
