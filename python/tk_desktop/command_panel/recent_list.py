@@ -90,5 +90,7 @@ class RecentList(BaseIconList):
         """
         for i in range(self._layout.count()):
             widget = self._layout.itemAt(i).widget()
+            # The widget will be None if the layout item was a spacer.
+            # If it is a spacer we can skip that as it is not technically a button.
             if widget:
                 yield widget
