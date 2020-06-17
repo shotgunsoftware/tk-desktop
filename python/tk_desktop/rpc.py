@@ -290,10 +290,14 @@ class RPCServerThread(threading.Thread):
                     (rd, _, _) = select.select(
                         [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
                     )
-                except select.error as e:
-                    if "Bad file descriptor" in e.args:
-                        # The socket was likely closed during this iteration of the loop
-                        # so we should break out of the loop.
+                except Exception:
+                    # It is possible that the server is in the process of being closed.
+                    # In which case it can throw any number of different errors depending on
+                    # where in the process it closed. If we wait a short while we can then check
+                    # to see if the server was actually closed and just back out gracefully
+                    # rather than reporting the error.
+                    time.sleep(1)
+                    if self._is_closed:
                         break
                     raise
                 ready = len(rd) > 0
