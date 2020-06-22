@@ -20,7 +20,7 @@ class RecentButton(QtGui.QPushButton):
     a single action, unlike the CommandButton.
     """
 
-    MARGIN = 5
+    MARGIN = 2
     SPACING = 5
     SIZER_LABEL = None
 
@@ -54,10 +54,13 @@ class RecentButton(QtGui.QPushButton):
         self.icon_label = QtGui.QLabel(self)
         self.icon_label.setAlignment(QtCore.Qt.AlignHCenter)
         self.layout().addWidget(self.icon_label, QtCore.Qt.AlignHCenter)
+        # setting the stretch to 0 on the icon means the the text label will
+        # stretch and the icon won't creating a more stable looking effect.
+        layout.setStretch(0, 0)
 
         self.text_label = QtGui.QLabel(parent)
         self.text_label.setWordWrap(True)
-        self.text_label.setAlignment(QtCore.Qt.AlignHCenter)
+        self.text_label.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
         self.layout().addWidget(self.text_label, QtCore.Qt.AlignHCenter)
 
         self.setFocusPolicy(QtCore.Qt.NoFocus)
@@ -97,16 +100,3 @@ class RecentButton(QtGui.QPushButton):
         Name of the command.
         """
         return self._command_name
-
-    def sizeHint(self):
-        """
-        Hint at the button size.
-
-        The button should occupy 1/MAX_RECENTS's of the parent widget width
-        and be a bit higher than the icon.
-        """
-        hint = QtCore.QSize(
-            (self.parentWidget().width() / MAX_RECENTS) - (self.SPACING * 2),
-            ICON_SIZE.height() + 8,
-        )
-        return hint
