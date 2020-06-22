@@ -38,9 +38,7 @@ from .systray import SystrayWindow
 from .about_screen import AboutScreen
 from .no_apps_installed_overlay import NoAppsInstalledOverlay
 
-# This only works in Python 2 for now.
-if six.PY2:
-    from .setup_project import SetupProject
+from .setup_project import SetupProject
 from .setup_new_os import SetupNewOS
 from .project_model import SgProjectModel
 from .project_model import SgProjectModelProxy
@@ -192,9 +190,8 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay = LoadingProjectWidget(self._command_panel)
         self.install_apps_widget = NoAppsInstalledOverlay(self._command_panel)
         # setup project does not work on Python 3 yet.
-        if six.PY2:
-            self.setup_project_widget = SetupProject(self._command_panel)
-            self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
+        self.setup_project_widget = SetupProject(self._command_panel)
+        self.setup_project_widget.setup_finished.connect(self._on_setup_finished)
         self.update_project_config_widget = UpdateProjectConfig(self._command_panel)
         self.update_project_config_widget.update_finished.connect(
             self._on_update_finished
@@ -1086,10 +1083,7 @@ class DesktopWindow(SystrayWindow):
         # hide the pipeline configuration bar
         self.ui.configuration_frame.hide()
 
-        # hide the setup project ui if it is shown
-        # setup project does not work on Python 3
-        if six.PY2:
-            self.setup_project_widget.hide()
+        self.setup_project_widget.hide()
         self.update_project_config_widget.hide()
         self.setup_new_os_widget.hide()
         self.install_apps_widget.hide()
@@ -1349,16 +1343,13 @@ class DesktopWindow(SystrayWindow):
             ):
                 # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
                 if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
-                    # The admin UI does not work in Python 3 for now.
-                    self.ui.actionAdvanced_Project_Setup.setVisible(six.PY2)
+                    self.ui.actionAdvanced_Project_Setup.setVisible(True)
                 else:
                     # Otherwise hide the entry and provide the same old experience as before and quit, as we can't
                     # bootstrap.
                     self.ui.actionAdvanced_Project_Setup.setVisible(False)
-                    # setup project does not work on Python 3 yet.
-                    if six.PY2:
-                        self.setup_project_widget.project = project
-                        self.setup_project_widget.show()
+                    self.setup_project_widget.project = project
+                    self.setup_project_widget.show()
                     # Stop here, we don't want to launch Python at this point.
                     return
             else:
