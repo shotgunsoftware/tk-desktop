@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_AboutScreen(object):
     def setupUi(self, AboutScreen):
         AboutScreen.setObjectName("AboutScreen")
-        AboutScreen.resize(320, 358)
+        AboutScreen.resize(320, 388)
         AboutScreen.setMinimumSize(QtCore.QSize(320, 327))
         self.verticalLayout = QtGui.QVBoxLayout(AboutScreen)
         self.verticalLayout.setSpacing(15)
