@@ -189,7 +189,7 @@ class CommandPanel(QtGui.QWidget):
         # Python 2.7.
         command_name = six.ensure_str(command_name)
 
-        self._recents[command_name] = {"timestamp": datetime.now()}
+        self._recents[command_name] = {"timestamp": datetime.utcnow()}
         self._store_recents()
         self._refresh_recent_list(command_name)
         self._restrict_recent_buttons(self._get_optimal_width())
