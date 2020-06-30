@@ -8,13 +8,15 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import datetime
+from datetime import datetime
 from sgtk.platform.qt import QtGui, QtCore
 from tank_vendor import six
 
 from .shared import MAX_RECENTS
 from .recent_section import RecentSection
 from .command_section import CommandSection
+
+TIME_STAMP_FORMAT = "%m/%d/%Y, %H:%M:%S"
 
 
 class CommandPanel(QtGui.QWidget):
@@ -187,7 +189,7 @@ class CommandPanel(QtGui.QWidget):
         # Python 2.7.
         command_name = six.ensure_str(command_name)
 
-        self._recents[command_name] = {"timestamp": datetime.datetime.utcnow()}
+        self._recents[command_name] = {"timestamp": datetime.now()}
         self._store_recents()
         self._refresh_recent_list(command_name)
         self._restrict_recent_buttons(self._get_optimal_width())
@@ -363,7 +365,11 @@ class CommandPanel(QtGui.QWidget):
         """
         recents = {}
         for name, details in self._recents.items():
-            recents[name] = {"timestamp": details["timestamp"], "added": False}
+            # Convert the datetime object to a string to make serialization across Python versions easier.
+            recents[name] = {
+                "timestamp": details["timestamp"].strftime(TIME_STAMP_FORMAT),
+                "added": False,
+            }
         key = "project_recent_apps.%d" % self._current_project["id"]
         self._settings.save(key, recents)
 
@@ -373,7 +379,18 @@ class CommandPanel(QtGui.QWidget):
         for the format.
         """
         key = "project_recent_apps.%d" % self._current_project["id"]
-        self._recents = self._settings.load(key) or {}
+        recents = self._settings.load(key) or {}
+
+        # convert the serialized datetime strings to datetime objects
+        for recent in recents.values():
+            # We used to store persistently the datetime object directly, rather than converting it
+            # to a string, so we must first check if the setting is a string before converting it.
+            if type(recent["timestamp"]) == str:
+                recent["timestamp"] = datetime.strptime(
+                    recent["timestamp"], TIME_STAMP_FORMAT
+                )
+
+        self._recents = recents
 
     def _update_expanded_state(self, section_name, is_expanded):
         """
