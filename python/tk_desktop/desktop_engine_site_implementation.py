@@ -477,7 +477,7 @@ class DesktopEngineSiteImplementation(object):
         # Note that the server argument is set regardless of whether the server launched or crashed,
         # so we have to actually get its value instead of merely checking for existence.
         # Note: browser integration is not supported when running Python 3 inside Desktop.
-        if server is None and six.PY2:
+        if server is None:
             # Initialize all of this after the style-sheet has been applied so any prompt are also
             # styled after the Shotgun Desktop's visual-style.
             if splash:
