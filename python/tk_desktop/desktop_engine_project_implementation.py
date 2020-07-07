@@ -245,37 +245,6 @@ class DesktopEngineProjectImplementation(object):
         else:
             self._project_comm.shut_down()
 
-    def _defocus_app(self, *_):
-        """
-        This method will defocus the QApplication, and then
-        disconnects the signal, so this doesn't get fired again.
-        This is done so that the QApplication doesn't steal focus
-        from the main Shotgun Desktop application, and is only intended to be used
-        on MacOS.
-        """
-        # The method gets passed the state, but the first state is always
-        # called after the Application takes focus, so we don't need to check it.
-
-        try:
-            logger.debug("Pushing project QApplication instance to the background.")
-            # This only seems to work with PySide2 on Python 3.
-            # In other states it just does nothing, so is harmless but useless.
-            osutils.make_app_background()
-        except Exception:
-            # We should catch any error since the cost of failure just means the
-            # Desktop app won't jump into focus again, and the user will need to select it.
-            logger.exception(
-                "Failed to push project QApplication instance to the background:"
-            )
-        finally:
-            try:
-                from tank.platform.qt import QtGui
-
-                app = QtGui.QApplication.instance()
-                app.applicationStateChanged.disconnect(self._defocus_app)
-            except Exception:
-                logger.exception("Failed to disconnect signal")
-
     def start_app(self):
         """
         Starts the main processing look.
@@ -289,16 +258,6 @@ class DesktopEngineProjectImplementation(object):
                 app = self._initialize_application()
 
         if self._engine.has_ui:
-
-            if sgtk.util.is_macos():
-                # If we are on Mac with PySide2, then starting a QApplication even with no Windows
-                # will steal focus from any currently focused application.
-                # So we need to deactivate the QApplication after it is launched.
-                if hasattr(app, "applicationStateChanged"):
-                    # Qt 5 has a signal that is triggered when the application state changes which
-                    # we can use to track when the app takes focus.
-                    app.applicationStateChanged.connect(self._defocus_app)
-
             result = 0
             while True:
                 if not self._project_comm.connected:
@@ -315,6 +274,21 @@ class DesktopEngineProjectImplementation(object):
 
     def _initialize_application(self):
         from tank.platform.qt import QtGui
+
+        if sgtk.util.is_macos():
+            # If we are on Mac with PySide2, then starting a QApplication even with no Windows
+            # will steal focus from any currently focused application.
+            # So we need to use AppKit if available to stop it from stealing focus.
+            try:
+                import AppKit
+
+                info = AppKit.NSBundle.mainBundle().infoDictionary()
+                info["LSBackgroundOnly"] = "1"
+            except ImportError:
+                # Since AppKit is bundled with the Desktop installer, it's possible we are using
+                # an older version of the installer that doesn't contain this package. In which
+                # case just move on silently.
+                pass
 
         app = QtGui.QApplication([])
 
