@@ -133,7 +133,7 @@ def _env_not_set_or_split(var_name):
         return "Not Set"
     else:
         # Add a \n before the first item so each item in the output start from the
-        # beginning of the time. Otherwise you'd get.
+        # beginning of the line. Otherwise you'd get.
         # varname: - one
         # - two
         # - three.
