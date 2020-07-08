@@ -24,6 +24,7 @@ import traceback
 import imp
 import logging
 import inspect
+import pprint
 
 
 class ProxyLoggingHandler(logging.Handler):
@@ -107,6 +108,73 @@ def _ensure_no_unicode(obj):
         return obj
 
 
+def _enumerate_per_line(items):
+    """
+    Enumerate all items from an array, one line at a time.
+
+    For example,
+        - one
+        - two
+        - three
+
+    :returns: The formatted output.
+    """
+    return "\n".join("- {}".format(item) for item in items)
+
+
+def _env_not_set_or_split(var_name):
+    """
+    Format a PATH-like environment variable for output.
+
+    :param str var_name: Name of the env var.
+    :returns: "Not Set" if variable is not set, a bullet list otherwise.
+    """
+    if var_name not in os.environ:
+        return "Not Set"
+    else:
+        # Add a \n before the first item so each item in the output start from the
+        # beginning of the line. Otherwise you'd get.
+        # varname: - one
+        # - two
+        # - three.
+        return "\n" + _enumerate_per_line(os.environ[var_name].split(os.path.pathsep))
+
+
+def _log_startup_information():
+    """
+    Log information about the Python subprocess that was just started.
+    """
+    import sgtk
+
+    logger = sgtk.LogManager.get_logger(__file__)
+    logger.debug("------------------ Desktop Utilities Startup ------------------")
+    logger.debug(
+        """
+Python
+======
+Executable: {executable}
+Version: {major}.{minor}.{micro}
+sys.path:
+{sys_path}
+
+Environment variables
+=====================
+PATH: {path}
+PYTHONHOME: {python_home}
+PYTHONPATH: {python_path}
+        """.format(
+            executable=sys.executable,
+            major=sys.version_info.major,
+            minor=sys.version_info.minor,
+            micro=sys.version_info.micro,
+            sys_path=_enumerate_per_line(sys.path),
+            path=_env_not_set_or_split("PATH"),
+            python_home=os.environ.get("PYTHONHOME", "Not Set"),
+            python_path=_env_not_set_or_split("PYTHONPATH"),
+        )
+    )
+
+
 class Bootstrap(object):
     """
     Bootstraps the tk-desktop engine.
@@ -147,6 +215,7 @@ class Bootstrap(object):
             # Set up logging with the rpc.
             self._handler = ProxyLoggingHandler(self._proxy)
             sgtk.LogManager().root_logger.addHandler(self._handler)
+            _log_startup_information()
 
             # Get the user we should be running as.
             self._user = sgtk.authentication.deserialize_user(
