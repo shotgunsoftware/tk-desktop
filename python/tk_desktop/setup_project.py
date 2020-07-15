@@ -41,13 +41,7 @@ class SetupProject(QtGui.QWidget):
         self.setVisible(False)
 
     def do_setup(self, show_help=False):
-        # Only toggle top window if it used to be off (to avoid un-necessary window flicker in case it was already off)
-        is_on_top = self._is_on_top()
-
         try:
-            if is_on_top:
-                self._set_top_window_on_top(False)
-
             # First check to see if the current user
             self._validate_user_permissions()
 
@@ -78,10 +72,6 @@ class SetupProject(QtGui.QWidget):
                 % self.project["name"],
             )
             error_dialog.exec_()
-
-        finally:
-            if is_on_top:
-                self._set_top_window_on_top(True)
 
     def show_help_popup(self):
         """
@@ -134,39 +124,6 @@ class SetupProject(QtGui.QWidget):
 
             # Raise any other general Exceptions.
             raise
-
-    def _is_on_top(self):
-        """
-        Check if top window is always on top
-        :returns: True if top window is always on top
-        """
-        is_on_top = False
-
-        flags = self.window().windowFlags()
-        is_on_top = (
-            flags & QtCore.Qt.WindowStaysOnTopHint
-        ) == QtCore.Qt.WindowStaysOnTopHint
-
-        return is_on_top
-
-    def _set_top_window_on_top(self, state):
-        """
-        Set always on top setting for top window.
-        Since Qt re-parents when changing this flag, the window gets back behind everything,
-        therefore we also need to bring it back to the front when toggling the state.
-
-        :param state: Boolean Whether to set the window always on top or not.
-        """
-        flags = self.window().windowFlags()
-
-        if state:
-            self.window().setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
-        else:
-            self.window().setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
-
-        self.window().show()
-        self.window().raise_()
-        self.window().activateWindow()
 
     def _on_parent_resized(self):
         """
