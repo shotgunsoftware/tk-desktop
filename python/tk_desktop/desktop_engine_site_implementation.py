@@ -514,7 +514,7 @@ class DesktopEngineSiteImplementation(object):
         self._run_startup_commands()
 
         # make sure we close down our rpc threads
-        app.aboutToQuit.connect(self._engine.destroy_engine)
+        app.aboutToQuit.connect(self._engine.destroy)
 
         # and run the app
         result = app.exec_()

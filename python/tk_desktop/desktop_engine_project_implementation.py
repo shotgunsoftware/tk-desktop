@@ -342,7 +342,7 @@ class DesktopEngineProjectImplementation(object):
         :param app: QApplication instance.
         """
         # Make sure we shut down cleanly.
-        app.aboutToQuit.connect(self._engine.destroy_engine)
+        app.aboutToQuit.connect(self._engine.destroy)
 
     @property
     def connected(self):
