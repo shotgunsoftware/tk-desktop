@@ -183,6 +183,29 @@ class DesktopEngineProjectImplementation(object):
 
     def _trigger_callback(self, namespace, command, *args, **kwargs):
         callback = self.__callback_map.get((namespace, command))
+
+        if sgtk.util.is_macos():
+            # If we are on Mac with PySide2, then starting a QApplication even with no Windows
+            # will steal focus from any currently focused application.
+            # We set the application to use `LSUIElement=1` so that it stays in the background in start_app().
+            # However we need to bring it to the foreground when we want to run an app.
+            # This solution for bringing it back to the foreground is a modification of the example here:
+            # https://stackoverflow.com/a/34381136/4223964
+            try:
+                import AppKit
+
+                info = AppKit.NSBundle.mainBundle().infoDictionary()
+                # Setting it to 0 will bring the application back to the foreground.
+                info["LSUIElement"] = "0"
+                AppKit.NSApp.setActivationPolicy_(
+                    AppKit.NSApplicationActivationPolicyRegular
+                )
+            except ImportError:
+                # Since AppKit is bundled with the Desktop installer, it's possible we are using
+                # an older version of the installer that doesn't contain this package. In which
+                # case just move on silently.
+                pass
+
         try:
             callback(*args, **kwargs)
         except Exception:
@@ -283,7 +306,7 @@ class DesktopEngineProjectImplementation(object):
                 import AppKit
 
                 info = AppKit.NSBundle.mainBundle().infoDictionary()
-                info["LSBackgroundOnly"] = "1"
+                info["LSUIElement"] = "1"
             except ImportError:
                 # Since AppKit is bundled with the Desktop installer, it's possible we are using
                 # an older version of the installer that doesn't contain this package. In which
