@@ -189,7 +189,7 @@ class DesktopEngineProjectImplementation(object):
             # will steal focus from any currently focused application.
             # We set the application to use `LSUIElement=1` so that it stays in the background in start_app().
             # However we need to bring it to the foreground when we want to run an app.
-            # This solution for bring it back to the foreground is a modification of the example here:
+            # This solution for bringing it back to the foreground is a modification of the example here:
             # https://stackoverflow.com/a/34381136/4223964
             try:
                 import AppKit
