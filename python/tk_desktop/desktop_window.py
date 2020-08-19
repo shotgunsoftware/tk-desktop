@@ -66,8 +66,7 @@ overlay_widget = sgtk.platform.import_framework(
 )
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 # This framework is not compatible with Python 3 at the moment.
-if six.PY2:
-    desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 ShotgunModel = shotgun_model.ShotgunModel
 
@@ -277,8 +276,7 @@ class DesktopWindow(SystrayWindow):
 
         # This framework is not compatible with Python 3 at the moment
         if (
-            six.PY2
-            and desktop_server_framework.can_run_server()
+            desktop_server_framework.can_run_server()
             and desktop_server_framework.can_regenerate_certificates()
         ):
             advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
@@ -367,10 +365,9 @@ class DesktopWindow(SystrayWindow):
         )
 
         # This framework is not compatible with Python 3 at the moment.
-        if six.PY2:
-            desktop_server_framework.add_different_user_requested_callback(
-                self._on_different_user
-            )
+        desktop_server_framework.add_different_user_requested_callback(
+            self._on_different_user
+        )
 
         # Set of sites that are being ignored when browser integration requests happen. This set is not
         # persisted when the desktop is closed.
