@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 # import Qt to force the proper dependencies of osutils
-from sgtk.platform.qt import QtGui
-from sgtk.platform.qt import QtCore
+from sgtk.platform.qt import QtGui  # noqa
+from sgtk.platform.qt import QtCore  # noqa
 
-from . import osutils
+from . import osutils  # noqa
