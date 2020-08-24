@@ -65,7 +65,6 @@ overlay_widget = sgtk.platform.import_framework(
     "tk-framework-qtwidgets", "overlay_widget"
 )
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
-# This framework is not compatible with Python 3 at the moment.
 desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 ShotgunModel = shotgun_model.ShotgunModel
@@ -274,7 +273,6 @@ class DesktopWindow(SystrayWindow):
 
         advanced_menu.addAction(self.toggle_debug_action)
 
-        # This framework is not compatible with Python 3 at the moment
         if (
             desktop_server_framework.can_run_server()
             and desktop_server_framework.can_regenerate_certificates()
@@ -364,7 +362,6 @@ class DesktopWindow(SystrayWindow):
             self.handle_project_thumbnail_updated
         )
 
-        # This framework is not compatible with Python 3 at the moment.
         desktop_server_framework.add_different_user_requested_callback(
             self._on_different_user
         )
