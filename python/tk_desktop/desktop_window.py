@@ -65,9 +65,7 @@ overlay_widget = sgtk.platform.import_framework(
     "tk-framework-qtwidgets", "overlay_widget"
 )
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
-# This framework is not compatible with Python 3 at the moment.
-if six.PY2:
-    desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
+desktop_server_framework = sgtk.platform.get_framework("tk-framework-desktopserver")
 
 ShotgunModel = shotgun_model.ShotgunModel
 
@@ -275,10 +273,8 @@ class DesktopWindow(SystrayWindow):
 
         advanced_menu.addAction(self.toggle_debug_action)
 
-        # This framework is not compatible with Python 3 at the moment
         if (
-            six.PY2
-            and desktop_server_framework.can_run_server()
+            desktop_server_framework.can_run_server()
             and desktop_server_framework.can_regenerate_certificates()
         ):
             advanced_menu.addAction(self.ui.actionRegenerate_Certificates)
@@ -366,11 +362,9 @@ class DesktopWindow(SystrayWindow):
             self.handle_project_thumbnail_updated
         )
 
-        # This framework is not compatible with Python 3 at the moment.
-        if six.PY2:
-            desktop_server_framework.add_different_user_requested_callback(
-                self._on_different_user
-            )
+        desktop_server_framework.add_different_user_requested_callback(
+            self._on_different_user
+        )
 
         # Set of sites that are being ignored when browser integration requests happen. This set is not
         # persisted when the desktop is closed.
@@ -947,12 +941,10 @@ class DesktopWindow(SystrayWindow):
 
             dialog = BrowserIntegrationUserSwitchDialog(msg, self)
 
-            # The following applies to macOS only and has no side-effect on other plaforms.
-            # If the dialog is pinned, it means it is also in background. We'll bring the app to the foreground
-            # so keyboard focus is granted automatically to the BrowserIntegrationUserSwitchDialog instead
-            # of being unfocussed.
-            if self.is_pinned():
-                osutils.make_app_foreground()
+            # The following applies to macOS only and has no side-effect on other platforms.
+            # Making the app the foreground app on macOS ensure it gets the focus. Other platforms
+            # just work without this call.
+            osutils.make_app_foreground()
 
             dialog.exec_()
 
