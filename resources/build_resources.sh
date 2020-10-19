@@ -36,6 +36,7 @@ echo "building user interfaces..."
 build_ui desktop_window
 build_ui wait_screen
 build_ui about_screen
+build_ui licenses
 build_ui error_dialog
 build_ui setup_new_os
 build_ui thumb_widget

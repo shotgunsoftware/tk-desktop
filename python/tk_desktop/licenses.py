@@ -1,4 +1,4 @@
-# Copyright (c) 2013 Shotgun Software Inc.
+# Copyright (c) 2020 Shotgun Software Inc.
 #
 # CONFIDENTIAL AND PROPRIETARY
 #
@@ -8,26 +8,22 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import os
+
 from sgtk.platform.qt import QtGui
 
-from .ui import about_screen
-from .licenses import Licenses
+from .ui import licenses
+
+LICENSE_LOCATION = os.path.join(os.path.dirname(__file__), "licenses.html")
 
 
-class AboutScreen(QtGui.QDialog):
+class Licenses(QtGui.QDialog):
     """ Simple about dialog """
 
-    def __init__(self, body="", parent=None):
+    def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)
 
         # setup the GUI
-        self.ui = about_screen.Ui_AboutScreen()
+        self.ui = licenses.Ui_Licenses()
         self.ui.setupUi(self)
-        self.ui.body.setText(body)
-        self.ui.licensesButton.clicked.connect(self._show_licenses)
-
-    def set_body(self, body):
-        self.ui.body.setText(body)
-
-    def _show_licenses(self):
-        Licenses(self).exec_()
+        self.ui.licenseText.setSource(LICENSE_LOCATION)
