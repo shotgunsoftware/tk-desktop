@@ -90,8 +90,13 @@ class Console(QtGui.QDialog):
             "console.size", QtCore.QSize(800, 400), self._settings_manager.SCOPE_GLOBAL
         )
 
-        self.move(pos)
-        self.resize(size)
+        try:
+            self.move(pos)
+            self.resize(size)
+        except TypeError:
+            # Its possible that we've loaded a PySide value,
+            # when we are using PySide2, in which case just ignore the setting.
+            pass
 
         self.__console_handler = ConsoleLogHandler(self)
         sgtk.LogManager().initialize_custom_handler(self.__console_handler)
