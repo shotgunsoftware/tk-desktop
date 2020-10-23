@@ -26,4 +26,6 @@ class Licenses(QtGui.QDialog):
         # setup the GUI
         self.ui = licenses.Ui_Licenses()
         self.ui.setupUi(self)
-        self.ui.licenseText.setSource(LICENSE_LOCATION)
+        # setSource seems broken on Qt4, so use setHtml instead.
+        with open(LICENSE_LOCATION) as f:
+            self.ui.licenseText.setHtml(f.read())
