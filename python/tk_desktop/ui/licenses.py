@@ -11,7 +11,8 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_Licenses(object):
     def setupUi(self, Licenses):
         Licenses.setObjectName("Licenses")
-        Licenses.resize(520, 462)
+        Licenses.resize(500, 400)
+        Licenses.setMinimumSize(QtCore.QSize(500, 400))
         self.verticalLayout_2 = QtGui.QVBoxLayout(Licenses)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.licenseText = QtGui.QTextBrowser(Licenses)
