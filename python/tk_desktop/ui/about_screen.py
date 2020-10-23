@@ -11,7 +11,7 @@ from sgtk.platform.qt import QtCore, QtGui
 class Ui_AboutScreen(object):
     def setupUi(self, AboutScreen):
         AboutScreen.setObjectName("AboutScreen")
-        AboutScreen.resize(320, 388)
+        AboutScreen.resize(325, 385)
         AboutScreen.setMinimumSize(QtCore.QSize(320, 327))
         self.verticalLayout = QtGui.QVBoxLayout(AboutScreen)
         self.verticalLayout.setSpacing(15)
@@ -48,12 +48,22 @@ class Ui_AboutScreen(object):
         self.copyright.setWordWrap(True)
         self.copyright.setObjectName("copyright")
         self.verticalLayout.addWidget(self.copyright)
+        self.horizontalLayout_2 = QtGui.QHBoxLayout()
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        spacerItem2 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_2.addItem(spacerItem2)
         self.buttonBox = QtGui.QDialogButtonBox(AboutScreen)
         self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
         self.buttonBox.setStandardButtons(QtGui.QDialogButtonBox.Ok)
-        self.buttonBox.setCenterButtons(True)
+        self.buttonBox.setCenterButtons(False)
         self.buttonBox.setObjectName("buttonBox")
-        self.verticalLayout.addWidget(self.buttonBox)
+        self.horizontalLayout_2.addWidget(self.buttonBox)
+        self.licensesButton = QtGui.QPushButton(AboutScreen)
+        self.licensesButton.setObjectName("licensesButton")
+        self.horizontalLayout_2.addWidget(self.licensesButton)
+        spacerItem3 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_2.addItem(spacerItem3)
+        self.verticalLayout.addLayout(self.horizontalLayout_2)
 
         self.retranslateUi(AboutScreen)
         QtCore.QObject.connect(self.buttonBox, QtCore.SIGNAL("accepted()"), AboutScreen.accept)
@@ -64,7 +74,8 @@ class Ui_AboutScreen(object):
         AboutScreen.setWindowTitle(QtGui.QApplication.translate("AboutScreen", "About Shotgun Desktop", None, QtGui.QApplication.UnicodeUTF8))
         self.header.setText(QtGui.QApplication.translate("AboutScreen", "<b><big>Shotgun Desktop</big></b>", None, QtGui.QApplication.UnicodeUTF8))
         self.body.setText(QtGui.QApplication.translate("AboutScreen", "Body", None, QtGui.QApplication.UnicodeUTF8))
-        self.copyright.setText(QtGui.QApplication.translate("AboutScreen", "Copyright ©2019 Shotgun Software Inc.\n"
+        self.copyright.setText(QtGui.QApplication.translate("AboutScreen", "Copyright ©2020 Shotgun Software Inc.\n"
 "All rights reserved.", None, QtGui.QApplication.UnicodeUTF8))
+        self.licensesButton.setText(QtGui.QApplication.translate("AboutScreen", "Licenses...", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
