@@ -169,6 +169,10 @@ class DesktopWindow(SystrayWindow):
         self.__activation_hotkey = None
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
 
+        self._has_warned_of_minimized_behaviour = False
+        self._app_icon = QtGui.QIcon(sgtk.platform.current_engine().icon_256)
+        self._is_quitting = False
+
         self._sync_thread = None
 
         engine = sgtk.platform.current_engine()
@@ -469,7 +473,9 @@ class DesktopWindow(SystrayWindow):
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
         # always start pinned and hidden
-        self.state = self._settings_manager.retrieve("dialog_pinned", self.STATE_PINNED)
+        self.state = self._settings_manager.retrieve(
+            "dialog_pinned", self.STATE_WINDOWED
+        )
 
         # Update the project at the very end so the Python process is kicked off when everything
         # is initialized.
@@ -600,6 +606,35 @@ class DesktopWindow(SystrayWindow):
     def contextMenuEvent(self, event):
         self.user_menu.exec_(event.globalPos())
 
+    def closeEvent(self, event):
+        # If the app is about to quit, we don't need to show this message.
+        if self._is_quitting:
+            return
+        # Called when the dialog is disappearing.
+        has_warned_of_minimized_behaviour = self._settings_manager.retrieve(
+            "has_warned_of_closed_behaviour", False
+        )
+        # If we've never warned the user that closing the app dialog
+        # sends it to the tray, do it.
+        if has_warned_of_minimized_behaviour is False:
+            # On macOS the app icon is already visible on the pop-up
+            # message, do not show it a second time.
+            if sgtk.util.is_macos():
+                icon = self.systray.NoIcon
+            else:
+                icon = self._app_icon
+            self.systray.showMessage(
+                "Shotgun Desktop",
+                "The application is now running in the system tray.",
+                icon,
+                5000,
+            )
+            self._settings_manager.store(
+                "has_warned_of_closed_behaviour",
+                True,
+                self._settings_manager.SCOPE_GLOBAL,
+            )
+
     def _show_rich_message_box(self, icon, title, message, buttons=[]):
         """
         Shows a QMessageBox that supports HTML formatting.
@@ -706,7 +741,7 @@ class DesktopWindow(SystrayWindow):
         engine.site_comm.shut_down()
 
         self._save_setting("pos", self.pos(), site_specific=True)
-
+        self._is_quitting = True
         self.close()
         self.systray.hide()
         QtGui.QApplication.instance().quit()
