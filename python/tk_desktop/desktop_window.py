@@ -1666,6 +1666,7 @@ class DesktopWindow(SystrayWindow):
 
     def handle_about(self):
         engine = sgtk.platform.current_engine()
+
         # If a Startup version was specified when engine.run was invoked
         # it's because we're running the new installer code and therefore
         # we have a startup version to show.

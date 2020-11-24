@@ -11,6 +11,7 @@
 import sys
 
 import sgtk
+import traceback
 from sgtk.platform import Engine
 
 
@@ -79,6 +80,21 @@ class DesktopEngine(Engine):
                 interface_type = "project"
 
         self._is_site_engine = interface_type == "site"
+
+        previous_except_hook = sys.excepthook
+
+        def unhandled_exception_handler(exc_type, exc_value, exc_traceback):
+            engine = sgtk.platform.current_engine()
+            if engine:
+                self.logger.error(
+                    "".join(
+                        traceback.format_exception(exc_type, exc_value, exc_traceback)
+                    )
+                )
+            if previous_except_hook:
+                previous_except_hook(exc_type, exc_value, exc_traceback)
+
+        sys.excepthook = unhandled_exception_handler
 
         # Import our python library
         #
