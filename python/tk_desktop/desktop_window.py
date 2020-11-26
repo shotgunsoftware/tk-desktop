@@ -661,10 +661,10 @@ class DesktopWindow(SystrayWindow):
                     "Shotgun browser integration",
                     "It appears there are an issue while regenerating the certificates."
                     "\n"
-                    "Please contact <a href='{0}'>our support team</a> "
+                    "Please <a href='{0}'>contact our support team</a> "
                     "if you need assistance resolving this issue. Make sure to zip the logs folder "
                     "at <a href='file://{1}'>{1}</a> and send it to us.".format(
-                        "mailto:support@shotgunsoftware.com",
+                        sgtk.support_url,
                         sgtk.LogManager().log_folder,
                     ),
                 )
