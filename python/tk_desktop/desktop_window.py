@@ -472,7 +472,7 @@ class DesktopWindow(SystrayWindow):
         # settings that apply across any instance (after site specific, so pinned can reset pos)
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
-        # always start pinned and hidden
+        # always start unpinned and shown
         self.state = self._settings_manager.retrieve(
             "dialog_pinned", self.STATE_WINDOWED
         )
