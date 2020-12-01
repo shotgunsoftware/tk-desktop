@@ -13,22 +13,41 @@ import sys
 import sgtk
 import traceback
 from sgtk.platform import Engine
+from sgtk import LogManager
+
+logger = LogManager.get_logger(__file__)
 
 previous_except_hook = sys.excepthook
 
 
 def unhandled_exception_handler(exc_type, exc_value, exc_traceback):
+    """
+    Unhandled exception handler.
+
+    When this file gets loaded, we ensure that both the site desktop and project
+    desktop will see any unexpected errors be logged to disk and in the GUI.
+
+    This sort of error typically happens when an error is thrown from a Qt
+    application's slot and doesn't get handled.
+    """
     # Calls any previous exception handler. By default, this will invoke the
-    # console error handler.
+    # standard out console error handler.
     if previous_except_hook:
         previous_except_hook(exc_type, exc_value, exc_traceback)
 
-    engine = sgtk.platform.current_engine()
-    # As long as we have an engine, we can send errors to its logger.
-    if engine:
-        engine.logger.error(
+    # Send the message to the logger for this file. In the end, this will
+    # get routed to many places:
+    # - the log file
+    # - on the site engine side, it will show up in the Shotgun Desktop's console
+    # - on the project engine side, it will be forwarded to the site engine's
+    #   side via the RPC, which will forward it to the console.
+    try:
+        logger.error(
             "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
         )
+    except Exception:
+        # Avoid infinite recursion if we raise an error while logging.
+        pass
 
 
 sys.excepthook = unhandled_exception_handler
