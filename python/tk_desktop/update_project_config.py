@@ -116,8 +116,7 @@ class UpdateProjectConfig(QtGui.QWidget):
             self.update_finished.emit(True)
         else:
             # failure
-            message = (
-                """
+            message = """
                 <html><head/><body>
                     <p><span style=" font-size:16pt;">
                         There was an error adding the desktop engine:
@@ -129,8 +128,9 @@ class UpdateProjectConfig(QtGui.QWidget):
                         Please let support know at %s.
                     </span></p>
                 </body></html>
-            """
-                % (stderr, support_url)
+            """ % (
+                stderr,
+                support_url,
             )
 
             # show the error

@@ -664,8 +664,7 @@ class DesktopWindow(SystrayWindow):
                     "Please <a href='{0}'>contact our support team</a> "
                     "if you need assistance resolving this issue. Make sure to zip the logs folder "
                     "at <a href='file://{1}'>{1}</a> and send it to us.".format(
-                        sgtk.support_url,
-                        sgtk.LogManager().log_folder,
+                        sgtk.support_url, sgtk.LogManager().log_folder,
                     ),
                 )
             else:
