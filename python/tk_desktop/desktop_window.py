@@ -292,7 +292,7 @@ class DesktopWindow(SystrayWindow):
         url_action.triggered.connect(self.open_site_in_browser)
         about_action.triggered.connect(self.handle_about)
 
-        QtGui.QApplication.instance().aboutToQuit.connect(self.handle_quit_action)
+        QtGui.QApplication.instance().aboutToQuit.connect(self._about_to_quit)
 
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
@@ -304,7 +304,7 @@ class DesktopWindow(SystrayWindow):
             self.handle_project_refresh_action
         )
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
-        self.ui.actionQuit.triggered.connect(self.handle_quit_action)
+        self.ui.actionQuit.triggered.connect(QtGui.QApplication.instance().quit)
         self.ui.actionRegenerate_Certificates.triggered.connect(self.handle_regen_certs)
         self.ui.actionHelp.triggered.connect(self.handle_help)
 
@@ -607,7 +607,27 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.exec_(event.globalPos())
 
     def closeEvent(self, event):
-        # If the app is about to quit, we don't need to show this message.
+        # When closing the app programatically via self.close(),
+        # the event is not spontaenous and we know the state of self._is_quitting
+        # is correct.
+
+        # When CMD-Q is hit or the close button is pressed however, the dialog
+        # first receives a closeEvent and THEN receives the aboutToQuit signal,
+        # which will call the close event. When this happens, the event is marked
+        # as spontaneous, but we can't tell what actually happened so we postpone
+        # the execution of it by making sure it gets called again after the event
+        # queue is emptied.
+        # When the timer has expired, we will know if the spontaneous event had
+        # been a simple close of the dialog OR if the app was closed.
+        # If is_quitting isn't set by that point, it's because the user pressed
+        # the close button. If it is, then we know the app is closing and we know
+        # how to deal with that.
+        if event.spontaneous() is False or self._is_quitting:
+            self._handle_close_event()
+        else:
+            QtCore.QTimer.singleShot(0, self._handle_close_event)
+
+    def _handle_close_event(self):
         if self._is_quitting:
             return
         # Called when the dialog is disappearing.
@@ -619,7 +639,9 @@ class DesktopWindow(SystrayWindow):
         if has_warned_of_minimized_behaviour is False:
             # On macOS the app icon is already visible on the pop-up
             # message, do not show it a second time.
-            if sgtk.util.is_macos():
+            # In Qt4, we can't have a custom icon, so don't display
+            # anything. All the stock Qt icons make it look worse.
+            if sgtk.util.is_macos() or QtCore.qVersion()[0] == "4":
                 icon = self.systray.NoIcon
             else:
                 icon = self._app_icon
@@ -733,7 +755,8 @@ class DesktopWindow(SystrayWindow):
             self.ui.actionPin_to_Menu.setText("Pin to Menu")
         self._settings_manager.store("dialog_pinned", self.state)
 
-    def handle_quit_action(self):
+    def _about_to_quit(self):
+        self._is_quitting = True
         # disconnect from the current proxy
         engine = sgtk.platform.current_engine()
 
@@ -741,10 +764,9 @@ class DesktopWindow(SystrayWindow):
         engine.site_comm.shut_down()
 
         self._save_setting("pos", self.pos(), site_specific=True)
-        self._is_quitting = True
+
         self.close()
         self.systray.hide()
-        QtGui.QApplication.instance().quit()
 
     def handle_hotkey_triggered(self):
         self.toggle_activate()
@@ -906,7 +928,7 @@ class DesktopWindow(SystrayWindow):
         Restarts the Shotgun Desktop application.
         """
         # restart the application
-        self.handle_quit_action()
+        QtGui.QApplication.instance().quit()
         # Very important to set close_fds otherwise the websocket server file descriptor
         # will be shared with the child process and it prevent restarting the server
         # after the process closes.
