@@ -169,6 +169,9 @@ class DesktopWindow(SystrayWindow):
         self.__activation_hotkey = None
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
 
+        self._app_icon = QtGui.QIcon(sgtk.platform.current_engine().icon_256)
+        self._is_quitting = False
+
         self._sync_thread = None
 
         engine = sgtk.platform.current_engine()
@@ -288,7 +291,7 @@ class DesktopWindow(SystrayWindow):
         url_action.triggered.connect(self.open_site_in_browser)
         about_action.triggered.connect(self.handle_about)
 
-        QtGui.QApplication.instance().aboutToQuit.connect(self.handle_quit_action)
+        QtGui.QApplication.instance().aboutToQuit.connect(self._about_to_quit)
 
         self.ui.actionPin_to_Menu.triggered.connect(self.toggle_pinned)
         self.ui.actionKeep_on_Top.triggered.connect(self.toggle_keep_on_top)
@@ -300,7 +303,7 @@ class DesktopWindow(SystrayWindow):
             self.handle_project_refresh_action
         )
         self.ui.actionSign_Out.triggered.connect(self.sign_out)
-        self.ui.actionQuit.triggered.connect(self.handle_quit_action)
+        self.ui.actionQuit.triggered.connect(QtGui.QApplication.instance().quit)
         self.ui.actionRegenerate_Certificates.triggered.connect(self.handle_regen_certs)
         self.ui.actionHelp.triggered.connect(self.handle_help)
 
@@ -468,8 +471,10 @@ class DesktopWindow(SystrayWindow):
         # settings that apply across any instance (after site specific, so pinned can reset pos)
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
-        # always start pinned and hidden
-        self.state = self._settings_manager.retrieve("dialog_pinned", self.STATE_PINNED)
+        # always start unpinned and shown
+        self.state = self._settings_manager.retrieve(
+            "dialog_pinned", self.STATE_WINDOWED
+        )
 
         # Update the project at the very end so the Python process is kicked off when everything
         # is initialized.
@@ -600,6 +605,83 @@ class DesktopWindow(SystrayWindow):
     def contextMenuEvent(self, event):
         self.user_menu.exec_(event.globalPos())
 
+    def closeEvent(self, event):
+        """
+        Invoked when the user clicks on the close button, hits CMD-Q/Alt-F4 or self.close()
+        is called.
+
+        This callback is overriden so we can show a pop-up when the dialog is closed
+        by clicking on the close button, which makes the app run in the background
+        instead of actually closing it.
+        """
+        # A spontaneous event in Qt is defined as an event coming from outside the
+        # application. In practice, this means that when the user hits CMD-Q or presses
+        # the close dialog button, spontaeous is True. When self.close() is called,
+        # spontaneous is False.
+        if event.spontaneous() is False:
+            self._handle_close_event()
+        else:
+            # So when CMD-Q is hit, the dialog first receives a closeEvent,
+            # then receives the aboutToQuit signal, which will call self.close()
+            # and will trigger a second closeEvent.
+            #
+            # During the first close event, the event is marked as spontaneous,
+            # but we can't tell what actually happened because Qt doesn't tell us if
+            # we closed the dialog (close button) or the app (CMD-Q/Alt-F4), so we postpone
+            # the execution of it by making sure it gets called again after the event
+            # queue is emptied. This is done by simply creating a singleShot timer of 0ms.
+            #
+            # When the timer has expired, aboutToQuit will have been called if the app
+            # was closed and self._is_quitting will have been set to True.
+            # We will then know if the spontaneous event had been a simple close of
+            # the dialog OR if the app was closed (self._is_quitting set to True).
+            QtCore.QTimer.singleShot(0, self._handle_close_event)
+
+    def _handle_close_event(self):
+        """
+        Displays a pop-up if the dialog's close button has been pressed.
+
+        The pop-up will display a message informing the user that the app
+        is now running in the system tray.
+        """
+        # If the dialog is closing because someone closed the app, we don't
+        # want the pop-up to show.
+        if self._is_quitting:
+            return
+        # Called when the dialog is disappearing.
+        has_warned_of_closed_behaviour = self._settings_manager.retrieve(
+            "has_warned_of_closed_behaviour", False
+        )
+        # If we've never warned the user that closing the app dialog
+        # sends it to the tray, do it.
+
+        if has_warned_of_closed_behaviour is False:
+            # On macOS the app icon is already visible on the pop-up
+            # message, do not show it a second time.
+            # In Qt4, we can't have a custom icon, so don't display
+            # anything. All the stock Qt icons make it look worse.
+            if sgtk.util.is_macos() or QtCore.qVersion()[0] == "4":
+                icon = self.systray.NoIcon
+            else:
+                icon = self._app_icon
+            # Note that on macOS+Qt4, this call will not show anything,
+            # at least on Catalina. This is likely because these builds predate
+            # Catalina and don't have the necessary APIs to request permission
+            # to use the Notification API and therefore fail at showing anything.
+            # It still works on Windows and Linux however for Desktop 1.5.x and
+            # lower.
+            self.systray.showMessage(
+                "Shotgun Desktop",
+                "The application is now running in the system tray.",
+                icon,
+                5000,
+            )
+            self._settings_manager.store(
+                "has_warned_of_closed_behaviour",
+                True,
+                self._settings_manager.SCOPE_GLOBAL,
+            )
+
     def _show_rich_message_box(self, icon, title, message, buttons=[]):
         """
         Shows a QMessageBox that supports HTML formatting.
@@ -698,7 +780,18 @@ class DesktopWindow(SystrayWindow):
             self.ui.actionPin_to_Menu.setText("Pin to Menu")
         self._settings_manager.store("dialog_pinned", self.state)
 
-    def handle_quit_action(self):
+    def _about_to_quit(self):
+        """
+        Called when the application is about to quit.
+
+        This happens when the user selects Quit in the user menu or hits
+        CMD-Q/Alt-F4.
+        """
+        # Flag that the app is being closed so that when the closeEvent is called
+        # we do not show the pop-up informing the user is being sent to the
+        # system tray.
+        self._is_quitting = True
+
         # disconnect from the current proxy
         engine = sgtk.platform.current_engine()
 
@@ -709,7 +802,6 @@ class DesktopWindow(SystrayWindow):
 
         self.close()
         self.systray.hide()
-        QtGui.QApplication.instance().quit()
 
     def handle_hotkey_triggered(self):
         self.toggle_activate()
@@ -871,7 +963,7 @@ class DesktopWindow(SystrayWindow):
         Restarts the Shotgun Desktop application.
         """
         # restart the application
-        self.handle_quit_action()
+        QtGui.QApplication.instance().quit()
         # Very important to set close_fds otherwise the websocket server file descriptor
         # will be shared with the child process and it prevent restarting the server
         # after the process closes.
@@ -1631,6 +1723,7 @@ class DesktopWindow(SystrayWindow):
 
     def handle_about(self):
         engine = sgtk.platform.current_engine()
+
         # If a Startup version was specified when engine.run was invoked
         # it's because we're running the new installer code and therefore
         # we have a startup version to show.
