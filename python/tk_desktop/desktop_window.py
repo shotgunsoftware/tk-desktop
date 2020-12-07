@@ -606,27 +606,46 @@ class DesktopWindow(SystrayWindow):
         self.user_menu.exec_(event.globalPos())
 
     def closeEvent(self, event):
-        # When closing the app programatically via self.close(),
-        # the event is not spontaenous and we know the state of self._is_quitting
-        # is correct.
+        """
+        Invoked when the user clicks on the close button, hits CMD-Q/Alt-F4 or self.close()
+        is called.
 
-        # When CMD-Q is hit or the close button is pressed however, the dialog
-        # first receives a closeEvent and THEN receives the aboutToQuit signal,
-        # which will call the close event. When this happens, the event is marked
-        # as spontaneous, but we can't tell what actually happened so we postpone
-        # the execution of it by making sure it gets called again after the event
-        # queue is emptied.
-        # When the timer has expired, we will know if the spontaneous event had
-        # been a simple close of the dialog OR if the app was closed.
-        # If is_quitting isn't set by that point, it's because the user pressed
-        # the close button. If it is, then we know the app is closing and we know
-        # how to deal with that.
-        if event.spontaneous() is False or self._is_quitting:
+        This callback is overriden so we can show a pop-up when the dialog is closed
+        by clicking on the close button, which makes the app run in the background
+        instead of actually closing it.
+        """
+        # A spontaneous event in Qt is defined as an event coming from outside the
+        # application. In practice, this means that when the user hits CMD-Q or presses
+        # the close dialog button, spontaeous is True. When self.close() is called,
+        # spontaneous is False.
+        if event.spontaneous() is False:
             self._handle_close_event()
         else:
+            # So when CMD-Q is hit, the dialog first receives a closeEvent,
+            # then receives the aboutToQuit signal, which will call self.close()
+            # and will trigger a second closeEvent.
+            #
+            # During the first close event, the event is marked as spontaneous,
+            # but we can't tell what actually happened because Qt doesn't tell us if
+            # we closed the dialog (close button) or the app (CMD-Q/Alt-F4), so we postpone
+            # the execution of it by making sure it gets called again after the event
+            # queue is emptied. This is done by simply creating a singleShot timer of 0ms.
+            #
+            # When the timer has expired, aboutToQuit will have been called if the app
+            # was closed and self._is_quitting will have been set to True.
+            # We will then know if the spontaneous event had been a simple close of
+            # the dialog OR if the app was closed (self._is_quitting set to True).
             QtCore.QTimer.singleShot(0, self._handle_close_event)
 
     def _handle_close_event(self):
+        """
+        Displays a pop-up if the dialog's close button has been pressed.
+
+        The pop-up will display a message informing the user that the app
+        is now running in the system tray.
+        """
+        # If the dialog is closing because someone closed the app, we don't
+        # want the pop-up to show.
         if self._is_quitting:
             return
         # Called when the dialog is disappearing.
@@ -762,7 +781,17 @@ class DesktopWindow(SystrayWindow):
         self._settings_manager.store("dialog_pinned", self.state)
 
     def _about_to_quit(self):
+        """
+        Called when the application is about to quit.
+
+        This happens when the user selects Quit in the user menu or hits
+        CMD-Q/Alt-F4.
+        """
+        # Flag that the app is being closed so that when the closeEvent is called
+        # we do not show the pop-up informing the user is being sent to the
+        # system tray.
         self._is_quitting = True
+
         # disconnect from the current proxy
         engine = sgtk.platform.current_engine()
 
