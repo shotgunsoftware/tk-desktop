@@ -14,6 +14,7 @@ import subprocess
 
 from sgtk.platform.qt import QtGui
 from sgtk.platform.qt import QtCore
+from sgtk import support_url
 
 from .ui import update_project_config
 from .wait_screen import WaitScreen
@@ -115,8 +116,7 @@ class UpdateProjectConfig(QtGui.QWidget):
             self.update_finished.emit(True)
         else:
             # failure
-            message = (
-                """
+            message = """
                 <html><head/><body>
                     <p><span style=" font-size:16pt;">
                         There was an error adding the desktop engine:
@@ -125,11 +125,12 @@ class UpdateProjectConfig(QtGui.QWidget):
                         <pre>%s</pre>
                     </p>
                     <p><span style=" font-size:14pt;">
-                        Please let support@shotgunsoftware.com know.
+                        Please let support know at %s.
                     </span></p>
                 </body></html>
-            """
-                % stderr
+            """ % (
+                stderr,
+                support_url,
             )
 
             # show the error
