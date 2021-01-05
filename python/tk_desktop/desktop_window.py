@@ -464,7 +464,13 @@ class DesktopWindow(SystrayWindow):
         pos = self._settings_manager.retrieve(
             "pos", QtCore.QPoint(200, 200), self._settings_manager.SCOPE_SITE
         )
-        self.move(pos)
+        try:
+            self.move(pos)
+        except TypeError:
+            # Its possible that we've loaded a PySide value,
+            # when we are using PySide2, in which case just ignore the setting.
+            pass
+
         # Force update so the project selection happens if the window is shown by default
         QtGui.QApplication.processEvents()
 
