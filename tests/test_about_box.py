@@ -49,10 +49,10 @@ def licence_file_links(license_file):
                         self.tags.append(value)
 
     # Open the licence file and read the parse the contents.
-    f = open(license_file, "r")
     parser = MyHTMLParser()
-    parser.feed(f.read())
-    f.close()
+    with open(license_file, "r") as f:
+        parser.feed(f.read())
+
     # We expect to atleast get one URL
     assert len(parser.tags) > 0
     return parser.tags
@@ -72,37 +72,19 @@ def test_3rd_party_links(licence_file_links):
 @pytest.mark.parametrize(
     "expected_url",
     [
-        ("https://github.com/shotgunsoftware/python-api/blob/master/software_credits"),
-        ("https://github.com/shotgunsoftware/tk-3dsmax/blob/master/software_credits"),
-        (
-            "https://github.com/shotgunsoftware/tk-3dsmaxplus/blob/master/software_credits"
-        ),
-        ("https://github.com/shotgunsoftware/tk-core/blob/master/software_credits"),
-        (
-            "https://github.com/shotgunsoftware/tk-framework-adobe/blob/master/software_credits"
-        ),
-        (
-            "https://github.com/shotgunsoftware/tk-framework-desktopserver/blob/master/software_credits"
-        ),
-        (
-            "https://github.com/shotgunsoftware/tk-framework-desktopstartup/blob/master/python/server/software_credits"
-        ),
-        (
-            "https://github.com/shotgunsoftware/tk-framework-lmv/blob/master/software_credits"
-        ),
-        ("https://github.com/shotgunsoftware/tk-houdini/blob/master/software_credits"),
-        (
-            "https://github.com/shotgunsoftware/tk-multi-launchapp/blob/master/software_credits"
-        ),
-        (
-            "https://github.com/shotgunsoftware/tk-multi-pythonconsole/blob/master/software_credits"
-        ),
-        (
-            "https://github.com/shotgunsoftware/tk-multi-reviewsubmission/blob/master/software_credits"
-        ),
-        (
-            "https://github.com/shotgunsoftware/tk-nuke-quickreview/blob/master/software_credits"
-        ),
+        "https://github.com/shotgunsoftware/python-api/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-3dsmax/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-3dsmaxplus/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-core/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-adobe/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-desktopserver/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-desktopstartup/blob/master/python/server/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-lmv/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-houdini/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-multi-launchapp/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-multi-pythonconsole/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-multi-reviewsubmission/blob/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-nuke-quickreview/blob/master/software_credits",
     ],
 )
 def test_expected_url_exist(licence_file_links, expected_url):
