@@ -74,7 +74,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         """
         try:
             # Format first so logger.exception can use it
-            msg = "[PROXY] %s" % msg
+            msg = "[PROXY] {0}".format(msg)
             logger.log(level, msg, *args)
         except Exception:
             message = (
