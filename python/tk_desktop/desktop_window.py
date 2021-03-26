@@ -148,9 +148,9 @@ class ProjectCommandSettings(object):
 
 
 class DesktopWindow(SystrayWindow):
-    """ Dockable window for the Shotgun system tray """
+    """ Dockable window for the SG system tray """
 
-    ORGANIZATION = "Shotgun Software"
+    ORGANIZATION = "SG Software"
     APPLICATION = "tk-desktop"
     _BOOTSTRAP_END_RATIO = 0.9
     _LAUNCHING_PYTHON_RATIO = 0.95
@@ -358,7 +358,7 @@ class DesktopWindow(SystrayWindow):
 
         self.ui.shotgun_button.clicked.connect(self.open_site_in_browser)
         self.ui.shotgun_button.setToolTip(
-            "Open Shotgun in browser.\n%s" % connection.base_url
+            "Open SG in browser.\n%s" % connection.base_url
         )
 
         self._project_model.thumbnail_updated.connect(
@@ -677,7 +677,7 @@ class DesktopWindow(SystrayWindow):
             # It still works on Windows and Linux however for Desktop 1.5.x and
             # lower.
             self.systray.showMessage(
-                "Shotgun Desktop",
+                "SG Desktop",
                 "The application is now running in the system tray.",
                 icon,
                 5000,
@@ -724,8 +724,8 @@ class DesktopWindow(SystrayWindow):
         with self.deactivate_auto_hide():
             choice = self._show_rich_message_box(
                 QtGui.QMessageBox.Information,
-                "Shotgun browser integration",
-                "Regenerating the Shotgun Desktop's browser integration certificates should "
+                "SG browser integration",
+                "Regenerating the SG Desktop's browser integration certificates should "
                 "only be done if you have issues with the browser integration.<br/>"
                 "<br/>"
                 "If you are unsure how to proceed, we recommend you visit our support page "
@@ -746,7 +746,7 @@ class DesktopWindow(SystrayWindow):
                 log.exception("Unexpected error while regenerating certificates:")
                 self._show_rich_message_box(
                     QtGui.QMessageBox.Critical,
-                    "Shotgun browser integration",
+                    "SG browser integration",
                     "It appears there are an issue while regenerating the certificates."
                     "\n"
                     "Please <a href='{0}'>contact our support team</a> "
@@ -758,8 +758,8 @@ class DesktopWindow(SystrayWindow):
             else:
                 choice = QtGui.QMessageBox.question(
                     self,
-                    "Shotgun browser integration",
-                    "The Shotgun Desktop needs to restart for the certificate changes "
+                    "SG browser integration",
+                    "The SG Desktop needs to restart for the certificate changes "
                     "to take effect.\n"
                     "\n"
                     "Would you like to restart?",
@@ -1005,7 +1005,7 @@ class DesktopWindow(SystrayWindow):
                     "A request originated from <b>{0}</b>, but you "
                     "are currently logged into <b>{1}</b>.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
-                    "<b>Restart</b> button below to restart Shotgun Desktop and log into <b>{0}</b>.".format(
+                    "<b>Restart</b> button below to restart SG Desktop and log into <b>{0}</b>.".format(
                         site, current_site
                     )
                 )
@@ -1027,9 +1027,9 @@ class DesktopWindow(SystrayWindow):
 
                 msg = (
                     "A request from <b>{0}</b> was made, but you are currently "
-                    "signed in as <b>{1}</b> in the Shotgun Desktop.<br/><br/>"
+                    "signed in as <b>{1}</b> in the SG Desktop.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
-                    "<b>Restart</b> button below to restart Shotgun Desktop and log as <b>{0}</b>.".format(
+                    "<b>Restart</b> button below to restart SG Desktop and log as <b>{0}</b>.".format(
                         user_login if user_login else "<unknown>",
                         bundle.get_current_user().login,
                     )
@@ -1479,7 +1479,7 @@ class DesktopWindow(SystrayWindow):
             log.exception(str(error))
             message = (
                 "%s"
-                "\n\nTo resolve this, open Shotgun in your browser\n"
+                "\n\nTo resolve this, open SG in your browser\n"
                 "and check the paths for this Pipeline Configuration."
                 "\n\nFor more details, see the console." % str(error)
             )

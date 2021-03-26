@@ -37,7 +37,7 @@ class Ui_BannerWidget(object):
 
     def retranslateUi(self, BannerWidget):
         BannerWidget.setWindowTitle(QtGui.QApplication.translate("BannerWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.message.setText(QtGui.QApplication.translate("BannerWidget", "Welcome to the Shotgun Desktop. Please <u>click here</u> to learn more about this app!", None, QtGui.QApplication.UnicodeUTF8))
+        self.message.setText(QtGui.QApplication.translate("BannerWidget", "Welcome to the SG Desktop. Please <u>click here</u> to learn more about this app!", None, QtGui.QApplication.UnicodeUTF8))
         self.close_button.setToolTip(QtGui.QApplication.translate("BannerWidget", "Close", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
