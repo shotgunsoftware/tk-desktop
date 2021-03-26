@@ -95,5 +95,5 @@ class PostInstall(sgtk.get_hook_baseclass()):
                 self._reboot_app(shotgun_desktop)
             else:
                 raise Exception(
-                    "Wrong version of Shotgun API3. AuthenticationFault not accessible."
+                    "Wrong version of SG API3. AuthenticationFault not accessible."
                 )

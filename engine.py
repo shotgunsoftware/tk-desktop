@@ -217,7 +217,7 @@ class DesktopEngine(Engine):
                     "Looks like you are trying to run an App that uses a QT based UI, however the "
                     "python installation that the Desktop engine is currently using does not seem "
                     "to contain a valid PySide or PyQt4 install. Either install PySide into your "
-                    "python environment or alternatively switch back to using the native Shotgun "
+                    "python environment or alternatively switch back to using the native SG "
                     "Desktop python installation, which includes full QT support."
                 )
 
