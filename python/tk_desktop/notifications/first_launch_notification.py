@@ -22,7 +22,7 @@ class FirstLaunchNotification(Notification):
     _FIRST_LAUNCH_BANNER_VIEWED_ID = "first_desktop_launch_banner_viewed"
     SHOTGUN_DESKTOP_SUPPORT_PAGE_URL = (
         r"https://support.shotgunsoftware.com/hc/en-us/articles/115000068574"
-        r"#Getting%20started%20with%20Shotgun%20Desktop"
+        r"#Getting%20started%20with%20ShotGrid%20Desktop"
     )
 
     @classmethod
@@ -51,7 +51,7 @@ class FirstLaunchNotification(Notification):
         """
         Message to display.
         """
-        return "Welcome to the <b>Shotgun Desktop</b>. <a href='{0}'>Click here</a> to learn more.".format(
+        return "Welcome to the <b>ShotGrid Desktop</b>. <a href='{0}'>Click here</a> to learn more.".format(
             self.SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
         )
 

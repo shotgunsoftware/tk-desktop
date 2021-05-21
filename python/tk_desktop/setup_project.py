@@ -67,7 +67,7 @@ class SetupProject(QtGui.QWidget):
         except TankUserPermissionsError as e:
             error_dialog = ErrorDialog(
                 "Toolkit Setup Error",
-                "You do not have sufficient permissions in Shotgun to setup Toolkit for "
+                "You do not have sufficient permissions in ShotGrid to setup Toolkit for "
                 "project '%s'.\n\nContact a site administrator for assistance."
                 % self.project["name"],
             )

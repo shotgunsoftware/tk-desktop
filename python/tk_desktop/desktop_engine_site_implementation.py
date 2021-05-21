@@ -506,8 +506,8 @@ class DesktopEngineSiteImplementation(object):
         # We need for the dialog to exist for messages to get to the UI console.
         if kwargs.get("server") is not None:
             logger.warning(
-                "You are running an older version of the Shotgun Desktop which is not fully compatible "
-                "with the Shotgun Integrations. Please install the latest version."
+                "You are running an older version of the ShotGrid Desktop which is not fully compatible "
+                "with the ShotGrid Integrations. Please install the latest version."
             )
 
         # run the commands that are configured to be executed at startup

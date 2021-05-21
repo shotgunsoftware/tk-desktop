@@ -97,7 +97,7 @@ class Ui_UpdateProjectConfig(object):
 
     def retranslateUi(self, UpdateProjectConfig):
         UpdateProjectConfig.setWindowTitle(QtGui.QApplication.translate("UpdateProjectConfig", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.text.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add Shotgun Desktop", None, QtGui.QApplication.UnicodeUTF8))
+        self.text.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add ShotGrid Desktop", None, QtGui.QApplication.UnicodeUTF8))
         self.button.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add", None, QtGui.QApplication.UnicodeUTF8))
         self.label.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Click here to upgrade your\n"
 "Pipeline Configuration", None, QtGui.QApplication.UnicodeUTF8))

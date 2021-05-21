@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>About Shotgun Desktop</string>
+   <string>About ShotGrid Desktop</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -58,7 +58,7 @@
       <string notr="true">font-size: 16px;</string>
      </property>
      <property name="text">
-      <string>&lt;b&gt;&lt;big&gt;Shotgun Desktop&lt;/big&gt;&lt;/b&gt;</string>
+      <string>&lt;b&gt;&lt;big&gt;ShotGrid Desktop&lt;/big&gt;&lt;/b&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
