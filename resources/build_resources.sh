@@ -12,6 +12,8 @@
 
 # The path to output all built .py files to:
 UI_PYTHON_PATH=../python/tk_desktop/ui
+# This expects Shotgun Desktop 1.5.9 or less. PySide 1 is required.
+PYTHON_BASE="/Applications/Shotgun.app/Contents/Resources/Python"
 
 function build_qt {
     echo " > Building " $2
@@ -24,11 +26,11 @@ function build_qt {
 }
 
 function build_ui {
-    build_qt "pyside-uic --from-imports" "$1.ui" "$1"
+    build_qt "${PYTHON_BASE}/bin/python ${PYTHON_BASE}/bin/pyside-uic --from-imports" "$1.ui" "$1"
 }
 
 function build_res {
-    build_qt "pyside-rcc -py3" "$1.qrc" "$1_rc"
+    build_qt "${PYTHON_BASE}/bin/pyside-rcc -py3" "$1.qrc" "$1_rc"
 }
 
 # build UI's:
