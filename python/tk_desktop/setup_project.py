@@ -67,7 +67,7 @@ class SetupProject(QtGui.QWidget):
         except TankUserPermissionsError as e:
             error_dialog = ErrorDialog(
                 "Toolkit Setup Error",
-                "You do not have sufficient permissions in Shotgun to setup Toolkit for "
+                "You do not have sufficient permissions in ShotGrid to setup Toolkit for "
                 "project '%s'.\n\nContact a site administrator for assistance."
                 % self.project["name"],
             )
@@ -90,7 +90,7 @@ class SetupProject(QtGui.QWidget):
 
         if user_input == QtGui.QMessageBox.Open:
             # Go to the Toolkit Project setup wizard documentation
-            help_url = "https://developer.shotgunsoftware.com/5d83a936/?title=Configuration+Setup"
+            help_url = "https://developer.shotgridsoftware.com/5d83a936/?title=Configuration+Setup"
             QtGui.QDesktopServices.openUrl(help_url)
 
     def _validate_user_permissions(self):

@@ -255,7 +255,7 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             % (len(sg_softwares), pprint.pformat(sw_filters))
         )
         if not sg_softwares:
-            engine.logger.warning("No Software entities found in Shotgun.")
+            engine.logger.warning("No Software entities found in ShotGrid.")
             return
 
         return sg_softwares

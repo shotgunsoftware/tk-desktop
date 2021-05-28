@@ -33,7 +33,7 @@
 border-color: rgb(0, 0, 0);</string>
      </property>
      <property name="text">
-      <string>Welcome to the Shotgun Desktop. Please &lt;u&gt;click here&lt;/u&gt; to learn more about this app!</string>
+      <string>Welcome to the ShotGrid Desktop. Please &lt;u&gt;click here&lt;/u&gt; to learn more about this app!</string>
      </property>
      <property name="wordWrap">
       <bool>true</bool>

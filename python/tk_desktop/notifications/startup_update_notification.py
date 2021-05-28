@@ -91,7 +91,7 @@ class StartupUpdateNotification(Notification):
         Message to display.
         """
         return (
-            "<b>Shotgun Desktop</b> has been updated. "
+            "<b>ShotGrid Desktop</b> has been updated. "
             "<a href='{0}'>Click here</a> to learn more."
         ).format(self._engine.startup_descriptor.changelog[1])
 

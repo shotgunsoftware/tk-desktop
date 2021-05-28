@@ -14,7 +14,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>Shotgun</string>
+   <string>ShotGrid</string>
   </property>
   <property name="windowIcon">
    <iconset resource="resources.qrc">
@@ -808,7 +808,7 @@ border: 0, 0, 0, 0
           <enum>Qt::NoFocus</enum>
          </property>
          <property name="toolTip">
-          <string>Open in Shotgun</string>
+          <string>Open in ShotGrid</string>
          </property>
          <property name="icon">
           <iconset resource="resources.qrc">
