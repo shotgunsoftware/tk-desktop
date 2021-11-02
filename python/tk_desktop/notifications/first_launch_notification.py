@@ -21,7 +21,7 @@ class FirstLaunchNotification(Notification):
 
     _FIRST_LAUNCH_BANNER_VIEWED_ID = "first_desktop_launch_banner_viewed"
     SHOTGUN_DESKTOP_SUPPORT_PAGE_URL = (
-        r"https://support.shotgunsoftware.com/hc/en-us/articles/115000068574"
+        r"https://help.autodesk.com/view/SGSUB/ENU/?guid=SG_Supervisor_Artist_sa_integrations_sa_integrations_user_guide_html"
         r"#Getting%20started%20with%20Shotgun%20Desktop"
     )
 

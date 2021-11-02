@@ -155,10 +155,10 @@ class DesktopWindow(SystrayWindow):
     _BOOTSTRAP_END_RATIO = 0.9
     _LAUNCHING_PYTHON_RATIO = 0.95
     _CHROME_SUPPORT_URL = (
-        "https://support.shotgunsoftware.com/hc/en-us/articles/114094536273"
+        "https://developer.shotgridsoftware.com/95518180"
     )
     _FIREFOX_SUPPORT_URL = (
-        "https://support.shotgunsoftware.com/hc/en-us/articles/115000054954"
+        "https://developer.shotgridsoftware.com/d4936105"
     )
 
     def __init__(self, console, parent=None):
