@@ -154,12 +154,8 @@ class DesktopWindow(SystrayWindow):
     APPLICATION = "tk-desktop"
     _BOOTSTRAP_END_RATIO = 0.9
     _LAUNCHING_PYTHON_RATIO = 0.95
-    _CHROME_SUPPORT_URL = (
-        "https://developer.shotgridsoftware.com/95518180"
-    )
-    _FIREFOX_SUPPORT_URL = (
-        "https://developer.shotgridsoftware.com/d4936105"
-    )
+    _CHROME_SUPPORT_URL = "https://developer.shotgridsoftware.com/95518180"
+    _FIREFOX_SUPPORT_URL = "https://developer.shotgridsoftware.com/d4936105"
 
     def __init__(self, console, parent=None):
         SystrayWindow.__init__(self, parent)
