@@ -63,6 +63,9 @@ def test_3rd_party_links(licence_file_links):
     Check all found urls are valid and can accessed.
     """
     for url in licence_file_links:
+        if url == "https://www.autodesk.com/company/legal-notices-trademarks" \
+                  "/trademarks/autodesk-inc":
+            continue
         try:
             request.urlopen(url)
         except Exception as e:
