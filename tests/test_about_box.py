@@ -64,7 +64,7 @@ def test_3rd_party_links(licence_file_links):
     """
     urls_to_ignore = [
         "https://www.autodesk.com/company/legal-notices-trademarks/terms-of-service-autodesk360-web-services",
-        "http://www.autodesk.com/company/legal-notices-trademarks/trademarks/autodesk-inc"
+        "http://www.autodesk.com/company/legal-notices-trademarks/trademarks/autodesk-inc",
     ]
 
     for url in licence_file_links:
