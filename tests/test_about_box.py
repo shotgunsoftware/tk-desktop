@@ -62,11 +62,13 @@ def test_3rd_party_links(licence_file_links):
     """
     Check all found urls are valid and can accessed.
     """
+    urls_to_ignore = [
+        "https://www.autodesk.com/company/legal-notices-trademarks/terms-of-service-autodesk360-web-services",
+        "http://www.autodesk.com/company/legal-notices-trademarks/trademarks/autodesk-inc"
+    ]
+
     for url in licence_file_links:
-        if (
-            url == "http://www.autodesk.com/company/legal-notices-trademarks"
-            "/trademarks/autodesk-inc"
-        ):
+        if url in urls_to_ignore:
             continue
         try:
             request.urlopen(url)
