@@ -72,5 +72,5 @@ class Ui_BrowserIntegrationUserSwitchDialog(object):
         self.ignore_checkbox.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Ignore requests from this site until the next restart", None, QtGui.QApplication.UnicodeUTF8))
         self.restart_button.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Restart", None, QtGui.QApplication.UnicodeUTF8))
         self.ignore_button.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Ignore", None, QtGui.QApplication.UnicodeUTF8))
-        self.label_2.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "<a href=\"https://support.shotgunsoftware.com/hc/en-us/articles/115000068574#Authentication%20and%20browser%20integration\">Why is a restart required?</a>", None, QtGui.QApplication.UnicodeUTF8))
+        self.label_2.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "<a href=\"https://help.autodesk.com/view/SGSUB/ENU/?guid=SG_Supervisor_Artist_sa_integrations_sa_integrations_user_guide_html#authentication-and-browser-integration\">Why is a restart required?</a>", None, QtGui.QApplication.UnicodeUTF8))
 
