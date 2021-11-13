@@ -31,7 +31,7 @@ class SetupNewOS(QtGui.QWidget):
         self.setVisible(False)
 
     def launch_docs(self):
-        url = "https://support.shotgunsoftware.com/entries/95443887#Multiple%20Operating%20Systems"
+        url = "https://developer.shotgridsoftware.com/1b9c259a/?title=Launch+App#Multiple%20Operating%20Systems"
         QtGui.QDesktopServices.openUrl(url)
 
     def _on_parent_resized(self):

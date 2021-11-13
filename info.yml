@@ -19,7 +19,7 @@ configuration:
         type: str
         description: Link to a ShotGrid Support article detailing how to
                      configure Software entities for a site.
-        default_value: "https://support.shotgunsoftware.com/entries/95443887#Setting%20up%20Application%20Paths"
+        default_value: "https://developer.shotgridsoftware.com/1b9c259a/?title=Launch+App#Setting%20up%20Application%20Paths"
 
     debug_logging:
         type: bool
