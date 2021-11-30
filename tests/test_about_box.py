@@ -58,20 +58,14 @@ def licence_file_links(license_file):
     return parser.tags
 
 
-@pytest.mark.skip
 def test_3rd_party_links(licence_file_links):
     """
     Check all found urls are valid and can accessed.
     """
-    urls_to_ignore = [
-        "http://www.autodesk.com/company/legal-notices-trademarks/trademarks/autodesk-inc",
-    ]
-
     for url in licence_file_links:
-        if url in urls_to_ignore:
-            continue
         try:
-            request.urlopen(url)
+            r = request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            contents = request.urlopen(r).read()
         except Exception as e:
             raise pytest.fail("Failed to open {0}, error: {1}".format(url, e))
 
