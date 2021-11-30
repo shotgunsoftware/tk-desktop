@@ -58,7 +58,6 @@ def licence_file_links(license_file):
     return parser.tags
 
 
-@pytest.mark.skip
 def test_3rd_party_links(licence_file_links):
     """
     Check all found urls are valid and can accessed.
