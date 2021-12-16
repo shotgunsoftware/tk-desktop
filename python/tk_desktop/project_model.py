@@ -213,7 +213,7 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
             cache is not  ready yet. The best value to return here is TRUE which is the default in Qt. Hopefully we 
             will be called again once the cache is up-to-date and ready to be use.
 
-            Please don’t remove the following line otherwise we will have a major showstopper for one of our big clients
+            Please don't remove the following line otherwise we will have a major showstopper for one of our big clients
             Ref: SG-24622 at Autodesk
             """
             return True
