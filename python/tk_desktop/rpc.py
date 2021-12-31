@@ -269,7 +269,7 @@ class RPCServerThread(threading.Thread):
                         self.server.address, self.LISTEN_TIMEOUT * 1000
                     )
                     ready = True
-                except WindowsError as e:
+                except (WindowsError, AttributeError) as e:
                     logger.debug("Error during WaitNamedPipe:", exc_info=True)
                     if e.args[0] not in (
                         mpc_win32.ERROR_SEM_TIMEOUT,
