@@ -269,13 +269,16 @@ class RPCServerThread(threading.Thread):
                         self.server.address, self.LISTEN_TIMEOUT * 1000
                     )
                     ready = True
-                except (WindowsError, AttributeError) as e:
+                except WindowsError as e:
                     logger.debug("Error during WaitNamedPipe:", exc_info=True)
                     if e.args[0] not in (
                         mpc_win32.ERROR_SEM_TIMEOUT,
                         mpc_win32.ERROR_PIPE_BUSY,
                     ):
                         raise
+                    ready = False
+                except AttributeError as e:
+                    logger.debug("Attribute Error during WaitNamedPipe:", exc_info=True)
                     ready = False
             else:
                 # can use select on osx and linux
