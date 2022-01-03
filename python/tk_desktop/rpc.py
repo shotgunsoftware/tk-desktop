@@ -164,7 +164,7 @@ class Logger:
         msg = args[0]
         dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         tn = threading.currentThread().getName()
-        msg = dt + " " + tn + " " + msg + " " + traceback.format_exc() + "\n"
+        msg = dt + " " + tn + " " + msg + " " + traceback.format_exc()
         with open(r"C:\Users\t_calzaadmin\tmp\rpc.log", "a") as fh:
             fh.write(msg)
 
