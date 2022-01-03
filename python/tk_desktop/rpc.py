@@ -12,17 +12,19 @@ import os
 import sys
 import uuid
 import select
-import logging
+# import logging
 import threading
 import time
 import traceback
 import multiprocessing.connection
+import datetime
 
 # We have to import Python's pickle to serialize our data.
 # tk-core's sgtk.util.pickle module assumes too much about the data
 # type that is stored in the pickle and assumes the output of a dump
 # can always be turned into a utf-8 encoded string, which is false.
 # Therefore, we'll simply take the raw pickle and send it over the wire.
+import sgtk
 from tank_vendor import six
 from tank_vendor.six.moves import cPickle as py_pickle
 from tank.util import pickle as tk_pickle, is_windows
@@ -58,97 +60,137 @@ class pickle:
         return py_pickle.dumps(payload, protocol=2)
 
 
-from sgtk import LogManager
+# from sgtk import LogManager
+#
+#
+# class Logger(object):
+#     """
+#     Wrapper around a logger object. It augments the logged information when
+#     TK_DESKTOP_RPC_DEBUG is turned on. It also prevents logging from every single
+#     RPC call, which would slow down the logging process. In fact, logging
+#     from the Shotgun Desktop with this environment variable sends the subprocess
+#     into an infinite loop as logging anything from the background process
+#     means doing an RPC call. If from the RPC module we log messages as well,
+#     we end up in an infinite logging loop an the project never finishes loading.
+#     As such, TK_DESKTOP_RPC_DEBUG should only be used when running tests.
+#
+#     One could argue why we need this, when a simple logger formatter would do
+#     to print the thread id and current time.
+#     The problem is that the logger formatter option prints the real thread id,
+#     which is hard to read because it is a 64bit value. When looking at test logs,
+#     this makes it hard to differentiate between tests. Doing in this way makes
+#     it a lot easier. Threads could also be named, but then in a test suite
+#     you wouldn't be able to differentiate between a message coming from a test
+#     or leaking from another test, which has been an issue in the past.
+#     """
+#
+#     def __init__(self):
+#         self._logger = LogManager.get_logger(__name__)
+#         # Only log debug messages if they are specifically requested.
+#         if self._is_debugging_rpc():
+#             self._simple_thread_ids = {}
+#             self._id_generation_lock = threading.Lock()
+#             self._logger.setLevel(logging.DEBUG)
+#         else:
+#             self._logger.setLevel(logging.INFO)
+#
+#     def _is_debugging_rpc(self):
+#         """
+#         True if debug logging should be activated, False otherwise.
+#         """
+#         return "TK_DESKTOP_RPC_DEBUG" in os.environ
+#
+#     def _get_simple_thread_id(self):
+#         """
+#         Translates the current thread object into a simple integer for
+#         easy debugging.
+#         """
+#         ident = threading.current_thread()
+#         # If we've never seen this thread object before
+#         if ident not in self._simple_thread_ids:
+#             # Generate a new thread id.
+#             with self._id_generation_lock:
+#                 self._simple_thread_ids[threading.current_thread()] = len(
+#                     self._simple_thread_ids
+#                 )
+#         return self._simple_thread_ids[threading.current_thread()]
+#
+#     def debug(self, *args, **kwargs):
+#         """
+#         Log debug message.
+#         """
+#         if self._is_debugging_rpc():
+#             args = list(args)
+#             if threading.current_thread().getName() != "MainThread":
+#                 args[0] = "Thread %d - " % self._get_simple_thread_id() + args[0]
+#             else:
+#                 args[0] = "Main Thread - " + args[0]
+#             args[0] = "%f - %s" % (time.time(), args[0])
+#         self._logger.debug(*args, **kwargs)
+#
+#     def info(self, *args, **kwargs):
+#         """
+#         Log warning message.
+#         """
+#         self._logger.info(*args, **kwargs)
+#
+#     def warning(self, *args, **kwargs):
+#         """
+#         Log warning message.
+#         """
+#         self._logger.warning(*args, **kwargs)
+#
+#     def error(self, *args, **kwargs):
+#         """
+#         Log error message.
+#         """
+#         self._logger.error(*args, **kwargs)
+#
+#     def exception(self, *args, **kwargs):
+#         """
+#         Log exception message.
+#         """
+#         self._logger.exception(*args, **kwargs)
+#
+#
+# logger = Logger()
 
 
-class Logger(object):
-    """
-    Wrapper around a logger object. It augments the logged information when
-    TK_DESKTOP_RPC_DEBUG is turned on. It also prevents logging from every single
-    RPC call, which would slow down the logging process. In fact, logging
-    from the Shotgun Desktop with this environment variable sends the subprocess
-    into an infinite loop as logging anything from the background process
-    means doing an RPC call. If from the RPC module we log messages as well,
-    we end up in an infinite logging loop an the project never finishes loading.
-    As such, TK_DESKTOP_RPC_DEBUG should only be used when running tests.
-
-    One could argue why we need this, when a simple logger formatter would do
-    to print the thread id and current time.
-    The problem is that the logger formatter option prints the real thread id,
-    which is hard to read because it is a 64bit value. When looking at test logs,
-    this makes it hard to differentiate between tests. Doing in this way makes
-    it a lot easier. Threads could also be named, but then in a test suite
-    you wouldn't be able to differentiate between a message coming from a test
-    or leaking from another test, which has been an issue in the past.
-    """
-
-    def __init__(self):
-        self._logger = LogManager.get_logger(__name__)
-        # Only log debug messages if they are specifically requested.
-        if self._is_debugging_rpc():
-            self._simple_thread_ids = {}
-            self._id_generation_lock = threading.Lock()
-            self._logger.setLevel(logging.DEBUG)
-        else:
-            self._logger.setLevel(logging.INFO)
-
-    def _is_debugging_rpc(self):
-        """
-        True if debug logging should be activated, False otherwise.
-        """
-        return "TK_DESKTOP_RPC_DEBUG" in os.environ
-
-    def _get_simple_thread_id(self):
-        """
-        Translates the current thread object into a simple integer for
-        easy debugging.
-        """
-        ident = threading.current_thread()
-        # If we've never seen this thread object before
-        if ident not in self._simple_thread_ids:
-            # Generate a new thread id.
-            with self._id_generation_lock:
-                self._simple_thread_ids[threading.current_thread()] = len(
-                    self._simple_thread_ids
-                )
-        return self._simple_thread_ids[threading.current_thread()]
-
+class Logger:
     def debug(self, *args, **kwargs):
         """
         Log debug message.
         """
-        if self._is_debugging_rpc():
-            args = list(args)
-            if threading.current_thread().getName() != "MainThread":
-                args[0] = "Thread %d - " % self._get_simple_thread_id() + args[0]
-            else:
-                args[0] = "Main Thread - " + args[0]
-            args[0] = "%f - %s" % (time.time(), args[0])
-        self._logger.debug(*args, **kwargs)
+        msg = args[0]
+        dt = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        tn = threading.currentThread().getName()
+        msg = dt + " " + tn + " " + msg + " " + traceback.format_exc() + "\n"
+        with open(r"C:\Users\t_calzaadmin\tmp\rpc.log", "a") as fh:
+            fh.write(msg)
 
     def info(self, *args, **kwargs):
         """
         Log warning message.
         """
-        self._logger.info(*args, **kwargs)
+        self.debug(*args, **kwargs)
 
     def warning(self, *args, **kwargs):
         """
         Log warning message.
         """
-        self._logger.warning(*args, **kwargs)
+        self.debug(*args, **kwargs)
 
     def error(self, *args, **kwargs):
         """
         Log error message.
         """
-        self._logger.error(*args, **kwargs)
+        self.debug(*args, **kwargs)
 
     def exception(self, *args, **kwargs):
         """
         Log exception message.
         """
-        self._logger.exception(*args, **kwargs)
+        self.debug(*args, **kwargs)
 
 
 logger = Logger()
