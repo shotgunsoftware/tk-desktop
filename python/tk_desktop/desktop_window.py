@@ -1119,6 +1119,12 @@ class DesktopWindow(SystrayWindow):
         """
         Invoked when the user leaves a project.
         """
+        import sys
+        sys.path.append(r"e:\misc\pycharm")
+        import pydevd
+        pydevd.settrace('localhost', port=5490, stdoutToServer=True,
+                        stderrToServer=True)
+
         engine = sgtk.platform.current_engine()
         engine.site_comm.shut_down()
 
