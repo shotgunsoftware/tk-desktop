@@ -280,10 +280,6 @@ class RPCServerThread(threading.Thread):
                     ):
                         raise
                     ready = False
-                except AttributeError as e:
-                    logger.debug("Attribute Error during WaitNamedPipe:",
-                                 exc_info=True)
-                    raise
             else:
                 # can use select on osx and linux
                 (rd, _, _) = select.select(
