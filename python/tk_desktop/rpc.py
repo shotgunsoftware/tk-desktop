@@ -405,7 +405,8 @@ class RPCServerThread(threading.Thread):
         logger.debug("server setting flag to stop")
         self.server.close()
         self._is_closed = True
-        if sys.platform == "win32":
+        # if sys.platform == "win32":
+        if six.PY2 and sys.platform == "win32":
             # The accept call blocks until a client is available.
             # Unfortunately closing the connection on Windows does not
             # cause accept to unblock and raise an error, so we have to force
