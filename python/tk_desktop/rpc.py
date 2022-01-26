@@ -120,8 +120,7 @@ class Logger(object):
         if self._is_debugging_rpc():
             args = list(args)
             if threading.current_thread().getName() != "MainThread":
-                args[0] = "Thread %d - " % self._get_simple_thread_id() \
-                          + args[0]
+                args[0] = "Thread %d - " % self._get_simple_thread_id() + args[0]
             else:
                 args[0] = "Main Thread - " + args[0]
             args[0] = "%f - %s" % (time.time(), args[0])
@@ -223,8 +222,7 @@ class RPCServerThread(threading.Thread):
         else:
             family = "AF_UNIX"
         self.server = multiprocessing.connection.Listener(
-            address=None, family=family, authkey=six.ensure_binary(
-                self.authkey)
+            address=None, family=family, authkey=six.ensure_binary(self.authkey)
         )
         # grab the name of the pipe
         self.pipe = self.server.address
@@ -283,10 +281,7 @@ class RPCServerThread(threading.Thread):
             else:
                 # can use select on osx and linux
                 (rd, _, _) = select.select(
-                    [self.server._listener._socket],
-                    [],
-                    [],
-                    self.LISTEN_TIMEOUT
+                    [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
                 )
                 ready = len(rd) > 0
 
@@ -314,22 +309,18 @@ class RPCServerThread(threading.Thread):
 
                     # data coming over the connection is a tuple of
                     # (name, args, kwargs)
-                    (respond, func_name, args, kwargs) = pickle.loads(
-                        connection.recv())
+                    (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
                     logger.debug(
-                        "server calling '%s(%s, %s)'" % (func_name, args,
-                                                         kwargs)
+                        "server calling '%s(%s, %s)'" % (func_name, args, kwargs)
                     )
 
                     try:
                         if func_name not in self._functions:
                             logger.error(
                                 "unknown function call: '%s', expecting one "
-                                "of '%s'"
-                                % (func_name, self.list_functions())
+                                "of '%s'" % (func_name, self.list_functions())
                             )
-                            raise ValueError(
-                                "unknown function call: '%s'" % func_name)
+                            raise ValueError("unknown function call: '%s'" % func_name)
 
                         # grab the function from the function table
                         func = self._functions[func_name]
@@ -442,15 +433,13 @@ class RPCProxy(object):
                     # If the connection was closed while we polled, raise
                     # an error.
                     if self._closed:
-                        raise RuntimeError(
-                            "client closed while waiting for a response")
+                        raise RuntimeError("client closed while waiting for a response")
                     continue
             except IOError:
                 # An exception is raised on Windows when the connection
                 # is closed during polling instead of simply returning False.
                 if self._closed:
-                    raise RuntimeError("client closed while waiting for a "
-                                       "response")
+                    raise RuntimeError("client closed while waiting for a " "response")
                 raise
 
         # read the result
@@ -459,8 +448,7 @@ class RPCProxy(object):
         except OSError:
             # On Linux, an exception will be raised here instead.
             if self._closed:
-                raise RuntimeError("client closed while waiting for a "
-                                   "response")
+                raise RuntimeError("client closed while waiting for a " "response")
 
         logger.debug("client got result '%s'" % result)
         # if an exception was returned raise it on the client side
