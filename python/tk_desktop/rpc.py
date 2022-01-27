@@ -439,7 +439,7 @@ class RPCProxy(object):
                 # An exception is raised on Windows when the connection
                 # is closed during polling instead of simply returning False.
                 if self._closed:
-                    raise RuntimeError("client closed while waiting for a " "response")
+                    raise RuntimeError("client closed while waiting for a response")
                 raise
 
         # read the result
