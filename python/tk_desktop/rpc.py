@@ -448,7 +448,7 @@ class RPCProxy(object):
         except OSError:
             # On Linux, an exception will be raised here instead.
             if self._closed:
-                raise RuntimeError("client closed while waiting for a " "response")
+                raise RuntimeError("client closed while waiting for a response")
 
         logger.debug("client got result '%s'" % result)
         # if an exception was returned raise it on the client side
