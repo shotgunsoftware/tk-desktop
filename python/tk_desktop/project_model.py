@@ -210,9 +210,9 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         if not hasattr(self, "_ids_in_order"):
             """
             The cache probably is not ready yet. With Qt5.15 sometimes we are
-            called by setSourceModel so for sure the cache is not  ready yet.
+            called by setSourceModel so for sure the cache is not ready yet.
 
-            The best value to return here is TRUE which is the default in Qt.
+            The best value to return here is `True` which is the default in Qt.
             Hopefully we will be called again once the cache is up-to-date and
             ready to be use.
 
