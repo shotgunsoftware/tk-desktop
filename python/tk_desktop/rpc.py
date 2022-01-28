@@ -368,16 +368,21 @@ class RPCServerThread(threading.Thread):
         self.server.close()
         self._is_closed = True
 
-        if six.PY2 and sys.platform == "win32":
+        if sys.platform == "win32":
             # The "accept" call blocks until a client is available-
             # unfortunately closing the connection on Windows+Python2 does not
             # cause accept to unblock and raise an error, so we have to force
             # accept to unblock by connecting to the server. The server thread
             # will then test the _is_closed flag and shut down.
-            try:
-                RPCProxy(self.pipe, self.authkey)
-            except Exception:
-                pass
+            def touch_server():
+                try:
+                    RPCProxy(self.pipe, self.authkey)
+                except Exception as e:
+                    pass
+
+            t = threading.Thread(target=touch_server)
+            t.setDaemon(True)
+            t.start()
 
 
 class RPCProxy(object):
