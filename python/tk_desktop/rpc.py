@@ -383,6 +383,7 @@ class RPCServerThread(threading.Thread):
             t = threading.Thread(target=touch_server)
             t.setDaemon(True)
             t.start()
+            t.join(1)
 
 
 class RPCProxy(object):
