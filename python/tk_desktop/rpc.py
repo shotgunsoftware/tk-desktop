@@ -370,7 +370,7 @@ class RPCServerThread(threading.Thread):
 
         if sys.platform == "win32":
             # The "accept" call blocks until a client is available-
-            # unfortunately closing the connection on Windows+Python2 does not
+            # unfortunately closing the connection on Windows does not
             # cause accept to unblock and raise an error, so we have to force
             # accept to unblock by connecting to the server. The server thread
             # will then test the _is_closed flag and shut down.
