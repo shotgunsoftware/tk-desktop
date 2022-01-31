@@ -207,6 +207,21 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
         """
         QSortFilterProxyModel override to base filtering on our cached values.
         """
+        if not hasattr(self, "_ids_in_order"):
+            """
+            The cache probably is not ready yet. With Qt5.15 sometimes we are
+            called by setSourceModel so for sure the cache is not ready yet.
+
+            The best value to return here is `True` which is the default in Qt.
+            Hopefully we will be called again once the cache is up-to-date and
+            ready to be use.
+
+            Please don't remove the following line otherwise we will have a
+            major showstopper for one of our big clients
+            Ref: SG-24622 at Autodesk
+            """
+            return True
+
         model = self.sourceModel()
         current_index = model.index(source_row, 0, source_parent)
         current_item = model.itemFromIndex(current_index)

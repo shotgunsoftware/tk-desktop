@@ -197,9 +197,9 @@ class RPCServerThread(threading.Thread):
     # timeout in seconds to wait for a request
     LISTEN_TIMEOUT = 2
 
-    # Special return value from the main thread signifying the callable wasn't executed because
-    # the server is tearing down. Ideally we would raise an exception but execute_in_main_thread
-    # doesn't propagate exceptions.
+    # Special return value from the main thread signifying the callable wasn't
+    # executed because the server is tearing down. Ideally we would raise an
+    # exception but execute_in_main_thread doesn't propagate exceptions.
     _SERVER_WAS_STOPPED = "INTERNAL_DESKTOP_MESSAGE : SERVER_WAS_STOPPED"
 
     def __init__(self, engine, authkey=None):
@@ -232,7 +232,8 @@ class RPCServerThread(threading.Thread):
 
     def list_functions(self):
         """
-        Default method that returns the list of functions registered with the server.
+        Default method that returns the list of functions registered with the
+        server.
         """
         return list(self._functions)
 
@@ -243,8 +244,8 @@ class RPCServerThread(threading.Thread):
         if name is None:
             name = func.__name__
 
-        # This method will be called from the main thread. If the server has been stopped, there
-        # is no need to call the method.
+        # This method will be called from the main thread. If the server has
+        # been stopped, there is no need to call the method.
         def wrapper(*args, **kwargs):
             if self._is_closed:
                 # Return special value indicating the server was stopped.
@@ -306,7 +307,8 @@ class RPCServerThread(threading.Thread):
                     if not has_data:
                         continue
 
-                    # data coming over the connection is a tuple of (name, args, kwargs)
+                    # data coming over the connection is a tuple of
+                    # (name, args, kwargs)
                     (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
                     logger.debug(
                         "server calling '%s(%s, %s)'" % (func_name, args, kwargs)
@@ -315,30 +317,34 @@ class RPCServerThread(threading.Thread):
                     try:
                         if func_name not in self._functions:
                             logger.error(
-                                "unknown function call: '%s', expecting one of '%s'"
-                                % (func_name, self.list_functions())
+                                "unknown function call: '%s', expecting one "
+                                "of '%s'" % (func_name, self.list_functions())
                             )
                             raise ValueError("unknown function call: '%s'" % func_name)
 
                         # grab the function from the function table
                         func = self._functions[func_name]
 
-                        # execute the function on the main thread.  It may do GUI work.
+                        # execute the function on the main thread. It may do
+                        # GUI work.
                         result = self.engine.execute_in_main_thread(
                             func, *args, **kwargs
                         )
 
-                        # If the RPC server was stopped, don't bother trying to reply, the connection
-                        # will have been broken on the client side and this will avoid an error
+                        # If the RPC server was stopped, don't bother trying
+                        # to reply, the connection will have been broken on
+                        # the client side and this will avoid an error
                         # on the server side when calling send.
                         if self._SERVER_WAS_STOPPED != result:
-                            # if the client expects the results, send them along
+                            # if the client expects the results, send them
+                            # along
                             logger.debug("server got result '%s'" % result)
 
                             if respond:
                                 connection.send(pickle.dumps(result))
                     except Exception as e:
-                        # if any of the above fails send the exception back to the client
+                        # if any of the above fails send the exception back
+                        # to the client
                         logger.error("got exception '%s'" % e)
                         logger.debug("   traceback:\n%s" % traceback.format_exc())
                         if respond:
@@ -348,7 +354,8 @@ class RPCServerThread(threading.Thread):
                 # just keep serving new connections
                 pass
             finally:
-                # It's possible we failed accepting, so the variable may not be defined.
+                # It's possible we failed accepting, so the variable may not
+                # be defined.
                 if connection is not None:
                     logger.debug("server closing")
                     connection.close()
@@ -360,16 +367,22 @@ class RPCServerThread(threading.Thread):
         logger.debug("server setting flag to stop")
         self.server.close()
         self._is_closed = True
+
         if sys.platform == "win32":
-            # The accept call blocks until a client is available.
-            # Unfortunately closing the connection on Windows does not
+            # The "accept" call blocks until a client is available-
+            # unfortunately closing the connection on Windows does not
             # cause accept to unblock and raise an error, so we have to force
             # accept to unblock by connecting to the server. The server thread
             # will then test the _is_closed flag and shut down.
-            try:
-                RPCProxy(self.pipe, self.authkey)
-            except Exception:
-                pass
+            def touch_server():
+                try:
+                    RPCProxy(self.pipe, self.authkey)
+                except Exception as e:
+                    pass
+
+            t = threading.Thread(target=touch_server)
+            t.setDaemon(True)
+            t.start()
 
 
 class RPCProxy(object):
@@ -422,15 +435,22 @@ class RPCProxy(object):
                     # have a response waiting, grab it
                     break
                 else:
-                    # If the connection was closed while we polled, raise an error.
+                    # If the connection was closed while we polled, raise
+                    # an error.
                     if self._closed:
                         raise RuntimeError("client closed while waiting for a response")
                     continue
             except IOError:
-                # An exception is raised on Windows when the connection is closed
-                # during polling instead of simply returning False.
+                # An exception is raised on Windows when the connection
+                # is closed during polling instead of simply returning False.
                 if self._closed:
                     raise RuntimeError("client closed while waiting for a response")
+                raise
+            except OSError as e:
+                if self._closed:
+                    raise RuntimeError(
+                        "client closed while waiting for a response with OSError exception"
+                    )
                 raise
 
         # read the result
