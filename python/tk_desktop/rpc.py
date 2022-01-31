@@ -383,7 +383,6 @@ class RPCServerThread(threading.Thread):
             t = threading.Thread(target=touch_server)
             t.setDaemon(True)
             t.start()
-            t.join(1)
 
 
 class RPCProxy(object):
@@ -446,6 +445,12 @@ class RPCProxy(object):
                 # is closed during polling instead of simply returning False.
                 if self._closed:
                     raise RuntimeError("client closed while waiting for a response")
+                raise
+            except OSError as e:
+                if self._closed:
+                    raise RuntimeError(
+                        "client closed while waiting for a response with OSError exception"
+                    )
                 raise
 
         # read the result
