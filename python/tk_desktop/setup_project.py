@@ -59,7 +59,7 @@ class SetupProject(QtGui.QWidget):
                 "Toolkit Setup Error",
                 "You are trying to set up a project which has already been set up\n\n"
                 "To re-setup a project, in a terminal window type: tank setup_project --force\n\n"
-                "Alternatively, you can go into shotgun and clear the Project.tank_name field\n"
+                "Alternatively, you can go into ShotGrid and clear the Project.tank_name field\n"
                 "and delete all pipeline configurations for your project.",
             )
             error_dialog.exec_()
