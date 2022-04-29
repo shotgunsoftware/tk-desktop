@@ -183,6 +183,12 @@ class DesktopEngineProjectImplementation(object):
 
     def _trigger_callback(self, namespace, command, *args, **kwargs):
         callback = self.__callback_map.get((namespace, command))
+        # import sys
+        # sys.path.append(
+        #     r"/Applications/PyCharm.app/Contents/debug-eggs/pydevd-pycharm.egg")
+        # import pydevd
+        # pydevd.settrace('localhost', port=5490, stdoutToServer=True,
+        #                 stderrToServer=True)
 
         if sgtk.util.is_macos():
             # If we are on Mac with PySide2, then starting a QApplication even with no Windows
@@ -200,10 +206,11 @@ class DesktopEngineProjectImplementation(object):
                 AppKit.NSApp.setActivationPolicy_(
                     AppKit.NSApplicationActivationPolicyRegular
                 )
-            except ImportError:
+            except (ImportError, AttributeError):
                 # Since AppKit is bundled with the Desktop installer, it's possible we are using
                 # an older version of the installer that doesn't contain this package. In which
                 # case just move on silently.
+                # Also catch AttributeError when AppKit.NSApp is NoneType
                 pass
 
         try:
