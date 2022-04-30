@@ -13,7 +13,16 @@ import pytest
 import itertools
 import datetime
 from mock import Mock
-
+import sys, os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
+sys.path.insert(
+    0, os.path.join(os.path.dirname(__file__), "..", "..", "tk-core", "python")
+)
+# sys.path.append(
+#     r"/Applications/PyCharm.app/Contents/debug-eggs/pydevd-pycharm.egg")
+# import pydevd
+# pydevd.settrace('localhost', port=5490, stdoutToServer=True,
+#                 stderrToServer=True)
 # Patch sgtk to se can use Qt in the tests.
 import sgtk
 
@@ -24,6 +33,7 @@ sgtk.platform.qt.QtCore = importer.QtCore
 
 from command_panel import CommandPanel
 from command_panel import recent_list
+from tk_desktop.desktop_engine_project_implementation import DesktopEngineProjectImplementation
 
 PROJECT = {"type": "Project", "id": 3}
 PROJECT_KEY = "project_recent_apps.3"
@@ -390,3 +400,19 @@ def _register_commands(view, names):
             ["Creative Tools"],
             is_menu_default,
         )
+
+def test_appkit():
+    """
+    Test the _set_appkit method by forcing an AttributeError
+    exception.
+    """
+    appkit_inst = DesktopEngineProjectImplementation(engine=None)
+    try:
+        # Forcing an AttributeError exception
+        # by calling the method isolated.
+        appkit_inst._set_appkit()
+        assert True
+    except ImportError:
+        assert False
+    except AttributeError:
+        assert False
