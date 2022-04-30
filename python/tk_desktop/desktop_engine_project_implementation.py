@@ -187,7 +187,6 @@ class DesktopEngineProjectImplementation(object):
         """
         try:
             import AppKit
-
             info = AppKit.NSBundle.mainBundle().infoDictionary()
             # Setting it to 0 will bring the application back to the foreground.
             info["LSUIElement"] = "0"
@@ -198,10 +197,9 @@ class DesktopEngineProjectImplementation(object):
             # Since AppKit is bundled with the Desktop installer, it's possible we are using
             # an older version of the installer that doesn't contain this package. In which
             # case just move on silently.
-            # Also catch AttributeError when AppKit.NSApp object is NoneType
             pass
         except AttributeError:
-            # Catch AttributeError exceptions when AppKit.NSApp object is NoneType
+            # Catch AttributeError exceptions when AppKit.NSApp object is NoneType.
             pass
 
     def _trigger_callback(self, namespace, command, *args, **kwargs):
