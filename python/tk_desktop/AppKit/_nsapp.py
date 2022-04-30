@@ -7,7 +7,6 @@ class _NSApp:
     Helper class to emulate NSApp in Python.
     """
 
-
     def __getrealapp(self):
         d = {}
         objc.loadBundleVariables(__bundle__, d, [("NSApp", b"@")])

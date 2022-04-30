@@ -18,7 +18,7 @@ LICENSE_LOCATION = os.path.join(os.path.dirname(__file__), "licenses.html")
 
 
 class Licenses(QtGui.QDialog):
-    """ Simple about dialog """
+    """Simple about dialog"""
 
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent)

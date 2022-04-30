@@ -30,7 +30,7 @@ class SgProjectDelegate(views.EditSelectedWidgetDelegate):
         views.EditSelectedWidgetDelegate.__init__(self, view)
 
     def _create_widget(self, parent):
-        """ Widget factory as required by base class """
+        """Widget factory as required by base class"""
         return ThumbWidget(self._size.width(), parent)
 
     def _on_before_paint(self, widget, model_index, style_options, selected=False):

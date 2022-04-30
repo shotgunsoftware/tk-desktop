@@ -30,7 +30,9 @@ sgtk.platform.qt.QtCore = importer.QtCore
 
 from command_panel import CommandPanel
 from command_panel import recent_list
-from tk_desktop.desktop_engine_project_implementation import DesktopEngineProjectImplementation
+from tk_desktop.desktop_engine_project_implementation import (
+    DesktopEngineProjectImplementation,
+)
 
 PROJECT = {"type": "Project", "id": 3}
 PROJECT_KEY = "project_recent_apps.3"
@@ -397,6 +399,7 @@ def _register_commands(view, names):
             ["Creative Tools"],
             is_menu_default,
         )
+
 
 def test_appkit():
     """

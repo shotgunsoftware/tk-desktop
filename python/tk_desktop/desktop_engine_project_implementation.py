@@ -187,6 +187,7 @@ class DesktopEngineProjectImplementation(object):
         """
         try:
             import AppKit
+
             info = AppKit.NSBundle.mainBundle().infoDictionary()
             # Setting it to 0 will bring the application back to the foreground.
             info["LSUIElement"] = "0"

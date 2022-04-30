@@ -148,7 +148,7 @@ class ProjectCommandSettings(object):
 
 
 class DesktopWindow(SystrayWindow):
-    """ Dockable window for the ShotGrid system tray """
+    """Dockable window for the ShotGrid system tray"""
 
     ORGANIZATION = "Shotgun Software"
     APPLICATION = "tk-desktop"
@@ -394,7 +394,9 @@ class DesktopWindow(SystrayWindow):
         :rtype: bool or None
         """
         return self._settings_manager.retrieve(
-            "debug_logging", None, self._settings_manager.SCOPE_ENGINE,
+            "debug_logging",
+            None,
+            self._settings_manager.SCOPE_ENGINE,
         )
 
     def _set_user_preferred_debug_logging(self, state):
@@ -405,7 +407,9 @@ class DesktopWindow(SystrayWindow):
         :param bool state: The debug logging state to store.
         """
         self._settings_manager.store(
-            "debug_logging", state, self._settings_manager.SCOPE_ENGINE,
+            "debug_logging",
+            state,
+            self._settings_manager.SCOPE_ENGINE,
         )
 
     user_preferred_debug_logging = property(
@@ -748,7 +752,8 @@ class DesktopWindow(SystrayWindow):
                     "Please <a href='{0}'>contact our support team</a> "
                     "if you need assistance resolving this issue. Make sure to zip the logs folder "
                     "at <a href='file://{1}'>{1}</a> and send it to us.".format(
-                        sgtk.support_url, sgtk.LogManager().log_folder,
+                        sgtk.support_url,
+                        sgtk.LogManager().log_folder,
                     ),
                 )
             else:

@@ -29,7 +29,6 @@ if sgtk.util.is_windows():
             time.sleep(1)
             super(RPCProxy, self).__init__(pipe, auth)
 
-
 else:
     RPCProxy = RPCProxyImp
 

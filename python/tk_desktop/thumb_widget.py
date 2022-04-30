@@ -15,7 +15,7 @@ from .ui import thumb_widget
 
 
 class ThumbWidget(QtGui.QWidget):
-    """Thumbnail widget to poplulate the projects list view """
+    """Thumbnail widget to poplulate the projects list view"""
 
     SIZER_WIDGET = None
 
@@ -33,7 +33,7 @@ class ThumbWidget(QtGui.QWidget):
         self.ui.thumbnail.setFixedSize(self.thumb_size, self.thumb_size)
 
     def set_thumbnail(self, pixmap):
-        """ Set a thumbnail given the current pixmap. """
+        """Set a thumbnail given the current pixmap."""
         # zoom to fit height, then crop to center
         pixmap = pixmap.scaledToHeight(self.thumb_size, QtCore.Qt.SmoothTransformation)
         if pixmap.width() > self.thumb_size:
@@ -60,7 +60,7 @@ class ThumbWidget(QtGui.QWidget):
         return margins.top() + margins.bottom() + spacing + thumb_height + label_height
 
     def set_text(self, label):
-        """Populate the line of text in the widget """
+        """Populate the line of text in the widget"""
         self.ui.label.setText(label)
 
     def set_selected(self, selected):
