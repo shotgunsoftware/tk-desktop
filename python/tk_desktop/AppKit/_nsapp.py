@@ -9,14 +9,8 @@ class _NSApp:
 
 
     def __getrealapp(self):
-        # import sys
-        # sys.path.append(
-        #     r"/Applications/PyCharm.app/Contents/debug-eggs/pydevd-pycharm.egg")
-        # import pydevd
-        # pydevd.settrace('localhost', port=5490, stdoutToServer=True,
-        #                 stderrToServer=True)
         d = {}
-        #objc.loadBundleVariables(__bundle__, d, [("NSApp", b"@")])
+        objc.loadBundleVariables(__bundle__, d, [("NSApp", b"@")])
         return d.get("NSApp")
 
     __class__ = property(lambda self: self.__getrealapp().__class__)

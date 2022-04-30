@@ -181,7 +181,7 @@ class DesktopEngineProjectImplementation(object):
         finally:
             self._project_comm.shut_down()
 
-    def _set_appkit(self):
+    def _set_appkit(self, *args):
         """
         Imports AppKit module and set it for throwing an application into background.
         """
@@ -190,6 +190,9 @@ class DesktopEngineProjectImplementation(object):
             info = AppKit.NSBundle.mainBundle().infoDictionary()
             # Setting it to 0 will bring the application back to the foreground.
             info["LSUIElement"] = "0"
+            if args:
+                AppKit.NSApp = args
+
             AppKit.NSApp.setActivationPolicy_(
                 AppKit.NSApplicationActivationPolicyRegular
             )

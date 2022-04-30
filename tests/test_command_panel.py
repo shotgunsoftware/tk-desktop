@@ -14,15 +14,12 @@ import itertools
 import datetime
 from mock import Mock
 import sys, os
+
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 sys.path.insert(
     0, os.path.join(os.path.dirname(__file__), "..", "..", "tk-core", "python")
 )
-# sys.path.append(
-#     r"/Applications/PyCharm.app/Contents/debug-eggs/pydevd-pycharm.egg")
-# import pydevd
-# pydevd.settrace('localhost', port=5490, stdoutToServer=True,
-#                 stderrToServer=True)
+
 # Patch sgtk to se can use Qt in the tests.
 import sgtk
 
@@ -409,8 +406,8 @@ def test_appkit():
     appkit_inst = DesktopEngineProjectImplementation(engine=None)
     try:
         # Forcing an AttributeError exception
-        # by calling the method isolated.
-        appkit_inst._set_appkit()
+        # by passing a None type argument to the method.
+        appkit_inst._set_appkit(None)
         assert True
     except ImportError:
         assert False
