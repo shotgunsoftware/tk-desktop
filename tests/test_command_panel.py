@@ -14,6 +14,7 @@ import itertools
 import datetime
 from mock import Mock
 import sys, os
+import pkgutil
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 sys.path.insert(
@@ -401,6 +402,7 @@ def _register_commands(view, names):
         )
 
 
+@pytest.mark.skipif(pkgutil.find_loader("AppKit") is None, reason="AppKit module not available.")
 def test_appkit():
     """
     Test the _set_appkit method by forcing an AttributeError
