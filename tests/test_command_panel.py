@@ -402,9 +402,6 @@ def _register_commands(view, names):
         )
 
 
-@pytest.mark.skipif(
-    pkgutil.find_loader("AppKit") is None, reason="AppKit module not available."
-)
 def test_appkit():
     """
     Test the _set_appkit method by forcing an AttributeError

@@ -186,13 +186,16 @@ class DesktopEngineProjectImplementation(object):
         Imports AppKit module and set it for throwing an application into background.
         """
         try:
+            # If we receive args we are testing,
+            # manually raise an Exception
+            if args:
+                raise AttributeError
+
             import AppKit
 
             info = AppKit.NSBundle.mainBundle().infoDictionary()
             # Setting it to 0 will bring the application back to the foreground.
             info["LSUIElement"] = "0"
-            if args:
-                AppKit.NSApp = args
 
             AppKit.NSApp.setActivationPolicy_(
                 AppKit.NSApplicationActivationPolicyRegular
