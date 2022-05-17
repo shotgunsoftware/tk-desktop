@@ -395,7 +395,10 @@ def handle_error(data, proxy=None):
     # to send the message.
     if proxy is not None and not proxy.is_closed():
         proxy.call_no_response(
-            "engine_startup_error", exc_type.__name__, str(exc_value), "".join(lines),
+            "engine_startup_error",
+            exc_type.__name__,
+            str(exc_value),
+            "".join(lines),
         )
         return
 
@@ -403,7 +406,10 @@ def handle_error(data, proxy=None):
 
     try:
         proxy.call_no_response(
-            "engine_startup_error", exc_type.__name__, str(exc_value), "".join(lines),
+            "engine_startup_error",
+            exc_type.__name__,
+            str(exc_value),
+            "".join(lines),
         )
     finally:
         try:

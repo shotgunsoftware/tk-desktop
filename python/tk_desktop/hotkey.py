@@ -84,7 +84,9 @@ class HotKeyEditor(QtGui.QLineEdit):
         key |= self.translate_modifiers(event.modifiers(), event.text())
         self.key_sequence = QtGui.QKeySequence(key)
         self.key_sequence_changed.emit(
-            self.key_sequence, event.nativeModifiers(), event.nativeVirtualKey(),
+            self.key_sequence,
+            event.nativeModifiers(),
+            event.nativeVirtualKey(),
         )
 
         event.accept()

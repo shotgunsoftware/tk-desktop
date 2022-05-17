@@ -203,9 +203,14 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             # If a Project is defined in the current context, retrieve
             # Software entities that have either no Project restrictions OR
             # include the context Project as a restriction.
-            project_filters.append(["sg_projects", "in", current_project],)
+            project_filters.append(
+                ["sg_projects", "in", current_project],
+            )
             sw_filters.append(
-                {"filter_operator": "or", "filters": project_filters,}
+                {
+                    "filter_operator": "or",
+                    "filters": project_filters,
+                }
             )
         else:
             # If no context Project is defined, then only retrieve

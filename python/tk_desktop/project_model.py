@@ -271,7 +271,7 @@ class SgProjectModel(ShotgunModel):
         return cls._supports_project_templates
 
     def __init__(self, parent, overlay_parent_widget):
-        """ Constructor """
+        """Constructor"""
         ShotgunModel.__init__(self, parent, download_thumbs=True)
 
         # load up the thumbnail to use when there is none set in Shotgun

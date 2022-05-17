@@ -12,7 +12,7 @@ from tank.platform.qt import QtCore, QtGui
 
 
 class ShotgunSystemTrayIcon(QtGui.QSystemTrayIcon):
-    """ wrapper around system tray icon """
+    """wrapper around system tray icon"""
 
     clicked = QtCore.Signal()
     double_clicked = QtCore.Signal()

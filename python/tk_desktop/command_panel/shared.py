@@ -47,9 +47,17 @@ QToolButton::menu-arrow:!hover { image:none; }
 
 """ % (
     "rgb(%s, %s, %s)"
-    % (highlight_col.red(), highlight_col.green(), highlight_col.blue(),),
+    % (
+        highlight_col.red(),
+        highlight_col.green(),
+        highlight_col.blue(),
+    ),
     "rgba(%s, %s, %s, 25%%)"
-    % (highlight_col.red(), highlight_col.green(), highlight_col.blue(),),
+    % (
+        highlight_col.red(),
+        highlight_col.green(),
+        highlight_col.blue(),
+    ),
 )
 
 # Maximum number of recents.

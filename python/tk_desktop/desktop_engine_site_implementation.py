@@ -250,7 +250,7 @@ class DesktopEngineSiteImplementation(object):
         self._collapse_rules = collapse_rules
 
     def trigger_register_command(self, name, properties, groups):
-        """ GUI side handler for the add_command call. """
+        """GUI side handler for the add_command call."""
         from tank.platform.qt import QtGui
 
         logger.debug("register_command(%s, %s)", name, properties)
@@ -347,7 +347,7 @@ class DesktopEngineSiteImplementation(object):
         self.desktop_window.on_project_commands_finished()
 
     def _handle_button_command_triggered(self, name):
-        """ Button clicked from a registered command. """
+        """Button clicked from a registered command."""
         self.refresh_user_credentials()
         # Make sure the string is a str and not unicode. This happens in
         # Python 2.7.

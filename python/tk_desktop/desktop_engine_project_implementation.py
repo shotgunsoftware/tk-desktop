@@ -181,6 +181,34 @@ class DesktopEngineProjectImplementation(object):
         finally:
             self._project_comm.shut_down()
 
+    def _set_appkit(self, *args):
+        """
+        Imports AppKit module and set it for throwing an application into background.
+        """
+        try:
+            # If we receive args we are testing,
+            # manually raise an Exception
+            if args:
+                raise AttributeError
+
+            import AppKit
+
+            info = AppKit.NSBundle.mainBundle().infoDictionary()
+            # Setting it to 0 will bring the application back to the foreground.
+            info["LSUIElement"] = "0"
+
+            AppKit.NSApp.setActivationPolicy_(
+                AppKit.NSApplicationActivationPolicyRegular
+            )
+        except ImportError:
+            # Since AppKit is bundled with the Desktop installer, it's possible we are using
+            # an older version of the installer that doesn't contain this package. In which
+            # case just move on silently.
+            pass
+        except AttributeError:
+            # Catch AttributeError exceptions when AppKit.NSApp object is NoneType.
+            pass
+
     def _trigger_callback(self, namespace, command, *args, **kwargs):
         callback = self.__callback_map.get((namespace, command))
 
@@ -191,20 +219,7 @@ class DesktopEngineProjectImplementation(object):
             # However we need to bring it to the foreground when we want to run an app.
             # This solution for bringing it back to the foreground is a modification of the example here:
             # https://stackoverflow.com/a/34381136/4223964
-            try:
-                import AppKit
-
-                info = AppKit.NSBundle.mainBundle().infoDictionary()
-                # Setting it to 0 will bring the application back to the foreground.
-                info["LSUIElement"] = "0"
-                AppKit.NSApp.setActivationPolicy_(
-                    AppKit.NSApplicationActivationPolicyRegular
-                )
-            except ImportError:
-                # Since AppKit is bundled with the Desktop installer, it's possible we are using
-                # an older version of the installer that doesn't contain this package. In which
-                # case just move on silently.
-                pass
+            self._set_appkit()
 
         try:
             callback(*args, **kwargs)

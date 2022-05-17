@@ -13,7 +13,7 @@ from sgtk.platform.qt import QtCore
 
 
 class ActionListView(QtGui.QListView):
-    """ Subclass of QListView that handles special logic when the items launch actions on select """
+    """Subclass of QListView that handles special logic when the items launch actions on select"""
 
     def mousePressEvent(self, event):
         # Ignore right click events

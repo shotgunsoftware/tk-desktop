@@ -46,7 +46,7 @@ class SystrayWindow(QtGui.QMainWindow):
     systray_state_changed = QtCore.Signal(int)
 
     class ApplicationEventFilter(QtCore.QObject):
-        """ Internal class to handle hiding window on App deactivate """
+        """Internal class to handle hiding window on App deactivate"""
 
         def __init__(self, window, parent=None):
             QtCore.QObject.__init__(self, parent)
@@ -132,27 +132,27 @@ class SystrayWindow(QtGui.QMainWindow):
     ###########################
 
     def set_drag_widgets(self, widgets):
-        """ Set the list of widgets that can be dragged to move the window """
+        """Set the list of widgets that can be dragged to move the window"""
         self.__drag_widgets = widgets[:]
 
     def set_corner_radius(self, value):
-        """ set the radius to use for rounding the window corners """
+        """set the radius to use for rounding the window corners"""
         self.__corner_radius = value
 
     def set_content_layout(self, value):
-        """ set the layout to use to provide a margin for the anchor """
+        """set the layout to use to provide a margin for the anchor"""
         self.__content_layout = value
 
     # Change pin state
     ###########################
     @property
     def state(self):
-        """ return the current state of the window """
+        """return the current state of the window"""
         return self.__state
 
     @state.setter
     def state(self, value):
-        """ set the current state of the window """
+        """set the current state of the window"""
         # if state isn't changing do not do anything
         if self.__state == value:
             return
@@ -240,7 +240,7 @@ class SystrayWindow(QtGui.QMainWindow):
     # Drag to move behavior
     ###########################
     def mousePressEvent(self, event):
-        """ Handle mouse press to track the start of a drag from the pinned window header """
+        """Handle mouse press to track the start of a drag from the pinned window header"""
         if any([elem.underMouse() for elem in self.__drag_widgets]):
             # only trigger on left click
             if event.buttons() == QtCore.Qt.LeftButton:
@@ -252,7 +252,7 @@ class SystrayWindow(QtGui.QMainWindow):
         event.ignore()
 
     def mouseReleaseEvent(self, event):
-        """ Handle mouse release to switch to window mode if there has been a long enough drag """
+        """Handle mouse release to switch to window mode if there has been a long enough drag"""
         # only do something if we are dragging
         if self.__mouse_down_pos is None:
             event.ignore()
@@ -272,7 +272,7 @@ class SystrayWindow(QtGui.QMainWindow):
         event.ignore()
 
     def mouseMoveEvent(self, event):
-        """ Handle mouse moves to move the window with the mouse if we are dragging """
+        """Handle mouse moves to move the window with the mouse if we are dragging"""
         if self.__mouse_down_pos is not None:
             # move window to track mouse
             self.move(self.mapToParent(event.pos() - self.__mouse_down_pos))
@@ -283,7 +283,7 @@ class SystrayWindow(QtGui.QMainWindow):
     # Pinned behavior
     ###########################
     def __move_to_systray(self):
-        """ update the window position to be centered under the system tray icon """
+        """update the window position to be centered under the system tray icon"""
         geo = self.systray.geometry()
         logger.debug("__move_to_systray: systray_geo: %s" % geo)
 
@@ -317,7 +317,7 @@ class SystrayWindow(QtGui.QMainWindow):
             self._set_window_mask()
 
     def systray_clicked(self):
-        """ handler for single click on the system tray """
+        """handler for single click on the system tray"""
         self.toggle_activate()
 
     def is_pinned(self):
@@ -367,7 +367,7 @@ class SystrayWindow(QtGui.QMainWindow):
     # Update the window mask
     ############################
     def _guess_toolbar_side(self):
-        """ guess which side of the screen the toolbar is on """
+        """guess which side of the screen the toolbar is on"""
         pos = self.systray.geometry().center()
         screen_geometry = self._get_systray_screen_geometry()
 
@@ -395,7 +395,7 @@ class SystrayWindow(QtGui.QMainWindow):
                 return self.DOCK_BOTTOM
 
     def _set_window_mask(self):
-        """ set the window mask when pinned to the systray """
+        """set the window mask when pinned to the systray"""
         if self.state == self.STATE_WINDOWED:
             self.__content_layout.setContentsMargins(0, 0, 0, 0)
             self.clearMask()
