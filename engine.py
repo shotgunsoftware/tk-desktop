@@ -65,7 +65,7 @@ class DesktopEngine(Engine):
         # Assigning a default value to _host_info property during
         # object creation.
         cls._host_info = {"name": "Desktop", "version": "unknown"}
-        return super().__new__(cls, *args, **kwargs)
+        return super().__new__(cls)
 
     @property
     def host_info(self):
