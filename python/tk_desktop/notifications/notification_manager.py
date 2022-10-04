@@ -12,7 +12,7 @@ from .desktop_notification import DesktopNotification
 from .configuration_update_notification import ConfigurationUpdateNotification
 from .first_launch_notification import FirstLaunchNotification
 from .startup_update_notification import StartupUpdateNotification
-# from .python2_deprecation_notification import Python2DeprecationNotification
+from .python2_deprecation_notification import Python2DeprecationNotification
 
 import sgtk
 
@@ -57,7 +57,7 @@ class NotificationsManager(object):
         other_notifs = [
             StartupUpdateNotification.create(banner_settings, self._engine),
             DesktopNotification.create(banner_settings, self._engine),
-            # Python2DeprecationNotification(banner_settings, self._engine),
+            Python2DeprecationNotification.create(banner_settings, self._engine),
         ]
 
         # If both descriptors are set and they have the same uri, we only want one notification.

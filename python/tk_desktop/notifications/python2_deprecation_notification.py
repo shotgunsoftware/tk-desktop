@@ -37,7 +37,6 @@ class Python2DeprecationNotification(Notification):
 
         :returns: A :class:`Python2DeprecationNotification` instance, or ``None``.
         """
-
         if banner_settings.get(cls._PYTHON2_DEPRECATION_ID, {}).get(
             "is_dismissed", False
         ):
@@ -52,11 +51,12 @@ class Python2DeprecationNotification(Notification):
         """
         Message to display.
         """
+        url = "https://community.shotgridsoftware.com/t/important-notice-upcoming-removal-of-python-2-7-and-3-7-interpreter-in-shotgrid-desktop/15168"  # noqa
         return """
-        ShotGrid is ending support for Python 2 in ShotGrid Desktop on Nov 1 2022. 
-        Please upgrade to Python 3.9 before this date to ensure continuous support. See more information about this 
-        update <a href="https://community.shotgridsoftware.com/t/important-notice-upcoming-removal-of-python-2-7-and-3-7-interpreter-in-shotgrid-desktop/15168">here</a>.
-        """
+        ShotGrid is ending support for <b>Python 2</b> in ShotGrid Desktop on Nov 1 2022. 
+        Please upgrade to <b>Python 3.9</b> before this date to ensure continuous support. See more information about this 
+        update <a href="{}">here</a>.
+        """.format(url)
 
     @property
     def unique_id(self):
