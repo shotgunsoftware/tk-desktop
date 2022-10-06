@@ -68,4 +68,6 @@ class Python2DeprecationNotification(Notification):
 
         :param banner_settings: Dictionary of the banners settings.
         """
-        banner_settings.setdefault(self._PYTHON2_DEPRECATION_ID, {})["is_dismissed"] = True
+        banner_settings.setdefault(self._PYTHON2_DEPRECATION_ID, {})[
+            "is_dismissed"
+        ] = True
