@@ -56,7 +56,6 @@ class BannerWidget(QtGui.QWidget):
         """
         if url:
             QtGui.QDesktopServices.openUrl(url)
-        self._on_dismiss_message()
 
     @property
     def unique_id(self):

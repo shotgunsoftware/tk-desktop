@@ -13,3 +13,4 @@ from .configuration_update_notification import ConfigurationUpdateNotification  
 from .first_launch_notification import FirstLaunchNotification  # noqa
 from .desktop_notification import DesktopNotification  # noqa
 from .notification_manager import NotificationsManager  # noqa
+from .python2_deprecation_notification import Python2DeprecationNotification
