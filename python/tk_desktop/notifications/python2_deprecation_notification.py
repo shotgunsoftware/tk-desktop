@@ -21,30 +21,21 @@ class Python2DeprecationNotification(Notification):
 
     _PYTHON2_DEPRECATION_ID = "python2-deprecation-notification"
 
-    def __init__(self, engine):
-        """
-        :param engine: Toolkit engine.
-        """
-        self._engine = engine
-
     @classmethod
-    def create(cls, banner_settings, engine):
+    def create(cls, banner_settings):
         """
         Notification factory for python 2 deprecation.
 
         :param banner_settings: Dictionary of banner settings.
-        :param engine: Toolkit engine.
 
         :returns: A :class:`Python2DeprecationNotification` instance, or ``None``.
         """
-        if banner_settings.get(cls._PYTHON2_DEPRECATION_ID, {}).get(
-            "is_dismissed", False
-        ):
-            logger.debug("This banner has already been dismissed.")
+        if banner_settings.get(cls._PYTHON2_DEPRECATION_ID, False):
+            logger.debug("Python 2 banner has already been dismissed.")
             return None
         else:
             logger.debug("Python 2 deprecation banner available")
-            return Python2DeprecationNotification(engine)
+            return Python2DeprecationNotification()
 
     @property
     def message(self):
@@ -74,6 +65,4 @@ class Python2DeprecationNotification(Notification):
 
         :param banner_settings: Dictionary of the banners settings.
         """
-        banner_settings.setdefault(self._PYTHON2_DEPRECATION_ID, {})[
-            "is_dismissed"
-        ] = True
+        banner_settings[self._PYTHON2_DEPRECATION_ID] = True

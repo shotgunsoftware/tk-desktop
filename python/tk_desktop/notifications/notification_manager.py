@@ -50,14 +50,26 @@ class NotificationsManager(object):
         logger.debug("Retrieving the list of notifications...")
         banner_settings = self._get_banner_settings()
 
+        # notifications
+
         # Check if this is the first launch.
         first_launch_notif = FirstLaunchNotification.create(banner_settings)
+        # Python 2 deprecation notif
+        python2_notif = Python2DeprecationNotification.create(banner_settings)
+        # startup update and desktop notifs
+        startup_update_notif = StartupUpdateNotification.create(banner_settings, self._engine)  # noqa
+        desktop_notif = DesktopNotification.create(banner_settings, self._engine)  # noqa
 
         # Get all other notification types. Filter out those who are not set.
         other_notifs = [
-            StartupUpdateNotification.create(banner_settings, self._engine),
-            DesktopNotification.create(banner_settings, self._engine),
-            Python2DeprecationNotification.create(banner_settings, self._engine),
+            startup_update_notif,
+            desktop_notif,
+            python2_notif,
+        ]
+
+        # notifs to be included in the first time launch
+        include_in_first_launch = [
+            python2_notif,
         ]
 
         # If both descriptors are set and they have the same uri, we only want one notification.
@@ -88,15 +100,19 @@ class NotificationsManager(object):
 
         other_notifs = list(filter(None, other_notifs))
 
-        # If this is the first launch, suppress all other notifications and return only the first
-        # launch one.
+        # If this is the first launch, suppress all other notifications not
+        # present in include_in_first_launch
         if first_launch_notif:
             logger.debug(
                 "First launch notification to be displayed, dismiss all other notifications."
             )
+            to_return = [first_launch_notif]
             for notif in other_notifs:
-                self.dismiss(notif)
-            return [first_launch_notif]
+                if notif not in include_in_first_launch:
+                    self.dismiss(notif)
+                else:
+                    to_return.append(notif)
+            return to_return
         else:
             logger.debug("Notifications to display: %s", other_notifs)
             return other_notifs
