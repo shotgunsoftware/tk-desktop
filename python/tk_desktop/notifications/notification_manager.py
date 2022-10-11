@@ -57,8 +57,12 @@ class NotificationsManager(object):
         # Python 2 deprecation notif
         python2_notif = Python2DeprecationNotification.create(banner_settings)
         # startup update and desktop notifs
-        startup_update_notif = StartupUpdateNotification.create(banner_settings, self._engine)  # noqa
-        desktop_notif = DesktopNotification.create(banner_settings, self._engine)  # noqa
+        startup_update_notif = StartupUpdateNotification.create(
+            banner_settings, self._engine
+        )  # noqa
+        desktop_notif = DesktopNotification.create(
+            banner_settings, self._engine
+        )  # noqa
 
         # Get all other notification types. Filter out those who are not set.
         other_notifs = [
