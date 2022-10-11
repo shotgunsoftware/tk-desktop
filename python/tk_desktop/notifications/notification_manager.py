@@ -25,6 +25,9 @@ class NotificationsManager(object):
     """
 
     _BANNERS = "banners"
+    NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH = [
+        Python2DeprecationNotification,
+    ]
 
     def __init__(self, user_settings, site_descriptor, project_descriptor, engine):
         """
@@ -71,11 +74,6 @@ class NotificationsManager(object):
             python2_notif,
         ]
 
-        # notifs to be included in the first time launch
-        include_in_first_launch = [
-            python2_notif,
-        ]
-
         # If both descriptors are set and they have the same uri, we only want one notification.
         if (
             self._site_descriptor
@@ -112,9 +110,13 @@ class NotificationsManager(object):
             )
             to_return = [first_launch_notif]
             for notif in other_notifs:
-                if notif not in include_in_first_launch:
-                    self.dismiss(notif)
-                else:
+                accepted = True
+                for notif_class in self.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH:
+                    if not isinstance(notif, notif_class):
+                        self.dismiss(notif)
+                        accepted = False
+                        break
+                if accepted:
                     to_return.append(notif)
             return to_return
         else:

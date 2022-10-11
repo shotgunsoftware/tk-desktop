@@ -78,11 +78,18 @@ class TestNotifications(TankTestBase):
         """
         # Make sure there's only one notif and its the first launch one.
         notifs = self._notification_manager.get_notifications()
+        notifs_first_launch = self._notification_manager.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH  # noqa
         self._test_properties(notifs)
-        self.assertEqual(len(notifs), 1)
+        self.assertEqual(len(notifs), len(notifs_first_launch) + 1)
         self.assertEqual(
             isinstance(notifs[0], notifications.FirstLaunchNotification), True
         )
+
+        for idx, notif in enumerate(notifs[1:]):
+            self.assertEqual(
+                isinstance(notifs[idx + 1], notifs_first_launch[idx]),
+                True
+            )
 
         # Dismiss all!
         for notif in notifs:
@@ -96,14 +103,20 @@ class TestNotifications(TankTestBase):
         Test the first launch notification message.
         """
         notifs = self._notification_manager.get_notifications()
+        notifs_first_launch = self._notification_manager.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH  # noqa
         self._test_properties(notifs)
 
         # Make sure there's only one notification the first time you launch the desktop. We don't
         # want to know about a configuration update.
-        self.assertEqual(len(notifs), 1)
+        self.assertEqual(len(notifs), len(notifs_first_launch) + 1)
         self.assertEqual(
             isinstance(notifs[0], notifications.FirstLaunchNotification), True
         )
+        for idx, notif in enumerate(notifs[1:]):
+            self.assertEqual(
+                isinstance(notifs[idx + 1], notifs_first_launch[idx]),
+                True
+            )
 
         # Dismiss all!
         for notif in notifs:
@@ -206,3 +219,18 @@ class TestNotifications(TankTestBase):
 
         # Now there should be no more current notifications.
         self.assertListEqual(self._notification_manager.get_notifications(), [])
+
+    def test_python2_deprecation_notifs(self):
+        """
+        Test python2 deprecation notification.
+        """
+        notifs = self._notification_manager.get_notifications()
+
+        is_included = False
+        for notif in notifs:
+            if isinstance(notif, notifications.Python2DeprecationNotification):
+                is_included = True
+
+            self._notification_manager.dismiss(notif)
+
+        self.assertTrue(is_included)
