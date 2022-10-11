@@ -9,8 +9,6 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from __future__ import with_statement
-import os
-import sys
 
 from tank_test.tank_test_base import TankTestBase, SealedMock
 from tank_test.tank_test_base import setUpModule  # noqa
