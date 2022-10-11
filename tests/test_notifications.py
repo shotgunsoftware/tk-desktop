@@ -84,8 +84,9 @@ class TestNotifications(TankTestBase):
             isinstance(notifs[0], notifications.FirstLaunchNotification), True
         )
 
-        # Dismiss it!
-        self._notification_manager.dismiss(notifs[0])
+        # Dismiss all!
+        for notif in notifs:
+            self._notification_manager.dismiss(notif)
 
         # Should be empty now.
         self.assertListEqual(self._notification_manager.get_notifications(), [])
