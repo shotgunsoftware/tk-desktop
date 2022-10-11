@@ -78,7 +78,9 @@ class TestNotifications(TankTestBase):
         """
         # Make sure there's only one notif and its the first launch one.
         notifs = self._notification_manager.get_notifications()
-        notifs_first_launch = self._notification_manager.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH  # noqa
+        notifs_first_launch = (
+            self._notification_manager.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH
+        )  # noqa
         self._test_properties(notifs)
         self.assertEqual(len(notifs), len(notifs_first_launch) + 1)
         self.assertEqual(
@@ -87,8 +89,7 @@ class TestNotifications(TankTestBase):
 
         for idx, notif in enumerate(notifs[1:]):
             self.assertEqual(
-                isinstance(notifs[idx + 1], notifs_first_launch[idx]),
-                True
+                isinstance(notifs[idx + 1], notifs_first_launch[idx]), True
             )
 
         # Dismiss all!
@@ -103,7 +104,9 @@ class TestNotifications(TankTestBase):
         Test the first launch notification message.
         """
         notifs = self._notification_manager.get_notifications()
-        notifs_first_launch = self._notification_manager.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH  # noqa
+        notifs_first_launch = (
+            self._notification_manager.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH
+        )  # noqa
         self._test_properties(notifs)
 
         # Make sure there's only one notification the first time you launch the desktop. We don't
@@ -114,8 +117,7 @@ class TestNotifications(TankTestBase):
         )
         for idx, notif in enumerate(notifs[1:]):
             self.assertEqual(
-                isinstance(notifs[idx + 1], notifs_first_launch[idx]),
-                True
+                isinstance(notifs[idx + 1], notifs_first_launch[idx]), True
             )
 
         # Dismiss all!
