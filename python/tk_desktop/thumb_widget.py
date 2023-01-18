@@ -39,7 +39,9 @@ class ThumbWidget(QtGui.QWidget):
 
         if os.getenv("SGTK_PROJ_THUMB_OLD") == "True":
             # zoom to fit height, then crop to center
-            pixmap = pixmap.scaledToHeight(self.thumb_size, QtCore.Qt.SmoothTransformation)
+            pixmap = pixmap.scaledToHeight(
+                self.thumb_size, QtCore.Qt.SmoothTransformation
+            )
             if pixmap.width() > self.thumb_size:
                 extra = pixmap.width() - self.thumb_size
                 pixmap = pixmap.copy(extra / 2, 0, self.thumb_size, self.thumb_size)
@@ -48,7 +50,7 @@ class ThumbWidget(QtGui.QWidget):
             pixmap = pixmap.scaled(dst_pixmap.size(), QtCore.Qt.KeepAspectRatio)
             painter = QtGui.QPainter(dst_pixmap)
             if pixmap.width() < self.thumb_size:
-                painter.drawPixmap((self.thumb_size - pixmap.width())/2, 0, pixmap)
+                painter.drawPixmap((self.thumb_size - pixmap.width()) / 2, 0, pixmap)
             else:
                 painter.drawPixmap(0, self.thumb_size - pixmap.height() / 2, pixmap)
             painter.end()
