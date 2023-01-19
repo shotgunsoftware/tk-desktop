@@ -46,6 +46,8 @@ class ThumbWidget(QtGui.QWidget):
                 extra = pixmap.width() - self.thumb_size
                 pixmap = pixmap.copy(extra / 2, 0, self.thumb_size, self.thumb_size)
         else:
+            # keep thumbnail ratio and add "letter box" margins if needed
+            # (margins will use background color)
             dst_pixmap = QtGui.QPixmap(self.thumb_size, self.thumb_size)
             pixmap = pixmap.scaled(dst_pixmap.size(), QtCore.Qt.KeepAspectRatio)
             painter = QtGui.QPainter(dst_pixmap)
