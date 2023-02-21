@@ -348,12 +348,6 @@ class DesktopEngineSiteImplementation(object):
 
     def _handle_button_command_triggered(self, name):
         """Button clicked from a registered command."""
-        #import sys
-        # sys.path.append(
-        #     r"/Applications/PyCharm.app/Contents/debug-eggs/pydevd-pycharm.egg")
-        # import pydevd
-        # pydevd.settrace('localhost', port=5490, stdoutToServer=True,
-        #                 stderrToServer=True)
         self.refresh_user_credentials()
         # Make sure the string is a str and not unicode. This happens in
         # Python 2.7.
