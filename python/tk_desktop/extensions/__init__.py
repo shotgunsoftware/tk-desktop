@@ -47,7 +47,7 @@ elif sys.platform == "darwin":
         # This library does not link against qt, so the names are not suffixed
         # with the qt version.
         if sys.version_info[0] == 3.7:
-            from .darwin_python3 import osutils
+            from .darwin_python37 import osutils
         else:
             from .darwin_python39 import osutils
         use_mocked_osutils = False
