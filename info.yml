@@ -165,3 +165,4 @@ frameworks:
     - {"name": "tk-framework-shotgunutils", "version": "v5.x.x", "minimum_version": "v5.7.1"}
     - {"name": "tk-framework-adminui", "version": "v0.x.x", "minimum_version": "v0.6.0"}
     - {"name": "tk-framework-desktopserver", "version": "v1.x.x", "minimum_version": "v1.4.0"}
+
