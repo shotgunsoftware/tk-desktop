@@ -48,8 +48,10 @@ elif sys.platform == "darwin":
         # with the qt version.
         if sys.version_info[0] == 2:
             from .darwin_python2 import osutils
-        else:
-            from .darwin_python3 import osutils
+        elif sys.version_info[0:2] == (3, 7):
+            from .darwin_python37 import osutils
+        elif sys.version_info[0:2] == (3, 9):
+            from .darwin_python39 import osutils
         use_mocked_osutils = False
     except Exception as e:
         logger.warning("Could not load osutils: %s", e, exc_info=True)
