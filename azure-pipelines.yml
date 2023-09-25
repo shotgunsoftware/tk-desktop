@@ -39,5 +39,3 @@ variables:
 
 jobs:
 - template: build-pipeline.yml@templates
-  parameters:
-    tk_core_ref: ticket/SG-32657_py310
