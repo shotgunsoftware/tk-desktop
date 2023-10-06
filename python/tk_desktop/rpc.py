@@ -380,8 +380,11 @@ class RPCServerThread(threading.Thread):
                 except Exception as e:
                     pass
 
-            t = threading.Thread(target=touch_server)
-            t.setDaemon(True)
+            if six.PY3:
+                t = threading.Thread(target=touch_server, daemon=True)
+            else:
+                t = threading.Thread(target=touch_server)
+                t.setDaemon(True)
             t.start()
 
 
