@@ -9,6 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .desktop_notification import DesktopNotification
+from .centos7_deprecation_notification import CentOS7DeprecationNotification
 from .configuration_update_notification import ConfigurationUpdateNotification
 from .first_launch_notification import FirstLaunchNotification
 from .startup_update_notification import StartupUpdateNotification
@@ -26,6 +27,7 @@ class NotificationsManager(object):
 
     _BANNERS = "banners"
     NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH = [
+        CentOS7DeprecationNotification,
         Python2DeprecationNotification,
     ]
 
@@ -59,6 +61,7 @@ class NotificationsManager(object):
         first_launch_notif = FirstLaunchNotification.create(banner_settings)
         # Python 2 deprecation notif
         python2_notif = Python2DeprecationNotification.create(banner_settings)
+
         # startup update and desktop notifs
         startup_update_notif = StartupUpdateNotification.create(
             banner_settings, self._engine
@@ -72,6 +75,9 @@ class NotificationsManager(object):
             startup_update_notif,
             desktop_notif,
             python2_notif,
+
+            # CentOS 7 deprecation notif
+            CentOS7DeprecationNotification.create(banner_settings),
         ]
 
         # If both descriptors are set and they have the same uri, we only want one notification.

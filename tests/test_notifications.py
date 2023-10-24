@@ -236,3 +236,18 @@ class TestNotifications(TankTestBase):
             self._notification_manager.dismiss(notif)
 
         self.assertTrue(is_included)
+
+    def test_centos7_deprecation_notifs(self):
+        """
+        Test CentOS7 deprecation notification.
+        """
+        notifs = self._notification_manager.get_notifications()
+
+        is_included = False
+        for notif in notifs:
+            if isinstance(notif, notifications.CentOS7DeprecationNotification):
+                is_included = True
+
+            self._notification_manager.dismiss(notif)
+
+        self.assertTrue(is_included)
