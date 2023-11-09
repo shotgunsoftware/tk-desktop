@@ -327,9 +327,11 @@ class DesktopEngineProjectImplementation(object):
                 # an older version of the installer that doesn't contain this package. In which
                 # case just move on silently.
                 pass
-
+        # If qt is already running and a QApplication has been
+        # initialized (e.g. on the engine_init core hook)
+        # let's create a Qt app instance.
         app = QtGui.QApplication.instance()
-        if app is None:
+        if not app:
             # if it does not exist then a QApplication is created
             app = QtGui.QApplication([])
 
