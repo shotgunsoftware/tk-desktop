@@ -328,7 +328,10 @@ class DesktopEngineProjectImplementation(object):
                 # case just move on silently.
                 pass
 
-        app = QtGui.QApplication([])
+        app = QtGui.QApplication.instance()
+        if app is None:
+            # if it does not exist then a QApplication is created
+            app = QtGui.QApplication([])
 
         # We may launch multiple UI apps, do not quit as soon as the last one closes.
         app.setQuitOnLastWindowClosed(False)
