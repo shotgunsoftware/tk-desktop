@@ -80,10 +80,43 @@ class DesktopEngineProjectImplementation(object):
             self._connect_to_server()
             self._register_groups()
             self._register_commands()
+            self._display_banners()
+
+
         except:
             # Same deal as during init_engine.
             self.destroy_engine()
             raise
+
+    def _display_banners(self):
+        """
+        Banner display for project-specific panel loading.
+
+        Message triggered by env var: SGTK_DESKTOP_PROJECT_BANNER_MESSAGE
+
+        Use env var: SGTK_DESKTOP_PROJECT_BANNER_ID if you wish for the banner
+            to be dismissed once and not bug the artist again. Otherwise the message
+            will be showed every time it's found in the environment and require the artist
+            to dismiss it each time.
+            If you want to implement a strategy for this ID, you
+            could use formatted time. To show the banner and only bug the user once a day,
+            assuming they dismiss it once a day, you could use the following with datetime.strftime:
+              - "myidnamespace.%Y%M%d",
+            or once a month, use:
+              - "myidnamespace.%Y%M"
+            By using a specific key, like "myidnamespace.1" it will never show up again if the
+            user has already dismissed it.
+        """
+        if os.getenv('SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'):
+
+            banner_message = os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE']
+            banner_id = None
+
+            if os.getenv('SGTK_DESKTOP_PROJECT_BANNER_ID'):
+                banner_id = os.environ['SGTK_DESKTOP_PROJECT_BANNER_ID']
+
+            # call back to the site implementation to show the banner
+            self._project_comm.call_no_response("update_banners", banner_message, banner_id)
 
     def _connect_to_server(self):
         """

@@ -207,6 +207,9 @@ class DesktopEngineSiteImplementation(object):
         self.site_comm.register_function(
             self.project_commands_finished, "project_commands_finished"
         )
+        self.site_comm.register_function(
+            self.update_banners, "update_banners"
+        )
 
     def engine_startup_error(self, exception_type, exception_str, tb=None):
         """
@@ -234,6 +237,31 @@ class DesktopEngineSiteImplementation(object):
         """
         # Clear the UI, we can't launch anything anymore!
         self.desktop_window.clear_app_uis()
+
+    def update_banners(self, banner_message=None, banner_id=None):
+        """
+        A workaround live banner updating caller that sets the engine settings
+        live. This will only be called if project specific functions use the env vars
+        SGTK_DESKTOP_PROJECT_BANNER_MESSAGE, SGTK_DESKTOP_PROJECT_BANNER_ID to set them
+        for triggering their update to view them.
+
+        This method can be called directly from commands in the project panes upon being clicked if
+        you utilize:
+
+        >> self.engine._project_comm.call_no_response("update_banners", "banner message here , "optional banner id here")
+        """
+
+        settings = self._engine.settings
+        if not banner_id:
+            import uuid
+            banner_id = str(uuid.uuid4())
+
+        settings['banner_id'] = banner_id
+        settings['banner_message'] = banner_message
+        self._engine._set_settings(settings)
+
+        self._engine.log_info("Forcing banner update...")
+        self.desktop_window._update_banners()
 
     def _on_proxy_created(self):
         """

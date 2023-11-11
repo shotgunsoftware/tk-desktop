@@ -445,13 +445,22 @@ class DesktopWindow(SystrayWindow):
             for i in range(banner_layout.count())
         }
 
+        # Dismiss all existing banners
+        current_widgets = {
+            banner_layout.itemAt(i).widget()
+            for i in range(banner_layout.count())
+        }
+        for banner_widget in current_widgets:
+            self._banner_dismissed(banner_widget)
+
         notifs = self._notifs_mgr.get_notifications()
         for notif in notifs:
             # If a banner is not already displayed, we'll add it.
-            if notif.unique_id not in current_banners:
-                banner = BannerWidget(self._notifs_mgr, notif, parent=self)
-                banner.dismissed.connect(self._banner_dismissed)
-                banner_layout.addWidget(banner)
+            #if notif.unique_id not in current_banners:
+            banner = BannerWidget(self._notifs_mgr, notif, parent=self)
+            banner.dismissed.connect(self._banner_dismissed)
+
+            banner_layout.addWidget(banner)
 
     def _banner_dismissed(self, banner):
         """
