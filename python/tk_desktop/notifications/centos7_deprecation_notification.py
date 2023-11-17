@@ -44,10 +44,13 @@ class CentOS7DeprecationNotification(Notification):
         """
 
         return """
-            ShotGrid is ending support for <b>CentOS 7</b> in SG Desktop on <b>June 2024</b>. Upgrade to <b>Rocky Linux 8</b>
-            before this date. Read more <a href="{url}">here</a>.
+            ShotGrid is ending support for <b>CentOS</b> in SG Toolkit and
+            Desktop on <b>November 1st 2024</b>.
+            Update to <b>Rocky Linux 8.5+</b> before this date  to avoid
+            disruption.
+            Read more <a href="{url}">here</a>.
         """.format(
-            url= "https://community.shotgridsoftware.com/t/    [[TODO]]",
+            url="https://community.shotgridsoftware.com/t/important-notice-for-end-of-october-2024-end-of-support-for-centos-sg-toolkit-and-sg-desktop/",
         )
 
     @property

@@ -75,7 +75,6 @@ class NotificationsManager(object):
             startup_update_notif,
             desktop_notif,
             python2_notif,
-
             # CentOS 7 deprecation notif
             CentOS7DeprecationNotification.create(banner_settings),
         ]
