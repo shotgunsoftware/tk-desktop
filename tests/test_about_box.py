@@ -64,7 +64,11 @@ def test_3rd_party_links(licence_file_links):
     """
     for url in licence_file_links:
         try:
-            r = request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            r = request.Request(
+                url,
+                headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
+            )
+
             contents = request.urlopen(r).read()
         except Exception as e:
             raise pytest.fail("Failed to open {0}, error: {1}".format(url, e))
