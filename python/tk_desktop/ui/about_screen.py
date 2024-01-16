@@ -74,7 +74,7 @@ class Ui_AboutScreen(object):
         AboutScreen.setWindowTitle(QtGui.QApplication.translate("AboutScreen", "About Flow Production Tracking Toolkit", None, QtGui.QApplication.UnicodeUTF8))
         self.header.setText(QtGui.QApplication.translate("AboutScreen", "<b><big>Flow Production Tracking Toolkit</big></b>", None, QtGui.QApplication.UnicodeUTF8))
         self.body.setText(QtGui.QApplication.translate("AboutScreen", "Body", None, QtGui.QApplication.UnicodeUTF8))
-        self.copyright.setText(QtGui.QApplication.translate("AboutScreen", "Copyright ©2024 Autodesk.\n"
+        self.copyright.setText(QtGui.QApplication.translate("AboutScreen", "Copyright ©2023 ShotGrid Software Inc.\n"
 "All rights reserved.", None, QtGui.QApplication.UnicodeUTF8))
         self.licensesButton.setText(QtGui.QApplication.translate("AboutScreen", "Licenses...", None, QtGui.QApplication.UnicodeUTF8))
 
