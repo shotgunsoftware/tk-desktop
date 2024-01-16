@@ -260,7 +260,7 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             % (len(sg_softwares), pprint.pformat(sw_filters))
         )
         if not sg_softwares:
-            engine.logger.warning("No Software entities found in ShotGrid.")
+            engine.logger.warning("No Software entities found in Flow Production Tracking.")
             return
 
         return sg_softwares

@@ -83,7 +83,7 @@ class PostInstall(sgtk.get_hook_baseclass()):
     def execute(self, *args, **kwargs):
         """
         Reboots the app if we have the wrong version of the Shotgun API and
-        we're running the Shotgun Desktop.
+        we're running the Flow Production Tracking Toolkit.
 
         :raises Exception: Raised if we have then wrong version of Shotgun but are
             not running the Desktop. As of this writing, there's no reason for this
@@ -95,5 +95,5 @@ class PostInstall(sgtk.get_hook_baseclass()):
                 self._reboot_app(shotgun_desktop)
             else:
                 raise Exception(
-                    "Wrong version of ShotGrid API3. AuthenticationFault not accessible."
+                    "Wrong version of Flow Production Tracking API3. AuthenticationFault not accessible."
                 )

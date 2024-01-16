@@ -13,7 +13,7 @@
 # The path to output all built .py files to:
 UI_PYTHON_PATH=../python/tk_desktop/ui
 if [ -z "${PYTHON_BASE}" ]; then
-    # This expects Shotgun Desktop 1.5.9 or less. PySide 1 is required.
+    # This expects Flow Production Tracking Toolkit 1.5.9 or less. PySide 1 is required.
     PYTHON_BASE="/Applications/Shotgun.app/Contents/Resources/Python"
 fi
 

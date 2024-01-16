@@ -24,7 +24,7 @@ class ShotgunSystemTrayIcon(QtGui.QSystemTrayIcon):
         # configure the system tray icon
         icon = QtGui.QIcon(":/tk-desktop/default_systray_icon")
         self.setIcon(icon)
-        self.setToolTip("ShotGrid")
+        self.setToolTip("Flow Production Tracking")
 
         # connect up signal handlers
         self.activated.connect(self.__activated)

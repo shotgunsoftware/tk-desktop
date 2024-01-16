@@ -64,7 +64,7 @@ class Console(QtGui.QDialog):
     def __init__(self, parent=None):
         super(Console, self).__init__(parent)
 
-        self.setWindowTitle("ShotGrid Desktop Console")
+        self.setWindowTitle("Flow Production Tracking Toolkit Console")
         self.setWindowIcon(QtGui.QIcon(":/tk-desktop/default_systray_icon.png"))
 
         self.__logs = QtGui.QPlainTextEdit()

@@ -71,10 +71,10 @@ class Ui_AboutScreen(object):
         QtCore.QMetaObject.connectSlotsByName(AboutScreen)
 
     def retranslateUi(self, AboutScreen):
-        AboutScreen.setWindowTitle(QtGui.QApplication.translate("AboutScreen", "About ShotGrid Desktop", None, QtGui.QApplication.UnicodeUTF8))
-        self.header.setText(QtGui.QApplication.translate("AboutScreen", "<b><big>ShotGrid Desktop</big></b>", None, QtGui.QApplication.UnicodeUTF8))
+        AboutScreen.setWindowTitle(QtGui.QApplication.translate("AboutScreen", "About Flow Production Tracking Toolkit", None, QtGui.QApplication.UnicodeUTF8))
+        self.header.setText(QtGui.QApplication.translate("AboutScreen", "<b><big>Flow Production Tracking Toolkit</big></b>", None, QtGui.QApplication.UnicodeUTF8))
         self.body.setText(QtGui.QApplication.translate("AboutScreen", "Body", None, QtGui.QApplication.UnicodeUTF8))
-        self.copyright.setText(QtGui.QApplication.translate("AboutScreen", "Copyright ©2024 ShotGrid Software Inc.\n"
+        self.copyright.setText(QtGui.QApplication.translate("AboutScreen", "Copyright ©2024 Autodesk.\n"
 "All rights reserved.", None, QtGui.QApplication.UnicodeUTF8))
         self.licensesButton.setText(QtGui.QApplication.translate("AboutScreen", "Licenses...", None, QtGui.QApplication.UnicodeUTF8))
 

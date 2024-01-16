@@ -364,7 +364,7 @@ class DesktopEngineSiteImplementation(object):
         and to run the Qt event loop.
 
         :param splash: Splash screen widget we can display messages on. Can be ``None``
-        :param version: Version of the Shotgun Desktop installer code.
+        :param version: Version of the Flow Production Tracking Toolkit installer code.
         :param startup_version: Version of the Desktop Startup code. Can be omitted.
         :param startup_descriptor: Descriptor of the Desktop Startup code. Can be omitted.
         """
@@ -402,7 +402,7 @@ class DesktopEngineSiteImplementation(object):
         app.setStyleSheet(css)
 
         # desktop_window needs to import shotgun_authentication globally. However, doing so
-        # can cause a crash when running Shotgun Desktop installer 1.02 code. We used to
+        # can cause a crash when running Flow Production Tracking Toolkit installer 1.02 code. We used to
         # not restart Desktop when upgrading the core, which caused the older version of core
         # to be kept in memory and the newer core to not be used until the app was reloaded.
         #
@@ -428,7 +428,7 @@ class DesktopEngineSiteImplementation(object):
         server = kwargs.get("server")
 
         try:
-            # Log usage statistics about the Shotgun Desktop executable and the desktop startup.
+            # Log usage statistics about the Flow Production Tracking Toolkit executable and the desktop startup.
             #
             # First we update `host_info` property so subsequent metrics can benefit
             # having the updated information. A special case is made for for Desktop
@@ -479,7 +479,7 @@ class DesktopEngineSiteImplementation(object):
         # Note: browser integration is not supported when running Python 3 inside Desktop.
         if server is None:
             # Initialize all of this after the style-sheet has been applied so any prompt are also
-            # styled after the Shotgun Desktop's visual-style.
+            # styled after the Flow Production Tracking Toolkit's visual-style.
             if splash:
                 splash.set_message("Initializing browser integration.")
             try:
@@ -506,8 +506,8 @@ class DesktopEngineSiteImplementation(object):
         # We need for the dialog to exist for messages to get to the UI console.
         if kwargs.get("server") is not None:
             logger.warning(
-                "You are running an older version of the ShotGrid Desktop which is not fully compatible "
-                "with the ShotGrid Integrations. Please install the latest version."
+                "You are running an older version of the Flow Production Tracking Toolkit which is not fully compatible "
+                "with the Flow Production Tracking Integrations. Please install the latest version."
             )
 
         # run the commands that are configured to be executed at startup
@@ -522,7 +522,7 @@ class DesktopEngineSiteImplementation(object):
 
     def uses_legacy_authentication(self):
         """
-        Returns if the Shotgun Desktop installed code uses the tk-framework-login for
+        Returns if the Flow Production Tracking Toolkit installed code uses the tk-framework-login for
         logging in.
 
         :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
@@ -531,7 +531,7 @@ class DesktopEngineSiteImplementation(object):
         # While this didn't pose a problem when using a LooseVersion comparison
         # to the X.Y.Z notation, in Python 3 this blows up.
         #
-        # Since Python 3 builds of the Shotgun Desktop and greater do not support
+        # Since Python 3 builds of the Flow Production Tracking Toolkit and greater do not support
         # the legacy authentication, we'll test for Python 2 and return False
         # automatically in Python 3 environments.
         return six.PY2 and LooseVersion(self.app_version) < LooseVersion("1.1.0")
@@ -541,12 +541,12 @@ class DesktopEngineSiteImplementation(object):
         Creates an instance of tk-framework-login.ShotgunLogin.
 
         Before we introduced Shotgun Authentication in Core 0.16.0, we used
-        tk-framework-login to authenticate in the Shotgun Desktop's installer
+        tk-framework-login to authenticate in the Flow Production Tracking Toolkit's installer
         code. Once we've detected using uses_legacy_authentication that we are
         using tk-framework-login, create_legacy_login_instance creates an
         instance of that class in order to access the credentials.
 
-        In the Shotgun Desktop installer v1.1.0 code and higher, this
+        In the Flow Production Tracking Toolkit installer v1.1.0 code and higher, this
         ShotgunLogin class is no more.
 
         :raises ImportError: Thrown if the module is not available.

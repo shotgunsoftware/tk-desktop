@@ -49,7 +49,7 @@ class StartupUpdateNotification(Notification):
 
         # FIXME: Quickfix before the release.
         # The desktop startup is cached outside of the bundle cache. Therefore,
-        # when we launch the Shotgun Desktop for the first time, the bundle is
+        # when we launch the Flow Production Tracking Toolkit for the first time, the bundle is
         # loaded in the bundle cache by the  call to changelog (it downloads the
         # bundle). However, doing so means that if you don't have internet
         # access the download will fail and this code crash. Ideally, we would
@@ -91,7 +91,7 @@ class StartupUpdateNotification(Notification):
         Message to display.
         """
         return (
-            "<b>ShotGrid Desktop</b> has been updated. "
+            "<b>Flow Production Tracking Toolkit</b> has been updated. "
             "<a href='{0}'>Click here</a> to learn more."
         ).format(self._engine.startup_descriptor.changelog[1])
 

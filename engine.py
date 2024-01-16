@@ -38,7 +38,7 @@ def unhandled_exception_handler(exc_type, exc_value, exc_traceback):
     # Send the message to the logger for this file. In the end, this will
     # get routed to many places:
     # - the log file
-    # - on the site engine side, it will show up in the Shotgun Desktop's console
+    # - on the site engine side, it will show up in the Flow Production Tracking Toolkit's console
     # - on the project engine side, it will be forwarded to the site engine's
     #   side via the RPC, which will forward it to the console.
     try:
@@ -221,7 +221,7 @@ class DesktopEngine(Engine):
                     "Looks like you are trying to run an App that uses a QT based UI, however the "
                     "python installation that the Desktop engine is currently using does not seem "
                     "to contain a valid PySide or PyQt4 install. Either install PySide into your "
-                    "python environment or alternatively switch back to using the native ShotGrid "
+                    "python environment or alternatively switch back to using the native Flow Production Tracking "
                     "Desktop python installation, which includes full QT support."
                 )
 

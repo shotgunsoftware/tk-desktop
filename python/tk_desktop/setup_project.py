@@ -59,7 +59,7 @@ class SetupProject(QtGui.QWidget):
                 "Toolkit Setup Error",
                 "You are trying to set up a project which has already been set up\n\n"
                 "To re-setup a project, in a terminal window type: tank setup_project --force\n\n"
-                "Alternatively, you can go into ShotGrid and clear the Project.tank_name field\n"
+                "Alternatively, you can go into Flow Production Tracking and clear the Project.tank_name field\n"
                 "and delete all pipeline configurations for your project.",
             )
             error_dialog.exec_()
@@ -67,7 +67,7 @@ class SetupProject(QtGui.QWidget):
         except TankUserPermissionsError as e:
             error_dialog = ErrorDialog(
                 "Toolkit Setup Error",
-                "You do not have sufficient permissions in ShotGrid to setup Toolkit for "
+                "You do not have sufficient permissions in Flow Production Tracking to setup Toolkit for "
                 "project '%s'.\n\nContact a site administrator for assistance."
                 % self.project["name"],
             )

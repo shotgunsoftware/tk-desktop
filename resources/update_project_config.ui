@@ -86,7 +86,7 @@
         <string notr="true">font-size: 26px;</string>
        </property>
        <property name="text">
-        <string>Add ShotGrid Desktop</string>
+        <string>Add Flow Production Tracking Toolkit</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>

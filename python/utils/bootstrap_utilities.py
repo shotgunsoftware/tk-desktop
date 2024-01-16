@@ -80,9 +80,9 @@ class ProxyLoggingHandler(logging.Handler):
 
 def _create_proxy(data):
     """
-    Create a proxy based on the data received from the Shotgun Desktop.
+    Create a proxy based on the data received from the Flow Production Tracking Toolkit.
 
-    :returns: A connection back to the Shotgun Desktop.
+    :returns: A connection back to the Flow Production Tracking Toolkit.
     """
     # Connect to the main desktop process so we can send updates to it.
     # We're not guanranteed if the py or pyc file will be passed back to us
