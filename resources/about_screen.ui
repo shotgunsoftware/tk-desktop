@@ -113,8 +113,7 @@
       <string notr="true">font-size: 10px;</string>
      </property>
      <property name="text">
-      <string>Copyright ©2024 Flow Production Tracking Software Inc.
-All rights reserved.</string>
+      <string>Copyright ©2024 Autodesk. All rights reserved.</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
