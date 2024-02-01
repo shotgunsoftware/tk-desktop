@@ -100,7 +100,7 @@ class SetupProject(QtGui.QWidget):
         pipeline configuration.
         """
         try:
-            # Try to update the Project's tank_name value in SG to test
+            # Try to update the Project's tank_name value in PTR to test
             # whether current user has sufficient permission to setup
             # Toolkit for a project.
             engine = sgtk.platform.current_engine()
