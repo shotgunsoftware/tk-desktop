@@ -52,7 +52,7 @@ elif sys.platform == "darwin":
             from .darwin_python37 import osutils
         elif sys.version_info[0:2] == (3, 9):
             from .darwin_python39 import osutils
-        elif sys.version_info[0:2] == (3, 10):
+        elif sys.version_info[0:2] >= (3, 10):
             from .darwin_python310 import osutils
         use_mocked_osutils = False
     except Exception as e:
