@@ -21,7 +21,7 @@ logger = sgtk.platform.get_logger(__name__)
 
 class NotificationsManager(object):
     """
-    Allows to retrieve and dismiss notifications for the Flow Production Tracking Toolkit.
+    Allows to retrieve and dismiss notifications for the Flow Production Tracking.
     """
 
     _BANNERS = "banners"

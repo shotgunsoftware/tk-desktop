@@ -38,7 +38,7 @@ def unhandled_exception_handler(exc_type, exc_value, exc_traceback):
     # Send the message to the logger for this file. In the end, this will
     # get routed to many places:
     # - the log file
-    # - on the site engine side, it will show up in the Flow Production Tracking Toolkit's console
+    # - on the site engine side, it will show up in the Flow Production Tracking's console
     # - on the project engine side, it will be forwarded to the site engine's
     #   side via the RPC, which will forward it to the console.
     try:

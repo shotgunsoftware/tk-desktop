@@ -16,7 +16,7 @@ logger = sgtk.platform.get_logger(__name__)
 
 class FirstLaunchNotification(Notification):
     """
-    Notification on the first launch of the Flow Production Tracking Toolkit.
+    Notification on the first launch of the Flow Production Tracking.
     """
 
     _FIRST_LAUNCH_BANNER_VIEWED_ID = "first_desktop_launch_banner_viewed"
@@ -30,7 +30,7 @@ class FirstLaunchNotification(Notification):
         """
         Notification factory for this class.
 
-        If this is the first time the user launches the Flow Production Tracking Toolkit, an instance of this class
+        If this is the first time the user launches the Flow Production Tracking, an instance of this class
         will be returned. Otherwise, ``None`` will be returned.
 
         Note that if this notification has been dismissed in the past, the method will also
@@ -51,7 +51,7 @@ class FirstLaunchNotification(Notification):
         """
         Message to display.
         """
-        return "Welcome to the <b>Flow Production Tracking Toolkit</b>. <a href='{0}'>Click here</a> to learn more.".format(
+        return "Welcome to the <b>Flow Production Tracking</b>. <a href='{0}'>Click here</a> to learn more.".format(
             self.SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
         )
 

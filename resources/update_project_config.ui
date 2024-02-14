@@ -86,7 +86,7 @@
         <string notr="true">font-size: 26px;</string>
        </property>
        <property name="text">
-        <string>Add Flow Production Tracking Toolkit</string>
+        <string>Add Flow Production Tracking</string>
        </property>
        <property name="alignment">
         <set>Qt::AlignCenter</set>

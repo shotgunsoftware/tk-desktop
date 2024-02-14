@@ -83,7 +83,7 @@ class PostInstall(sgtk.get_hook_baseclass()):
     def execute(self, *args, **kwargs):
         """
         Reboots the app if we have the wrong version of the Shotgun API and
-        we're running the Flow Production Tracking Toolkit.
+        we're running the Flow Production Tracking.
 
         :raises Exception: Raised if we have then wrong version of Shotgun but are
             not running the Desktop. As of this writing, there's no reason for this

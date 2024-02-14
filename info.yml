@@ -153,8 +153,8 @@ requires_shotgun_fields:
 
 
 # More verbose description of this item
-display_name: "Flow Production Tracking Toolkit"
-description: "The engine that runs inside the Flow Production Tracking Toolkit Application"
+display_name: "Flow Production Tracking"
+description: "The engine that runs inside the Flow Production Tracking Application"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:

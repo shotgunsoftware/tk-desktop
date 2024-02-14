@@ -44,7 +44,7 @@ class Python2DeprecationNotification(Notification):
         """
         url = "https://community.shotgridsoftware.com/t/important-notice-upcoming-removal-of-python-2-7-and-3-7-interpreter-in-shotgrid-desktop/15168"  # noqa
         msg = """
-        Flow Production Tracking is ending support for <b>Python 2</b> in Flow Production Tracking Toolkit on <b>Jan 9th 2023</b>. Upgrade to <b>Python 3.9</b>
+        Flow Production Tracking is ending support for <b>Python 2</b> in Flow Production Tracking on <b>Jan 9th 2023</b>. Upgrade to <b>Python 3.9</b>
         before this date. Read more <a href='{0}'>here</a>.
         """.format(
             url
