@@ -6,7 +6,7 @@
 [![Linting](https://img.shields.io/badge/PEP8%20by-Hound%20CI-a873d1.svg)](https://houndci.com)
 
 ## Documentation
-This repository is a part of the Flow Production Tracking.
+This repository is a part of the Flow Production Tracking Toolkit.
 
 - For more information about this app and for release notes, *see the wiki section*.
 - For general information and documentation, click here: https://developer.shotgridsoftware.com/d587be80/?title=Integrations+User+Guide
