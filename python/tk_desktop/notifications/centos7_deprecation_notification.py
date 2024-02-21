@@ -35,22 +35,30 @@ class CentOS7DeprecationNotification(Notification):
             logger.debug("CentOS 7 banner has already been dismissed.")
             return
 
-        if not sgtk.util.is_linux():
+        if not cls.is_el7():
             logger.debug("CentOS 7 banner is out of context in this OS.")
-            return
-
-        try:
-            os_data = open("/etc/os-release").read().lower()
-        except IOError:
-            logger.debug("CentOS 7 banner is out of context in this Linux distribution.")
-            return
-
-        if "centos" not in os_data and "7" not in os_data:
-            logger.debug("CentOS 7 banner is out of context in this Linux distribution (not a EL7 system).")
             return
 
         logger.debug("CentOS 7 deprecation banner available")
         return CentOS7DeprecationNotification()
+
+    @staticmethod
+    def is_el7():
+        if not sgtk.util.is_linux():
+            logger.debug("Not a Linux OS")
+            return False
+
+        try:
+            os_data = open("/etc/os-release").read().lower()
+        except IOError:
+            logger.debug("Not an EL distribution")
+            return False
+
+        if "centos" not in os_data and "7" not in os_data:
+            logger.debug("Not an EL7 distribution")
+            return False
+
+        return True
 
     @property
     def message(self):

@@ -241,7 +241,13 @@ class TestNotifications(TankTestBase):
         """
         Test CentOS7 deprecation notification.
         """
-        notifs = self._notification_manager.get_notifications()
+
+        bak_is_el7 = notifications.CentOS7DeprecationNotification.is_el7
+        notifications.CentOS7DeprecationNotification.is_el7 = lambda: True
+        try:
+            notifs = self._notification_manager.get_notifications()
+        finally:
+            notifications.CentOS7DeprecationNotification.is_el7 = bak_is_el7
 
         is_included = False
         for notif in notifs:
