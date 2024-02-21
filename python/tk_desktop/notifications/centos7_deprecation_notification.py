@@ -30,12 +30,27 @@ class CentOS7DeprecationNotification(Notification):
 
         :returns: A :class:`CentOS7DeprecationNotification` instance, or ``None``.
         """
+
         if banner_settings.get(cls._CENTOS7_DEPRECATION_ID, False):
             logger.debug("CentOS 7 banner has already been dismissed.")
-            return None
-        else:
-            logger.debug("CentOS 7 deprecation banner available")
-            return CentOS7DeprecationNotification()
+            return
+
+        if not sgtk.util.is_linux():
+            logger.debug("CentOS 7 banner is out of context in this OS.")
+            return
+
+        try:
+            os_data = open("/etc/os-release").read().lower()
+        except IOError:
+            logger.debug("CentOS 7 banner is out of context in this Linux distribution.")
+            return
+
+        if "centos" not in os_data and "7" not in os_data:
+            logger.debug("CentOS 7 banner is out of context in this Linux distribution (not a EL7 system).")
+            return
+
+        logger.debug("CentOS 7 deprecation banner available")
+        return CentOS7DeprecationNotification()
 
     @property
     def message(self):
