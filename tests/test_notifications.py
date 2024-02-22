@@ -243,10 +243,16 @@ class TestNotifications(TankTestBase):
         """
 
         with mock.patch.object(
+            self._notification_manager,
+            "_get_banner_settings",
+            return_value={
+                notifications.FirstLaunchNotification._FIRST_LAUNCH_BANNER_VIEWED_ID: True,
+            },
+        ), mock.patch.object(
             notifications.CentOS7DeprecationNotification,
             "is_el7",
             return_value=True,
-        ) as mock_method:
+        ):
             notifs = self._notification_manager.get_notifications()
 
         is_included = False
