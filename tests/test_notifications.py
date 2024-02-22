@@ -10,7 +10,7 @@
 
 from __future__ import with_statement
 
-from tank_test.tank_test_base import TankTestBase, SealedMock
+from tank_test.tank_test_base import TankTestBase, SealedMock, mock
 from tank_test.tank_test_base import setUpModule  # noqa
 
 import notifications
@@ -242,12 +242,12 @@ class TestNotifications(TankTestBase):
         Test CentOS7 deprecation notification.
         """
 
-        bak_is_el7 = notifications.CentOS7DeprecationNotification.is_el7
-        notifications.CentOS7DeprecationNotification.is_el7 = lambda: True
-        try:
+        with mock.patch.object(
+            notifications.CentOS7DeprecationNotification,
+            "is_el7",
+            return_value=True,
+        ) as mock_method:
             notifs = self._notification_manager.get_notifications()
-        finally:
-            notifications.CentOS7DeprecationNotification.is_el7 = bak_is_el7
 
         is_included = False
         for notif in notifs:
@@ -256,4 +256,4 @@ class TestNotifications(TankTestBase):
 
             self._notification_manager.dismiss(notif)
 
-        # self.assertTrue(is_included) # does not work ...
+        self.assertTrue(is_included)
