@@ -27,7 +27,6 @@ class NotificationsManager(object):
 
     _BANNERS = "banners"
     NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH = [
-        CentOS7DeprecationNotification,
         Python2DeprecationNotification,
     ]
 
