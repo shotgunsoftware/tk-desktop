@@ -10,7 +10,7 @@
 
 """
 Simple script that allows to test the Project Commands view without having to launch the
-Flow Production Tracking.
+PTR desktop app.
 """
 
 import os

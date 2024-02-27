@@ -16,7 +16,7 @@ logger = sgtk.platform.get_logger(__name__)
 
 class FirstLaunchNotification(Notification):
     """
-    Notification on the first launch of the Flow Production Tracking.
+    Notification on the first launch of the PTR desktop app.
     """
 
     _FIRST_LAUNCH_BANNER_VIEWED_ID = "first_desktop_launch_banner_viewed"
@@ -30,7 +30,7 @@ class FirstLaunchNotification(Notification):
         """
         Notification factory for this class.
 
-        If this is the first time the user launches the Flow Production Tracking, an instance of this class
+        If this is the first time the user launches the PTR desktop app, an instance of this class
         will be returned. Otherwise, ``None`` will be returned.
 
         Note that if this notification has been dismissed in the past, the method will also

@@ -32,7 +32,7 @@ logger = LogManager.get_logger(__name__)
 
 class DesktopEngineProjectImplementation(object):
     """
-    Launches an RPC server which listens for requests from the Flow Production Tracking to launch an app.
+    Launches an RPC server which listens for requests from the PTR desktop app to launch an app.
     """
 
     def __init__(self, engine):

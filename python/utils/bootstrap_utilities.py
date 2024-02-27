@@ -80,9 +80,9 @@ class ProxyLoggingHandler(logging.Handler):
 
 def _create_proxy(data):
     """
-    Create a proxy based on the data received from the Flow Production Tracking.
+    Create a proxy based on the data received from the PTR desktop app.
 
-    :returns: A connection back to the Flow Production Tracking.
+    :returns: A connection back to the PTR desktop app.
     """
     # Connect to the main desktop process so we can send updates to it.
     # We're not guanranteed if the py or pyc file will be passed back to us

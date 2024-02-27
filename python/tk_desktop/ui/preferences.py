@@ -81,9 +81,9 @@ class Ui_Preferences(object):
 
     def retranslateUi(self, Preferences):
         Preferences.setWindowTitle(QtGui.QApplication.translate("Preferences", "Preferences", None, QtGui.QApplication.UnicodeUTF8))
-        self.auto_start_label.setToolTip(QtGui.QApplication.translate("Preferences", "When checked Flow Production Tracking will startup automatically when you log in.", None, QtGui.QApplication.UnicodeUTF8))
+        self.auto_start_label.setToolTip(QtGui.QApplication.translate("Preferences", "When checked, the PTR desktop app will start automatically when you log in.", None, QtGui.QApplication.UnicodeUTF8))
         self.auto_start_label.setText(QtGui.QApplication.translate("Preferences", "Start at login", None, QtGui.QApplication.UnicodeUTF8))
-        self.auto_start_checkbox.setToolTip(QtGui.QApplication.translate("Preferences", "When checked Flow Production Tracking will startup automatically when you log in.", None, QtGui.QApplication.UnicodeUTF8))
+        self.auto_start_checkbox.setToolTip(QtGui.QApplication.translate("Preferences", "When checked, the PTR desktop app will start automatically when you log in.", None, QtGui.QApplication.UnicodeUTF8))
         self.hotkey.setToolTip(QtGui.QApplication.translate("Preferences", "Enter a hotkey that will auto-raise Flow Production Tracking when pressed.", None, QtGui.QApplication.UnicodeUTF8))
         self.hotkey.setPlaceholderText(QtGui.QApplication.translate("Preferences", "Enter hotkey shortcut", None, QtGui.QApplication.UnicodeUTF8))
         self.hotkey_clear.setToolTip(QtGui.QApplication.translate("Preferences", "Click to clear the hotkey.", None, QtGui.QApplication.UnicodeUTF8))

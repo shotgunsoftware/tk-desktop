@@ -712,7 +712,7 @@ class DesktopWindow(SystrayWindow):
 
     def handle_regen_certs(self):
         """
-        Regenerates the certificates if the user is certain and restarts the Flow Production Tracking on
+        Regenerates the certificates if the user is certain and restarts the PTR desktop app on
         demand.
         """
         # Need to create the message box by hand to have rich text format, hence
@@ -760,7 +760,7 @@ class DesktopWindow(SystrayWindow):
                 choice = QtGui.QMessageBox.question(
                     self,
                     "Flow Production Tracking browser integration",
-                    "The Flow Production Tracking needs to restart for the certificate changes "
+                    "The PTR desktop app needs to restart for the certificate changes "
                     "to take effect.\n"
                     "\n"
                     "Would you like to restart?",
@@ -945,7 +945,7 @@ class DesktopWindow(SystrayWindow):
 
         engine = sgtk.platform.current_engine()
 
-        # This is for ye-olde Flow Production Tracking < 1.1
+        # This is for ye-olde PTR desktop app < 1.1
         if engine.uses_legacy_authentication():
             login_framework = engine.create_legacy_login_instance()
             if new_host:
@@ -966,7 +966,7 @@ class DesktopWindow(SystrayWindow):
 
     def _restart_desktop(self):
         """
-        Restarts the Flow Production Tracking application.
+        Restarts the Flow Production Tracking desktop application.
         """
         # restart the application
         QtGui.QApplication.instance().quit()
@@ -1006,7 +1006,7 @@ class DesktopWindow(SystrayWindow):
                     "A request originated from <b>{0}</b>, but you "
                     "are currently logged into <b>{1}</b>.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
-                    "<b>Restart</b> button below to restart Flow Production Tracking and log into <b>{0}</b>.".format(
+                    "<b>Restart</b> button below to restart PTR desktop app and log into <b>{0}</b>.".format(
                         site, current_site
                     )
                 )
@@ -1027,9 +1027,9 @@ class DesktopWindow(SystrayWindow):
 
                 msg = (
                     "A request from <b>{0}</b> was made, but you are currently "
-                    "signed in as <b>{1}</b> in the Flow Production Tracking.<br/><br/>"
+                    "signed in as <b>{1}</b> in the PTR desktop app.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
-                    "<b>Restart</b> button below to restart Flow Production Tracking and log as <b>{0}</b>.".format(
+                    "<b>Restart</b> button below to restart the PTR desktop app and log as <b>{0}</b>.".format(
                         user_login if user_login else "<unknown>",
                         bundle.get_current_user().login,
                     )

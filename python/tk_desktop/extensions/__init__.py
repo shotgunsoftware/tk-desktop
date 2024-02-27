@@ -15,16 +15,16 @@ import sgtk
 logger = sgtk.platform.get_logger(__name__)
 
 use_mocked_osutils = True
-# The osutils extension modules from the Flow Production Tracking's private repo.
+# The osutils extension modules from the PTR desktop app's private repo.
 if sys.platform.startswith("linux"):
 
-    # The Flow Production Tracking that comes with PySide2 does not require
+    # The PTR desktop app that comes with PySide2 does not require
     # any helper code to have the application move the foreground
     # properly.
     try:
         import PySide2  # noqa
     except Exception:
-        # We're in a PySide 1 version of Flow Production Tracking, so try
+        # We're in a PySide 1 version of the PTR desktop app, so try
         # to import the old osutils
         try:
             # This library links againts Qt, so the version number is

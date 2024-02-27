@@ -49,7 +49,7 @@ class StartupUpdateNotification(Notification):
 
         # FIXME: Quickfix before the release.
         # The desktop startup is cached outside of the bundle cache. Therefore,
-        # when we launch the Flow Production Tracking for the first time, the bundle is
+        # when we launch the PTR desktop app for the first time, the bundle is
         # loaded in the bundle cache by the  call to changelog (it downloads the
         # bundle). However, doing so means that if you don't have internet
         # access the download will fail and this code crash. Ideally, we would
