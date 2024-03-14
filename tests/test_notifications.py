@@ -250,7 +250,7 @@ class TestNotifications(TankTestBase):
             },
         ), mock.patch.object(
             notifications.CentOS7DeprecationNotification,
-            "is_el7",
+            "display_on_this_os",
             return_value=True,
         ):
             notifs = self._notification_manager.get_notifications()

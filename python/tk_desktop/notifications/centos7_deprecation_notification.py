@@ -115,9 +115,9 @@ class LinuxOSRelease:
     """
     Read the /etc/os-release and provide simple utily tools to identifies flavor
     and version of the Linux distribution
-    
+
     https://www.man7.org/linux/man-pages/man5/os-release.5.html
-    
+
     Use a INI reader and customize a bit... It would be better to load the file into a shell and read the environment ...
     """
 
@@ -134,11 +134,11 @@ class LinuxOSRelease:
 
         config = configparser.ConfigParser()
         try:
-            config.read_string("[root]\n"+file_data) # \nwwwww
+            config.read_string("[root]\n"+file_data)
         except configparser.ParsingError:
             return False
-        
-        self._config =  config["root"]
+
+        self._config = config["root"]
         return True
 
     def get_entry(self, name, default="", auto_lower=True):
