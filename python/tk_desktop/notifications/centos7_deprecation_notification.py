@@ -16,6 +16,7 @@ import sgtk
 
 logger = sgtk.platform.get_logger(__name__)
 
+
 class CentOS7DeprecationNotification(Notification):
     """
     Notification for CentOS 7 deprecation.
@@ -43,7 +44,6 @@ class CentOS7DeprecationNotification(Notification):
 
         logger.debug("CentOS 7 deprecation banner available")
         return CentOS7DeprecationNotification()
-
 
     @staticmethod
     def display_on_this_os(filename="/etc/os-release"):
@@ -134,7 +134,7 @@ class LinuxOSRelease:
 
         config = configparser.ConfigParser()
         try:
-            config.read_string("[root]\n"+file_data)
+            config.read_string("[root]\n" + file_data)
         except configparser.ParsingError:
             return False
 
@@ -155,7 +155,6 @@ class LinuxOSRelease:
         data = self.get_entry(name)
         return self.reg_split_list.split(data)
 
-
     def is_el_flavor(self):
         dist_ids = self.get_list_items("ID_LIKE")
         if "rhel" in dist_ids:
@@ -166,7 +165,6 @@ class LinuxOSRelease:
             return True
 
         return False
-
 
     def is_centos(self):
         if self.get_entry("ID") == "centos":

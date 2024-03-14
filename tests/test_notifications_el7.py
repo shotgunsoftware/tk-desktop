@@ -21,10 +21,7 @@ class TestNotificationsEL7(TankTestBase):
             "sgtk.util.is_linux",
             return_value=False,
         ):
-            self.assertFalse(
-                CentOS7DeprecationNotification.display_on_this_os()
-            )
-
+            self.assertFalse(CentOS7DeprecationNotification.display_on_this_os())
 
     @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_file_does_not_exist(self, *patches):
@@ -48,7 +45,8 @@ class TestNotificationsEL7(TankTestBase):
     @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_not_el_flavor(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
-            f.write("""
+            f.write(
+                """
 PRETTY_NAME="Ubuntu 23.10"
 NAME="Ubuntu"
 VERSION_ID="23.10"
@@ -62,7 +60,8 @@ BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
 PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
 UBUNTU_CODENAME=mantic
 LOGO=ubuntu-logo
-""")
+"""
+            )
             f.flush()
             self.assertTrue(
                 CentOS7DeprecationNotification.display_on_this_os(
@@ -73,7 +72,8 @@ LOGO=ubuntu-logo
     @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_centos7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
-            f.write("""
+            f.write(
+                """
 NAME="CentOS Linux"
 VERSION="7 (Core)"
 ID="centos"
@@ -89,7 +89,8 @@ CENTOS_MANTISBT_PROJECT="CentOS-7"
 CENTOS_MANTISBT_PROJECT_VERSION="7"
 REDHAT_SUPPORT_PRODUCT="centos"
 REDHAT_SUPPORT_PRODUCT_VERSION="7"
-""")
+"""
+            )
             f.flush()
             self.assertTrue(
                 CentOS7DeprecationNotification.display_on_this_os(
@@ -100,7 +101,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="7"
     @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_centos88(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
-            f.write("""
+            f.write(
+                """
 NAME="CentOS Linux"
 VERSION="88 (Core)"
 ID="centos"
@@ -116,7 +118,8 @@ CENTOS_MANTISBT_PROJECT="CentOS-88"
 CENTOS_MANTISBT_PROJECT_VERSION="88"
 REDHAT_SUPPORT_PRODUCT="centos"
 REDHAT_SUPPORT_PRODUCT_VERSION="88"
-""")
+"""
+            )
             f.flush()
             self.assertTrue(
                 CentOS7DeprecationNotification.display_on_this_os(
@@ -127,7 +130,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="88"
     @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_rocky8(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
-            f.write("""
+            f.write(
+                """
 NAME="Rocky Linux"
 VERSION="8.8 (Green Obsidian)"
 ID="rocky"
@@ -145,7 +149,8 @@ ROCKY_SUPPORT_PRODUCT="Rocky-Linux-8"
 ROCKY_SUPPORT_PRODUCT_VERSION="8.8"
 REDHAT_SUPPORT_PRODUCT="Rocky Linux"
 REDHAT_SUPPORT_PRODUCT_VERSION="8.8"
-""")
+"""
+            )
             f.flush()
             self.assertFalse(
                 CentOS7DeprecationNotification.display_on_this_os(
@@ -156,7 +161,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="8.8"
     @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_rocky9(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
-            f.write("""
+            f.write(
+                """
 NAME="Rocky Linux"
 VERSION="9.3 (Blue Onyx)"
 ID="rocky"
@@ -174,7 +180,8 @@ ROCKY_SUPPORT_PRODUCT="Rocky-Linux-9"
 ROCKY_SUPPORT_PRODUCT_VERSION="9.3"
 REDHAT_SUPPORT_PRODUCT="Rocky Linux"
 REDHAT_SUPPORT_PRODUCT_VERSION="9.3"
-""")
+"""
+            )
             f.flush()
             self.assertFalse(
                 CentOS7DeprecationNotification.display_on_this_os(
@@ -185,7 +192,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="9.3"
     @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_rhel7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
-            f.write("""
+            f.write(
+                """
 NAME="Red Hat Enterprise Linux"
 VERSION="7 (Core)"
 ID="rhel"
@@ -196,7 +204,8 @@ CPE_NAME="cpe:/o:rhel:rhel:7"
 
 REDHAT_SUPPORT_PRODUCT="rhel"
 REDHAT_SUPPORT_PRODUCT_VERSION="7"
-""")
+"""
+            )
             f.flush()
             self.assertTrue(
                 CentOS7DeprecationNotification.display_on_this_os(
@@ -207,12 +216,14 @@ REDHAT_SUPPORT_PRODUCT_VERSION="7"
     @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_weird_el7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
-            f.write("""
+            f.write(
+                """
 NAME="Weird Dist"
 ID="weird"
 VERSION_ID="7.7"
 PLATFORM_ID="platform:el7"
-""")
+"""
+            )
             f.flush()
             self.assertTrue(
                 CentOS7DeprecationNotification.display_on_this_os(
