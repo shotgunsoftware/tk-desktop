@@ -8,11 +8,13 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import configparser
+import re
+
 from .notification import Notification
 import sgtk
 
 logger = sgtk.platform.get_logger(__name__)
-
 
 class CentOS7DeprecationNotification(Notification):
     """
@@ -35,30 +37,47 @@ class CentOS7DeprecationNotification(Notification):
             logger.debug("CentOS 7 banner has already been dismissed.")
             return
 
-        if not cls.is_el7():
+        if not cls.display_on_this_os():
             logger.debug("CentOS 7 banner is out of context in this OS.")
             return
 
         logger.debug("CentOS 7 deprecation banner available")
         return CentOS7DeprecationNotification()
 
+
     @staticmethod
-    def is_el7():
+    def display_on_this_os(filename="/etc/os-release"):
+        """
+        returns True if OS is EL7. Any EL if version 7
+        returns True if OS is CentOS. Any CentOS versions
+        returns True if unable to identify the OS/flavor/version
+        """
+
         if not sgtk.util.is_linux():
             logger.debug("Not a Linux OS")
             return False
 
-        try:
-            os_data = open("/etc/os-release").read().lower()
-        except IOError:
-            logger.debug("Not an EL distribution")
-            return False
+        linux_util = LinuxOSRelease()
 
-        if "centos" not in os_data and "7" not in os_data:
-            logger.debug("Not an EL7 distribution")
-            return False
+        if not linux_util.load(filename):
+            # we know it's Linux but can't read the file: let's display the info
+            return True
 
-        return True
+        if not linux_util.is_el_flavor():
+            # We only support EL distributions so let's display the notification
+            return True
+
+        if linux_util.is_centos():
+            # We only support EL distributions so let's display the notification
+            return True
+
+        # At this point, we know it's a EL but not CentOS
+        # we want to match everything version 7
+        version_tuple = linux_util.get_entry("VERSION_ID", default="0").split(".")
+        if version_tuple[0] == "7" or linux_util.get_entry("CPE_NAME").endswith(":7"):
+            return True
+
+        return False
 
     @property
     def message(self):
@@ -90,3 +109,70 @@ class CentOS7DeprecationNotification(Notification):
         :param banner_settings: Dictionary of the banners settings.
         """
         banner_settings[self._CENTOS7_DEPRECATION_ID] = True
+
+
+class LinuxOSRelease:
+    """
+    Read the /etc/os-release and provide simple utily tools to identifies flavor
+    and version of the Linux distribution
+    
+    https://www.man7.org/linux/man-pages/man5/os-release.5.html
+    
+    Use a INI reader and customize a bit... It would be better to load the file into a shell and read the environment ...
+    """
+
+    def __init__(self):
+        self._config = None
+        self.reg_split_list = re.compile(" +")
+
+    def load(self, filename="/etc/os-release"):
+        try:
+            file_data = open(filename).read()
+        except IOError:
+            logger.debug("Not an EL distribution")
+            return False
+
+        config = configparser.ConfigParser()
+        try:
+            config.read_string("[root]\n"+file_data) # \nwwwww
+        except configparser.ParsingError:
+            return False
+        
+        self._config =  config["root"]
+        return True
+
+    def get_entry(self, name, default="", auto_lower=True):
+        data = self._config.get(name, default)
+        if data.strip().startswith('"') and data.strip().endswith('"'):
+            data = data[1:-1]
+
+        if auto_lower:
+            data = data.lower()
+
+        return data
+
+    def get_list_items(self, name):
+        data = self.get_entry(name)
+        return self.reg_split_list.split(data)
+
+
+    def is_el_flavor(self):
+        dist_ids = self.get_list_items("ID_LIKE")
+        if "rhel" in dist_ids:
+            return True
+
+        platform_id = self.get_entry("PLATFORM_ID")
+        if platform_id.startswith("platform:el"):
+            return True
+
+        return False
+
+
+    def is_centos(self):
+        if self.get_entry("ID") == "centos":
+            return True
+
+        if ":centos:" in self.get_entry("CPE_NAME"):
+            return True
+
+        return False
