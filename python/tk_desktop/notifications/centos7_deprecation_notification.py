@@ -128,8 +128,15 @@ class LinuxOSRelease:
     def load(self, filename="/etc/os-release"):
         try:
             file_data = open(filename).read()
-        except IOError:
-            logger.debug("Not an EL distribution")
+        except IOError as err:
+            logger.debug(
+                "Unable to open {filename}: {exc}".format(
+                    exc=err,
+                    filename=filename,
+                ),
+            )
+            logger.info("current OS is not a standard Linux distribution")
+
             return False
 
         config = configparser.ConfigParser()

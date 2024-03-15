@@ -12,18 +12,30 @@ from tank_test.tank_test_base import TankTestBase, mock
 from tank_test.tank_test_base import setUpModule  # noqa
 
 from notifications import CentOS7DeprecationNotification
+
+import os
+import sys
 import tempfile
+import unittest
 
 
-class TestNotificationsEL7(TankTestBase):
-    def test_not_linux_os(self):
+class TestNotificationsEL7_NotLinux(TankTestBase):
+    def test(self):
         with mock.patch(
             "sgtk.util.is_linux",
             return_value=False,
         ):
             self.assertFalse(CentOS7DeprecationNotification.display_on_this_os())
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
+
+@unittest.skipIf(
+    sys.platform.startswith("win"),
+    "Test does not work on Windows (permission denied when accessing opening a"
+    "NamedTemporaryFile file)"
+    "No problem: we tested useless test anyway",
+)
+@mock.patch("sgtk.util.is_linux", return_value=True)
+class TestNotificationsEL7(TankTestBase):
     def test_file_does_not_exist(self, *patches):
         self.assertTrue(
             CentOS7DeprecationNotification.display_on_this_os(
@@ -31,7 +43,6 @@ class TestNotificationsEL7(TankTestBase):
             )
         )
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_file_is_not_ini(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
             f.write("not an INI file")
@@ -42,7 +53,6 @@ class TestNotificationsEL7(TankTestBase):
                 )
             )
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_not_el_flavor(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
             f.write(
@@ -69,7 +79,6 @@ LOGO=ubuntu-logo
                 )
             )
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_centos7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
             f.write(
@@ -98,7 +107,6 @@ REDHAT_SUPPORT_PRODUCT_VERSION="7"
                 )
             )
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_centos88(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
             f.write(
@@ -127,7 +135,6 @@ REDHAT_SUPPORT_PRODUCT_VERSION="88"
                 )
             )
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_rocky8(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
             f.write(
@@ -158,7 +165,6 @@ REDHAT_SUPPORT_PRODUCT_VERSION="8.8"
                 )
             )
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_rocky9(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
             f.write(
@@ -189,7 +195,6 @@ REDHAT_SUPPORT_PRODUCT_VERSION="9.3"
                 )
             )
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_rhel7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
             f.write(
@@ -213,7 +218,6 @@ REDHAT_SUPPORT_PRODUCT_VERSION="7"
                 )
             )
 
-    @mock.patch("sgtk.util.is_linux", return_value=True)
     def test_is_weird_el7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
             f.write(
