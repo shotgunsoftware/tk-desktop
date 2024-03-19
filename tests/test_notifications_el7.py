@@ -11,9 +11,13 @@
 from tank_test.tank_test_base import TankTestBase, mock
 from tank_test.tank_test_base import setUpModule  # noqa
 
-from notifications import CentOS7DeprecationNotification
+from notifications import (
+    CentOS7DeprecationNotification,
+    platform_os_release,
+)
 
-import os
+import contextlib
+import platform
 import sys
 import tempfile
 import unittest
@@ -36,22 +40,39 @@ class TestNotificationsEL7_NotLinux(TankTestBase):
 )
 @mock.patch("sgtk.util.is_linux", return_value=True)
 class TestNotificationsEL7(TankTestBase):
+    def setUp(self):
+        super().setUp()
+
+        if sys.version_info[:2] < (3, 10):
+            self.platform_mod = platform_os_release
+        else:
+            self.platform_mod = platform
+
+    @contextlib.contextmanager
+    def patch_platform_os_release_candidates(self, data):
+        # TODO: if python < 3.10: use .... instead of platform
+
+        os_release_candidates_back = self.platform_mod._os_release_cache
+        self.platform_mod._os_release_cache = None
+
+        os_release_candidates_back = self.platform_mod._os_release_candidates
+        self.platform_mod._os_release_candidates = data
+        try:
+            yield
+        finally:
+            self.platform_mod._os_release_candidates = os_release_candidates_back
+            self.platform_mod._os_release_cache = os_release_candidates_back
+
     def test_file_does_not_exist(self, *patches):
-        self.assertTrue(
-            CentOS7DeprecationNotification.display_on_this_os(
-                filename="file_does_not_exist"
-            )
-        )
+        with self.patch_platform_os_release_candidates(["file_does_not_exist"]):
+            self.assertTrue(CentOS7DeprecationNotification.display_on_this_os())
 
     def test_file_is_not_ini(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
-            f.write("not an INI file")
+            f.write("not an valid format")
             f.flush()
-            self.assertTrue(
-                CentOS7DeprecationNotification.display_on_this_os(
-                    filename=f.name,
-                )
-            )
+            with self.patch_platform_os_release_candidates([f.name]):
+                self.assertTrue(CentOS7DeprecationNotification.display_on_this_os())
 
     def test_is_not_el_flavor(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
@@ -73,11 +94,8 @@ LOGO=ubuntu-logo
 """
             )
             f.flush()
-            self.assertTrue(
-                CentOS7DeprecationNotification.display_on_this_os(
-                    filename=f.name,
-                )
-            )
+            with self.patch_platform_os_release_candidates([f.name]):
+                self.assertTrue(CentOS7DeprecationNotification.display_on_this_os())
 
     def test_is_centos7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
@@ -101,11 +119,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="7"
 """
             )
             f.flush()
-            self.assertTrue(
-                CentOS7DeprecationNotification.display_on_this_os(
-                    filename=f.name,
-                )
-            )
+            with self.patch_platform_os_release_candidates([f.name]):
+                self.assertTrue(CentOS7DeprecationNotification.display_on_this_os())
 
     def test_is_centos88(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
@@ -129,11 +144,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="88"
 """
             )
             f.flush()
-            self.assertTrue(
-                CentOS7DeprecationNotification.display_on_this_os(
-                    filename=f.name,
-                )
-            )
+            with self.patch_platform_os_release_candidates([f.name]):
+                self.assertTrue(CentOS7DeprecationNotification.display_on_this_os())
 
     def test_is_rocky8(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
@@ -159,11 +171,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="8.8"
 """
             )
             f.flush()
-            self.assertFalse(
-                CentOS7DeprecationNotification.display_on_this_os(
-                    filename=f.name,
-                )
-            )
+            with self.patch_platform_os_release_candidates([f.name]):
+                self.assertFalse(CentOS7DeprecationNotification.display_on_this_os())
 
     def test_is_rocky9(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
@@ -189,11 +198,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="9.3"
 """
             )
             f.flush()
-            self.assertFalse(
-                CentOS7DeprecationNotification.display_on_this_os(
-                    filename=f.name,
-                )
-            )
+            with self.patch_platform_os_release_candidates([f.name]):
+                self.assertFalse(CentOS7DeprecationNotification.display_on_this_os())
 
     def test_is_rhel7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
@@ -212,11 +218,8 @@ REDHAT_SUPPORT_PRODUCT_VERSION="7"
 """
             )
             f.flush()
-            self.assertTrue(
-                CentOS7DeprecationNotification.display_on_this_os(
-                    filename=f.name,
-                )
-            )
+            with self.patch_platform_os_release_candidates([f.name]):
+                self.assertTrue(CentOS7DeprecationNotification.display_on_this_os())
 
     def test_is_weird_el7(self, *patches):
         with tempfile.NamedTemporaryFile(mode="w+") as f:
@@ -229,8 +232,5 @@ PLATFORM_ID="platform:el7"
 """
             )
             f.flush()
-            self.assertTrue(
-                CentOS7DeprecationNotification.display_on_this_os(
-                    filename=f.name,
-                )
-            )
+            with self.patch_platform_os_release_candidates([f.name]):
+                self.assertTrue(CentOS7DeprecationNotification.display_on_this_os())
