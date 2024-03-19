@@ -50,8 +50,6 @@ class TestNotificationsEL7(TankTestBase):
 
     @contextlib.contextmanager
     def patch_platform_os_release_candidates(self, data):
-        # TODO: if python < 3.10: use .... instead of platform
-
         os_release_candidates_back = self.platform_mod._os_release_cache
         self.platform_mod._os_release_cache = None
 
