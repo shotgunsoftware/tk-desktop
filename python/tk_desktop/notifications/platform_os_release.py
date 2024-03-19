@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 
-# This is a backpost of Python 3.10's platform module
+# This is a backport of Python 3.10's platform module
 
 import re
 
