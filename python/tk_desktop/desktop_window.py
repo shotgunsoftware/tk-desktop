@@ -148,7 +148,7 @@ class ProjectCommandSettings(object):
 
 
 class DesktopWindow(SystrayWindow):
-    """Dockable window for the ShotGrid system tray"""
+    """Dockable window for the Flow Production Tracking system tray"""
 
     ORGANIZATION = "Shotgun Software"
     APPLICATION = "tk-desktop"
@@ -354,7 +354,7 @@ class DesktopWindow(SystrayWindow):
 
         self.ui.shotgun_button.clicked.connect(self.open_site_in_browser)
         self.ui.shotgun_button.setToolTip(
-            "Open ShotGrid in browser.\n%s" % connection.base_url
+            "Open Flow Production Tracking in browser.\n%s" % connection.base_url
         )
 
         self._project_model.thumbnail_updated.connect(
@@ -418,7 +418,7 @@ class DesktopWindow(SystrayWindow):
 
     def handle_help(self):
         """
-        Jumps to the help page of the Shotgun Desktop.
+        Jumps to the help page of the Flow Production Tracking.
         """
         QtGui.QDesktopServices.openUrl(
             FirstLaunchNotification.SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
@@ -677,7 +677,7 @@ class DesktopWindow(SystrayWindow):
             # It still works on Windows and Linux however for Desktop 1.5.x and
             # lower.
             self.systray.showMessage(
-                "ShotGrid Desktop",
+                "Flow Production Tracking",
                 "The application is now running in the system tray.",
                 icon,
                 5000,
@@ -712,7 +712,7 @@ class DesktopWindow(SystrayWindow):
 
     def handle_regen_certs(self):
         """
-        Regenerates the certificates if the user is certain and restarts the Shotgun Desktop on
+        Regenerates the certificates if the user is certain and restarts the PTR desktop app on
         demand.
         """
         # Need to create the message box by hand to have rich text format, hence
@@ -724,8 +724,8 @@ class DesktopWindow(SystrayWindow):
         with self.deactivate_auto_hide():
             choice = self._show_rich_message_box(
                 QtGui.QMessageBox.Information,
-                "ShotGrid browser integration",
-                "Regenerating the ShotGrid Desktop's browser integration certificates should "
+                "Flow Production Tracking browser integration",
+                "Regenerating the Flow Production Tracking's browser integration certificates should "
                 "only be done if you have issues with the browser integration.<br/>"
                 "<br/>"
                 "If you are unsure how to proceed, we recommend you visit our support page "
@@ -746,7 +746,7 @@ class DesktopWindow(SystrayWindow):
                 log.exception("Unexpected error while regenerating certificates:")
                 self._show_rich_message_box(
                     QtGui.QMessageBox.Critical,
-                    "ShotGrid browser integration",
+                    "Flow Production Tracking browser integration",
                     "It appears there are an issue while regenerating the certificates."
                     "\n"
                     "Please <a href='{0}'>contact our support team</a> "
@@ -759,8 +759,8 @@ class DesktopWindow(SystrayWindow):
             else:
                 choice = QtGui.QMessageBox.question(
                     self,
-                    "ShotGrid browser integration",
-                    "The ShotGrid Desktop needs to restart for the certificate changes "
+                    "Flow Production Tracking browser integration",
+                    "The PTR desktop app needs to restart for the certificate changes "
                     "to take effect.\n"
                     "\n"
                     "Would you like to restart?",
@@ -945,7 +945,7 @@ class DesktopWindow(SystrayWindow):
 
         engine = sgtk.platform.current_engine()
 
-        # This is for ye-olde Shotgun Desktop < 1.1
+        # This is for ye-olde PTR desktop app < 1.1
         if engine.uses_legacy_authentication():
             login_framework = engine.create_legacy_login_instance()
             if new_host:
@@ -966,7 +966,7 @@ class DesktopWindow(SystrayWindow):
 
     def _restart_desktop(self):
         """
-        Restarts the Shotgun Desktop application.
+        Restarts the Flow Production Tracking desktop application.
         """
         # restart the application
         QtGui.QApplication.instance().quit()
@@ -1006,7 +1006,7 @@ class DesktopWindow(SystrayWindow):
                     "A request originated from <b>{0}</b>, but you "
                     "are currently logged into <b>{1}</b>.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
-                    "<b>Restart</b> button below to restart ShotGrid Desktop and log into <b>{0}</b>.".format(
+                    "<b>Restart</b> button below to restart PTR desktop app and log into <b>{0}</b>.".format(
                         site, current_site
                     )
                 )
@@ -1015,7 +1015,6 @@ class DesktopWindow(SystrayWindow):
                 # request from another site.
                 user_login = None
             else:
-
                 user = bundle.shotgun.find_one(
                     "HumanUser", [["id", "is", user_id]], ["login"]
                 )
@@ -1028,9 +1027,9 @@ class DesktopWindow(SystrayWindow):
 
                 msg = (
                     "A request from <b>{0}</b> was made, but you are currently "
-                    "signed in as <b>{1}</b> in the ShotGrid Desktop.<br/><br/>"
+                    "signed in as <b>{1}</b> in the PTR desktop app.<br/><br/>"
                     "If you would like to launch applications or browse for files from the browser, click the "
-                    "<b>Restart</b> button below to restart ShotGrid Desktop and log as <b>{0}</b>.".format(
+                    "<b>Restart</b> button below to restart the PTR desktop app and log as <b>{0}</b>.".format(
                         user_login if user_login else "<unknown>",
                         bundle.get_current_user().login,
                     )
@@ -1460,7 +1459,7 @@ class DesktopWindow(SystrayWindow):
                 # We've loaded this project before and saved its pipeline configuration id, so
                 # reload the same old one.
                 engine.logger.debug(
-                    "Found a pipeline configuration to load in ShotGrid, picking %s.",
+                    "Found a pipeline configuration to load in Flow Production Tracking, picking %s.",
                     pipeline_configuration_to_load,
                 )
                 toolkit_manager.pipeline_configuration = pipeline_configuration_to_load[
@@ -1480,7 +1479,7 @@ class DesktopWindow(SystrayWindow):
             log.exception(str(error))
             message = (
                 "%s"
-                "\n\nTo resolve this, open ShotGrid in your browser\n"
+                "\n\nTo resolve this, open Flow Production Tracking in your browser\n"
                 "and check the paths for this Pipeline Configuration."
                 "\n\nFor more details, see the console." % str(error)
             )

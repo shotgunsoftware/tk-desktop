@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>ShotGrid browser integration</string>
+   <string>Flow Production Tracking browser integration</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>

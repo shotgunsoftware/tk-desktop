@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-Shotgun Desktop project-level engine implementation.
+Flow Production Tracking project-level engine implementation.
 """
 
 from __future__ import with_statement
@@ -32,7 +32,7 @@ logger = LogManager.get_logger(__name__)
 
 class DesktopEngineProjectImplementation(object):
     """
-    Launches an RPC server which listens for requests from the Shotgun Desktop to launch an app.
+    Launches an RPC server which listens for requests from the PTR desktop app to launch an app.
     """
 
     def __init__(self, engine):
