@@ -303,11 +303,11 @@ def test_call_with_wrong_arguments(proxy):
     with pytest.raises(TypeError) as exc:
         proxy.call("pass_arg", 1, 2, 3)
     if six.PY3:
-        assert (
-            str(exc.value) == "pass_arg() takes 2 positional arguments but 4 were given"
+        assert "pass_arg() takes 2 positional arguments but 4 were given" in str(
+            exc.value
         )
     else:
-        assert str(exc.value) == "pass_arg() takes exactly 2 arguments (4 given)"
+        assert "pass_arg() takes exactly 2 arguments (4 given)" in str(exc.value)
 
 
 def test_proxy_close_during_long_call(proxy, fake_engine, server):

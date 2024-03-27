@@ -12,8 +12,10 @@
 
 # The path to output all built .py files to:
 UI_PYTHON_PATH=../python/tk_desktop/ui
-# This expects Shotgun Desktop 1.5.9 or less. PySide 1 is required.
-PYTHON_BASE="/Applications/Shotgun.app/Contents/Resources/Python"
+if [ -z "${PYTHON_BASE}" ]; then
+    # This expects Shotgun Desktop 1.5.9 or less. PySide 1 is required.
+    PYTHON_BASE="/Applications/Shotgun.app/Contents/Resources/Python"
+fi
 
 function build_qt {
     echo " > Building " $2
@@ -22,7 +24,7 @@ function build_qt {
     $1 $2 > $UI_PYTHON_PATH/$3.py
 
     # replace PySide imports with sgtk.platform.qt and remove line containing Created by date
-    sed -i $UI_PYTHON_PATH/$3.py -e "s/from PySide import/from sgtk.platform.qt import/g" -e "/# Created:/d"
+    sed -i "" -e "s/from PySide import/from sgtk.platform.qt import/g" -e "/# Created:/d" $UI_PYTHON_PATH/$3.py
 }
 
 function build_ui {

@@ -64,7 +64,11 @@ def test_3rd_party_links(licence_file_links):
     """
     for url in licence_file_links:
         try:
-            r = request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            r = request.Request(
+                url,
+                headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
+            )
+
             contents = request.urlopen(r).read()
         except Exception as e:
             raise pytest.fail("Failed to open {0}, error: {1}".format(url, e))
@@ -76,10 +80,11 @@ def test_3rd_party_links(licence_file_links):
         "https://github.com/shotgunsoftware/python-api/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-3dsmax/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-3dsmaxplus/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-alias/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-core/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-framework-adobe/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-desktopclient/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-framework-desktopserver/tree/master/software_credits",
-        "https://github.com/shotgunsoftware/tk-framework-lmv/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-houdini/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-multi-pythonconsole/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-multi-reviewsubmission/tree/master/software_credits",

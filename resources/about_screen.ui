@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>About ShotGrid Desktop</string>
+   <string>About Flow Production Tracking</string>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <property name="spacing">
@@ -58,7 +58,7 @@
       <string notr="true">font-size: 16px;</string>
      </property>
      <property name="text">
-      <string>&lt;b&gt;&lt;big&gt;ShotGrid Desktop&lt;/big&gt;&lt;/b&gt;</string>
+      <string>&lt;b&gt;&lt;big&gt;Flow Production Tracking&lt;/big&gt;&lt;/b&gt;</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>
@@ -113,8 +113,7 @@
       <string notr="true">font-size: 10px;</string>
      </property>
      <property name="text">
-      <string>Copyright ©2021 ShotGrid Software Inc.
-All rights reserved.</string>
+      <string>Copyright ©2024 Autodesk. All rights reserved.</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 """
-Shotgun Desktop project-level engine implementation.
+Flow Production Tracking project-level engine implementation.
 """
 
 from __future__ import with_statement
@@ -32,7 +32,7 @@ logger = LogManager.get_logger(__name__)
 
 class DesktopEngineProjectImplementation(object):
     """
-    Launches an RPC server which listens for requests from the Shotgun Desktop to launch an app.
+    Launches an RPC server which listens for requests from the PTR desktop app to launch an app.
     """
 
     def __init__(self, engine):
@@ -360,8 +360,13 @@ class DesktopEngineProjectImplementation(object):
                 # an older version of the installer that doesn't contain this package. In which
                 # case just move on silently.
                 pass
-
-        app = QtGui.QApplication([])
+        # If qt is already running and a QApplication has been
+        # initialized (e.g. on the engine_init core hook)
+        # let's create a Qt app instance.
+        app = QtGui.QApplication.instance()
+        if not app:
+            # if it does not exist then a QApplication is created
+            app = QtGui.QApplication([])
 
         # We may launch multiple UI apps, do not quit as soon as the last one closes.
         app.setQuitOnLastWindowClosed(False)

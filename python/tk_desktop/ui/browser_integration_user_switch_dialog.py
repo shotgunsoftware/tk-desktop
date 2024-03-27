@@ -67,7 +67,7 @@ class Ui_BrowserIntegrationUserSwitchDialog(object):
         QtCore.QMetaObject.connectSlotsByName(BrowserIntegrationUserSwitchDialog)
 
     def retranslateUi(self, BrowserIntegrationUserSwitchDialog):
-        BrowserIntegrationUserSwitchDialog.setWindowTitle(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "ShotGrid browser integration", None, QtGui.QApplication.UnicodeUTF8))
+        BrowserIntegrationUserSwitchDialog.setWindowTitle(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Flow Production Tracking browser integration", None, QtGui.QApplication.UnicodeUTF8))
         self.reason_label.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "TextLabel", None, QtGui.QApplication.UnicodeUTF8))
         self.ignore_checkbox.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Ignore requests from this site until the next restart", None, QtGui.QApplication.UnicodeUTF8))
         self.restart_button.setText(QtGui.QApplication.translate("BrowserIntegrationUserSwitchDialog", "Restart", None, QtGui.QApplication.UnicodeUTF8))

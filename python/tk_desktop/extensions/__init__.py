@@ -15,16 +15,16 @@ import sgtk
 logger = sgtk.platform.get_logger(__name__)
 
 use_mocked_osutils = True
-# The osutils extension modules from the Shotgun Desktop's private repo.
+# The osutils extension modules from the PTR desktop app's private repo.
 if sys.platform.startswith("linux"):
 
-    # The Shotgun Desktop that comes with PySide2 does not require
+    # The PTR desktop app that comes with PySide2 does not require
     # any helper code to have the application move the foreground
     # properly.
     try:
         import PySide2  # noqa
     except Exception:
-        # We're in a PySide 1 version of Shotgun Desktop, so try
+        # We're in a PySide 1 version of the PTR desktop app, so try
         # to import the old osutils
         try:
             # This library links againts Qt, so the version number is
@@ -48,8 +48,12 @@ elif sys.platform == "darwin":
         # with the qt version.
         if sys.version_info[0] == 2:
             from .darwin_python2 import osutils
-        else:
-            from .darwin_python3 import osutils
+        elif sys.version_info[0:2] == (3, 7):
+            from .darwin_python37 import osutils
+        elif sys.version_info[0:2] == (3, 9):
+            from .darwin_python39 import osutils
+        elif sys.version_info[0:2] >= (3, 10):
+            from .darwin_python310 import osutils
         use_mocked_osutils = False
     except Exception as e:
         logger.warning("Could not load osutils: %s", e, exc_info=True)

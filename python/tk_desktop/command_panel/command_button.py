@@ -162,7 +162,7 @@ class CommandButton(QtGui.QToolButton):
         # If there is more than one available item in the menu, show it so the
         # user can pick one.
         if len(self._menu.actions()) > 1:
-            self.setPopupMode(self.MenuButtonPopup)
+            self.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
             self.setMenu(self._menu)
 
     def _compare_menu_actions(self, lhs, rhs):

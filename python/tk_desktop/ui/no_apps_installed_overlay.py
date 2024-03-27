@@ -91,7 +91,7 @@ class Ui_NoAppsInstalledOverlay(object):
         NoAppsInstalledOverlay.setWindowTitle(QtGui.QApplication.translate("NoAppsInstalledOverlay", "Form", None, QtGui.QApplication.UnicodeUTF8))
         self.main_label.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "We couldn\'t find anything to launch.", None, QtGui.QApplication.UnicodeUTF8))
         self.sub_label_1.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "Install a supported", None, QtGui.QApplication.UnicodeUTF8))
-        self.sub_label_2.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "application to start using it with ShotGrid.", None, QtGui.QApplication.UnicodeUTF8))
+        self.sub_label_2.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "application to start using it with Flow Production Tracking.", None, QtGui.QApplication.UnicodeUTF8))
         self.link_label.setText(QtGui.QApplication.translate("NoAppsInstalledOverlay", "Click here to find out how to configure this screen.", None, QtGui.QApplication.UnicodeUTF8))
 
 from . import resources_rc
