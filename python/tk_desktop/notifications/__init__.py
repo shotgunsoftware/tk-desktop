@@ -14,3 +14,4 @@ from .first_launch_notification import FirstLaunchNotification  # noqa
 from .desktop_notification import DesktopNotification  # noqa
 from .notification_manager import NotificationsManager  # noqa
 from .python2_deprecation_notification import Python2DeprecationNotification
+from .centos7_deprecation_notification import CentOS7DeprecationNotification
