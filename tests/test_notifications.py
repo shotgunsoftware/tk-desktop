@@ -222,21 +222,6 @@ class TestNotifications(TankTestBase):
         # Now there should be no more current notifications.
         self.assertListEqual(self._notification_manager.get_notifications(), [])
 
-    def test_python2_deprecation_notifs(self):
-        """
-        Test python2 deprecation notification.
-        """
-        notifs = self._notification_manager.get_notifications()
-
-        is_included = False
-        for notif in notifs:
-            if isinstance(notif, notifications.Python2DeprecationNotification):
-                is_included = True
-
-            self._notification_manager.dismiss(notif)
-
-        self.assertTrue(is_included)
-
     def test_centos7_deprecation_notifs(self):
         """
         Test CentOS7 deprecation notification.
