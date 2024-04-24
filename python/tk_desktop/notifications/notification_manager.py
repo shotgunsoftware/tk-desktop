@@ -114,18 +114,20 @@ class NotificationsManager(object):
             )
             to_return = [first_launch_notif]
             for notif in other_notifs:
-                accepted = True
-                for notif_class in self.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH:
-                    if not isinstance(notif, notif_class):
-                        self.dismiss(notif)
-                        accepted = False
-                        break
-                if accepted:
+                if self._is_notification_to_be_included_in_first_launch(notif):
                     to_return.append(notif)
+                else:
+                    self.dismiss(notif)
+
             return to_return
         else:
             logger.debug("Notifications to display: %s", other_notifs)
             return other_notifs
+
+    def _is_notification_to_be_included_in_first_launch(self, notif):
+        for notif_class in self.NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH:
+            if isinstance(notif, notif_class):
+                return True
 
     def dismiss(self, notification):
         """
