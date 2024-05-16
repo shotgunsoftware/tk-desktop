@@ -270,7 +270,6 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
 
         return sg_softwares
 
-
     def __get_sg_server_version(self, engine):
         """
         Retrieves the shotgun server version
