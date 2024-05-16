@@ -128,7 +128,7 @@
           <string notr="true">font-size: 18px; color: #888888</string>
          </property>
          <property name="text">
-          <string>application to start using it with Flow Production Tracking.</string>
+          <string>application to start using it with FPTR.</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignCenter</set>
