@@ -172,7 +172,7 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
 
     def _get_sg_software_entities(self, engine, project=None):
         """
-        Retrieve a list of Software entities from Shotgun that
+        Retrieve a list of Software entities from FPTR that
         are active for the current project and user.
 
         If the shotgun connection does not support software entities,
