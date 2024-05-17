@@ -23,23 +23,8 @@ if sys.platform.startswith("linux"):
     # properly.
     try:
         import PySide2  # noqa
-    except Exception:
-        # We're in a PySide 1 version of the PTR desktop app, so try
-        # to import the old osutils
-        try:
-            # This library links againts Qt, so the version number is
-            # suffixed to the module. If in the future we need to
-            # have an extension for qt5, we'll avoid a name clash.
-            from .linux_python2_qt4 import osutils
-
-            use_mocked_osutils = False
-        except Exception as e:
-            logger.warning("Could not load osutils: %s", e, exc_info=True)
-    else:
-        # PySide 2 build of desktop does not require help
-        # making the application go in the foreground/background, so we
-        # don't need to import an extension module.
-        pass
+    except Exception as e:
+        logger.warning("Could not load PySide2: %s", e, exc_info=True)
 elif sys.platform == "darwin":
     # On macOS, the osutils are required to make the app move to the foreground
     # or background in certain cases.

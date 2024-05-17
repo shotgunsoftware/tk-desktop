@@ -220,7 +220,7 @@ class DesktopEngine(Engine):
                 raise sgtk.TankError(
                     "Looks like you are trying to run an App that uses a QT based UI, however the "
                     "python installation that the Desktop engine is currently using does not seem "
-                    "to contain a valid PySide or PyQt4 install. Either install PySide into your "
+                    "to contain a valid PySide or PyQt install. Either install PySide into your "
                     "python environment or alternatively switch back to using the native "
                     "PTR desktop app python installation, which includes full QT support."
                 )
@@ -234,6 +234,8 @@ class DesktopEngine(Engine):
         base = Engine._define_qt_base(self)
 
         # If QtCore hasn't been set, then nothing was.
+        self.log_debug("BASEEEEE:")
+        self.log_debug(base)
         if base["qt_core"] is None:
             return self._define_unavailable_base()
 
