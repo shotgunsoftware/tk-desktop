@@ -220,7 +220,7 @@ class DesktopEngine(Engine):
                 raise sgtk.TankError(
                     "Looks like you are trying to run an App that uses a QT based UI, however the "
                     "python installation that the Desktop engine is currently using does not seem "
-                    "to contain a valid PySide or PyQt install. Either install PySide into your "
+                    "to contain a valid PySide2 or PySide6 install. Either install PySide2/6 into your "
                     "python environment or alternatively switch back to using the native "
                     "PTR desktop app python installation, which includes full QT support."
                 )
