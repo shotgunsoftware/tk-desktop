@@ -668,12 +668,6 @@ class DesktopWindow(SystrayWindow):
                 icon = self.systray.NoIcon
             else:
                 icon = self._app_icon
-            # Note that on macOS, this call will not show anything,
-            # at least on Catalina. This is likely because these builds predate
-            # Catalina and don't have the necessary APIs to request permission
-            # to use the Notification API and therefore fail at showing anything.
-            # It still works on Windows and Linux however for Desktop 1.5.x and
-            # lower.
             self.systray.showMessage(
                 "Flow Production Tracking",
                 "The application is now running in the system tray.",

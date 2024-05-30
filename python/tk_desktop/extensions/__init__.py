@@ -21,10 +21,7 @@ if sys.platform.startswith("linux"):
     # The PTR desktop app that comes with PySide2 does not require
     # any helper code to have the application move the foreground
     # properly.
-    try:
-        import PySide2  # noqa
-    except Exception as e:
-        logger.warning("Could not load PySide2: %s", e, exc_info=True)
+    import PySide2  # noqa
 elif sys.platform == "darwin":
     # On macOS, the osutils are required to make the app move to the foreground
     # or background in certain cases.
