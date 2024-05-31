@@ -33,13 +33,6 @@ if sys.platform == "darwin":
         use_mocked_osutils = False
     except Exception as e:
         logger.warning("Could not load osutils: %s", e, exc_info=True)
-else:
-    # Not only has Windows' osutils been broken for years since it
-    # was a 32-bit compiled version of the extension, in practice
-    # none of the code has been necessary to get both PySide and PySide2
-    # versions of desktop running, so there's no need to test for Windows
-    # here.
-    pass
 
 if use_mocked_osutils:
 
