@@ -32,8 +32,17 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         """
         :param engine: Toolkit engine.
         """
-        QtCore.QObject.__init__(self)
-        CommunicationBase.__init__(self, engine)
+
+        # Multiple inheritance problem in PySide6
+        # https://bugreports.qt.io/browse/PYSIDE-1564
+        # Not fix in 6.7...
+        if QtCore.qVersion()[0] == "5":
+            QtCore.QObject.__init__(self)
+            CommunicationBase.__init__(self, engine=engine)
+            # Must pass engine as a required named parameter instead of
+            # positional to satisfy both PySide2 and PySide6 prototypes.
+        else:
+            super().__init__(engine=engine)
 
     def _create_proxy(self, pipe, authkey):
         """

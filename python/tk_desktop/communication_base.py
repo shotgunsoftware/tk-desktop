@@ -24,7 +24,7 @@ class CommunicationBase(object):
     Communication channel base class.
     """
 
-    def __init__(self, engine):
+    def __init__(self, *, engine):
         """
         :param engine: Toolkit engine.
         """

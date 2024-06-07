@@ -28,7 +28,7 @@ class ProjectCommunication(CommunicationBase):
         """
         :param engine: Toolkit engine.
         """
-        CommunicationBase.__init__(self, engine)
+        CommunicationBase.__init__(self, engine=engine)
         self._connected = False
 
     def connect_to_server(self, pipe, auth, disconnect_callback):
