@@ -113,8 +113,8 @@ class Console(QtGui.QDialog):
     def append_text(self, text, force_show=False):
         self.__logs.appendHtml(text)
         cursor = self.__logs.textCursor()
-        cursor.movePosition(cursor.End)
-        cursor.movePosition(cursor.StartOfLine)
+        cursor.movePosition(QtGui.QTextCursor.End)
+        cursor.movePosition(QtGui.QTextCursor.StartOfLine)
         self.__logs.setTextCursor(cursor)
         self.__logs.ensureCursorVisible()
 

@@ -102,8 +102,8 @@ class LoadingProjectWidget(QtGui.QFrame):
         if msg:
             self._ui.progress_output.appendHtml(msg)
             cursor = self._ui.progress_output.textCursor()
-            cursor.movePosition(cursor.End)
-            cursor.movePosition(cursor.StartOfLine)
+            cursor.movePosition(QtGui.QTextCursor.End)
+            cursor.movePosition(QtGui.QTextCursor.StartOfLine)
             self._ui.progress_output.setTextCursor(cursor)
             self._ui.progress_output.ensureCursorVisible()
 
