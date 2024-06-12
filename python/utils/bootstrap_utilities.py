@@ -320,14 +320,24 @@ def start_app(engine):
     Run the QApplication for the given tk-desktop engine.
     """
 
+    import sgtk
+    logger = sgtk.LogManager.get_logger(__file__)
+    logger.info("""
+
+desktop boostrap util
+
+""")
+
     # If we're running the new engine that knows how to start the app, delegate the
     # task to it
     if hasattr(engine, "start_app"):
         return engine.start_app()
 
+    logger.info(" still here!!!!!")
     # Otherwise run the legacy code.
     if engine.has_ui:
 
+        logger.info(" create Qapp instance!!!!!")
         # NOTE
         # The following code is meant to run for very old verions of tk-desktop. It
         # should not be edited to support newer features.

@@ -330,7 +330,11 @@ class DesktopEngineProjectImplementation(object):
         # If qt is already running and a QApplication has been
         # initialized (e.g. on the engine_init core hook)
         # let's create a Qt app instance.
+
+        logger.info("start app - init app")
+
         app = QtGui.QApplication.instance()
+        logger.info(f"  qt app: {app}")
         if not app:
             if QtCore.qVersion()[0] == "5":
                 logger.info(f"  Set HIghDPI flag for Qt5")
@@ -338,6 +342,7 @@ class DesktopEngineProjectImplementation(object):
 
             # if it does not exist then a QApplication is created
             app = QtGui.QApplication([])
+            logger.info(f"  create new QT app instance")
 
         # We may launch multiple UI apps, do not quit as soon as the last one closes.
         app.setQuitOnLastWindowClosed(False)
