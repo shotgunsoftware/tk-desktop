@@ -664,18 +664,10 @@ class DesktopWindow(SystrayWindow):
         if has_warned_of_closed_behaviour is False:
             # On macOS the app icon is already visible on the pop-up
             # message, do not show it a second time.
-            # In Qt4, we can't have a custom icon, so don't display
-            # anything. All the stock Qt icons make it look worse.
-            if sgtk.util.is_macos() or QtCore.qVersion()[0] == "4":
+            if sgtk.util.is_macos():
                 icon = self.systray.NoIcon
             else:
                 icon = self._app_icon
-            # Note that on macOS+Qt4, this call will not show anything,
-            # at least on Catalina. This is likely because these builds predate
-            # Catalina and don't have the necessary APIs to request permission
-            # to use the Notification API and therefore fail at showing anything.
-            # It still works on Windows and Linux however for Desktop 1.5.x and
-            # lower.
             self.systray.showMessage(
                 "Flow Production Tracking",
                 "The application is now running in the system tray.",
