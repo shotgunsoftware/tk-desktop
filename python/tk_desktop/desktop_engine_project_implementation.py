@@ -20,6 +20,7 @@ import sys
 import fnmatch
 import traceback
 import threading
+from packaging.version import Version
 
 from sgtk import LogManager
 import sgtk
@@ -117,6 +118,23 @@ class DesktopEngineProjectImplementation(object):
 
             # call back to the site implementation to show the banner
             self._project_comm.call_no_response("update_banners", banner_message, banner_id)
+
+        self._check_desktop_version()
+
+
+    def _check_desktop_version(self):
+        """
+        Checks the current Desktop version and displays a banner if it's less than 1.9.
+        """
+        current_version = self._engine.sgtk.version
+        required_version = "1.9"
+
+        if Version(str(current_version)) < Version(str(required_version)):
+            banner_message = (
+                "Autodesk disabled auto-updating due to Python version change. "
+                "Please download the new version <a href='https://ark.shotgunstudio.com/page/sg_desktop_download'>here</a>."
+            )
+            self._project_comm.call_no_response("update_banners", banner_message, "desktop_version_check")
 
     def _connect_to_server(self):
         """
