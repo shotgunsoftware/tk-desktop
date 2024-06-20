@@ -127,6 +127,11 @@ def server(fake_engine, request):
 
     :returns: A RPCServerThread instance.
     """
+
+    # FIXME: Any errors raised here when closing won't actually be caught by
+    #  our tests, because the error happens in a separate thread.
+    #  See the FIX ME in the RPCServerThread class for further details.
+
     server = RPCServerThread(fake_engine)
     server.register_function(fake_engine.pass_arg)
     server.register_function(fake_engine.pass_named_arg)
