@@ -270,6 +270,12 @@ class RPCServerThread(threading.Thread):
                         self.server.address, self.LISTEN_TIMEOUT * 1000
                     )
                     ready = True
+                except AttributeError as e:
+                    # The server has been closed.
+                    logger.debug("Error during select:", exc_info=True)
+                    if self.server._listener:
+                        raise
+                    ready = False
                 except WindowsError as e:
                     logger.debug("Error during WaitNamedPipe:", exc_info=True)
                     if e.args[0] not in (
@@ -288,6 +294,8 @@ class RPCServerThread(threading.Thread):
                 except AttributeError as e:
                     # The server has been closed.
                     logger.debug("Error during select:", exc_info=True)
+                    if self.server._listener:
+                        raise
                     ready = False
                 except select.error as e:
                     import errno
