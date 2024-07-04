@@ -17,7 +17,7 @@ import threading
 import time
 import traceback
 import multiprocessing.connection
-from  multiprocessing.context import AuthenticationError
+from multiprocessing.context import AuthenticationError
 
 # We have to import Python's pickle to serialize our data.
 # tk-core's sgtk.util.pickle module assumes too much about the data
