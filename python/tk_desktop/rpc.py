@@ -17,6 +17,7 @@ import threading
 import time
 import traceback
 import multiprocessing.connection
+from  multiprocessing.context import AuthenticationError
 
 # We have to import Python's pickle to serialize our data.
 # tk-core's sgtk.util.pickle module assumes too much about the data
@@ -369,7 +370,7 @@ class RPCServerThread(threading.Thread):
                         logger.debug("   traceback:\n%s" % traceback.format_exc())
                         if respond:
                             connection.send(pickle.dumps(e))
-            except (EOFError, IOError):
+            except (EOFError, IOError, AuthenticationError) as e:
                 # let these errors go
                 # just keep serving new connections
                 pass
