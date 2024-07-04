@@ -280,10 +280,22 @@ class RPCServerThread(threading.Thread):
                     ready = False
             else:
                 # can use select on osx and linux
-                (rd, _, _) = select.select(
-                    [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
-                )
-                ready = len(rd) > 0
+                try:
+                    (rd, _, _) = select.select(
+                        [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
+                    )
+                    ready = len(rd) > 0
+                except AttributeError as e:
+                    # The server has been closed.
+                    logger.debug("Error during select:", exc_info=True)
+                    ready = False
+                except select.error as e:
+                    import errno
+
+                    logger.debug("Error during select:", exc_info=True)
+                    if e.args[0] != errno.EBADF:
+                        raise
+                    ready = False
 
             if not ready:
                 logger.debug("server thread could not create server")
