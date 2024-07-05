@@ -468,7 +468,7 @@ class RPCProxy(object):
                 # Here we catch IOError (alias) and WinError (subclass) as well
                 if self._closed:
                     raise RuntimeError(
-                        "client closed while waiting for a response with OSError exception"
+                        "client closed while waiting for a response"
                     )
                 raise
 
