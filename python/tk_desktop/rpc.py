@@ -272,7 +272,7 @@ class RPCServerThread(threading.Thread):
                     )
                     ready = True
                 except AttributeError as e:
-                    # The server has been closed.
+                    # The server has been closed. `_listener` is None.
                     logger.debug("Error during select:", exc_info=True)
                     if self.server._listener:
                         raise
@@ -293,7 +293,7 @@ class RPCServerThread(threading.Thread):
                     )
                     ready = len(rd) > 0
                 except AttributeError as e:
-                    # The server has been closed.
+                    # The server has been closed. `_listener` is None.
                     logger.debug("Error during select:", exc_info=True)
                     if self.server._listener:
                         raise
@@ -469,8 +469,8 @@ class RPCProxy(object):
                 if self._closed:
                     raise RuntimeError("client closed while waiting for a response")
 
-                # Check if there's a WinError that causes flaky behavior on CI
-                if sys.platform == "win32":
+                # Check if there's a WinError that causes some flaky behavior on CI
+                if sys.platform == "win32" and "The handle is invalid" in str(e):
                     import _winapi
 
                     if e.winerror:
