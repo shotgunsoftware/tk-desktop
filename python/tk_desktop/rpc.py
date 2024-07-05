@@ -465,11 +465,16 @@ class RPCProxy(object):
                         raise RuntimeError("client closed while waiting for a response")
                     continue
             except OSError as e:
-                # Here we catch IOError (alias) and WinError (subclass) as well
+                # IOError it's an alias of OSError
                 if self._closed:
-                    raise RuntimeError(
-                        "client closed while waiting for a response"
-                    )
+                    raise RuntimeError("client closed while waiting for a response")
+
+                # Check if there's a WinError that causes flaky behavior on CI
+                if sys.platform == 'win32':
+                    import _winapi
+
+                    if e.winerror == _winapi.ERROR_NO_DATA:
+                        raise RuntimeError("client closed while waiting for a response")
                 raise
 
         # read the result
