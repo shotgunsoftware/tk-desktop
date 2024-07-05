@@ -470,10 +470,10 @@ class RPCProxy(object):
                     raise RuntimeError("client closed while waiting for a response")
 
                 # Check if there's a WinError that causes flaky behavior on CI
-                if sys.platform == 'win32':
+                if sys.platform == "win32":
                     import _winapi
 
-                    if e.winerror == _winapi.ERROR_NO_DATA:
+                    if e.winerror:
                         raise RuntimeError("client closed while waiting for a response")
                 raise
 
