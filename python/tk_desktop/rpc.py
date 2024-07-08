@@ -218,7 +218,7 @@ class RPCServerThread(threading.Thread):
         self.authkey = authkey or str(uuid.uuid1())
 
         # setup the server pipe
-        if sys.platform == "win32":
+        if is_windows():
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
@@ -265,7 +265,7 @@ class RPCServerThread(threading.Thread):
             logger.debug("server thread is about to create a server")
             ready = False
             # test to see if there is a connection waiting on the pipe
-            if sys.platform == "win32":
+            if is_windows():
                 try:
                     mpc_win32.WaitNamedPipe(
                         self.server.address, self.LISTEN_TIMEOUT * 1000
@@ -389,7 +389,7 @@ class RPCServerThread(threading.Thread):
         self.server.close()
         self._is_closed = True
 
-        if sys.platform == "win32":
+        if is_windows():
             # The "accept" call blocks until a client is available-
             # unfortunately closing the connection on Windows does not
             # cause accept to unblock and raise an error, so we have to force
@@ -419,12 +419,13 @@ class RPCProxy(object):
 
     # timeout in seconds to wait for a response
     LISTEN_TIMEOUT = 2
+    _INVALID_HANDLE_MESSAGE = "The handle is invalid"
 
     def __init__(self, pipe, authkey):
         self._closed = False
 
         # connect to the server via the pipe using authkey for authentication
-        if sys.platform == "win32":
+        if is_windows():
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
@@ -470,7 +471,7 @@ class RPCProxy(object):
                     raise RuntimeError("client closed while waiting for a response")
 
                 # Check if there's a WinError that causes some flaky behavior on CI
-                if sys.platform == "win32" and "The handle is invalid" in str(e):
+                if is_windows() and self._INVALID_HANDLE_MESSAGE in str(e):
                     import _winapi
 
                     if e.winerror:
