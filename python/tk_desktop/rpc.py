@@ -370,7 +370,7 @@ class RPCServerThread(threading.Thread):
                         logger.debug("   traceback:\n%s" % traceback.format_exc())
                         if respond:
                             connection.send(pickle.dumps(e))
-            except (EOFError, IOError, AuthenticationError) as e:
+            except (EOFError, IOError, AuthenticationError):
                 # let these errors go
                 # just keep serving new connections
                 pass
