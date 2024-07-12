@@ -8,6 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import errno
 import os
 import sys
 import uuid
@@ -272,9 +273,9 @@ class RPCServerThread(threading.Thread):
                     )
                     ready = True
                 except AttributeError as e:
-                    # The server has been closed. `_listener` is None.
                     logger.debug("Error during select:", exc_info=True)
                     if self.server._listener:
+                        # The server has been closed. `_listener` is None.
                         raise
                     ready = False
                 except WindowsError as e:
@@ -299,8 +300,6 @@ class RPCServerThread(threading.Thread):
                         raise
                     ready = False
                 except select.error as e:
-                    import errno
-
                     logger.debug("Error during select:", exc_info=True)
                     if e.args[0] != errno.EBADF:
                         raise
