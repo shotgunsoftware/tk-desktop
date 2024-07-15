@@ -331,7 +331,10 @@ def start_app(engine):
         # NOTE
         # The following code is meant to run for very old verions of tk-desktop. It
         # should not be edited to support newer features.
-        from tank.platform.qt import QtGui
+        from tank.platform.qt import QtCore, QtGui
+
+        if QtCore.qVersion()[0] == "5":
+            QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
 
         app = QtGui.QApplication([])
         app.setQuitOnLastWindowClosed(False)

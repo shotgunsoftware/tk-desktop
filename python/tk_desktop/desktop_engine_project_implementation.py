@@ -311,7 +311,7 @@ class DesktopEngineProjectImplementation(object):
             return 0
 
     def _initialize_application(self):
-        from tank.platform.qt import QtGui, QtCore
+        from tank.platform.qt import QtCore, QtGui
 
         if sgtk.util.is_macos():
             # If we are on Mac with PySide2, then starting a QApplication even with no Windows

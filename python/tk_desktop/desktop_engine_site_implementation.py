@@ -369,10 +369,13 @@ class DesktopEngineSiteImplementation(object):
         :param startup_descriptor: Descriptor of the Desktop Startup code. Can be omitted.
         """
         # Initialize Qt app
-        from tank.platform.qt import QtGui
+        from tank.platform.qt import QtCore, QtGui
 
         app = QtGui.QApplication.instance()
         if app is None:
+            if QtCore.qVersion()[0] == "5":
+                QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+
             app = QtGui.QApplication(sys.argv)
 
         # update the app icon
