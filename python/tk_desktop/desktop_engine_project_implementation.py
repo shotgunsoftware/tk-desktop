@@ -311,7 +311,7 @@ class DesktopEngineProjectImplementation(object):
             return 0
 
     def _initialize_application(self):
-        from tank.platform.qt import QtGui
+        from tank.platform.qt import QtGui, QtCore
 
         if sgtk.util.is_macos():
             # If we are on Mac with PySide2, then starting a QApplication even with no Windows
@@ -330,8 +330,12 @@ class DesktopEngineProjectImplementation(object):
         # If qt is already running and a QApplication has been
         # initialized (e.g. on the engine_init core hook)
         # let's create a Qt app instance.
+
         app = QtGui.QApplication.instance()
         if not app:
+            if QtCore.qVersion()[0] == "5":
+                QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+
             # if it does not exist then a QApplication is created
             app = QtGui.QApplication([])
 
