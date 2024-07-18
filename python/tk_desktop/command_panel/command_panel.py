@@ -10,11 +10,15 @@
 
 from datetime import datetime
 from sgtk.platform.qt import QtGui, QtCore
-from tank_vendor import six
 
 from .shared import MAX_RECENTS
 from .recent_section import RecentSection
 from .command_section import CommandSection
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 TIME_STAMP_FORMAT = "%m/%d/%Y, %H:%M:%S"
 
@@ -187,7 +191,7 @@ class CommandPanel(QtGui.QWidget):
 
         # Make sure the string is a str and not unicode. This happens in
         # Python 2.7.
-        command_name = six.ensure_str(command_name)
+        command_name = sgutils.ensure_str(command_name)
 
         self._recents[command_name] = {"timestamp": datetime.utcnow()}
         self._store_recents()

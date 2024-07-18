@@ -9,7 +9,11 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from sgtk.platform.qt import QtGui, QtCore
-from tank_vendor import six
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 from .shared import ICON_SIZE, BUTTON_STYLE, MAX_RECENTS
 
@@ -77,7 +81,7 @@ class RecentButton(QtGui.QPushButton):
         self._command_name = command_name
 
         self.clicked.connect(
-            lambda: self.command_triggered.emit(six.ensure_str(self._command_name))
+            lambda: self.command_triggered.emit(sgutils.ensure_str(self._command_name))
         )
 
     @property
@@ -85,7 +89,7 @@ class RecentButton(QtGui.QPushButton):
         """
         Name of the button.
         """
-        return six.ensure_str(self.text_label.text())
+        return sgutils.ensure_str(self.text_label.text())
 
     @property
     def timestamp(self):
