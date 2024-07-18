@@ -345,7 +345,9 @@ class DesktopEngineProjectImplementation(object):
                 elif "QT_SCREEN_SCALE_FACTORS" in os.environ:
                     pass
                 else:
-                    QtCore.QCoreApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling)
+                    QtCore.QCoreApplication.setAttribute(
+                        QtCore.Qt.AA_EnableHighDpiScaling
+                    )
 
             # if it does not exist then a QApplication is created
             app = QtGui.QApplication([])
