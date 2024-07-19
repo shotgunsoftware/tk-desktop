@@ -16,31 +16,7 @@ logger = sgtk.platform.get_logger(__name__)
 
 use_mocked_osutils = True
 # The osutils extension modules from the PTR desktop app's private repo.
-if sys.platform.startswith("linux"):
-
-    # The PTR desktop app that comes with PySide2 does not require
-    # any helper code to have the application move the foreground
-    # properly.
-    try:
-        import PySide2  # noqa
-    except Exception:
-        # We're in a PySide 1 version of the PTR desktop app, so try
-        # to import the old osutils
-        try:
-            # This library links againts Qt, so the version number is
-            # suffixed to the module. If in the future we need to
-            # have an extension for qt5, we'll avoid a name clash.
-            from .linux_python2_qt4 import osutils
-
-            use_mocked_osutils = False
-        except Exception as e:
-            logger.warning("Could not load osutils: %s", e, exc_info=True)
-    else:
-        # PySide 2 build of desktop does not require help
-        # making the application go in the foreground/background, so we
-        # don't need to import an extension module.
-        pass
-elif sys.platform == "darwin":
+if sys.platform == "darwin":
     # On macOS, the osutils are required to make the app move to the foreground
     # or background in certain cases.
     try:
@@ -57,13 +33,6 @@ elif sys.platform == "darwin":
         use_mocked_osutils = False
     except Exception as e:
         logger.warning("Could not load osutils: %s", e, exc_info=True)
-else:
-    # Not only has Windows' osutils been broken for years since it
-    # was a 32-bit compiled version of the extension, in practice
-    # none of the code has been necessary to get both PySide and PySide2
-    # versions of desktop running, so there's no need to test for Windows
-    # here.
-    pass
 
 if use_mocked_osutils:
 
