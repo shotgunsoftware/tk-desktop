@@ -6,18 +6,9 @@
 
 # expected fields in the configuration file for this engine
 configuration:
-    # NOTE: The 'sg_software_entity' setting is only temporary and
-    #       will be removed once the Software entity becomes native
-    #       in Shotgun
-    sg_software_entity:
-        type: str
-        description: ShotGrid CustomNonProjectEntity designated as the
-                     Software entity until it becomes native.
-        default_value: CustomNonProjectEntity23
-
     software_entity_config_link:
         type: str
-        description: Link to a ShotGrid Support article detailing how to
+        description: Link to a Flow Production Tracking Support article detailing how to
                      configure Software entities for a site.
         default_value: "https://developer.shotgridsoftware.com/8085533c/?title=Shotgun+Integrations+Admin+Guide#configuring-software-launches"
 
@@ -153,8 +144,8 @@ requires_shotgun_fields:
 
 
 # More verbose description of this item
-display_name: "ShotGrid Desktop"
-description: "The engine that runs inside the ShotGrid Desktop Application"
+display_name: "Flow Production Tracking"
+description: "The engine that runs inside the Flow Production Tracking desktop application"
 
 # Required minimum versions for this item to run
 requires_shotgun_version:

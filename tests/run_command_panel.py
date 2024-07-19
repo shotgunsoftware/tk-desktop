@@ -10,7 +10,7 @@
 
 """
 Simple script that allows to test the Project Commands view without having to launch the
-Shotgun Desktop.
+PTR desktop app.
 """
 
 import os

@@ -66,7 +66,7 @@ class Logger(object):
     Wrapper around a logger object. It augments the logged information when
     TK_DESKTOP_RPC_DEBUG is turned on. It also prevents logging from every single
     RPC call, which would slow down the logging process. In fact, logging
-    from the Shotgun Desktop with this environment variable sends the subprocess
+    from the PTR desktop app with this environment variable sends the subprocess
     into an infinite loop as logging anything from the background process
     means doing an RPC call. If from the RPC module we log messages as well,
     we end up in an infinite logging loop an the project never finishes loading.
@@ -380,8 +380,11 @@ class RPCServerThread(threading.Thread):
                 except Exception as e:
                     pass
 
-            t = threading.Thread(target=touch_server)
-            t.setDaemon(True)
+            if six.PY3:
+                t = threading.Thread(target=touch_server, daemon=True)
+            else:
+                t = threading.Thread(target=touch_server)
+                t.setDaemon(True)
             t.start()
 
 

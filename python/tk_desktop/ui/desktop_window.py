@@ -371,7 +371,7 @@ class Ui_DesktopWindow(object):
         DesktopWindow.setTabOrder(self.search_button, self.search_text)
 
     def retranslateUi(self, DesktopWindow):
-        DesktopWindow.setWindowTitle(QtGui.QApplication.translate("DesktopWindow", "ShotGrid", None, QtGui.QApplication.UnicodeUTF8))
+        DesktopWindow.setWindowTitle(QtGui.QApplication.translate("DesktopWindow", "Flow Production Tracking", None, QtGui.QApplication.UnicodeUTF8))
         self.subheader_label.setText(QtGui.QApplication.translate("DesktopWindow", "PROJECTS", None, QtGui.QApplication.UnicodeUTF8))
         self.search_frame.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Search Projects", None, QtGui.QApplication.UnicodeUTF8))
         self.search_magnifier.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Search Projects", None, QtGui.QApplication.UnicodeUTF8))
@@ -383,7 +383,7 @@ class Ui_DesktopWindow(object):
         self.project_menu.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Project Menu", None, QtGui.QApplication.UnicodeUTF8))
         self.configuration_name.setText(QtGui.QApplication.translate("DesktopWindow", "Configuration Name", None, QtGui.QApplication.UnicodeUTF8))
         self.configuration_label.setText(QtGui.QApplication.translate("DesktopWindow", "CONFIGURATION", None, QtGui.QApplication.UnicodeUTF8))
-        self.shotgun_button.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Open in ShotGrid", None, QtGui.QApplication.UnicodeUTF8))
+        self.shotgun_button.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Open in Flow Production Tracking", None, QtGui.QApplication.UnicodeUTF8))
         self.user_button.setToolTip(QtGui.QApplication.translate("DesktopWindow", "User menu", None, QtGui.QApplication.UnicodeUTF8))
         self.actionQuit.setText(QtGui.QApplication.translate("DesktopWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
         self.actionQuit.setToolTip(QtGui.QApplication.translate("DesktopWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))

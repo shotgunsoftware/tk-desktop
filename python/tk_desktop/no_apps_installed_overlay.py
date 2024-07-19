@@ -172,15 +172,21 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
 
     def _get_sg_software_entities(self, engine, project=None):
         """
-        Retrieve Software entities from Shotgun for the specified Project.
+        Retrieve a list of Software entities from FPTR that
+        are active for the current project and user.
+
+        If the shotgun connection does not support software entities,
+        a none value is returned.
 
         :param engine: Toolkit engine instance
         :param project: Shotgun Project instance.
         """
-        # @TODO: Remove this when Software entities are native.
-        sw_entity = engine.get_setting("sg_software_entity")
-        if not sw_entity:
-            engine.logger.warning("Unable to determine Software CustomEntity.")
+
+        # check that software entity is supported
+        if self.__get_sg_server_version(engine) < (7, 2, 0):
+            engine.logger.log_warning(
+                "Your version of PTR does not support Software entity based launching."
+            )
             return
 
         # Use filters to retrieve Software entities that match specified
@@ -197,18 +203,18 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
 
         # Next handle Project restrictions. Always include Software entities
         # that have no Project restrictions.
-        project_filters = [["sg_projects", "is", None]]
+        project_filters = [["projects", "is", None]]
         current_project = project or engine.context.project
         if current_project:
             # If a Project is defined in the current context, retrieve
             # Software entities that have either no Project restrictions OR
             # include the context Project as a restriction.
             project_filters.append(
-                ["sg_projects", "in", current_project],
+                ["projects", "in", current_project],
             )
             sw_filters.append(
                 {
-                    "filter_operator": "or",
+                    "filter_operator": "any",
                     "filters": project_filters,
                 }
             )
@@ -220,10 +226,7 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         # Now Group and User restrictions. Always retrieve Software entities
         # that have no Group or User restrictions.
         current_user = engine.context.user
-        user_group_filters = [
-            ["sg_user_restrictions", "is", None],
-            ["sg_group_restrictions", "is", None],
-        ]
+        user_group_filter = ["user_restrictions", "is", None]
         if current_user:
             # If a current User is defined, then retrieve Software
             # entities that either have A) no Group AND no User
@@ -231,15 +234,15 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
             # OR User restrictions.
             sw_filters.append(
                 {
-                    "filter_operator": "or",
+                    "filter_operator": "any",
                     "filters": [
-                        {"filter_operator": "and", "filters": user_group_filters},
+                        user_group_filter,
                         {
-                            "filter_operator": "or",
+                            "filter_operator": "any",
                             "filters": [
-                                ["sg_user_restrictions", "in", current_user],
+                                ["user_restrictions", "in", current_user],
                                 [
-                                    "sg_group_restrictions.Group.users",
+                                    "user_restrictions.Group.users",
                                     "in",
                                     current_user,
                                 ],
@@ -251,16 +254,30 @@ class NoAppsInstalledOverlay(QtGui.QWidget):
         else:
             # If no User is defined, then only retrieve Software
             # entities that do not have any Group or User restrictions.
-            sw_filters.extend(user_group_filters)
+            sw_filters.append(user_group_filter)
 
         # Get the list of matching Software entities
-        sg_softwares = engine.shotgun.find(sw_entity, sw_filters)
+        sg_softwares = engine.shotgun.find("Software", sw_filters)
         engine.logger.debug(
             "Found [%d] Software entities matching filters: %s"
             % (len(sg_softwares), pprint.pformat(sw_filters))
         )
         if not sg_softwares:
-            engine.logger.warning("No Software entities found in ShotGrid.")
+            engine.logger.warning(
+                "No Software entities found in Flow Production Tracking."
+            )
             return
 
         return sg_softwares
+
+    def __get_sg_server_version(self, engine):
+        """
+        Retrieves the shotgun server version
+        from the currently connected Shotgun.
+
+        :returns: Tuple of (major, minor, patch) versions.
+        """
+        sg_major_ver = engine.shotgun.server_info["version"][0]
+        sg_minor_ver = engine.shotgun.server_info["version"][1]
+        sg_patch_ver = engine.shotgun.server_info["version"][2]
+        return sg_major_ver, sg_minor_ver, sg_patch_ver
