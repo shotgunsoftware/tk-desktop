@@ -20,6 +20,7 @@ import sys
 import fnmatch
 import traceback
 import threading
+from packaging.version import Version
 
 from sgtk import LogManager
 import sgtk
@@ -80,10 +81,166 @@ class DesktopEngineProjectImplementation(object):
             self._connect_to_server()
             self._register_groups()
             self._register_commands()
+            self._display_banners()
+
+
         except:
             # Same deal as during init_engine.
             self.destroy_engine()
             raise
+
+    def _display_banners(self):
+        """
+        Banner display for project-specific panel loading.
+
+        Message triggered by env var: SGTK_DESKTOP_PROJECT_BANNER_MESSAGE
+
+        Use env var: SGTK_DESKTOP_PROJECT_BANNER_ID if you wish for the banner
+            to be dismissed once and not bug the artist again. Otherwise the message
+            will be showed every time it's found in the environment and require the artist
+            to dismiss it each time.
+            If you want to implement a strategy for this ID, you
+            could use formatted time. To show the banner and only bug the user once a day,
+            assuming they dismiss it once a day, you could use the following with datetime.strftime:
+              - "myidnamespace.%Y%M%d",
+            or once a month, use:
+              - "myidnamespace.%Y%M"
+            By using a specific key, like "myidnamespace.1" it will never show up again if the
+            user has already dismissed it.
+        """
+        if os.getenv('SGTK_DESKTOP_PROJECT_BANNER_MESSAGE'):
+
+            banner_message = os.environ['SGTK_DESKTOP_PROJECT_BANNER_MESSAGE']
+            banner_id = None
+
+            if os.getenv('SGTK_DESKTOP_PROJECT_BANNER_ID'):
+                banner_id = os.environ['SGTK_DESKTOP_PROJECT_BANNER_ID']
+
+            # call back to the site implementation to show the banner
+            self._project_comm.call_no_response("update_banners", banner_message, banner_id)
+
+        # self._check_desktop_version()
+
+
+    def _check_desktop_version(self):
+        """
+        Checks the current Desktop version and displays a banner if it's less than 1.9.
+        """
+        try:
+            # Attempt to find the ShotGrid Desktop version in a couple of potential locations
+            current_version = "1.9"
+            engine = sgtk.platform.current_engine()
+            # logger.debug(">>>>>>>>>>>  Current Engine: %s" % engine)
+            if engine:
+                current_version = engine.app_version
+            logger.debug(">>>>>>>>>>>  Current Desktop version: %s" % current_version)
+            required_version = "1.9"
+
+            if current_version and Version(str(current_version)) <= Version(str(required_version)):
+                banner_message = (
+                    "Autodesk disabled auto-updating due to Python version change. "
+                    "Please download the new version <a href='https://ark.shotgunstudio.com/page/sg_desktop_download'>here</a>."
+                )
+                self._project_comm.call_no_response("update_banners", banner_message, "desktop_version_check")
+            else:
+                # Log a warning if the version could not be determined
+                self._engine.logger.debug("Could not determine the ShotGrid Desktop version.")
+        except Exception as e:
+            # Log an error if there was an exception
+            logger.debug("Error checking the ShotGrid Desktop version: %s" % e)
+
+    #from distutils.version import LooseVersion as Version
+
+    #from distutils.version import LooseVersion as Version
+    #import os
+
+    def _check_desktop_version_old6(self):
+        """
+        Checks the current Desktop version and displays a banner if it's less than 1.9.
+        """
+        try:
+            # Retrieve the version of "tk-desktop" from the sgtk object
+            desktop_engine_descriptor = self._engine.sgtk.descriptor.get_descriptor(
+                self._engine.sgtk.pipeline_configuration,
+                self._engine.sgtk.descriptor.Descriptor.ENGINE,
+                "tk-desktop"
+            )
+
+            current_version = desktop_engine_descriptor.version
+            logger.debug(">>>>>>>>>>>  Current Desktop version: %s" % current_version)
+
+            required_version = "1.9"
+
+            if current_version and Version(str(current_version)) < Version(str(required_version)):
+                banner_message = (
+                    "Autodesk disabled auto-updating due to Python version change. "
+                    "Please download the new version <a href='https://ark.shotgunstudio.com/page/sg_desktop_download'>here</a>."
+                )
+                self._project_comm.call_no_response("update_banners", banner_message, "desktop_version_check")
+            else:
+                # Log a warning if the version could not be determined
+                self._engine.logger.warning("Could not determine the ShotGrid Desktop version.")
+        except Exception as e:
+            # Log an error if there was an exception
+            logger.debug(">>>>> Error checking the ShotGrid Desktop version: %s" % e)
+
+    def _check_desktop_version_old5(self):
+        """
+        Checks the current Desktop version and displays a banner if it's less than 1.9.
+        """
+        try:
+            # Ensure the engine is tk-desktop
+            engine = sgtk.platform.start_engine("tk-desktop", self._engine.sgtk, self._engine.context)
+            current_version = None
+
+            if engine:
+                current_version = engine.app_version
+                logger.debug(">>>>>>>>>>>  Current Desktop version: %s" % current_version)
+            else:
+                logger.debug(">>>>>>>>>>>  Could not start tk-desktop engine.")
+
+            required_version = "1.9"
+
+            if current_version and Version(str(current_version)) < Version(str(required_version)):
+                banner_message = (
+                    "Autodesk disabled auto-updating due to Python version change. "
+                    "Please download the new version <a href='https://ark.shotgunstudio.com/page/sg_desktop_download'>here</a>."
+                )
+                self._project_comm.call_no_response("update_banners", banner_message, "desktop_version_check")
+            else:
+                # Log a warning if the version could not be determined
+                self._engine.logger.warning("Could not determine the ShotGrid Desktop version.")
+        except Exception as e:
+            # Log an error if there was an exception
+            logger.debug("Error checking the ShotGrid Desktop version: %s" % e)
+
+    def _check_desktop_version_old2(self):
+        """
+        Checks the current Desktop version and displays a banner if it's less than 1.9.
+        """
+        # This assumes there's a method or property self._engine.get_desktop_version() to get the Desktop app version.
+        current_version = self._engine.get_desktop_version()
+        required_version = "1.9"
+
+        if Version(str(current_version)) < Version(str(required_version)):
+            banner_message = (
+                "Autodesk disabled auto-updating due to Python version change. "
+                "Please download the new version <a href='https://ark.shotgunstudio.com/page/sg_desktop_download'>here</a>."
+            )
+            self._project_comm.call_no_response("update_banners", banner_message, "desktop_version_check")
+    def _check_desktop_version_old(self):
+        """
+        Checks the current Desktop version and displays a banner if it's less than 1.9.
+        """
+        current_version = self._engine.sgtk.version
+        required_version = "1.9"
+
+        if Version(str(current_version)) < Version(str(required_version)):
+            banner_message = (
+                "Autodesk disabled auto-updating due to Python version change. "
+                "Please download the new version <a href='https://ark.shotgunstudio.com/page/sg_desktop_download'>here</a>."
+            )
+            self._project_comm.call_no_response("update_banners", banner_message, "desktop_version_check")
 
     def _connect_to_server(self):
         """
