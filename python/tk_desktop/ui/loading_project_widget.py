@@ -1,81 +1,105 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'loading_project_widget.ui'
-#
-#      by: pyside-uic 0.2.15 running on PySide 1.2.2
-#
-# WARNING! All changes made in this file will be lost!
+################################################################################
+## Form generated from reading UI file 'loading_project_widget.ui'
+##
+## Created by: Qt User Interface Compiler version 5.15.2
+##
+## WARNING! All changes made in this file will be lost when recompiling UI file!
+################################################################################
 
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtCore
+for name, cls in QtCore.__dict__.items():
+    if isinstance(cls, type): globals()[name] = cls
+
+from sgtk.platform.qt import QtGui
+for name, cls in QtGui.__dict__.items():
+    if isinstance(cls, type): globals()[name] = cls
+
+
+from ..qtwidgets import ShotgunSpinningWidget
 
 class Ui_LoadingProjectWidget(object):
     def setupUi(self, LoadingProjectWidget):
-        LoadingProjectWidget.setObjectName("LoadingProjectWidget")
+        if not LoadingProjectWidget.objectName():
+            LoadingProjectWidget.setObjectName(u"LoadingProjectWidget")
         LoadingProjectWidget.resize(736, 755)
-        self.verticalLayout = QtGui.QVBoxLayout(LoadingProjectWidget)
+        self.verticalLayout = QVBoxLayout(LoadingProjectWidget)
         self.verticalLayout.setSpacing(0)
+        self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 0, 12)
-        self.verticalLayout.setObjectName("verticalLayout")
-        spacerItem = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        self.verticalLayout.addItem(spacerItem)
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.verticalLayout.addItem(self.verticalSpacer)
+
         self.shotgun_spinning_widget = ShotgunSpinningWidget(LoadingProjectWidget)
-        self.shotgun_spinning_widget.setMinimumSize(QtCore.QSize(0, 90))
-        self.shotgun_spinning_widget.setMaximumSize(QtCore.QSize(16777215, 80))
-        self.shotgun_spinning_widget.setObjectName("shotgun_spinning_widget")
+        self.shotgun_spinning_widget.setObjectName(u"shotgun_spinning_widget")
+        self.shotgun_spinning_widget.setMinimumSize(QSize(0, 90))
+        self.shotgun_spinning_widget.setMaximumSize(QSize(16777215, 80))
+
         self.verticalLayout.addWidget(self.shotgun_spinning_widget)
-        self.bottom = QtGui.QWidget(LoadingProjectWidget)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Expanding)
+
+        self.bottom = QWidget(LoadingProjectWidget)
+        self.bottom.setObjectName(u"bottom")
+        sizePolicy = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.bottom.sizePolicy().hasHeightForWidth())
         self.bottom.setSizePolicy(sizePolicy)
-        self.bottom.setObjectName("bottom")
-        self.verticalLayout_2 = QtGui.QVBoxLayout(self.bottom)
+        self.verticalLayout_2 = QVBoxLayout(self.bottom)
         self.verticalLayout_2.setSpacing(0)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.verticalLayout_2.setContentsMargins(-1, -1, -1, 0)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.widget = QtGui.QWidget(self.bottom)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Ignored)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.widget.sizePolicy().hasHeightForWidth())
-        self.widget.setSizePolicy(sizePolicy)
-        self.widget.setObjectName("widget")
-        self.verticalLayout_3 = QtGui.QVBoxLayout(self.widget)
+        self.widget = QWidget(self.bottom)
+        self.widget.setObjectName(u"widget")
+        sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Ignored)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.widget.sizePolicy().hasHeightForWidth())
+        self.widget.setSizePolicy(sizePolicy1)
+        self.verticalLayout_3 = QVBoxLayout(self.widget)
         self.verticalLayout_3.setSpacing(5)
         self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.progress_output = QtGui.QPlainTextEdit(self.widget)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.progress_output.sizePolicy().hasHeightForWidth())
-        self.progress_output.setSizePolicy(sizePolicy)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.progress_output = QPlainTextEdit(self.widget)
+        self.progress_output.setObjectName(u"progress_output")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        sizePolicy2.setHorizontalStretch(0)
+        sizePolicy2.setVerticalStretch(0)
+        sizePolicy2.setHeightForWidth(self.progress_output.sizePolicy().hasHeightForWidth())
+        self.progress_output.setSizePolicy(sizePolicy2)
         self.progress_output.setReadOnly(True)
-        self.progress_output.setObjectName("progress_output")
+
         self.verticalLayout_3.addWidget(self.progress_output)
+
         self.verticalLayout_2.addWidget(self.widget)
-        self.horizontalLayout = QtGui.QHBoxLayout()
+
+        self.horizontalLayout = QHBoxLayout()
+#ifndef Q_OS_MAC
         self.horizontalLayout.setSpacing(-1)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.show_hide_details = QtGui.QPushButton(self.bottom)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Maximum)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.show_hide_details.sizePolicy().hasHeightForWidth())
-        self.show_hide_details.setSizePolicy(sizePolicy)
+#endif
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.show_hide_details = QPushButton(self.bottom)
+        self.show_hide_details.setObjectName(u"show_hide_details")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.show_hide_details.sizePolicy().hasHeightForWidth())
+        self.show_hide_details.setSizePolicy(sizePolicy3)
         self.show_hide_details.setFlat(True)
-        self.show_hide_details.setObjectName("show_hide_details")
+
         self.horizontalLayout.addWidget(self.show_hide_details)
+
         self.verticalLayout_2.addLayout(self.horizontalLayout)
+
         self.verticalLayout.addWidget(self.bottom)
 
         self.retranslateUi(LoadingProjectWidget)
-        QtCore.QMetaObject.connectSlotsByName(LoadingProjectWidget)
+
+        QMetaObject.connectSlotsByName(LoadingProjectWidget)
+    # setupUi
 
     def retranslateUi(self, LoadingProjectWidget):
-        LoadingProjectWidget.setWindowTitle(QtGui.QApplication.translate("LoadingProjectWidget", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.show_hide_details.setText(QtGui.QApplication.translate("LoadingProjectWidget", "show details", None, QtGui.QApplication.UnicodeUTF8))
-
-from ..qtwidgets import ShotgunSpinningWidget
+        LoadingProjectWidget.setWindowTitle(QCoreApplication.translate("LoadingProjectWidget", u"Form", None))
+        self.show_hide_details.setText(QCoreApplication.translate("LoadingProjectWidget", u"show details", None))
+    # retranslateUi
