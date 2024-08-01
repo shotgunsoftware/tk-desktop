@@ -1,8 +1,7 @@
 # YAML Configuration File for Qt Resource Building
 #
-# This YAML file defines the configuration for building Qt UI and resource files using the tk-build-qt-resources script.
-# Each entry in the file represents a separate build configuration, to know more about each field please visit
-# https://github.com/shotgunsoftware/tk-toolchain?tab=readme-ov-file#tk-build-qt-resources.
+# For more information:
+# https://github.com/shotgunsoftware/tk-toolchain?tab=readme-ov-file#tk-build-qt-resources
 
 - ui_src: resources
   ui_files:
@@ -22,4 +21,3 @@
   res_files:
     - resources
   py_dest: python/tk_desktop/ui
-  import_pattern: sgtk.platform.qt
