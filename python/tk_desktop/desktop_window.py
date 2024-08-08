@@ -1213,7 +1213,7 @@ class DesktopWindow(SystrayWindow):
             if project["id"] == project_id:
                 # select it in the model
                 self._project_selection_model.select(
-                    index, self._project_selection_model.SelectCurrent
+                    index, QtGui.QItemSelectionModel.SelectCurrent
                 )
                 break
 
