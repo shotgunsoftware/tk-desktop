@@ -8,13 +8,17 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import six
 import pytest
 import itertools
 import datetime
 from mock import Mock
 import sys, os
 import pkgutil
+
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 sys.path.insert(
@@ -206,7 +210,7 @@ def test_versions_sorted_in_menu(simple_test_view, commands):
     maya_button = list(list(simple_test_view.sections)[0].buttons)[0]
 
     assert list(
-        six.ensure_str(item.text()) for item in maya_button.menu().actions()
+        sgutils.ensure_str(item.text()) for item in maya_button.menu().actions()
     ) == ["Maya 2018*", "Maya 2019", "Maya 2017", "Maya 4.5"]
 
 

@@ -27,6 +27,11 @@ from tank_vendor import six
 from tank_vendor.six.moves import cPickle as py_pickle
 from tank.util import pickle as tk_pickle, is_windows
 
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
+
 if is_windows():
     # This is not ideal. We're importing a private Python module.
     # However, if we didn't and instead relied on pywin32 then we would
@@ -222,7 +227,7 @@ class RPCServerThread(threading.Thread):
         else:
             family = "AF_UNIX"
         self.server = multiprocessing.connection.Listener(
-            address=None, family=family, authkey=six.ensure_binary(self.authkey)
+            address=None, family=family, authkey=sgutils.ensure_binary(self.authkey)
         )
         # grab the name of the pipe
         self.pipe = self.server.address
@@ -410,7 +415,7 @@ class RPCProxy(object):
         logger.debug("client connecting to to %s", pipe)
         self._connection = SafePickleConnection(
             multiprocessing.connection.Client(
-                address=pipe, family=family, authkey=six.ensure_binary(authkey)
+                address=pipe, family=family, authkey=sgutils.ensure_binary(authkey)
             )
         )
         logger.debug("client connected to %s", pipe)
