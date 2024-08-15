@@ -81,9 +81,6 @@ class SystrayWindow(QtGui.QMainWindow):
     def __init__(self, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
 
-        if sys.platform == "darwin":
-            self.setAttribute(QtCore.Qt.WA_MacNoShadow)
-
         self.filter = self.ApplicationEventFilter(self)
         QtGui.QApplication.instance().installEventFilter(self.filter)
 

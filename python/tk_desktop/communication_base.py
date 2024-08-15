@@ -24,13 +24,13 @@ class CommunicationBase(object):
     Communication channel base class.
     """
 
-    def __init__(self, engine):
-        """
-        :param engine: Toolkit engine.
-        """
-        self._engine = engine
+    def __init__(self):
+        self._engine = None
         self._msg_server = None
         self._proxy = None
+
+    def set_engine(self, engine):
+        self._engine = engine
 
     @property
     def is_connected(self):
