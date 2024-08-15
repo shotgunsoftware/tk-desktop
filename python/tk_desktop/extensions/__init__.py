@@ -23,6 +23,7 @@ if sys.platform == "darwin":
         # This library does not link against qt, so the names are not suffixed
         # with the qt version.
         from .darwin_python3 import osutils
+
         use_mocked_osutils = False
     except Exception as e:
         logger.warning("Could not load osutils: %s", e, exc_info=True)
