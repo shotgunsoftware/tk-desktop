@@ -29,9 +29,6 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
     proxy_created = QtCore.Signal()
 
     def __init__(self):
-        """
-        :param engine: Toolkit engine.
-        """
         CommunicationBase.__init__(self)
         QtCore.QObject.__init__(self)
 
