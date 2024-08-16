@@ -431,13 +431,9 @@ class DesktopEngineSiteImplementation(object):
             # Log usage statistics about the PTR desktop app executable and the desktop startup.
             #
             # First we update `host_info` property so subsequent metrics can benefit
-            # having the updated information. A special case is made for for Desktop
-            # as we do want both versiond but don't want to create another metric field.
-            # We are then combining both versions into single version string.
-            self._engine._host_info["version"] = "%s / %s" % (
-                self.app_version,
-                self.startup_version,
-            )
+            # having the updated information.
+            self._engine._host_info["version"] = self.app_version
+            self._engine._host_info["variant"] = self.startup_version
 
             # Actually log the metric
             self._engine.log_metric("Launched Software")
