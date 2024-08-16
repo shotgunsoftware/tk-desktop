@@ -432,8 +432,16 @@ class DesktopEngineSiteImplementation(object):
             #
             # First we update `host_info` property so subsequent metrics can benefit
             # having the updated information.
-            self._engine._host_info["version"] = self.app_version
-            self._engine._host_info["variant"] = self.startup_version
+            if not self._does_tk_core_support_variant_field():
+                # Before core 0.22, we are then combining both versions into
+                # single version string.
+                self._engine._host_info["version"] = "%s / %s" % (
+                    self.app_version,
+                    self.startup_version,
+                )
+            else:
+                self._engine._host_info["version"] = self.app_version
+                self._engine._host_info["variant"] = self.startup_version
 
             # Actually log the metric
             self._engine.log_metric("Launched Software")
@@ -515,6 +523,21 @@ class DesktopEngineSiteImplementation(object):
         # and run the app
         result = app.exec_()
         return result
+
+    @classmethod
+    def _does_tk_core_support_variant_field(cls):
+        # TODO doc what's this
+
+        try:
+            import packaging.version
+            try:
+                return packaging.version.parse(sgtk.__version__) >= LooseVersion("0.22")
+            except packaging.version.InvalidVersion:
+                logger.exception(f"Could not import parse core version {sgtk.__version__}")
+        except ImportError:
+            logger.exception("Could not import packaging module")
+
+        return False
 
     def uses_legacy_authentication(self):
         """
