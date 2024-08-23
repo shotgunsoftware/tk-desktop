@@ -74,7 +74,10 @@ class NotificationsManager(object):
             desktop_notif,
             # CentOS 7 deprecation notif
             CentOS7DeprecationNotification.create(banner_settings),
-            Python37DeprecationNotification.create(banner_settings),
+            Python37DeprecationNotification.create(
+                banner_settings,
+                engine,
+            ),
         ]
 
         # If both descriptors are set and they have the same uri, we only want one notification.

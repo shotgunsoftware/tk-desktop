@@ -25,7 +25,7 @@ class Python37DeprecationNotification(Notification):
     _DEPRECATION_ID = "deprecation-notification-python37"
 
     @classmethod
-    def create(cls, banner_settings: typing.Dict):
+    def create(cls, banner_settings: typing.Dict, engine):
         """
         Notification factory for Python 3.7 deprecation.
 
@@ -35,8 +35,19 @@ class Python37DeprecationNotification(Notification):
         """
 
         if banner_settings.get(cls._DEPRECATION_ID, False):
-            logger.debug("Pytho 3.7 banner has already been dismissed")
+            logger.debug("Python 3.7 banner has already been dismissed")
             return
+
+        try:
+            import packaging.version
+            if packaging.version.parse(engine.app_version) >= packaging.version.parse("1.8"):
+                # TODO OK for SGD but what about Python version in projects????
+                logger.debug("Python 3.7 banner dismissed because app version is higher than 1.7")
+                return
+        except ImportError:
+            logger.exception("Could not import packaging module")
+        except packaging.version.InvalidVersion:
+            logger.exception(f"Could not import parse core version {engine.app_version}")
 
         logger.debug("Python 3.7 deprecation banner available")
         return Python37DeprecationNotification()
@@ -47,7 +58,7 @@ class Python37DeprecationNotification(Notification):
         Message to display.
         """
 
-        url = "https://community.shotgridsoftware.com/t/important-notice-for-end-of-october-2024-end-of-support-for-centos-sg-toolkit-and-sg-desktop/"
+        url = "https://community.shotgridsoftware.com/t/important-notice-for-end-of-......." # TODO
 
         return f"""
             On <b>February 28th, 2025</b> Autodesk is ending support for
