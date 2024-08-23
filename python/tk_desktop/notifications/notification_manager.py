@@ -76,7 +76,7 @@ class NotificationsManager(object):
             CentOS7DeprecationNotification.create(banner_settings),
             Python37DeprecationNotification.create(
                 banner_settings,
-                engine,
+                self._engine,
             ),
         ]
 
