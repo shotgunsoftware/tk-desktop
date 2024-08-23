@@ -14,6 +14,7 @@ import typing
 from .notification import Notification
 
 import sgtk
+
 logger = sgtk.platform.get_logger(__name__)
 
 
@@ -40,14 +41,21 @@ class Python37DeprecationNotification(Notification):
 
         try:
             import packaging.version
-            if packaging.version.parse(engine.app_version) >= packaging.version.parse("1.8"):
+
+            if packaging.version.parse(engine.app_version) >= packaging.version.parse(
+                "1.8"
+            ):
                 # TODO OK for SGD but what about Python version in projects????
-                logger.debug("Python 3.7 banner dismissed because app version is higher than 1.7")
+                logger.debug(
+                    "Python 3.7 banner dismissed because app version is higher than 1.7"
+                )
                 return
         except ImportError:
             logger.exception("Could not import packaging module")
         except packaging.version.InvalidVersion:
-            logger.exception(f"Could not import parse core version {engine.app_version}")
+            logger.exception(
+                f"Could not import parse core version {engine.app_version}"
+            )
         except AttributeError:
             # no app_version field available
             pass
@@ -61,7 +69,7 @@ class Python37DeprecationNotification(Notification):
         Message to display.
         """
 
-        url = "https://community.shotgridsoftware.com/t/important-notice-for-end-of-......." # TODO
+        url = "https://community.shotgridsoftware.com/t/important-notice-for-end-of-......."  # TODO
 
         return f"""
             On <b>February 28th, 2025</b> Autodesk is ending support for
