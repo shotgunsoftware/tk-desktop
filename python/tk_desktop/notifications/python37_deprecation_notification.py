@@ -48,6 +48,9 @@ class Python37DeprecationNotification(Notification):
             logger.exception("Could not import packaging module")
         except packaging.version.InvalidVersion:
             logger.exception(f"Could not import parse core version {engine.app_version}")
+        except AttributeError:
+            # no app_version field available
+            pass
 
         logger.debug("Python 3.7 deprecation banner available")
         return Python37DeprecationNotification()
