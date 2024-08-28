@@ -39,29 +39,20 @@ class Python37DeprecationNotification(Notification):
             logger.debug("Python 3.7 banner has already been dismissed")
             return
 
-        try:
-            import packaging.version
-
-            if packaging.version.parse(engine.app_version) >= packaging.version.parse(
-                "1.8"
-            ):
-                # TODO OK for SGD but what about Python version in projects????
-                logger.debug(
-                    "Python 3.7 banner dismissed because app version is higher than 1.7"
-                )
-                return
-        except ImportError:
-            logger.exception("Could not import packaging module")
-        except packaging.version.InvalidVersion:
-            logger.exception(
-                f"Could not import parse core version {engine.app_version}"
-            )
-        except AttributeError:
-            # no app_version field available
-            pass
-
         logger.debug("Python 3.7 deprecation banner available")
-        return Python37DeprecationNotification()
+
+        include_sgd = not cls.is_app_version_newer(engine)
+        if include_sgd:
+            logger.debug("Python 3.7 banner will include SGD 1.7 information")
+        else:
+            logger.debug("Python 3.7 banner will hide SGD 1.7 information")
+
+        return Python37DeprecationNotification(
+            include_sgd=include_sgd,
+        )
+
+    def __init__(self, include_sgd=True):
+        self.include_sgd = include_sgd
 
     @property
     def message(self):
@@ -71,14 +62,17 @@ class Python37DeprecationNotification(Notification):
 
         url = "https://community.shotgridsoftware.com/t/important-notice-for-end-of-......."  # TODO
 
-        return f"""
-            On <b>February 28th, 2025</b> Autodesk is ending support for
-            <b>Python 3.7</b> in FPTR Toolkit and ending support for
-            <b>ShotGrid Desktop 1.7</b>.
+        add_fptr1, add_fptr2 = ("", "")
+        if self.include_sgd:
+            add_fptr1 = " and ending support for <b>ShotGrid Desktop 1.7</b>"
+            add_fptr2 = " and <b>FPTR desktop 1.8</b>+"
 
-            Update to <b>Python 3.9, 3.10, or 3.11</b> before this date to avoid
-            disruption. For desktop app users, please update to version 1.8 or
-            newer.
+        return f"""
+            On <b>Feb 28th, 2025</b> Autodesk is ending support for
+            <b>Python 3.7</b> in FPTR Toolkit{add_fptr1}.
+
+            Update to <b>Python 3.9</b>+{add_fptr2} before this date to avoid
+            disruption.
 
             Read more <a href="{url}">here</a>.
         """
@@ -97,3 +91,23 @@ class Python37DeprecationNotification(Notification):
         :param banner_settings: Dictionary of the banners settings.
         """
         banner_settings[self._DEPRECATION_ID] = True
+
+    @classmethod
+    def is_app_version_newer(cls, engine):
+        try:
+            import packaging.version
+
+            v1 = packaging.version.parse(engine.app_version)
+            v2 = packaging.version.parse("1.8")
+            return v1 >= v2
+        except ImportError:
+            logger.exception("Could not import packaging module")
+        except packaging.version.InvalidVersion:
+            logger.exception(
+                f"Could not import parse core version {engine.app_version}"
+            )
+        except AttributeError:
+            # no app_version field available
+            pass
+
+        return False
