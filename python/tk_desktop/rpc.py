@@ -8,6 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import errno
 import os
 import sys
 import uuid
@@ -17,6 +18,7 @@ import threading
 import time
 import traceback
 import multiprocessing.connection
+from multiprocessing.context import AuthenticationError
 
 # We have to import Python's pickle to serialize our data.
 # tk-core's sgtk.util.pickle module assumes too much about the data
@@ -217,7 +219,7 @@ class RPCServerThread(threading.Thread):
         self.authkey = authkey or str(uuid.uuid1())
 
         # setup the server pipe
-        if sys.platform == "win32":
+        if is_windows():
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
@@ -264,12 +266,18 @@ class RPCServerThread(threading.Thread):
             logger.debug("server thread is about to create a server")
             ready = False
             # test to see if there is a connection waiting on the pipe
-            if sys.platform == "win32":
+            if is_windows():
                 try:
                     mpc_win32.WaitNamedPipe(
                         self.server.address, self.LISTEN_TIMEOUT * 1000
                     )
                     ready = True
+                except AttributeError as e:
+                    logger.debug("Error during select:", exc_info=True)
+                    if self.server._listener:
+                        # The server has been closed. `_listener` is None.
+                        raise
+                    ready = False
                 except WindowsError as e:
                     logger.debug("Error during WaitNamedPipe:", exc_info=True)
                     if e.args[0] not in (
@@ -280,10 +288,22 @@ class RPCServerThread(threading.Thread):
                     ready = False
             else:
                 # can use select on osx and linux
-                (rd, _, _) = select.select(
-                    [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
-                )
-                ready = len(rd) > 0
+                try:
+                    (rd, _, _) = select.select(
+                        [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
+                    )
+                    ready = len(rd) > 0
+                except AttributeError as e:
+                    # The server has been closed. `_listener` is None.
+                    logger.debug("Error during select:", exc_info=True)
+                    if self.server._listener:
+                        raise
+                    ready = False
+                except select.error as e:
+                    logger.debug("Error during select:", exc_info=True)
+                    if e.args[0] != errno.EBADF:
+                        raise
+                    ready = False
 
             if not ready:
                 logger.debug("server thread could not create server")
@@ -349,7 +369,7 @@ class RPCServerThread(threading.Thread):
                         logger.debug("   traceback:\n%s" % traceback.format_exc())
                         if respond:
                             connection.send(pickle.dumps(e))
-            except (EOFError, IOError):
+            except (EOFError, IOError, AuthenticationError):
                 # let these errors go
                 # just keep serving new connections
                 pass
@@ -368,7 +388,7 @@ class RPCServerThread(threading.Thread):
         self.server.close()
         self._is_closed = True
 
-        if sys.platform == "win32":
+        if is_windows():
             # The "accept" call blocks until a client is available-
             # unfortunately closing the connection on Windows does not
             # cause accept to unblock and raise an error, so we have to force
@@ -398,12 +418,13 @@ class RPCProxy(object):
 
     # timeout in seconds to wait for a response
     LISTEN_TIMEOUT = 2
+    _INVALID_HANDLE_MESSAGE = "The handle is invalid"
 
     def __init__(self, pipe, authkey):
         self._closed = False
 
         # connect to the server via the pipe using authkey for authentication
-        if sys.platform == "win32":
+        if is_windows():
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
@@ -443,17 +464,17 @@ class RPCProxy(object):
                     if self._closed:
                         raise RuntimeError("client closed while waiting for a response")
                     continue
-            except IOError:
-                # An exception is raised on Windows when the connection
-                # is closed during polling instead of simply returning False.
+            except OSError as e:
+                # IOError it's an alias of OSError
                 if self._closed:
                     raise RuntimeError("client closed while waiting for a response")
-                raise
-            except OSError as e:
-                if self._closed:
-                    raise RuntimeError(
-                        "client closed while waiting for a response with OSError exception"
-                    )
+
+                # Check if there's a WinError that causes some flaky behavior on CI
+                if is_windows() and self._INVALID_HANDLE_MESSAGE in str(e):
+                    import _winapi
+
+                    if e.winerror:
+                        raise RuntimeError("client closed while waiting for a response")
                 raise
 
         # read the result
