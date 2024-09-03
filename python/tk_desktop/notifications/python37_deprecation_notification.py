@@ -60,18 +60,18 @@ class Python37DeprecationNotification(Notification):
         Message to display.
         """
 
-        url = "https://community.shotgridsoftware.com/t/important-notice-for-end-of-......."  # TODO
+        url = "https://community.shotgridsoftware.com/t/important-notice-for-end-of-february-2025-end-of-support-for-shotgrid-desktop-1-7-and-for-python-3-7-in-fptr-toolkit"
 
         add_fptr1, add_fptr2 = ("", "")
         if self.include_sgd:
-            add_fptr1 = " and ending support for <b>ShotGrid Desktop 1.7</b>"
-            add_fptr2 = " and <b>FPTR desktop 1.8</b>+"
+            add_fptr1 = "<b>ShotGrid Desktop 1.7</b> and"
+            add_fptr2 = "and <b>FPTR desktop 1.8</b>+"
 
         return f"""
-            On <b>Feb 28th, 2025</b> Autodesk is ending support for
-            <b>Python 3.7</b> in FPTR Toolkit{add_fptr1}.
+            On <b>Feb 28th, 2025</b> Autodesk stops supporting {add_fptr1}
+            <b>Python 3.7</b> in FPTR Toolkit.
 
-            Update to <b>Python 3.9</b>+{add_fptr2} before this date to avoid
+            Update to <b>Python 3.9</b>+ {add_fptr2} before this date to avoid
             disruption.
 
             Read more <a href="{url}">here</a>.
