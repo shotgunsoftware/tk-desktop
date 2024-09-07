@@ -24,6 +24,11 @@ from sgtk import LogManager
 
 from .site_communication import SiteCommunication
 
+try:
+    from tank_vendor import sgutils
+except ImportError:
+    from tank_vendor import six as sgutils
+
 shotgun_globals = sgtk.platform.import_framework(
     "tk-framework-shotgunutils", "shotgun_globals"
 )
@@ -352,7 +357,7 @@ class DesktopEngineSiteImplementation(object):
         # Make sure the string is a str and not unicode. This happens in
         # Python 2.7.
         self.site_comm.call_no_response(
-            "trigger_callback", "__commands", six.ensure_str(name)
+            "trigger_callback", "__commands", sgutils.ensure_str(name)
         )
 
     # Leave app_version as is for backwards compatibility.
