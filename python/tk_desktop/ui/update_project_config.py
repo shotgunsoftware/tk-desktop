@@ -1,106 +1,144 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'update_project_config.ui'
-#
-#      by: pyside-uic 0.2.15 running on PySide 1.2.2
-#
-# WARNING! All changes made in this file will be lost!
+################################################################################
+## Form generated from reading UI file 'update_project_config.ui'
+##
+## Created by: Qt User Interface Compiler version 5.15.2
+##
+## WARNING! All changes made in this file will be lost when recompiling UI file!
+################################################################################
 
-from sgtk.platform.qt import QtCore, QtGui
+from sgtk.platform.qt import QtCore
+for name, cls in QtCore.__dict__.items():
+    if isinstance(cls, type): globals()[name] = cls
+
+from sgtk.platform.qt import QtGui
+for name, cls in QtGui.__dict__.items():
+    if isinstance(cls, type): globals()[name] = cls
+
+
+from  . import resources_rc
 
 class Ui_UpdateProjectConfig(object):
     def setupUi(self, UpdateProjectConfig):
-        UpdateProjectConfig.setObjectName("UpdateProjectConfig")
+        if not UpdateProjectConfig.objectName():
+            UpdateProjectConfig.setObjectName(u"UpdateProjectConfig")
         UpdateProjectConfig.resize(432, 644)
-        self.horizontalLayout = QtGui.QHBoxLayout(UpdateProjectConfig)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem)
-        self.verticalLayout = QtGui.QVBoxLayout()
+        self.horizontalLayout = QHBoxLayout(UpdateProjectConfig)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer)
+
+        self.verticalLayout = QVBoxLayout()
         self.verticalLayout.setSpacing(20)
-        self.verticalLayout.setObjectName("verticalLayout")
-        spacerItem1 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        self.verticalLayout.addItem(spacerItem1)
-        self.horizontalLayout_2 = QtGui.QHBoxLayout()
-        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
-        self.icon = QtGui.QLabel(UpdateProjectConfig)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Fixed, QtGui.QSizePolicy.Fixed)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalSpacer = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.verticalLayout.addItem(self.verticalSpacer)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.icon = QLabel(UpdateProjectConfig)
+        self.icon.setObjectName(u"icon")
+        sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.icon.sizePolicy().hasHeightForWidth())
         self.icon.setSizePolicy(sizePolicy)
-        self.icon.setMaximumSize(QtCore.QSize(40, 40))
-        self.icon.setText("")
-        self.icon.setPixmap(QtGui.QPixmap(":/tk-desktop/shotgun_logo.png"))
+        self.icon.setMaximumSize(QSize(40, 40))
+        self.icon.setPixmap(QPixmap(u":/tk-desktop/shotgun_logo.png"))
         self.icon.setScaledContents(True)
-        self.icon.setAlignment(QtCore.Qt.AlignCenter)
-        self.icon.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
-        self.icon.setObjectName("icon")
+        self.icon.setAlignment(Qt.AlignCenter)
+        self.icon.setTextInteractionFlags(Qt.NoTextInteraction)
+
         self.horizontalLayout_2.addWidget(self.icon)
+
         self.verticalLayout.addLayout(self.horizontalLayout_2)
-        self.text = QtGui.QLabel(UpdateProjectConfig)
-        self.text.setStyleSheet("font-size: 26px;")
-        self.text.setAlignment(QtCore.Qt.AlignCenter)
-        self.text.setObjectName("text")
+
+        self.text = QLabel(UpdateProjectConfig)
+        self.text.setObjectName(u"text")
+        self.text.setStyleSheet(u"font-size: 26px;")
+        self.text.setAlignment(Qt.AlignCenter)
+
         self.verticalLayout.addWidget(self.text)
-        self.horizontalLayout_3 = QtGui.QHBoxLayout()
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        spacerItem2 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_3.addItem(spacerItem2)
-        self.button = QtGui.QPushButton(UpdateProjectConfig)
+
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout_3.addItem(self.horizontalSpacer_3)
+
+        self.button = QPushButton(UpdateProjectConfig)
+        self.button.setObjectName(u"button")
         self.button.setEnabled(True)
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.button.sizePolicy().hasHeightForWidth())
-        self.button.setSizePolicy(sizePolicy)
-        self.button.setStyleSheet("QPushButton {\n"
-"    background-color: rgb(81, 153, 255);\n"
+        sizePolicy1 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy1.setHorizontalStretch(0)
+        sizePolicy1.setVerticalStretch(0)
+        sizePolicy1.setHeightForWidth(self.button.sizePolicy().hasHeightForWidth())
+        self.button.setSizePolicy(sizePolicy1)
+        self.button.setStyleSheet(u"QPushButton {\n"
+"	background-color: rgb(81, 153, 255);\n"
 "}\n"
 "\n"
 "QPushButton::disabled {\n"
-"    background-color: rgb(172, 176, 211);\n"
+"	background-color: rgb(172, 176, 211);\n"
 "}")
         self.button.setFlat(False)
-        self.button.setObjectName("button")
+
         self.horizontalLayout_3.addWidget(self.button)
-        spacerItem3 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout_3.addItem(spacerItem3)
+
+        self.horizontalSpacer_4 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout_3.addItem(self.horizontalSpacer_4)
+
         self.verticalLayout.addLayout(self.horizontalLayout_3)
-        self.verticalLayout_2 = QtGui.QVBoxLayout()
+
+        self.verticalLayout_2 = QVBoxLayout()
         self.verticalLayout_2.setSpacing(0)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.label = QtGui.QLabel(UpdateProjectConfig)
-        self.label.setStyleSheet("font-size: 14px;")
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.label = QLabel(UpdateProjectConfig)
+        self.label.setObjectName(u"label")
+        self.label.setStyleSheet(u"font-size: 14px;")
         self.label.setScaledContents(False)
-        self.label.setAlignment(QtCore.Qt.AlignCenter)
+        self.label.setAlignment(Qt.AlignCenter)
         self.label.setWordWrap(True)
         self.label.setMargin(0)
-        self.label.setObjectName("label")
+
         self.verticalLayout_2.addWidget(self.label)
-        self.success = QtGui.QLabel(UpdateProjectConfig)
-        self.success.setStyleSheet("font-size: 14px;")
-        self.success.setAlignment(QtCore.Qt.AlignCenter)
+
+        self.success = QLabel(UpdateProjectConfig)
+        self.success.setObjectName(u"success")
+        self.success.setStyleSheet(u"font-size: 14px;")
+        self.success.setAlignment(Qt.AlignCenter)
         self.success.setWordWrap(True)
-        self.success.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
-        self.success.setObjectName("success")
+        self.success.setTextInteractionFlags(Qt.LinksAccessibleByMouse|Qt.TextSelectableByKeyboard|Qt.TextSelectableByMouse)
+
         self.verticalLayout_2.addWidget(self.success)
+
         self.verticalLayout.addLayout(self.verticalLayout_2)
-        spacerItem4 = QtGui.QSpacerItem(20, 40, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Expanding)
-        self.verticalLayout.addItem(spacerItem4)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.verticalLayout.addItem(self.verticalSpacer_2)
+
         self.horizontalLayout.addLayout(self.verticalLayout)
-        spacerItem5 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.horizontalLayout.addItem(spacerItem5)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer_2)
 
         self.retranslateUi(UpdateProjectConfig)
-        QtCore.QMetaObject.connectSlotsByName(UpdateProjectConfig)
+
+        QMetaObject.connectSlotsByName(UpdateProjectConfig)
+    # setupUi
 
     def retranslateUi(self, UpdateProjectConfig):
-        UpdateProjectConfig.setWindowTitle(QtGui.QApplication.translate("UpdateProjectConfig", "Form", None, QtGui.QApplication.UnicodeUTF8))
-        self.text.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add Flow Production Tracking", None, QtGui.QApplication.UnicodeUTF8))
-        self.button.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Add", None, QtGui.QApplication.UnicodeUTF8))
-        self.label.setText(QtGui.QApplication.translate("UpdateProjectConfig", "Click here to upgrade your\n"
-"Pipeline Configuration", None, QtGui.QApplication.UnicodeUTF8))
-        self.success.setText(QtGui.QApplication.translate("UpdateProjectConfig", "The project has been set up.", None, QtGui.QApplication.UnicodeUTF8))
-
-from . import resources_rc
+        UpdateProjectConfig.setWindowTitle(QCoreApplication.translate("UpdateProjectConfig", u"Form", None))
+        self.icon.setText("")
+        self.text.setText(QCoreApplication.translate("UpdateProjectConfig", u"Add Flow Production Tracking", None))
+        self.button.setText(QCoreApplication.translate("UpdateProjectConfig", u"Add", None))
+        self.label.setText(QCoreApplication.translate("UpdateProjectConfig", u"Click here to upgrade your\n"
+"Pipeline Configuration", None))
+        self.success.setText(QCoreApplication.translate("UpdateProjectConfig", u"The project has been set up.", None))
+    # retranslateUi
