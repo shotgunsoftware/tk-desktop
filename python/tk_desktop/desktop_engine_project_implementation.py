@@ -40,7 +40,8 @@ class DesktopEngineProjectImplementation(object):
         :param engine: Actual Toolkit engine this implementation is for.
         """
         self._engine = engine
-        self._project_comm = ProjectCommunication(engine)
+        self._project_comm = ProjectCommunication()
+        self._project_comm.set_engine(engine)
         self.__callback_map = {}
         self._lock = threading.Lock()
 

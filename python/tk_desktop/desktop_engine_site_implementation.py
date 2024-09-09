@@ -42,7 +42,8 @@ logger = LogManager.get_logger(__name__)
 class DesktopEngineSiteImplementation(object):
     def __init__(self, engine):
 
-        self.site_comm = SiteCommunication(engine)
+        self.site_comm = SiteCommunication()
+        self.site_comm.set_engine(engine)
         self.site_comm.proxy_closing.connect(self._on_proxy_closing)
         self.site_comm.proxy_created.connect(self._on_proxy_created)
 

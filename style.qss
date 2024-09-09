@@ -150,6 +150,7 @@ QWidget
 {
     border: 1px solid transparent;
     border-radius: 3px;
+    text-align: center;
 }
 
 #footer QPushButton:hover

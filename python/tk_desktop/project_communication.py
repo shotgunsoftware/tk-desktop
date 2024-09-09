@@ -24,11 +24,8 @@ class ProjectCommunication(CommunicationBase):
     Communication channel for the project engine to the site engine.
     """
 
-    def __init__(self, engine):
-        """
-        :param engine: Toolkit engine.
-        """
-        CommunicationBase.__init__(self, engine)
+    def __init__(self):
+        CommunicationBase.__init__(self)
         self._connected = False
 
     def connect_to_server(self, pipe, auth, disconnect_callback):
