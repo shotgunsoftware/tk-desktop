@@ -52,7 +52,7 @@ class SetupProject(QtGui.QWidget):
             setup = adminui.SetupProjectWizard(self.project, self)
 
             ret = setup.exec_()
-            self.setup_finished.emit(ret == setup.accepted)
+            self.setup_finished.emit(ret == QtGui.QDialog.Accepted)
 
         except TankErrorProjectIsSetup as e:
             error_dialog = ErrorDialog(
