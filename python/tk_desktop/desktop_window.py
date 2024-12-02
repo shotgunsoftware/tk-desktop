@@ -478,9 +478,12 @@ class DesktopWindow(SystrayWindow):
         self.set_on_top(self._settings_manager.retrieve("on_top", False))
 
         # always start unpinned and shown
-        self.state = self._settings_manager.retrieve(
+        my_new_state = self._settings_manager.retrieve(
             "dialog_pinned", self.STATE_WINDOWED
         )
+
+        log.info(f"APPLY NEW STATE: {my_new_state}")
+        self.state = my_new_state
 
         # Update the project at the very end so the Python process is kicked off when everything
         # is initialized.
