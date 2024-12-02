@@ -393,6 +393,10 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def _set_window_mask(self):
         """set the window mask when pinned to the systray"""
+
+        # Force calling _get_systray_screen_geometry to reproduce a bug
+        self._get_systray_screen_geometry()
+
         if self.state == self.STATE_WINDOWED:
             self.__content_layout.setContentsMargins(0, 0, 0, 0)
             self.clearMask()
