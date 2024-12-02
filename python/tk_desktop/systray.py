@@ -358,7 +358,7 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def _get_systray_screen_geometry(self):
         pos = self.systray.geometry().center()
-        desktop = QtGui.QApplication.instance().desktop()
+        desktop = QtGui.QApplication.desktop()
         return desktop.screenGeometry(pos)
 
     # Update the window mask
