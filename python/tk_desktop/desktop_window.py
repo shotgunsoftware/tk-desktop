@@ -482,7 +482,9 @@ class DesktopWindow(SystrayWindow):
             "dialog_pinned", self.STATE_WINDOWED
         )
 
-        log.info(f"APPLY NEW STATE: {my_new_state}")
+        # my_new_state = None
+
+        log.info(f"APPLY NEW STATE: {my_new_state}; CURRENT STATE: {self.state}")
         self.state = my_new_state
 
         # Update the project at the very end so the Python process is kicked off when everything
@@ -779,6 +781,8 @@ class DesktopWindow(SystrayWindow):
             self.ui.actionPin_to_Menu.setText("Undock from Menu")
         elif state == self.STATE_WINDOWED:
             self.ui.actionPin_to_Menu.setText("Pin to Menu")
+
+        log.info(f"handle_systray_state_changed STORE dialog_pinned: {self.state}")
         self._settings_manager.store("dialog_pinned", self.state)
 
     def _about_to_quit(self):
