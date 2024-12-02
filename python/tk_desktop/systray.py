@@ -145,10 +145,13 @@ class SystrayWindow(QtGui.QMainWindow):
     @property
     def state(self):
         """return the current state of the window"""
+        logger.info(f"SYSTRAY::state getter {self.__state}")
         return self.__state
 
     @state.setter
     def state(self, value):
+        logger.info(f"SYSTRAY::state setter {value}")
+
         """set the current state of the window"""
         # if state isn't changing do not do anything
         if self.__state == value:
@@ -157,7 +160,9 @@ class SystrayWindow(QtGui.QMainWindow):
         # update tracker variable
         self.__state = value
 
+        logger.info(f"SYSTRAY::state BEFORE IF BLOCK")
         if self.__state == self.STATE_PINNED:
+            logger.info(f"SYSTRAY::state IF BLOCK STATE_PINNED")
             self._set_window_mask()
             self.__move_to_systray()
             if not is_windows():
@@ -170,6 +175,7 @@ class SystrayWindow(QtGui.QMainWindow):
             osutils.make_app_background()
 
         elif self.__state == self.STATE_WINDOWED:
+            logger.info(f"SYSTRAY::state IF BLOCK STATE_WINDOWED")
             self._set_window_mask()
             if not is_windows():
                 self.setWindowFlags(self.windowFlags() & ~QtCore.Qt.FramelessWindowHint)
@@ -177,8 +183,10 @@ class SystrayWindow(QtGui.QMainWindow):
             self.raise_()
             osutils.make_app_foreground()
         else:
+            logger.info(f"SYSTRAY::state IF BLOCK ELSE")
             raise ValueError("Unknown value for state: %s" % value)
 
+        logger.info(f"SYSTRAY::state end of function")
         self.systray_state_changed.emit(self.__state)
 
     @contextlib.contextmanager
@@ -358,13 +366,17 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def _get_systray_screen_geometry(self):
         pos = self.systray.geometry().center()
+        logger.info(f"_get_systray_screen_geometry pos: {pos}")
         desktop = QtGui.QApplication.desktop()
+        logger.info(f"_get_systray_screen_geometry  desktop: {desktop}")
+
         return desktop.screenGeometry(pos)
 
     # Update the window mask
     ############################
     def _guess_toolbar_side(self):
         """guess which side of the screen the toolbar is on"""
+        logger.info(f"SYSTRAY::_guess_toolbar_side")
         pos = self.systray.geometry().center()
         screen_geometry = self._get_systray_screen_geometry()
 
@@ -393,11 +405,13 @@ class SystrayWindow(QtGui.QMainWindow):
 
     def _set_window_mask(self):
         """set the window mask when pinned to the systray"""
+        logger.info(f"SYSTRAY::_set_window_mask")
 
         # Force calling _get_systray_screen_geometry to reproduce a bug
         self._get_systray_screen_geometry()
 
         if self.state == self.STATE_WINDOWED:
+            logger.info(f"SYSTRAY::_set_window_mask    return now")
             self.__content_layout.setContentsMargins(0, 0, 0, 0)
             self.clearMask()
             return
