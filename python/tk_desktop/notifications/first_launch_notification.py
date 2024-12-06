@@ -51,7 +51,7 @@ class FirstLaunchNotification(Notification):
         """
         Message to display.
         """
-        return "Welcome to the <b>Flow Production Tracking</b>. <a href='{0}'>Click here</a> to learn more.".format(
+        return "Welcome to <b>Flow Production Tracking desktop</b>. <a href='{0}'>Click here</a> to learn more.".format(
             self.SHOTGUN_DESKTOP_SUPPORT_PAGE_URL
         )
 
