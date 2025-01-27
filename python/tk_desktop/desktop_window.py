@@ -280,7 +280,7 @@ class DesktopWindow(SystrayWindow):
 
         # Initially hide the Advanced project setup... menu item. This
         # menu item will only be displayed for projects that do not have
-        # any pipeline configurations registered in Shotgun.
+        # any pipeline configurations registered in FPTR.
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
         name_action.triggered.connect(self.open_site_in_browser)
@@ -1366,8 +1366,6 @@ class DesktopWindow(SystrayWindow):
             self.set_just_accessed_thread = StartAppProxyForProject(self.__set_project_just_accessed, project)
             self.set_just_accessed_thread.finished.connect(self.__get_pipeline_configurations)
             self.set_just_accessed_thread.start()
-            # self.__set_project_just_accessed(project)
-            # QtGui.QApplication.instance().processEvents()
         except Exception as error:
             log.exception(str(error))
             message = (
@@ -1443,7 +1441,7 @@ class DesktopWindow(SystrayWindow):
             if not any(
                 True if pc["project"] else False for pc in pipeline_configurations
             ):
-                # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
+                # If we have the new FPTR that supports zero config, add the setup project entry in the menu
                 if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
                     self.ui.actionAdvanced_Project_Setup.setVisible(True)
                 else:
@@ -1480,7 +1478,7 @@ class DesktopWindow(SystrayWindow):
                 config_descriptor = pipeline_configuration_to_load["descriptor"]
 
                 # The config descriptor can be None if the pipeline configuration hasn't been
-                # configured properly in Shotgun.
+                # configured properly in FPTR.
                 if not config_descriptor:
                     raise Exception(
                         "The pipeline configuration '{name}' (id: {id}) has not been properly "
@@ -1499,7 +1497,6 @@ class DesktopWindow(SystrayWindow):
             return
 
         # From this point on, we don't touch the UI anymore.
-        # self.project_overlay.start_progress()
 
         if config_descriptor.exists_local():
             self._start_bg_process(config_descriptor, toolkit_manager)
