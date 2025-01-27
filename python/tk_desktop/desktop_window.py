@@ -1359,14 +1359,20 @@ class DesktopWindow(SystrayWindow):
             self.ui.actionRefresh_Projects.setVisible(False)
 
             self.current_project = project
-            self.requested_pipeline_configuration_id = requested_pipeline_configuration_id
+            self.requested_pipeline_configuration_id = (
+                requested_pipeline_configuration_id
+            )
 
             self.project_overlay.start_progress()
             # Trigger an update to the model to track this project access
             # this is done in a separate thread to avoid blocking the UI.
             # After it finishes, we start phases 2 and 3 in __get_pipeline_configurations method
-            self.set_just_accessed_thread = StartAppProxyForProject(self.__set_project_just_accessed, project)
-            self.set_just_accessed_thread.finished.connect(self.__get_pipeline_configurations)
+            self.set_just_accessed_thread = StartAppProxyForProject(
+                self.__set_project_just_accessed, project
+            )
+            self.set_just_accessed_thread.finished.connect(
+                self.__get_pipeline_configurations
+            )
             self.set_just_accessed_thread.start()
         except Exception as error:
             log.exception(str(error))
@@ -1778,6 +1784,7 @@ class StartAppProxyForProject(QtCore.QThread):
     """
     Thread to set the accessed time for a project.
     """
+
     def __init__(self, fn, project):
         super().__init__()
         self.project = project
