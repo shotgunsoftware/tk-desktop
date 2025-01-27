@@ -1359,11 +1359,31 @@ class DesktopWindow(SystrayWindow):
             self.ui.actionRefresh_Projects.setVisible(False)
 
             self.current_project = project
+            self.requested_pipeline_configuration_id = requested_pipeline_configuration_id
 
+            self.project_overlay.start_progress()
             # trigger an update to the model to track this project access
-            self.__set_project_just_accessed(project)
-            QtGui.QApplication.instance().processEvents()
+            self.set_just_accessed_thread = StartAppProxyForProject(self.__set_project_just_accessed, project)
+            self.set_just_accessed_thread.finished.connect(self.__get_pipeline_configurations)
+            self.set_just_accessed_thread.start()
+            # self.__set_project_just_accessed(project)
+            # QtGui.QApplication.instance().processEvents()
+        except Exception as error:
+            log.exception(str(error))
+            message = (
+                "%s"
+                "\n\nThere was an error connecting to Flow Production Tracking."
+                "\n\nFor more details, see the console." % str(error)
+            )
+            self.project_overlay.show_error_message(message)
+            return
 
+    def __get_pipeline_configurations(self):
+        engine = sgtk.platform.current_engine()
+        project = self.current_project
+        requested_pipeline_configuration_id = self.requested_pipeline_configuration_id
+
+        try:
             ############################################################
             # Phase 2: Get information about the pipeline configuration.
 
@@ -1479,7 +1499,7 @@ class DesktopWindow(SystrayWindow):
             return
 
         # From this point on, we don't touch the UI anymore.
-        self.project_overlay.start_progress()
+        # self.project_overlay.start_progress()
 
         if config_descriptor.exists_local():
             self._start_bg_process(config_descriptor, toolkit_manager)
@@ -1753,3 +1773,14 @@ class DesktopWindow(SystrayWindow):
 
         about = AboutScreen(parent=self, body=body)
         about.exec_()
+
+
+class StartAppProxyForProject(QtCore.QThread):
+    def __init__(self, fn, project):
+        super().__init__()
+        self.project = project
+        self.fn = fn
+
+    def run(self):
+        self.fn(self.project)
+        QtGui.QApplication.instance().processEvents()
