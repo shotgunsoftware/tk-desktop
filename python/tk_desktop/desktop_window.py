@@ -23,7 +23,6 @@ from distutils.version import LooseVersion
 
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
-from tank_vendor import six
 import sgtk
 from sgtk.util import shotgun
 from sgtk.bootstrap import ToolkitManager
@@ -157,7 +156,7 @@ class DesktopWindow(SystrayWindow):
     _CHROME_SUPPORT_URL = "https://developer.shotgridsoftware.com/95518180"
     _FIREFOX_SUPPORT_URL = "https://developer.shotgridsoftware.com/d4936105"
 
-    def __init__(self, console, parent=None):
+    def __init__(self, console, task_manager, parent=None):
         SystrayWindow.__init__(self, parent)
 
         # initialize member variables
@@ -217,6 +216,11 @@ class DesktopWindow(SystrayWindow):
 
         # Setup the console
         self.__console = console
+
+        # Task Manager
+        self._bg_task_manager = task_manager
+        self._bg_task_manager.task_completed.connect(self._on_task_completed)
+        self._bg_task_manager.task_failed.connect(self._on_task_failed)
 
         # User menu
         ###########################
@@ -1366,14 +1370,12 @@ class DesktopWindow(SystrayWindow):
             self.project_overlay.start_progress()
             # Trigger an update to the model to track this project access
             # this is done in a separate thread to avoid blocking the UI.
-            # After it finishes, we start phases 2 and 3 in __get_pipeline_configurations method
-            self.set_just_accessed_thread = StartAppProxyForProject(
-                self.__set_project_just_accessed, project
+            # After it finishes, we start phases 2 and 3 in __launch_app_proxy_for_project_follow_up
+            self.__set_project_just_accessed_task = self._bg_task_manager.add_task(
+                self.__set_project_just_accessed,
+                priority=100,
+                task_kwargs={"project": project},
             )
-            self.set_just_accessed_thread.finished.connect(
-                self.__get_pipeline_configurations
-            )
-            self.set_just_accessed_thread.start()
         except Exception as error:
             log.exception(str(error))
             message = (
@@ -1384,7 +1386,7 @@ class DesktopWindow(SystrayWindow):
             self.project_overlay.show_error_message(message)
             return
 
-    def __get_pipeline_configurations(self):
+    def __launch_app_proxy_for_project_follow_up(self):
         engine = sgtk.platform.current_engine()
         project = self.current_project
         requested_pipeline_configuration_id = self.requested_pipeline_configuration_id
@@ -1779,17 +1781,22 @@ class DesktopWindow(SystrayWindow):
         about = AboutScreen(parent=self, body=body)
         about.exec_()
 
+    def _on_task_completed(self, task_id, search_id, result):
+        """
+        Callback when a task has completed by the BackgroundTaskManager.
+        """
+        if task_id != self.__set_project_just_accessed_task:
+            return
 
-class StartAppProxyForProject(QtCore.QThread):
-    """
-    Thread to set the accessed time for a project.
-    """
+        log.debug("Project accessed time updated. Continuing to launch app proxy.")
+        self.__set_project_just_accessed_task = None
+        self.__launch_app_proxy_for_project_follow_up()
 
-    def __init__(self, fn, project):
-        super().__init__()
-        self.project = project
-        self.fn = fn
+    def _on_task_failed(self, task_id, search_id, msg, stack_trace):
+        """
+        Callback when a task has failed by the BackgroundTaskManager.
+        """
+        if task_id != self.__set_project_just_accessed_task:
+            return
 
-    def run(self):
-        self.fn(self.project)
-        QtGui.QApplication.instance().processEvents()
+        log.error(f"Launching app proxy for project failed. Message: {msg}")
