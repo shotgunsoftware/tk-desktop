@@ -156,7 +156,7 @@ class DesktopWindow(SystrayWindow):
     _CHROME_SUPPORT_URL = "https://developer.shotgridsoftware.com/95518180"
     _FIREFOX_SUPPORT_URL = "https://developer.shotgridsoftware.com/d4936105"
 
-    def __init__(self, console, task_manager, parent=None):
+    def __init__(self, console, bg_task_manager, parent=None):
         SystrayWindow.__init__(self, parent)
 
         # initialize member variables
@@ -218,7 +218,7 @@ class DesktopWindow(SystrayWindow):
         self.__console = console
 
         # Task Manager
-        self._bg_task_manager = task_manager
+        self._bg_task_manager = bg_task_manager
         self._bg_task_manager.task_completed.connect(self._on_task_completed)
         self._bg_task_manager.task_failed.connect(self._on_task_failed)
 
@@ -1185,7 +1185,16 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay.hide()
 
     def __set_project_just_accessed(self, project):
-        self._project_model.update_project_accessed_time(project)
+        try:
+            self._project_model.update_project_accessed_time(project)
+        except Exception as error:
+            log.exception(str(error))
+            message = (
+                "%s"
+                "\n\nThere was an error connecting to Flow Production Tracking."
+                "\n\nFor more details, see the console." % str(error)
+            )
+            self.project_overlay.show_error_message(message)
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
@@ -1346,47 +1355,37 @@ class DesktopWindow(SystrayWindow):
     def __launch_app_proxy_for_project(
         self, project, requested_pipeline_configuration_id=None
     ):
-        try:
-            engine = sgtk.platform.current_engine()
-            log.debug("launching app proxy for project: %s" % project)
+        engine = sgtk.platform.current_engine()
+        log.debug("launching app proxy for project: %s" % project)
 
-            #############################
-            # Phase 1: Get the UI pretty.
+        #############################
+        # Phase 1: Get the UI pretty.
 
-            # Make sure that not only the previous proxy is not running anymore
-            # but that the UI has been cleared as well.
-            engine = sgtk.platform.current_engine()
-            engine.site_comm.shut_down()
-            self.clear_app_uis()
-            # Always hide the Refresh Projects menu item when launching the project engine
-            # since no projects will be displayed in the app launcher pane.
-            self.ui.actionRefresh_Projects.setVisible(False)
+        # Make sure that not only the previous proxy is not running anymore
+        # but that the UI has been cleared as well.
+        engine = sgtk.platform.current_engine()
+        engine.site_comm.shut_down()
+        self.clear_app_uis()
+        # Always hide the Refresh Projects menu item when launching the project engine
+        # since no projects will be displayed in the app launcher pane.
+        self.ui.actionRefresh_Projects.setVisible(False)
 
-            self.current_project = project
-            self.requested_pipeline_configuration_id = (
-                requested_pipeline_configuration_id
-            )
+        self.current_project = project
+        self.requested_pipeline_configuration_id = (
+            requested_pipeline_configuration_id
+        )
 
-            self.project_overlay.start_progress()
-            # Trigger an update to the model to track this project access
-            # this is done in a separate thread to avoid blocking the UI.
-            # After it finishes, we start phases 2 and 3 in __launch_app_proxy_for_project_follow_up
-            self.__set_project_just_accessed_task = self._bg_task_manager.add_task(
-                self.__set_project_just_accessed,
-                priority=100,
-                task_kwargs={"project": project},
-            )
-        except Exception as error:
-            log.exception(str(error))
-            message = (
-                "%s"
-                "\n\nThere was an error connecting to Flow Production Tracking."
-                "\n\nFor more details, see the console." % str(error)
-            )
-            self.project_overlay.show_error_message(message)
-            return
+        self.project_overlay.start_progress()
+        # Trigger an update to the model to track this project access
+        # this is done in a separate thread to avoid blocking the UI.
+        # After it finishes, we start phases 2 and 3 in __launch_app_proxy_for_project_follow_up
+        self.__set_project_just_accessed_task = self._bg_task_manager.add_task(
+            self.__set_project_just_accessed,
+            priority=100,
+            task_kwargs={"project": project},
+        )
 
-    def __launch_app_proxy_for_project_follow_up(self):
+    def __load_pipeline_configuration(self):
         engine = sgtk.platform.current_engine()
         project = self.current_project
         requested_pipeline_configuration_id = self.requested_pipeline_configuration_id
@@ -1613,9 +1612,9 @@ class DesktopWindow(SystrayWindow):
             self._push_dll_state()
 
             try:
-                os.environ[
-                    "SHOTGUN_DESKTOP_CURRENT_USER"
-                ] = sgtk.authentication.serialize_user(engine.get_current_user())
+                os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = (
+                    sgtk.authentication.serialize_user(engine.get_current_user())
+                )
                 engine.execute_hook(
                     "hook_launch_python",
                     project_python=path_to_python,
@@ -1767,9 +1766,9 @@ class DesktopWindow(SystrayWindow):
             # Certain versions of core don't like configuration's without an
             # info.yml, so tolerate it.
             try:
-                versions[
-                    engine.sgtk.configuration_descriptor.display_name
-                ] = engine.sgtk.configuration_descriptor.version
+                versions[engine.sgtk.configuration_descriptor.display_name] = (
+                    engine.sgtk.configuration_descriptor.version
+                )
             except Exception:
                 pass
 
@@ -1788,9 +1787,11 @@ class DesktopWindow(SystrayWindow):
         if task_id != self.__set_project_just_accessed_task:
             return
 
-        log.debug("Project accessed time updated. Continuing to launch app proxy.")
+        log.debug(
+            "Project accessed time updated. Continuing to load the pipeline configurations."
+        )
         self.__set_project_just_accessed_task = None
-        self.__launch_app_proxy_for_project_follow_up()
+        self.__load_pipeline_configuration()
 
     def _on_task_failed(self, task_id, search_id, msg, stack_trace):
         """
@@ -1799,4 +1800,7 @@ class DesktopWindow(SystrayWindow):
         if task_id != self.__set_project_just_accessed_task:
             return
 
-        log.error(f"Launching app proxy for project failed. Message: {msg}")
+        self.__set_project_just_accessed_task = None
+        log.error(
+            f"An error occurred when updating project's accessed time. Message: {msg}"
+        )
