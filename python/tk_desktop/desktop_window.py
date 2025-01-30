@@ -800,6 +800,10 @@ class DesktopWindow(SystrayWindow):
         # disconnect from the current project
         engine.site_comm.shut_down()
 
+        # disconnect task manager
+        self._bg_task_manager.task_completed.disconnect(self._on_task_completed)
+        self._bg_task_manager.task_failed.disconnect(self._on_task_failed)
+
         self._save_setting("pos", self.pos(), site_specific=True)
 
         self.close()
@@ -1371,9 +1375,7 @@ class DesktopWindow(SystrayWindow):
         self.ui.actionRefresh_Projects.setVisible(False)
 
         self.current_project = project
-        self.requested_pipeline_configuration_id = (
-            requested_pipeline_configuration_id
-        )
+        self.requested_pipeline_configuration_id = requested_pipeline_configuration_id
 
         self.project_overlay.start_progress()
         # Trigger an update to the model to track this project access
