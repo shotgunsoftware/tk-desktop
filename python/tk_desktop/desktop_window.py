@@ -1192,13 +1192,11 @@ class DesktopWindow(SystrayWindow):
         try:
             self._project_model.update_project_accessed_time(project)
         except Exception as error:
-            log.exception(str(error))
             message = (
-                "%s"
-                "\n\nThere was an error connecting to Flow Production Tracking."
-                "\n\nFor more details, see the console." % str(error)
+                "There was an error connecting to Flow Production Tracking:\n\n"
+                f"{error}"
             )
-            self.project_overlay.show_error_message(message)
+            log.exception(message)
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
