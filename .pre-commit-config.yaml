@@ -9,7 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 default_language_version:
-    python: python3.9
+    python: python3
 
 # Styles the code properly
 # Exclude the UI files, as they are auto-generated.
