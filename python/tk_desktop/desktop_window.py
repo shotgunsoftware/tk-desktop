@@ -1586,9 +1586,9 @@ class DesktopWindow(SystrayWindow):
             self._push_dll_state()
 
             try:
-                os.environ[
-                    "SHOTGUN_DESKTOP_CURRENT_USER"
-                ] = sgtk.authentication.serialize_user(engine.get_current_user())
+                os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = (
+                    sgtk.authentication.serialize_user(engine.get_current_user())
+                )
                 engine.execute_hook(
                     "hook_launch_python",
                     project_python=path_to_python,
@@ -1740,9 +1740,9 @@ class DesktopWindow(SystrayWindow):
             # Certain versions of core don't like configuration's without an
             # info.yml, so tolerate it.
             try:
-                versions[
-                    engine.sgtk.configuration_descriptor.display_name
-                ] = engine.sgtk.configuration_descriptor.version
+                versions[engine.sgtk.configuration_descriptor.display_name] = (
+                    engine.sgtk.configuration_descriptor.version
+                )
             except Exception:
                 pass
 

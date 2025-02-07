@@ -34,6 +34,7 @@ def licence_file_links(license_file):
     Given the path to the licence html file, it extracts the URL link out and
     returns them in a list.
     """
+
     # This class was taken and modified from this SO post:
     # https://stackoverflow.com/a/3075561/4223964
     class MyHTMLParser(HTMLParser):
