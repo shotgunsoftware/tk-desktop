@@ -8,6 +8,9 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+default_language_version:
+    python: python3.9
+
 # Styles the code properly
 # Exclude the UI files, as they are auto-generated.
 exclude: "ui\/.*py$"
@@ -19,7 +22,6 @@ repos:
     hooks:
     # Ensures the code is syntaxically correct
     - id: check-ast
-      language_version: python3.9
 
     # Ensures a file name will resolve on all platform
     - id: check-case-conflict
@@ -53,7 +55,6 @@ repos:
     rev: 25.1.0
     hooks:
     - id: black
-  #    language_version: python3.9
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
@@ -61,4 +62,4 @@ repos:
     - id: python-check-mock-methods
     - id: python-no-eval
     - id: python-no-log-warn
-    -   id: text-unicode-replacement-char
+    - id: text-unicode-replacement-char
