@@ -11,6 +11,7 @@
 # Styles the code properly
 # Exclude the UI files, as they are auto-generated.
 exclude: "ui\/.*py$"
+
 # List of super useful formatters.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -19,18 +20,34 @@ repos:
     # Ensures the code is syntaxically correct
     - id: check-ast
       language_version: python3.9
+
     # Ensures a file name will resolve on all platform
     - id: check-case-conflict
+
     # Checks files with the execute bit set have shebangs
     # - id: check-executables-have-shebangs
     # Ensure there's no incomplete merges
     - id: check-merge-conflict
+
+    # # Checks for symlinks which do not point to anything
+    - id: check-symlinks
+
     # Adds an empty line if missing at the end of a file.
     - id: end-of-file-fixer
+
+    # Removes UTF-8 byte order marker
+    - id: fix-byte-order-marker
+
+    # Ensure all EOL char is \n
+    - id: mixed-line-ending
+      args: [--fix=lf]
+
     # Makes sure requirements.txt is properly formatted
     - id: requirements-txt-fixer
+
     # Removes trailing whitespaces.
     - id: trailing-whitespace
+
   # Leave black at the bottom so all touchups are done before it is run.
   - repo: https://github.com/ambv/black
     rev: 24.8.0
