@@ -49,8 +49,16 @@ repos:
     - id: trailing-whitespace
 
   # Leave black at the bottom so all touchups are done before it is run.
-  - repo: https://github.com/ambv/black
-    rev: 24.8.0
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
     hooks:
     - id: black
-      language_version: python3.9
+  #    language_version: python3.9
+
+  - repo: https://github.com/pre-commit/pygrep-hooks
+    rev: v1.10.0
+    hooks:
+    - id: python-check-mock-methods
+    - id: python-no-eval
+    - id: python-no-log-warn
+    -   id: text-unicode-replacement-char
