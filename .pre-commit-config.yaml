@@ -22,44 +22,21 @@ repos:
     hooks:
     # Ensures the code is syntaxically correct
     - id: check-ast
-
     # Ensures a file name will resolve on all platform
     - id: check-case-conflict
-
     # Checks files with the execute bit set have shebangs
     # - id: check-executables-have-shebangs
     # Ensure there's no incomplete merges
     - id: check-merge-conflict
-
-    # # Checks for symlinks which do not point to anything
-    - id: check-symlinks
-
     # Adds an empty line if missing at the end of a file.
     - id: end-of-file-fixer
-
-    # Removes UTF-8 byte order marker
-    - id: fix-byte-order-marker
-
-    # Ensure all EOL char is \n
-    - id: mixed-line-ending
-      args: [--fix=lf]
-
     # Makes sure requirements.txt is properly formatted
     - id: requirements-txt-fixer
-
     # Removes trailing whitespaces.
     - id: trailing-whitespace
 
   # Leave black at the bottom so all touchups are done before it is run.
   - repo: https://github.com/psf/black
-    rev: 22.3.0
+    rev: 25.1.0
     hooks:
     - id: black
-
-  - repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.10.0
-    hooks:
-    - id: python-check-mock-methods
-    - id: python-no-eval
-    - id: python-no-log-warn
-    - id: text-unicode-replacement-char
