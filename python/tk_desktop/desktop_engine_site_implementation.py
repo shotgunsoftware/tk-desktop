@@ -163,7 +163,7 @@ class DesktopEngineSiteImplementation(object):
         # Execute the actual commands.
         # For example, a command could be displaying a panel in order to
         # display it as a tab in the desktop.
-        for (_, _, command_callback) in commands:
+        for _, _, command_callback in commands:
             command_callback()
 
     def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
