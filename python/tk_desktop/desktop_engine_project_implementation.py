@@ -12,8 +12,6 @@
 Flow Production Tracking project-level engine implementation.
 """
 
-from __future__ import with_statement
-
 import time
 import os
 import sys

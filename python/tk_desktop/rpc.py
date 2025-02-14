@@ -18,15 +18,14 @@ import threading
 import time
 import traceback
 import multiprocessing.connection
-from multiprocessing.context import AuthenticationError
-
 # We have to import Python's pickle to serialize our data.
 # tk-core's sgtk.util.pickle module assumes too much about the data
 # type that is stored in the pickle and assumes the output of a dump
 # can always be turned into a utf-8 encoded string, which is false.
 # Therefore, we'll simply take the raw pickle and send it over the wire.
-from tank_vendor import six
-from tank_vendor.six.moves import cPickle as py_pickle
+import pickle as py_pickle
+from multiprocessing.context import AuthenticationError
+
 from tank.util import pickle as tk_pickle, is_windows
 
 try:
@@ -38,12 +37,7 @@ if is_windows():
     # This is not ideal. We're importing a private Python module.
     # However, if we didn't and instead relied on pywin32 then we would
     # have to expect clients to install it.
-    if six.PY2:
-        mpc_win32 = multiprocessing.connection.win32
-    else:
-        # If we ever seen this code raising an error with a new Python version,
-        # it's likely because the attribute has changed name.
-        mpc_win32 = multiprocessing.connection._winapi
+    mpc_win32 = multiprocessing.connection._winapi
 
 
 class pickle:
@@ -397,11 +391,7 @@ class RPCServerThread(threading.Thread):
                 except Exception as e:
                     pass
 
-            if six.PY3:
-                t = threading.Thread(target=touch_server, daemon=True)
-            else:
-                t = threading.Thread(target=touch_server)
-                t.setDaemon(True)
+            t = threading.Thread(target=touch_server, daemon=True)
             t.start()
 
 

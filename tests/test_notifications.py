@@ -8,8 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from __future__ import with_statement
-
 from tank_test.tank_test_base import TankTestBase, SealedMock
 from tank_test.tank_test_base import setUpModule  # noqa
 
@@ -30,7 +28,7 @@ class TestNotifications(TankTestBase):
     """
 
     def setUp(self):
-        super(TestNotifications, self).setUp()
+        super().setUp()
 
         # Mocks ShotgunUtils UserSettings class.
         self._user_settings = MockUserSettings()

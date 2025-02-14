@@ -10,11 +10,6 @@
 
 from sgtk.platform.qt import QtGui, QtCore
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 from .shared import ICON_SIZE, BUTTON_STYLE, MAX_RECENTS
 
 
@@ -38,7 +33,7 @@ class RecentButton(QtGui.QPushButton):
         :param str tooltip: Toolkit for this command.
         :param datetime.datetime timestamp: When the command was last launched.
         """
-        super(RecentButton, self).__init__(parent)
+        super().__init__(parent)
 
         # No borders
         self.setFlat(True)
@@ -81,7 +76,7 @@ class RecentButton(QtGui.QPushButton):
         self._command_name = command_name
 
         self.clicked.connect(
-            lambda: self.command_triggered.emit(sgutils.ensure_str(self._command_name))
+            lambda: self.command_triggered.emit(str(self._command_name))
         )
 
     @property
@@ -89,7 +84,7 @@ class RecentButton(QtGui.QPushButton):
         """
         Name of the button.
         """
-        return sgutils.ensure_str(self.text_label.text())
+        return str(self.text_label.text())
 
     @property
     def timestamp(self):

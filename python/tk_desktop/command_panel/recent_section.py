@@ -18,7 +18,7 @@ class RecentSection(Section):
     """
 
     def __init__(self):
-        super(RecentSection, self).__init__("Recent", RecentList)
+        super().__init__("Recent", RecentList)
 
     def add_command(self, command_name, button_name, icon, tooltip, timestamp):
         """

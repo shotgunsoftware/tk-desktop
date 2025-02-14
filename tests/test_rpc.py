@@ -9,9 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import time
-import six
 import sgtk
-
 import pytest
 import contextlib
 
@@ -27,7 +25,7 @@ if sgtk.util.is_windows():
     class RPCProxy(RPCProxyImp):
         def __init__(self, pipe, auth):
             time.sleep(1)
-            super(RPCProxy, self).__init__(pipe, auth)
+            super().__init__(pipe, auth)
 
 else:
     RPCProxy = RPCProxyImp
@@ -302,12 +300,10 @@ def test_call_with_wrong_arguments(proxy):
     """
     with pytest.raises(TypeError) as exc:
         proxy.call("pass_arg", 1, 2, 3)
-    if six.PY3:
-        assert "pass_arg() takes 2 positional arguments but 4 were given" in str(
-            exc.value
-        )
-    else:
-        assert "pass_arg() takes exactly 2 arguments (4 given)" in str(exc.value)
+
+    assert "pass_arg() takes 2 positional arguments but 4 were given" in str(
+        exc.value
+    )
 
 
 def test_proxy_close_during_long_call(proxy, fake_engine, server):

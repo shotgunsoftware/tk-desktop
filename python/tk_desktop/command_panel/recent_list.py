@@ -21,7 +21,7 @@ class RecentList(BaseIconList):
     """
 
     def __init__(self, parent):
-        super(RecentList, self).__init__(parent, QtGui.QHBoxLayout())
+        super().__init__(parent, QtGui.QHBoxLayout())
         self._layout.setSpacing(3)
 
         # Fill the recents list with invisible stretchers to start with.

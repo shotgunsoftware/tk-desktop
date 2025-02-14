@@ -8,7 +8,6 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from __future__ import with_statement
 import os
 import re
 import sys
@@ -18,7 +17,6 @@ import collections
 from distutils.version import LooseVersion
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator, DefaultsManager
-from tank_vendor import six
 
 from sgtk import LogManager
 

@@ -15,11 +15,6 @@ from .shared import MAX_RECENTS
 from .recent_section import RecentSection
 from .command_section import CommandSection
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 TIME_STAMP_FORMAT = "%m/%d/%Y, %H:%M:%S"
 
 
@@ -45,7 +40,7 @@ class CommandPanel(QtGui.QWidget):
         :param parent: Parent widget.
         :param settings: Settings object to persist and restore state.
         """
-        super(CommandPanel, self).__init__(parent)
+        super().__init__(parent)
         # The app style sheet styles this widget so give it the proper name.
         self.setObjectName("command_panel")
         self._layout = QtGui.QVBoxLayout(self)

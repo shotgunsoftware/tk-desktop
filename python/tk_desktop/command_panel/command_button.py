@@ -40,7 +40,7 @@ class CommandButton(QtGui.QToolButton):
         :param str icon: Path to the icon.
         :param str tooltip: Tooltip for the button.
         """
-        super(CommandButton, self).__init__(parent)
+        super().__init__(parent)
         self.setSizePolicy(
             QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.MinimumExpanding
         )
