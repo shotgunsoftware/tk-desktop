@@ -13,7 +13,6 @@ import functools
 from sgtk.deploy import util
 
 from sgtk.platform.qt import QtCore, QtGui
-from tank_vendor import six
 
 from .shared import ICON_SIZE, BUTTON_STYLE
 
@@ -61,8 +60,7 @@ class CommandButton(QtGui.QToolButton):
         self._button_name = button_name
         # The data of an action contains the command name.
         self._menu.triggered.connect(
-            # The .data method returns a unicode string in Python 2, so force it to a utf8 str.
-            lambda action: self.command_triggered.emit(six.ensure_str(action.data()))
+            lambda action: self.command_triggered.emit(str(action.data()))
         )
 
         # This is a workaround for a PySide2 issue where the hover state of the button

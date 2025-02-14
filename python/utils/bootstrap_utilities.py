@@ -37,9 +37,7 @@ class ProxyLoggingHandler(logging.Handler):
         :param proxy: Connection to the main process.
         :type proxy: rpc.RPCProxy
         """
-        # Call the __init__ directly since Python 2.6's logging.Handler doesn't
-        # derive from object and hence doesn't support 'super'.
-        logging.Handler.__init__(self)
+        super().__init__() 
         self._proxy = proxy
 
     def emit(self, record):
@@ -64,9 +62,7 @@ class ProxyLoggingHandler(logging.Handler):
         else:
             msg = record.msg
 
-        # Do the string interpolation this side of the communication. This is important
-        # because Python 2 and 3 may serialize objects differently and Toolkit objects
-        # may be coming from different versions of the API.
+        # Perform string interpolation safely
         if record.args:
             msg = msg % record.args
 
@@ -91,21 +87,6 @@ def _create_proxy(data):
     return rpc_lib.RPCProxy(
         data["proxy_data"]["proxy_pipe"], data["proxy_data"]["proxy_auth"]
     )
-
-
-def _ensure_no_unicode(obj):
-    """
-    Looks through the entire object and coerces unicode obj to str in Python 2.
-    """
-    if isinstance(obj, list):
-        return [_ensure_no_unicode(item) for item in obj]
-    elif isinstance(obj, dict):
-        return {_ensure_no_unicode(k): _ensure_no_unicode(v) for k, v in obj.items()}
-    # We can't use six here because Toolkit may not have been imported yet.
-    elif sys.version_info[0] == 2 and isinstance(obj, unicode):
-        return obj.encode("utf8")
-    else:
-        return obj
 
 
 def _enumerate_per_line(items):
@@ -185,9 +166,6 @@ class Bootstrap(object):
         :param data: Dictionary of data passed down from the main desktop process.
         """
         # Extract the relevant information from the data
-        # The data was unpickled by standard pickle instead of Toolkit's, so there
-        # could be unicode when going from Python 3 to Python 2.
-        data = _ensure_no_unicode(data)
         self._raw_data = data
         self._proxy_data = data["proxy_data"]
         self._manager_settings = data["manager_settings"]
@@ -378,9 +356,6 @@ def handle_error(data, proxy=None):
         error to the server. If a proxy is not given, a client connection
         will be created on the fly.
     """
-    # The data was unpickled by standard pickle instead of Toolkit's, so there
-    # could be unicode when going from Python 3 to Python 2.
-    data = _ensure_no_unicode(data)
     # build a message for the GUI signaling that an error occurred
     exc_type, exc_value, exc_traceback = sys.exc_info()
 

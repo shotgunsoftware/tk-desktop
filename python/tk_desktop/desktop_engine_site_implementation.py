@@ -24,11 +24,6 @@ from sgtk import LogManager
 
 from .site_communication import SiteCommunication
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 shotgun_globals = sgtk.platform.import_framework(
     "tk-framework-shotgunutils", "shotgun_globals"
 )
@@ -355,10 +350,8 @@ class DesktopEngineSiteImplementation(object):
     def _handle_button_command_triggered(self, name):
         """Button clicked from a registered command."""
         self.refresh_user_credentials()
-        # Make sure the string is a str and not unicode. This happens in
-        # Python 2.7.
         self.site_comm.call_no_response(
-            "trigger_callback", "__commands", sgutils.ensure_str(name)
+            "trigger_callback", "__commands", str(name)
         )
 
     # Leave app_version as is for backwards compatibility.
@@ -533,14 +526,7 @@ class DesktopEngineSiteImplementation(object):
 
         :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
         """
-        # Desktop versions have been using the vX.Y.Z notation for a while now.
-        # While this didn't pose a problem when using a LooseVersion comparison
-        # to the X.Y.Z notation, in Python 3 this blows up.
-        #
-        # Since Python 3 builds of the PTR desktop app and greater do not support
-        # the legacy authentication, we'll test for Python 2 and return False
-        # automatically in Python 3 environments.
-        return six.PY2 and LooseVersion(self.app_version) < LooseVersion("1.1.0")
+        return LooseVersion(self.app_version) < LooseVersion("1.1.0")
 
     def create_legacy_login_instance(self):
         """

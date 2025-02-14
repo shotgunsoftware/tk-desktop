@@ -48,7 +48,7 @@ if is_windows():
 
 class pickle:
     """
-    Provides a Python 2/3 compatible shim for the pickle module.
+    Provides a Python 3 compatible shim for the pickle module.
 
     Unfortunately, the shim in tk-core returns a string instead
     of a binary string, which would complicate the code here,
@@ -163,29 +163,21 @@ logger = Logger()
 
 class SafePickleConnection(object):
     """
-    Wrap the multiprocessing.connection.Connection object
-    so that any calls to send and recv data is caught
-    and reimplemented in a way that works between Python 2 and
-    Python 3.
-
-    Python 3's Connection.send always uses protocol 3 of pickle,
-    which Python 2 does not understand. So we now force the
-    protocol to 2 all the time.
+    Wraps the multiprocessing.connection.Connection object
+    to ensure safe serialization and deserialization using pickle.
     """
 
     def __init__(self, conn):
         self._conn = conn
 
     def send(self, payload):
-        payload = py_pickle.dumps(payload, protocol=2)
+        # Use the latest pickle protocol for better efficiency in Python 3.
+        payload = py_pickle.dumps(payload, protocol=py_pickle.HIGHEST_PROTOCOL)
         self._conn.send_bytes(payload)
 
     def recv(self):
         payload = self._conn.recv_bytes()
-        if six.PY3:
-            return py_pickle.loads(payload, encoding="bytes")
-        else:
-            return py_pickle.loads(payload)
+        return py_pickle.loads(payload, encoding="bytes")
 
     def __getattr__(self, name):
         return getattr(self._conn, name)

@@ -189,10 +189,7 @@ class CommandPanel(QtGui.QWidget):
         if self._show_recents is False:
             return
 
-        # Make sure the string is a str and not unicode. This happens in
-        # Python 2.7.
-        command_name = sgutils.ensure_str(command_name)
-
+        command_name = str(command_name)
         self._recents[command_name] = {"timestamp": datetime.utcnow()}
         self._store_recents()
         self._refresh_recent_list(command_name)

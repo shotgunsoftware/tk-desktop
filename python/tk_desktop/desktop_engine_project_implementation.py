@@ -451,7 +451,7 @@ class DesktopEngineProjectImplementation(object):
                 msg = record.msg
 
             # Do the string interpolation this side of the communication. This is important
-            # because Python 2 and 3 may serialize objects differently and Toolkit objects
+            # because Python may serialize objects differently and Toolkit objects
             # may be coming from different versions of the API.
             if record.args:
                 msg = msg % record.args
