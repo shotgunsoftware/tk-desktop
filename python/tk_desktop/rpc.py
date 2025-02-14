@@ -165,8 +165,7 @@ class SafePickleConnection(object):
         self._conn = conn
 
     def send(self, payload):
-        # Use the latest pickle protocol for better efficiency in Python 3.
-        payload = py_pickle.dumps(payload, protocol=py_pickle.HIGHEST_PROTOCOL)
+        payload = py_pickle.dumps(payload, protocol=2)
         self._conn.send_bytes(payload)
 
     def recv(self):
