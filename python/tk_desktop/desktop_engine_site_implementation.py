@@ -348,9 +348,7 @@ class DesktopEngineSiteImplementation(object):
     def _handle_button_command_triggered(self, name):
         """Button clicked from a registered command."""
         self.refresh_user_credentials()
-        self.site_comm.call_no_response(
-            "trigger_callback", "__commands", str(name)
-        )
+        self.site_comm.call_no_response("trigger_callback", "__commands", str(name))
 
     # Leave app_version as is for backwards compatibility.
     def run(self, splash, version, **kwargs):

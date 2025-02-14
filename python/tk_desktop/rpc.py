@@ -18,6 +18,7 @@ import threading
 import time
 import traceback
 import multiprocessing.connection
+
 # We have to import Python's pickle to serialize our data.
 # tk-core's sgtk.util.pickle module assumes too much about the data
 # type that is stored in the pickle and assumes the output of a dump
