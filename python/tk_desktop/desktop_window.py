@@ -1716,16 +1716,16 @@ class DesktopWindow(SystrayWindow):
         new_page.raise_()
 
         anim_old = QtCore.QPropertyAnimation(current_page, b"pos", self)
-        anim_old.setDuration(500)
+        anim_old.setDuration(250)
         anim_old.setStartValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
         anim_old.setEndValue(QtCore.QPoint(curr_pos.x() - offsetx, curr_pos.y()))
-        anim_old.setEasingCurve(QtCore.QEasingCurve.OutBack)
+        anim_old.setEasingCurve(QtCore.QEasingCurve.OutQuart)
 
         anim_new = QtCore.QPropertyAnimation(new_page, b"pos", self)
-        anim_new.setDuration(500)
+        anim_new.setDuration(250)
         anim_new.setStartValue(QtCore.QPoint(curr_pos.x() + offsetx, curr_pos.y()))
         anim_new.setEndValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
-        anim_new.setEasingCurve(QtCore.QEasingCurve.OutBack)
+        anim_new.setEasingCurve(QtCore.QEasingCurve.OutQuart)
 
         anim_group = QtCore.QParallelAnimationGroup(self)
         anim_group.addAnimation(anim_old)
