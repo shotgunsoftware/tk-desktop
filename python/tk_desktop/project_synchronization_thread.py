@@ -39,7 +39,7 @@ class ProjectSynchronizationThread(QtCore.QThread):
         :param manager: ToolkitManager to prepare to prepare the engine with.
         :param project: Project for which we require the engine to be prepared.
         """
-        super(ProjectSynchronizationThread, self).__init__()
+        super().__init__()
         self._toolkit_manager = manager
         self._toolkit_manager.progress_callback = self._report_progress
         self._abort = False

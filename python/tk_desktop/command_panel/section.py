@@ -32,7 +32,7 @@ class Section(QtGui.QWidget):
         :param str name: Name of the section.
         :param class list_factory: Class of the list widget to instantiate.
         """
-        super(Section, self).__init__(parent=None)
+        super().__init__(parent=None)
 
         self._layout = QtGui.QVBoxLayout(self)
         self.setLayout(self._layout)

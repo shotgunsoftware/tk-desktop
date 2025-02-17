@@ -23,7 +23,6 @@ from distutils.version import LooseVersion
 
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
-from tank_vendor import six
 import sgtk
 from sgtk.util import shotgun
 from sgtk.bootstrap import ToolkitManager
@@ -106,7 +105,7 @@ class ConfigDownloadThread(QtCore.QThread):
         :param toolkit_manager: Configuration manager that will be used to bootstrap
             this configuration.
         """
-        super(ConfigDownloadThread, self).__init__(parent)
+        super().__init__(parent)
         self._config_descriptor = config_descriptor
         self._toolkit_manager = toolkit_manager
 

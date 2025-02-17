@@ -24,7 +24,7 @@ class CommandList(BaseIconList):
         :param QtGui.QWidget: Parent widget.
         """
         # The Commands are displayed on a grid.
-        super(CommandList, self).__init__(parent, QtGui.QGridLayout())
+        super().__init__(parent, QtGui.QGridLayout())
         # The filler is a widget that prevents the button on the last row
         # from taking up the whole row if there is only one.
         self._filler = QtGui.QWidget(self)

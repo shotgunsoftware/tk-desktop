@@ -173,7 +173,7 @@ class DesktopEngine(Engine):
             )
         else:
             # fall back on base class implementation
-            return super(DesktopEngine, self).show_panel(
+            return super().show_panel(
                 panel_id, title, bundle, widget_class, *args, **kwargs
             )
 

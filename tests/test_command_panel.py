@@ -15,11 +15,6 @@ from mock import Mock
 import sys, os
 import pkgutil
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 sys.path.insert(
     0, os.path.join(os.path.dirname(__file__), "..", "..", "tk-core", "python")
@@ -209,9 +204,12 @@ def test_versions_sorted_in_menu(simple_test_view, commands):
     _register_commands(simple_test_view, commands)
     maya_button = list(list(simple_test_view.sections)[0].buttons)[0]
 
-    assert list(
-        sgutils.ensure_str(item.text()) for item in maya_button.menu().actions()
-    ) == ["Maya 2018*", "Maya 2019", "Maya 2017", "Maya 4.5"]
+    assert list(str(item.text()) for item in maya_button.menu().actions()) == [
+        "Maya 2018*",
+        "Maya 2019",
+        "Maya 2017",
+        "Maya 4.5",
+    ]
 
 
 @pytest.mark.parametrize(

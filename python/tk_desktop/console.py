@@ -62,7 +62,7 @@ class ConsoleLogHandler(logging.Handler):
 
 class Console(QtGui.QDialog):
     def __init__(self, parent=None):
-        super(Console, self).__init__(parent)
+        super().__init__(parent)
 
         self.setWindowTitle("Flow Production Tracking Console")
         self.setWindowIcon(QtGui.QIcon(":/tk-desktop/default_systray_icon.png"))

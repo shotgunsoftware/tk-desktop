@@ -10,8 +10,8 @@
 
 import os
 import pytest
-from six.moves.html_parser import HTMLParser
-from six.moves.urllib import request
+from html.parser import HTMLParser
+from urllib import request
 
 
 @pytest.fixture

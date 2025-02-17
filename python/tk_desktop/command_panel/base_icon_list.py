@@ -25,7 +25,7 @@ class BaseIconList(QtGui.QWidget):
         :param parent: Parent widget.
         :param layout: Qt layout for this widget.
         """
-        super(BaseIconList, self).__init__(parent)
+        super().__init__(parent)
         self._layout = layout
         self.setLayout(layout)
         self._layout.setContentsMargins(0, 0, 0, 0)
