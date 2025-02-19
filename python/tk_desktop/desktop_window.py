@@ -232,7 +232,6 @@ class DesktopWindow(SystrayWindow):
         # Setup the console
         self.__console = console
 
-
         # User menu
         ###########################
         user = engine.get_current_login()
@@ -1386,8 +1385,12 @@ class DesktopWindow(SystrayWindow):
         # Trigger an update to the model to track this project access
         # this is done in a separate thread to avoid blocking the UI.
         # After it finishes, we start phases 2 and 3 in __launch_app_proxy_for_project_follow_up
-        self._set_just_accessed_thread = GenericFunctionWrapperQThread(self, self.__set_project_just_accessed, {"project": project})
-        self._set_just_accessed_thread.finished.connect(self.__load_pipeline_configuration)
+        self._set_just_accessed_thread = GenericFunctionWrapperQThread(
+            self, self.__set_project_just_accessed, {"project": project}
+        )
+        self._set_just_accessed_thread.finished.connect(
+            self.__load_pipeline_configuration
+        )
         self._set_just_accessed_thread.start()
 
     def __load_pipeline_configuration(self):
@@ -1617,9 +1620,9 @@ class DesktopWindow(SystrayWindow):
             self._push_dll_state()
 
             try:
-                os.environ[
-                    "SHOTGUN_DESKTOP_CURRENT_USER"
-                ] = sgtk.authentication.serialize_user(engine.get_current_user())
+                os.environ["SHOTGUN_DESKTOP_CURRENT_USER"] = (
+                    sgtk.authentication.serialize_user(engine.get_current_user())
+                )
                 engine.execute_hook(
                     "hook_launch_python",
                     project_python=path_to_python,
@@ -1771,9 +1774,9 @@ class DesktopWindow(SystrayWindow):
             # Certain versions of core don't like configuration's without an
             # info.yml, so tolerate it.
             try:
-                versions[
-                    engine.sgtk.configuration_descriptor.display_name
-                ] = engine.sgtk.configuration_descriptor.version
+                versions[engine.sgtk.configuration_descriptor.display_name] = (
+                    engine.sgtk.configuration_descriptor.version
+                )
             except Exception:
                 pass
 
