@@ -23,7 +23,6 @@ from distutils.version import LooseVersion
 
 from tank.platform.qt import QtCore, QtGui
 from sgtk.platform import constants
-from tank_vendor import six
 import sgtk
 from sgtk.util import shotgun
 from sgtk.bootstrap import ToolkitManager
@@ -119,6 +118,21 @@ class ConfigDownloadThread(QtCore.QThread):
             self.download_completed.emit(self._config_descriptor, self._toolkit_manager)
         except Exception as e:
             self.download_failed.emit(str(e))
+
+
+class GenericFunctionWrapperQThread(QtCore.QThread):
+    def __init__(self, parent, fn, task_kwargs):
+        """
+        :param parent: Parent of this Qt object
+        :param fn: Function to run in the thread.
+        :param task_kwargs: Arguments to pass to the function.
+        """
+        super().__init__(parent)
+        self.fn = fn
+        self.task_kwargs = task_kwargs
+
+    def run(self):
+        self.fn(**self.task_kwargs)
 
 
 class ProjectCommandSettings(object):
@@ -280,7 +294,7 @@ class DesktopWindow(SystrayWindow):
 
         # Initially hide the Advanced project setup... menu item. This
         # menu item will only be displayed for projects that do not have
-        # any pipeline configurations registered in Shotgun.
+        # any pipeline configurations registered in FPTR.
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
         name_action.triggered.connect(self.open_site_in_browser)
@@ -1181,7 +1195,14 @@ class DesktopWindow(SystrayWindow):
         self.project_overlay.hide()
 
     def __set_project_just_accessed(self, project):
-        self._project_model.update_project_accessed_time(project)
+        try:
+            self._project_model.update_project_accessed_time(project)
+        except Exception as error:
+            message = (
+                "There was an error connecting to Flow Production Tracking:\n\n"
+                f"{error}"
+            )
+            log.exception(message)
 
     def _on_project_selection(self, selected, deselected):
         selected_indexes = selected.indexes()
@@ -1342,28 +1363,42 @@ class DesktopWindow(SystrayWindow):
     def __launch_app_proxy_for_project(
         self, project, requested_pipeline_configuration_id=None
     ):
+        engine = sgtk.platform.current_engine()
+        log.debug("launching app proxy for project: %s" % project)
+
+        #############################
+        # Phase 1: Get the UI pretty.
+
+        # Make sure that not only the previous proxy is not running anymore
+        # but that the UI has been cleared as well.
+        engine = sgtk.platform.current_engine()
+        engine.site_comm.shut_down()
+        self.clear_app_uis()
+        # Always hide the Refresh Projects menu item when launching the project engine
+        # since no projects will be displayed in the app launcher pane.
+        self.ui.actionRefresh_Projects.setVisible(False)
+
+        self.current_project = project
+        self.requested_pipeline_configuration_id = requested_pipeline_configuration_id
+
+        self.project_overlay.start_progress()
+        # Trigger an update to the model to track this project access
+        # this is done in a separate thread to avoid blocking the UI.
+        # After it finishes, we start phases 2 and 3 in __launch_app_proxy_for_project_follow_up
+        self._set_just_accessed_thread = GenericFunctionWrapperQThread(
+            self, self.__set_project_just_accessed, {"project": project}
+        )
+        self._set_just_accessed_thread.finished.connect(
+            self.__load_pipeline_configuration
+        )
+        self._set_just_accessed_thread.start()
+
+    def __load_pipeline_configuration(self):
+        engine = sgtk.platform.current_engine()
+        project = self.current_project
+        requested_pipeline_configuration_id = self.requested_pipeline_configuration_id
+
         try:
-            engine = sgtk.platform.current_engine()
-            log.debug("launching app proxy for project: %s" % project)
-
-            #############################
-            # Phase 1: Get the UI pretty.
-
-            # Make sure that not only the previous proxy is not running anymore
-            # but that the UI has been cleared as well.
-            engine = sgtk.platform.current_engine()
-            engine.site_comm.shut_down()
-            self.clear_app_uis()
-            # Always hide the Refresh Projects menu item when launching the project engine
-            # since no projects will be displayed in the app launcher pane.
-            self.ui.actionRefresh_Projects.setVisible(False)
-
-            self.current_project = project
-
-            # trigger an update to the model to track this project access
-            self.__set_project_just_accessed(project)
-            QtGui.QApplication.instance().processEvents()
-
             ############################################################
             # Phase 2: Get information about the pipeline configuration.
 
@@ -1423,7 +1458,7 @@ class DesktopWindow(SystrayWindow):
             if not any(
                 True if pc["project"] else False for pc in pipeline_configurations
             ):
-                # If we have the new Shotgun that supports zero config, add the setup project entry in the menu
+                # If we have the new FPTR that supports zero config, add the setup project entry in the menu
                 if self.__get_server_version(engine.shotgun) >= (7, 2, 0):
                     self.ui.actionAdvanced_Project_Setup.setVisible(True)
                 else:
@@ -1460,7 +1495,7 @@ class DesktopWindow(SystrayWindow):
                 config_descriptor = pipeline_configuration_to_load["descriptor"]
 
                 # The config descriptor can be None if the pipeline configuration hasn't been
-                # configured properly in Shotgun.
+                # configured properly in FPTR.
                 if not config_descriptor:
                     raise Exception(
                         "The pipeline configuration '{name}' (id: {id}) has not been properly "
@@ -1479,7 +1514,6 @@ class DesktopWindow(SystrayWindow):
             return
 
         # From this point on, we don't touch the UI anymore.
-        self.project_overlay.start_progress()
 
         if config_descriptor.exists_local():
             self._start_bg_process(config_descriptor, toolkit_manager)
