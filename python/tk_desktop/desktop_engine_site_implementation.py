@@ -507,7 +507,7 @@ class DesktopEngineSiteImplementation(object):
             splash.hide()
 
         # initialize System Tray
-        self.desktop_window = desktop_window.DesktopWindow(console, self._task_manager)
+        self.desktop_window = desktop_window.DesktopWindow(console)
 
         # We need for the dialog to exist for messages to get to the UI console.
         if kwargs.get("server") is not None:

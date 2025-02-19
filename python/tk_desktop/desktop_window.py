@@ -120,6 +120,21 @@ class ConfigDownloadThread(QtCore.QThread):
             self.download_failed.emit(str(e))
 
 
+class GenericFunctionWrapperQThread(QtCore.QThread):
+    def __init__(self, parent, fn, task_kwargs):
+        """
+        :param parent: Parent of this Qt object
+        :param fn: Function to run in the thread.
+        :param task_kwargs: Arguments to pass to the function.
+        """
+        super().__init__(parent)
+        self.fn = fn
+        self.task_kwargs = task_kwargs
+
+    def run(self):
+        self.fn(**self.task_kwargs)
+
+
 class ProjectCommandSettings(object):
     """
     Decoupling the UI state persistance from the widget to simplify testing.
@@ -156,7 +171,7 @@ class DesktopWindow(SystrayWindow):
     _CHROME_SUPPORT_URL = "https://developer.shotgridsoftware.com/95518180"
     _FIREFOX_SUPPORT_URL = "https://developer.shotgridsoftware.com/d4936105"
 
-    def __init__(self, console, bg_task_manager, parent=None):
+    def __init__(self, console, parent=None):
         SystrayWindow.__init__(self, parent)
 
         # initialize member variables
@@ -217,10 +232,6 @@ class DesktopWindow(SystrayWindow):
         # Setup the console
         self.__console = console
 
-        # Task Manager
-        self._bg_task_manager = bg_task_manager
-        self._bg_task_manager.task_completed.connect(self._on_task_completed)
-        self._bg_task_manager.task_failed.connect(self._on_task_failed)
 
         # User menu
         ###########################
@@ -800,10 +811,6 @@ class DesktopWindow(SystrayWindow):
         # disconnect from the current project
         engine.site_comm.shut_down()
 
-        # disconnect task manager
-        self._bg_task_manager.task_completed.disconnect(self._on_task_completed)
-        self._bg_task_manager.task_failed.disconnect(self._on_task_failed)
-
         self._save_setting("pos", self.pos(), site_specific=True)
 
         self.close()
@@ -1379,11 +1386,9 @@ class DesktopWindow(SystrayWindow):
         # Trigger an update to the model to track this project access
         # this is done in a separate thread to avoid blocking the UI.
         # After it finishes, we start phases 2 and 3 in __launch_app_proxy_for_project_follow_up
-        self.__set_project_just_accessed_task = self._bg_task_manager.add_task(
-            self.__set_project_just_accessed,
-            priority=100,
-            task_kwargs={"project": project},
-        )
+        self._set_just_accessed_thread = GenericFunctionWrapperQThread(self, self.__set_project_just_accessed, {"project": project})
+        self._set_just_accessed_thread.finished.connect(self.__load_pipeline_configuration)
+        self._set_just_accessed_thread.start()
 
     def __load_pipeline_configuration(self):
         engine = sgtk.platform.current_engine()
@@ -1716,16 +1721,16 @@ class DesktopWindow(SystrayWindow):
         new_page.raise_()
 
         anim_old = QtCore.QPropertyAnimation(current_page, b"pos", self)
-        anim_old.setDuration(250)
+        anim_old.setDuration(500)
         anim_old.setStartValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
         anim_old.setEndValue(QtCore.QPoint(curr_pos.x() - offsetx, curr_pos.y()))
-        anim_old.setEasingCurve(QtCore.QEasingCurve.OutQuart)
+        anim_old.setEasingCurve(QtCore.QEasingCurve.OutBack)
 
         anim_new = QtCore.QPropertyAnimation(new_page, b"pos", self)
-        anim_new.setDuration(250)
+        anim_new.setDuration(500)
         anim_new.setStartValue(QtCore.QPoint(curr_pos.x() + offsetx, curr_pos.y()))
         anim_new.setEndValue(QtCore.QPoint(curr_pos.x(), curr_pos.y()))
-        anim_new.setEasingCurve(QtCore.QEasingCurve.OutQuart)
+        anim_new.setEasingCurve(QtCore.QEasingCurve.OutBack)
 
         anim_group = QtCore.QParallelAnimationGroup(self)
         anim_group.addAnimation(anim_old)
@@ -1779,28 +1784,3 @@ class DesktopWindow(SystrayWindow):
 
         about = AboutScreen(parent=self, body=body)
         about.exec_()
-
-    def _on_task_completed(self, task_id, search_id, result):
-        """
-        Callback when a task has completed by the BackgroundTaskManager.
-        """
-        if task_id != self.__set_project_just_accessed_task:
-            return
-
-        log.debug(
-            "Project accessed time updated. Continuing to load the pipeline configurations."
-        )
-        self.__set_project_just_accessed_task = None
-        self.__load_pipeline_configuration()
-
-    def _on_task_failed(self, task_id, search_id, msg, stack_trace):
-        """
-        Callback when a task has failed by the BackgroundTaskManager.
-        """
-        if task_id != self.__set_project_just_accessed_task:
-            return
-
-        self.__set_project_just_accessed_task = None
-        log.error(
-            f"An error occurred when updating project's accessed time. Message: {msg}"
-        )
