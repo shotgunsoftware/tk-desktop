@@ -9,7 +9,6 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 from .desktop_notification import DesktopNotification
-from .centos7_deprecation_notification import CentOS7DeprecationNotification
 from .configuration_update_notification import ConfigurationUpdateNotification
 from .first_launch_notification import FirstLaunchNotification
 from .startup_update_notification import StartupUpdateNotification
@@ -73,7 +72,6 @@ class NotificationsManager(object):
             startup_update_notif,
             desktop_notif,
             # CentOS 7 deprecation notif
-            CentOS7DeprecationNotification.create(banner_settings),
             Python37DeprecationNotification.create(
                 banner_settings,
                 self._engine,
