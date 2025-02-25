@@ -51,7 +51,7 @@ def licence_file_links(license_file):
 
     # Open the licence file and read the parse the contents.
     parser = MyHTMLParser()
-    with open(license_file, "r") as f:
+    with open(license_file, "r", encoding="utf-8") as f:
         parser.feed(f.read())
 
     # We expect to atleast get one URL
