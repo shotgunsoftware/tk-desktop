@@ -21,7 +21,7 @@ class CommandSection(Section):
         """
         :param str name: Name of the section.
         """
-        super(CommandSection, self).__init__(name, CommandList)
+        super().__init__(name, CommandList)
 
     def add_command(
         self, command_name, button_name, menu_name, icon, tooltip, is_menu_default

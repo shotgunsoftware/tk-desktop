@@ -33,7 +33,7 @@ class LoadingProjectWidget(QtGui.QFrame):
         """
         :param parent: Parent widget.
         """
-        super(LoadingProjectWidget, self).__init__(parent)
+        super().__init__(parent)
 
         self._ui = Ui_LoadingProjectWidget()
         self._ui.setupUi(self)

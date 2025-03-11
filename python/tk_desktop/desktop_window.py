@@ -105,7 +105,7 @@ class ConfigDownloadThread(QtCore.QThread):
         :param toolkit_manager: Configuration manager that will be used to bootstrap
             this configuration.
         """
-        super(ConfigDownloadThread, self).__init__(parent)
+        super().__init__(parent)
         self._config_descriptor = config_descriptor
         self._toolkit_manager = toolkit_manager
 
