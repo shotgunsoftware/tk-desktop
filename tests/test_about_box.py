@@ -51,7 +51,7 @@ def licence_file_links(license_file):
 
     # Open the licence file and read the parse the contents.
     parser = MyHTMLParser()
-    with open(license_file, "r") as f:
+    with open(license_file, "r", encoding="utf-8") as f:
         parser.feed(f.read())
 
     # We expect to atleast get one URL
@@ -79,11 +79,10 @@ def test_3rd_party_links(licence_file_links):
     "expected_url",
     [
         "https://github.com/shotgunsoftware/python-api/tree/master/software_credits",
-        "https://github.com/shotgunsoftware/tk-3dsmax/tree/master/software_credits",
-        "https://github.com/shotgunsoftware/tk-3dsmaxplus/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-alias/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-core/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-framework-adobe/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-alias/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-framework-desktopclient/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-framework-desktopserver/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-houdini/tree/master/software_credits",
