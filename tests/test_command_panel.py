@@ -11,7 +11,7 @@
 import pytest
 import itertools
 import datetime
-from mock import Mock
+from unittest.mock import Mock
 import sys, os
 import pkgutil
 
