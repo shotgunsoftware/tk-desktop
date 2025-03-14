@@ -445,16 +445,19 @@ class DesktopEngineSiteImplementation(object):
         if self.uses_legacy_authentication():
             self._migrate_credentials()
 
-        # We need to initialize current login
-        # We know for sure there is a default user, since either the migration was done
-        # or we logged in as an actual user with the new installer.
-        human_user = ShotgunAuthenticator(
-            # We don't want to get the script user, but the human user, so tell the
-            # CoreDefaultsManager manager that we are not interested in the script user. Do not use
-            # the regular shotgun_authentication.DefaultsManager to get this user because it will
-            # not know about proxy information.
-            sgtk.util.CoreDefaultsManager(mask_script_user=True)
-        ).get_default_user()
+        human_user = sgtk.get_authenticated_user()
+        if not human_user:
+            # We need to initialize current login
+            # We know for sure there is a default user, since either the migration was done
+            # or we logged in as an actual user with the new installer.
+            human_user = ShotgunAuthenticator(
+                # We don't want to get the script user, but the human user, so tell the
+                # CoreDefaultsManager manager that we are not interested in the script user. Do not use
+                # the regular shotgun_authentication.DefaultsManager to get this user because it will
+                # not know about proxy information.
+                sgtk.authentication.CoreDefaultsManager(mask_script_user=True)
+            ).get_default_user()
+
         # Cache the user so we can refresh the credentials before launching a background process
         self._user = human_user
         # Retrieve the current logged in user information. This will be used when creating
