@@ -520,9 +520,9 @@ class DesktopEngineSiteImplementation(object):
         Returns if the PTR desktop app installed code uses the tk-framework-login for
         logging in.
 
-        :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
+        :returns: True the bootstrap logic is older than v1.1.0, False otherwise.
         """
-        return LooseVersion(self.app_version) < LooseVersion("1.1.0")
+        return LooseVersion(self.app_version) < LooseVersion("v1.1.0")
 
     def create_legacy_login_instance(self):
         """
