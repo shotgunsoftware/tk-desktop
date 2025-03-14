@@ -442,9 +442,6 @@ class DesktopEngineSiteImplementation(object):
             # DO NOT raise exception. It's reasonnable to log an error about it but
             # we don't want to break normal execution for metric related logging.
 
-        if self.uses_legacy_authentication():
-            self._migrate_credentials()
-
         # We need to initialize current login
         # We know for sure there is a default user, since either the migration was done
         # or we logged in as an actual user with the new installer.
@@ -514,81 +511,6 @@ class DesktopEngineSiteImplementation(object):
         # and run the app
         result = app.exec_()
         return result
-
-    def uses_legacy_authentication(self):
-        """
-        Returns if the PTR desktop app installed code uses the tk-framework-login for
-        logging in.
-
-        :returns: True the bootstrap logic is older than 1.1.0, False otherwise.
-        """
-        return LooseVersion(self.app_version) < LooseVersion("1.1.0")
-
-    def create_legacy_login_instance(self):
-        """
-        Creates an instance of tk-framework-login.ShotgunLogin.
-
-        Before we introduced Shotgun Authentication in Core 0.16.0, we used
-        tk-framework-login to authenticate in the PTR desktop app's installer
-        code. Once we've detected using uses_legacy_authentication that we are
-        using tk-framework-login, create_legacy_login_instance creates an
-        instance of that class in order to access the credentials.
-
-        In the PTR desktop app installer v1.1.0 code and higher, this
-        ShotgunLogin class is no more.
-
-        :raises ImportError: Thrown if the module is not available.
-
-        :returns: A tk-framework-login.ShotgunLogin instance.
-        """
-        try:
-            from python import ShotgunLogin
-        except ImportError:
-            logger.exception("Could not import tk-framework-login")
-            raise
-        else:
-            return ShotgunLogin.get_instance_for_namespace("tk-desktop")
-
-    def _migrate_credentials(self):
-        """
-        Migrates the credentials from tk-framework-login to
-        shotgun_authentication.
-        """
-        sl = self.create_legacy_login_instance()
-        site, login, _ = sl._get_saved_values()
-        # Call get_connection, since it will reprompt for the password if
-        # for some reason it is expired now.
-        connection = sl.get_connection()
-
-        # Next set the current host and user in the framework.
-        dm = DefaultsManager()
-        dm.set_host(site)
-        dm.set_login(login)
-
-        # If we have a version of the framework that supports password mangling with the session token,
-        # try to pick the session token from the connection.
-        if (
-            hasattr(sl, "mangle_password")
-            and connection.config.session_token is not None
-        ):
-            # Extract the credentials from the old Shotgun instance and create a
-            # ShotgunUser with them. This will cache the session token as well.
-            ShotgunAuthenticator().create_session_user(
-                login=login,
-                session_token=connection.config.session_token,
-                # Ugly, but this is the only way available to get at the
-                # raw http_proxy string.
-                http_proxy=sl._http_proxy,
-            )
-        else:
-            ShotgunAuthenticator().create_session_user(
-                login=connection.config.user_login,
-                password=connection.config.user_password,
-                host=connection.base_url,
-                # Ugly, but this is the only way available to get at the
-                # raw http_proxy string.
-                http_proxy=sl._http_proxy,
-            )
 
     def get_current_login(self):
         """
