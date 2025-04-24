@@ -930,11 +930,8 @@ class DesktopWindow(SystrayWindow):
         """
         Logs current user out.
         """
-        engine = sgtk.platform.current_engine()
         try:
             sg_auth.ShotgunAuthenticator().clear_default_user()
-            if engine.uses_legacy_authentication():
-                engine.create_legacy_login_instance().logout()
             return True
         except Exception:
             # if logout raises an exception, just log and don't crash
@@ -948,17 +945,6 @@ class DesktopWindow(SystrayWindow):
         :param str new_host: URL of the new host.
         :param str new_user: Login of the new user.
         """
-
-        engine = sgtk.platform.current_engine()
-
-        # This is for ye-olde PTR desktop app < 1.1
-        if engine.uses_legacy_authentication():
-            login_framework = engine.create_legacy_login_instance()
-            if new_host:
-                login_framework.set_default_host(new_host)
-            if new_user:
-                login_framework.set_default_login(new_user)
-
         dm = sg_auth.DefaultsManager()
         if new_host:
             dm.set_host(new_host)
