@@ -31,9 +31,13 @@ def main():
         sys.path.append(os.path.dirname(opts.utilities))
         (module_name, _) = os.path.splitext(os.path.basename((opts.utilities)))
         utilities = __import__(module_name)
-
+        
+        # Execute the hook to import necessary libraries before PySide6 is loaded.
+        # This avoids conflicts caused by Qt initialization issues or version mismatches
+        # with libraries like opentimelineio or f3d, ensuring a stable environment.
         # load up the pickle file with the data payload
-        #
+        utilities.execute_import_libraries_hook(data)
+        
         # The pickle file comes from the app launching this instance of the
         # desktop engine.  It contains the information needed to connect
         # back to that app and let it serve as the GUI proxy for the engine.

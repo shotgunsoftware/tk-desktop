@@ -25,6 +25,7 @@ import imp
 import logging
 import inspect
 import pprint
+import importlib.util
 
 
 class ProxyLoggingHandler(logging.Handler):
@@ -391,3 +392,35 @@ def handle_error(data, proxy=None):
             proxy.close()
         except Exception:
             pass
+
+def execute_import_libraries_hook(data):
+    """
+    Executes the 'hook_import_libraries' hook.
+
+    This function attempts to execute the hook specified in the environment variable
+    'SGTK_HOOK_IMPORT_LIBRARIES'. If the variable is defined, it dynamically loads
+    and executes the hook from the specified path. If the variable is not defined,
+    it falls back to using the default hook located in the 'hooks' directory of the project.
+
+    The purpose of this hook is to import necessary libraries before PySide6 or other
+    dependencies are loaded, ensuring a stable environment and avoiding potential
+    conflicts caused by Qt initialization issues or version mismatches.
+
+    Any exceptions during execution are logged for debugging purposes.
+    """
+
+    # Retrieve the hook path from the environment variable
+    hook_path = os.environ.get("SGTK_HOOK_IMPORT_LIBRARIES")
+    # Check if the hook file exists
+    if hook_path and os.path.exists(hook_path):
+        # Dynamically load the module
+        spec = importlib.util.spec_from_file_location("import_libraries", hook_path)
+        hook_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hook_module)
+
+        # Execute the `execute` method of the `ImportLibraries` class
+        hook_class = hook_module.ImportLibraries
+        hook_class.execute()
+    else:
+        from hooks.import_libraries import ImportLibraries
+        ImportLibraries.execute()
