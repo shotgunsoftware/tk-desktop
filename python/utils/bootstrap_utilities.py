@@ -18,14 +18,14 @@ As such, the site-level engine has control over how the project-level tk-desktop
 engine is bootstrapped and finalized.
 """
 
+import imp
+import importlib.util
+import inspect
+import logging
 import os
+import pprint
 import sys
 import traceback
-import imp
-import logging
-import inspect
-import pprint
-import importlib.util
 
 
 class ProxyLoggingHandler(logging.Handler):
@@ -424,4 +424,5 @@ def execute_import_libraries_hook():
         hook_class.execute()
     else:
         from hooks.import_libraries import ImportLibraries
+
         ImportLibraries.execute()
