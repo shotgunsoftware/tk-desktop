@@ -393,7 +393,8 @@ def handle_error(data, proxy=None):
         except Exception:
             pass
 
-def execute_import_libraries_hook(data):
+
+def execute_import_libraries_hook():
     """
     Executes the 'hook_import_libraries' hook.
 

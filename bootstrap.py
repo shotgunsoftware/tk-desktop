@@ -35,7 +35,7 @@ def main():
         # Execute the hook to import necessary libraries before PySide6 is loaded.
         # This avoids conflicts caused by Qt initialization issues or version mismatches
         # with libraries like opentimelineio or f3d, ensuring a stable environment.
-        utilities.execute_import_libraries_hook(data)
+        utilities.execute_import_libraries_hook()
 
         # load up the pickle file with the data payload
         #
