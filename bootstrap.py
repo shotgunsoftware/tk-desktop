@@ -31,7 +31,7 @@ def main():
         sys.path.append(os.path.dirname(opts.utilities))
         (module_name, _) = os.path.splitext(os.path.basename((opts.utilities)))
         utilities = __import__(module_name)
-        
+
         # Execute the hook to import necessary libraries before PySide6 is loaded.
         # This avoids conflicts caused by Qt initialization issues or version mismatches
         # with libraries like opentimelineio or f3d, ensuring a stable environment.
