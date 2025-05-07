@@ -394,7 +394,32 @@ def handle_error(data, proxy=None):
             pass
 
 
-def execute_pre_initialization_hook():
+def logger_via_proxy(data, message):
+    """
+    Sends a log message to tk-desktop via the RPC proxy.
+
+    This function uses the RPC proxy to send log messages to the main tk-desktop process.
+    It is particularly useful for logging messages before the engine is fully initialized
+    or when direct access to the tk-desktop logging system is not available.
+
+    :param data: A dictionary containing proxy connection details, including the path
+                 to the RPC library and proxy authentication information.
+    :param message: The log message to send to tk-desktop.
+    """
+
+    sys.path.insert(0, data["core_python_path"])
+    import sgtk
+
+    # Set up logging with the rpc.
+    proxy = _create_proxy(data)
+    handler = ProxyLoggingHandler(proxy)
+    sgtk.LogManager().initialize_custom_handler(handler)
+    logger = sgtk.LogManager.get_logger(__file__)
+    logger.error(message)
+    proxy.close()
+
+
+def execute_pre_initialization_hook(data):
     """
     Executes the 'hook_pre_initialization' hook.
 
@@ -410,21 +435,43 @@ def execute_pre_initialization_hook():
     or version mismatches.
     """
 
-    # Retrieve the hook path from the environment variable
     hook_path = os.environ.get("SGTK_HOOK_PRE_INITIALIZATION")
 
     # Check if the hook file exists, so if the environment
     # variable is not set, use the default hook path
-    if not hook_path or not os.path.exists(hook_path):
+    if hook_path and not os.path.exists(hook_path):
+        logger_via_proxy(
+            data,
+            (
+                f"SGTK_HOOK_PRE_INITIALIZATION is set to '{hook_path}', but the file does not exist. "
+                "Falling back to the default pre-initialization hook."
+            ),
+        )
+        hook_path = None
+
+    if not hook_path:
+        logger_via_proxy(
+            data,
+            "No custom pre-initialization hook specified. Using the default pre-initialization hook.",
+        )
         hook_path = os.path.join(
             os.path.dirname(__file__), "..", "..", "hooks", "pre_initialization.py"
         )
 
-    # Dynamically load the module
-    spec = importlib.util.spec_from_file_location("pre_initialization", hook_path)
-    hook_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(hook_module)
+    try:
+        # Dynamically load the module
+        spec = importlib.util.spec_from_file_location("pre_initialization", hook_path)
+        hook_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hook_module)
 
-    # Execute the `execute` method of the `PreInitialization` class
-    hook_class = getattr(hook_module, "PreInitialization", None)
-    hook_class.execute()
+        # Execute the `execute` method of the `PreInitialization` class
+        hook_class = getattr(hook_module, "PreInitialization", None)
+        if hook_class is None or not hasattr(hook_class, "execute"):
+            raise AttributeError(
+                f"The 'PreInitialization' class or its 'execute' method is missing in the hook: {hook_path}"
+            )
+        hook_class.execute()
+    except Exception as e:
+        logger_via_proxy(
+            data, f"An error occurred while executing the pre-initialization hook: {e}"
+        )

@@ -32,11 +32,6 @@ def main():
         (module_name, _) = os.path.splitext(os.path.basename((opts.utilities)))
         utilities = __import__(module_name)
 
-        # Execute the hook to perform early initialization tasks before PySide6 is loaded.
-        # This avoids conflicts caused by Qt initialization issues or version mismatches
-        # with libraries like opentimelineio or f3d, ensuring a stable environment.
-        utilities.execute_pre_initialization_hook()
-
         # load up the pickle file with the data payload
         #
         # The pickle file comes from the app launching this instance of the
@@ -44,6 +39,11 @@ def main():
         # back to that app and let it serve as the GUI proxy for the engine.
         with open(opts.data, "rb") as fh:
             data = pickle.load(fh)
+
+        # Execute the hook to perform early initialization tasks before PySide6 is loaded.
+        # This avoids conflicts caused by Qt initialization issues or version mismatches
+        # with libraries like opentimelineio or f3d, ensuring a stable environment.
+        utilities.execute_pre_initialization_hook(data)
 
         # launch the engine
         #
