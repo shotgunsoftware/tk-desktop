@@ -40,6 +40,11 @@ def main():
         with open(opts.data, "rb") as fh:
             data = pickle.load(fh)
 
+        # Execute the hook to perform early initialization tasks before PySide6 is loaded.
+        # This avoids conflicts caused by Qt initialization issues or version mismatches
+        # with libraries like opentimelineio or f3d, ensuring a stable environment.
+        utilities.execute_pre_initialization_hook(data)
+
         # launch the engine
         #
         # Use the methods from the utility module (passing in the data from the
