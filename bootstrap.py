@@ -32,10 +32,10 @@ def main():
         (module_name, _) = os.path.splitext(os.path.basename((opts.utilities)))
         utilities = __import__(module_name)
 
-        # Execute the hook to import necessary libraries before PySide6 is loaded.
+        # Execute the hook to perform early initialization tasks before PySide6 is loaded.
         # This avoids conflicts caused by Qt initialization issues or version mismatches
         # with libraries like opentimelineio or f3d, ensuring a stable environment.
-        utilities.execute_import_libraries_hook()
+        utilities.execute_pre_initialization_hook()
 
         # load up the pickle file with the data payload
         #

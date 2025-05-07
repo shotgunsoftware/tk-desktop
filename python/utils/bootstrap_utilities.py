@@ -394,35 +394,37 @@ def handle_error(data, proxy=None):
             pass
 
 
-def execute_import_libraries_hook():
+def execute_pre_initialization_hook():
     """
-    Executes the 'hook_import_libraries' hook.
+    Executes the 'hook_pre_initialization' hook.
 
     This function attempts to execute the hook specified in the environment variable
-    'SGTK_HOOK_IMPORT_LIBRARIES'. If the variable is defined, it dynamically loads
+    'SGTK_HOOK_PRE_INITIALIZATION'. If the variable is defined, it dynamically loads
     and executes the hook from the specified path. If the variable is not defined,
-    it falls back to using the default hook located in the 'hooks' directory of the project.
+    it falls back to dynamically loading the default hook located in the 'hooks'
+    directory of the project.
 
-    The purpose of this hook is to import necessary libraries before PySide6 or other
-    dependencies are loaded, ensuring a stable environment and avoiding potential
-    conflicts caused by Qt initialization issues or version mismatches.
-
-    Any exceptions during execution are logged for debugging purposes.
+    The purpose of this hook is to perform early initialization tasks, such as importing
+    necessary libraries, before PySide6 or other dependencies are loaded. This ensures
+    a stable environment and avoids potential conflicts caused by Qt initialization issues
+    or version mismatches.
     """
 
     # Retrieve the hook path from the environment variable
-    hook_path = os.environ.get("SGTK_HOOK_IMPORT_LIBRARIES")
-    # Check if the hook file exists
-    if hook_path and os.path.exists(hook_path):
-        # Dynamically load the module
-        spec = importlib.util.spec_from_file_location("import_libraries", hook_path)
-        hook_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(hook_module)
+    hook_path = os.environ.get("SGTK_HOOK_PRE_INITIALIZATION")
 
-        # Execute the `execute` method of the `ImportLibraries` class
-        hook_class = hook_module.ImportLibraries
-        hook_class.execute()
-    else:
-        from hooks.import_libraries import ImportLibraries
+    # Check if the hook file exists, so if the environment
+    # variable is not set, use the default hook path
+    if not hook_path or not os.path.exists(hook_path):
+        hook_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "hooks", "pre_initialization.py"
+        )
 
-        ImportLibraries.execute()
+    # Dynamically load the module
+    spec = importlib.util.spec_from_file_location("pre_initialization", hook_path)
+    hook_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(hook_module)
+
+    # Execute the `execute` method of the `PreInitialization` class
+    hook_class = getattr(hook_module, "PreInitialization", None)
+    hook_class.execute()
