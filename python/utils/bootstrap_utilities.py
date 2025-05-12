@@ -419,48 +419,122 @@ def logger_via_proxy(data, message):
     proxy.close()
 
 
+def parse_yml_file(file_path):
+    """
+    Parses a simple YAML file into a dictionary without using the `yaml` library.
+
+    This function was created to avoid importing the `yaml` library due to known
+    compatibility issues with PySide6. It supports basic nested structures and is
+    designed to work specifically for the needs of this hook.
+
+    :param file_path: Path to the YAML file.
+    :return: A dictionary containing the parsed data.
+    """
+    config = {}
+    stack = [(config, -1)]  # Stack to handle nested structures (dict, indent_level)
+    with open(file_path, "r") as f:
+        for line in f:
+            # Ignore empty lines or comments
+            line = line.rstrip()
+            if not line or line.startswith("#"):
+                continue
+
+            # Detect indentation levels
+            indent_level = len(line) - len(line.lstrip())
+            key, sep, value = line.lstrip().partition(":")
+            key = key.strip()
+            value = value.strip().strip('"')  # Remove quotes if present
+
+            # Create a new level if necessary
+            while stack and stack[-1][1] >= indent_level:
+                stack.pop()
+
+            # Process key-value pairs
+            if sep:  # Line contains "key: value"
+                current_dict = stack[-1][0]
+                if value == "":  # If no value, it's a new dictionary
+                    current_dict[key] = {}
+                    stack.append((current_dict[key], indent_level))
+                else:
+                    current_dict[key] = value
+    return config
+
+
 def execute_pre_initialization_hook(data):
     """
     Executes the 'hook_pre_initialization' hook.
 
-    This function attempts to execute the hook specified in the environment variable
-    'SGTK_HOOK_PRE_INITIALIZATION'. If the variable is defined, it dynamically loads
-    and executes the hook from the specified path. If the variable is not defined,
-    it falls back to dynamically loading the default hook located in the 'hooks'
-    directory of the project.
+    This function dynamically loads and executes the 'hook_pre_initialization' hook,
+    which is responsible for performing early initialization tasks before the engine
+    is fully initialized. These tasks may include importing necessary libraries,
+    setting environment variables, or preparing the environment to ensure compatibility
+    with PySide6 and other dependencies.
 
-    The purpose of this hook is to perform early initialization tasks, such as importing
-    necessary libraries, before PySide6 or other dependencies are loaded. This ensures
-    a stable environment and avoids potential conflicts caused by Qt initialization issues
-    or version mismatches.
+    If a custom hook is not defined in the advanced configuration (`tk-desktop.yml`),
+    the function falls back to dynamically loading the default hook located in the
+    'hooks' directory of the project.
+
+    The function follows these steps:
+    1. Reads the `info.yml` file to retrieve the default hook name for pre-initialization.
+    2. Reads the `tk-desktop.yml` file from the advanced configuration to check if a
+       custom hook is defined for the project.
+    3. Resolves the path to the custom hook if defined, or falls back to the default hook.
+    4. Dynamically loads the hook module and executes its `PreInitialization.execute` method.
+
+    :param data: A dictionary containing configuration and runtime details, including:
+                 - `config_path`: The root path of the advanced configuration.
+                 - `proxy_data`: Proxy connection details for logging.
+                 - `rpc_lib_path`: Path to the RPC library for communication.
     """
 
-    hook_path = os.environ.get("SGTK_HOOK_PRE_INITIALIZATION")
-
-    # Check if the hook file exists, so if the environment
-    # variable is not set, use the default hook path
-    if hook_path and not os.path.exists(hook_path):
-        logger_via_proxy(
-            data,
-            (
-                f"SGTK_HOOK_PRE_INITIALIZATION is set to '{hook_path}', but the file does not exist. "
-                "Falling back to the default pre-initialization hook."
-            ),
-        )
-        hook_path = None
-
-    if not hook_path:
-        logger_via_proxy(
-            data,
-            "No custom pre-initialization hook specified. Using the default pre-initialization hook.",
-        )
-        hook_path = os.path.join(
-            os.path.dirname(__file__), "..", "..", "hooks", "pre_initialization.py"
-        )
-
     try:
-        # Dynamically load the module
-        spec = importlib.util.spec_from_file_location("pre_initialization", hook_path)
+        # Step 1: Read info.yml to get the default hook name
+        info_yml_path = os.path.join(os.path.dirname(__file__), "..", "..", "info.yml")
+        info = parse_yml_file(info_yml_path)
+        default_hook_name = (
+            info.get("configuration", {})
+            .get("hook_pre_initialization", {})
+            .get("default_value", "")
+        )
+
+        # Step 2: Read tk-desktop.yml to check for a custom hook
+        tk_desktop_yml_path = os.path.join(
+            data.get("config_path"),
+            "config",
+            "env",
+            "includes",
+            "settings",
+            "tk-desktop.yml",
+        )
+        tk_desktop_config = parse_yml_file(tk_desktop_yml_path)
+        hook_path = (
+            tk_desktop_config.get("settings.tk-desktop.project", {})
+            .get("hooks", {})
+            .get(default_hook_name)
+        )
+
+        # Step 3: Fallback to the default hook if no custom hook is defined
+        if hook_path and not os.path.exists(hook_path):
+            message = (
+                f"Custom pre-initialization hook specified is set to '{hook_path}',"
+                " but the file does not exist. "
+                "Falling back to the default pre-initialization hook. pipiree"
+            )
+            logger_via_proxy(data, message)
+            hook_path = None
+
+        # Step 4: Verify the hook exists
+        if not hook_path:
+            logger_via_proxy(
+                data,
+                "No custom pre-initialization hook specified. Using the default pre-initialization hook.",
+            )
+            hook_path = os.path.join(
+                os.path.dirname(__file__), "..", "..", "hooks", "pre_initialization.py"
+            )
+
+        # Step 5: Dynamically load and execute the hook
+        spec = importlib.util.spec_from_file_location(default_hook_name, hook_path)
         hook_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(hook_module)
 

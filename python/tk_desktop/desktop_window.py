@@ -1568,6 +1568,7 @@ class DesktopWindow(SystrayWindow):
             # serialize the info needed to bootstrap the project python
             desktop_data = {
                 "core_python_path": core_python,
+                "config_path": config_path,
                 # Every settings that were used for discovering the pipeline configuration must be
                 # passed down to the next process so it can launch the same pipeline.
                 "manager_settings": toolkit_manager.extract_settings(),
