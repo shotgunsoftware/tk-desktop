@@ -84,7 +84,7 @@ def test_3rd_party_links(licence_file_links):
         "https://github.com/shotgunsoftware/tk-framework-adobe/tree/master/software_credits",
         # "https://github.com/shotgunsoftware/tk-framework-alias/tree/master/software_credits",
         # "https://github.com/shotgunsoftware/tk-framework-desktopclient/tree/master/software_credits",
-        "https://github.com/shotgunsoftware/tk-framework-desktopserver/tree/master/software_credits",
+        # "https://github.com/shotgunsoftware/tk-framework-desktopserver/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-houdini/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-multi-pythonconsole/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-multi-reviewsubmission/tree/master/software_credits",
