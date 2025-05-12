@@ -391,3 +391,7 @@ def handle_error(data, proxy=None):
             proxy.close()
         except Exception:
             pass
+
+
+def test():
+    pass
