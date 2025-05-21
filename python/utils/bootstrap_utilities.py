@@ -25,6 +25,7 @@ import logging
 import os
 import pprint
 import sys
+import time
 import traceback
 
 
@@ -406,11 +407,13 @@ def logger_via_proxy(data, message):
                  to the RPC library and proxy authentication information.
     :param message: The log message to send to tk-desktop.
     """
-
-    sys.path.insert(0, data["core_python_path"])
+    if data["core_python_path"] not in sys.path:
+        sys.path.insert(0, data["core_python_path"])
     import sgtk
 
-    # Set up logging with the rpc.
+    # Introduce a brief delay to ensure the RPC server is ready to accept another request,
+    # avoiding potential race conditions when calling logger_via_proxy in rapid succession
+    time.sleep(0.5)
     proxy = _create_proxy(data)
     handler = ProxyLoggingHandler(proxy)
     sgtk.LogManager().initialize_custom_handler(handler)
@@ -549,3 +552,4 @@ def execute_pre_initialization_hook(data):
         logger_via_proxy(
             data, f"An error occurred while executing the pre-initialization hook: {e}"
         )
+        raise
