@@ -61,6 +61,9 @@ def licence_file_links(license_file):
 
 
 def test_3rd_party_links(licence_file_links):
+    """
+    Check all found urls are valid and can accessed.
+    """
     max_retries = 5
     retry_delay = 1
     error_message = ""
