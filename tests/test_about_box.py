@@ -10,6 +10,7 @@
 
 import os
 import pytest
+import time
 from html.parser import HTMLParser
 from urllib import request
 
@@ -58,21 +59,28 @@ def licence_file_links(license_file):
     assert len(parser.tags) > 0
     return parser.tags
 
-
+        
 def test_3rd_party_links(licence_file_links):
-    """
-    Check all found urls are valid and can accessed.
-    """
+    max_retries = 5
+    retry_delay = 1
+    error_message = ""
     for url in licence_file_links:
-        try:
-            r = request.Request(
-                url,
-                headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
-            )
+        for _ in range(max_retries):
+            try:
+                r = request.Request(
+                    url,
+                    headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
+                )
 
-            contents = request.urlopen(r).read()
-        except Exception as e:
-            raise pytest.fail("Failed to open {0}, error: {1}".format(url, e))
+                contents = request.urlopen(r).read()
+                break
+            except Exception as e:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+                error_message = str(e)
+        else:
+            # If all retries fail, raise an exception
+            raise pytest.fail("Failed to open {0}, error: {1}".format(url, error_message))
 
 
 @pytest.mark.parametrize(
