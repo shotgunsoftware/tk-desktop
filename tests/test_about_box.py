@@ -80,11 +80,15 @@ def test_3rd_party_links(licence_file_links):
     max_retries = 5
     retry_delay = 1
 
-    for link in licence_file_links:
-        for i in range(max_retries):
+    for url in licence_file_links:
+        for _ in range(max_retries):
             try:
-                # Make request to GitHub
-                response = request.get(link)
+                r = request.Request(
+                    url,
+                    headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
+                )
+
+                contents = request.urlopen(r).read()
                 break
             except Exception as e:
                 time.sleep(retry_delay)
