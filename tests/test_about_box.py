@@ -59,7 +59,7 @@ def licence_file_links(license_file):
     assert len(parser.tags) > 0
     return parser.tags
 
-        
+
 def test_3rd_party_links(licence_file_links):
     max_retries = 5
     retry_delay = 1
@@ -80,7 +80,9 @@ def test_3rd_party_links(licence_file_links):
                 error_message = str(e)
         else:
             # If all retries fail, raise an exception
-            raise pytest.fail("Failed to open {0}, error: {1}".format(url, error_message))
+            raise pytest.fail(
+                "Failed to open {0}, error: {1}".format(url, error_message)
+            )
 
 
 @pytest.mark.parametrize(
