@@ -59,20 +59,39 @@ def licence_file_links(license_file):
     return parser.tags
 
 
-def test_3rd_party_links(licence_file_links):
-    """
-    Check all found urls are valid and can accessed.
-    """
-    for url in licence_file_links:
-        try:
-            r = request.Request(
-                url,
-                headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
-            )
+# def test_3rd_party_links(licence_file_links):
+#     """
+#     Check all found urls are valid and can accessed.
+#     """
+#     for url in licence_file_links:
+#         try:
+#             r = request.Request(
+#                 url,
+#                 headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
+#             )
 
-            contents = request.urlopen(r).read()
-        except Exception as e:
-            raise pytest.fail("Failed to open {0}, error: {1}".format(url, e))
+#             contents = request.urlopen(r).read()
+#         except Exception as e:
+#             raise pytest.fail("Failed to open {0}, error: {1}".format(url, e))
+        
+import time
+
+def test_3rd_party_links(licence_file_links):
+    max_retries = 5
+    retry_delay = 1
+
+    for link in licence_file_links:
+        for i in range(max_retries):
+            try:
+                # Make request to GitHub
+                response = request.get(link)
+                break
+            except Exception as e:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+        else:
+            # If all retries fail, raise an exception
+            raise Exception("Failed to retrieve data from GitHub")
 
 
 @pytest.mark.parametrize(
@@ -82,13 +101,13 @@ def test_3rd_party_links(licence_file_links):
         "https://github.com/shotgunsoftware/tk-alias/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-core/tree/master/software_credits",
         "https://github.com/shotgunsoftware/tk-framework-adobe/tree/master/software_credits",
-        # "https://github.com/shotgunsoftware/tk-framework-alias/tree/master/software_credits",
-        # "https://github.com/shotgunsoftware/tk-framework-desktopclient/tree/master/software_credits",
-        # "https://github.com/shotgunsoftware/tk-framework-desktopserver/tree/master/software_credits",
-        # "https://github.com/shotgunsoftware/tk-houdini/tree/master/software_credits",
-        # "https://github.com/shotgunsoftware/tk-multi-pythonconsole/tree/master/software_credits",
-        # "https://github.com/shotgunsoftware/tk-multi-reviewsubmission/tree/master/software_credits",
-        # "https://github.com/shotgunsoftware/tk-nuke-quickreview/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-alias/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-desktopclient/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-framework-desktopserver/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-houdini/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-multi-pythonconsole/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-multi-reviewsubmission/tree/master/software_credits",
+        "https://github.com/shotgunsoftware/tk-nuke-quickreview/tree/master/software_credits",
     ],
 )
 def test_expected_url_exist(licence_file_links, expected_url):
