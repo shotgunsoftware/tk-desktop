@@ -13,8 +13,8 @@ class PreInitialization:
 
     Usage:
         - Add the required logic inside the `execute` method.
-        - If using a custom hook, ensure the environment variable `SGTK_HOOK_PRE_INITIALIZATION`
-          points to the correct file path.
+        - If using a custom hook, ensure the path of your custom hook file is set in the tk-desktop.yml
+          of your custom config.
 
     Example:
         # Perform early initialization tasks
@@ -30,10 +30,9 @@ class PreInitialization:
         """
         Perform early initialization tasks.
 
-        Add the necessary logic below to ensure the environment is properly set up
-        before the main initialization process. If using a custom hook, ensure the
-        environment variable `SGTK_HOOK_PRE_INITIALIZATION` is set to the path of
-        your custom hook file.
+        Add the necessary logic below to ensure the environment is properly set up before
+        the main initialization process. If using a custom hook, ensure the path to your
+        custom hook file is specified in the tk-desktop.yml file.
         """
         # Example: Uncomment and modify the following logic as needed
         # import opentimelineio
