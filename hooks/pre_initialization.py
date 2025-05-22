@@ -3,9 +3,9 @@ class PreInitialization:
     Hook executed before the main initialization process.
 
     This hook is executed dynamically during the bootstrap process. To use a custom
-    implementation of this hook, set the environment variable `SGTK_HOOK_PRE_INITIALIZATION`
-    to the path of your custom hook file. If the variable is not set, this default
-    implementation will be used.
+    implementation of this hook, specify the path to your custom hook file in
+    the tk-desktop.yml file of your custom config. If a custom path is not specified, this
+    default implementation will be used.
 
     Purpose:
         - Perform tasks that need to be executed early in the bootstrap process.
