@@ -418,47 +418,6 @@ def logger_via_proxy(data, message):
     proxy.close()
 
 
-def parse_yml_file(file_path):
-    """
-    Parses a simple YAML file into a dictionary without using the `yaml` library.
-
-    This function was created to avoid importing the `yaml` library due to known
-    compatibility issues with PySide6. It supports basic nested structures and is
-    designed to work specifically for the needs of this hook.
-
-    :param file_path: Path to the YAML file.
-    :return: A dictionary containing the parsed data.
-    """
-    config = {}
-    stack = [(config, -1)]  # Stack to handle nested structures (dict, indent_level)
-    with open(file_path, "r") as f:
-        for line in f:
-            # Ignore empty lines or comments
-            line = line.rstrip()
-            if not line or line.startswith("#"):
-                continue
-
-            # Detect indentation levels
-            indent_level = len(line) - len(line.lstrip())
-            key, sep, value = line.lstrip().partition(":")
-            key = key.strip()
-            value = value.strip().strip('"')  # Remove quotes if present
-
-            # Create a new level if necessary
-            while stack and stack[-1][1] >= indent_level:
-                stack.pop()
-
-            # Process key-value pairs
-            if sep:  # Line contains "key: value"
-                current_dict = stack[-1][0]
-                if value == "":  # If no value, it's a new dictionary
-                    current_dict[key] = {}
-                    stack.append((current_dict[key], indent_level))
-                else:
-                    current_dict[key] = value
-    return config
-
-
 def execute_pre_initialization_hook(data):
     """
     Executes the 'hook_pre_initialization' hook.
@@ -487,9 +446,16 @@ def execute_pre_initialization_hook(data):
     """
 
     try:
+        if data["core_python_path"] not in sys.path:
+            sys.path.insert(0, data["core_python_path"])
+
+        from tank_vendor import yaml
+
         # Step 1: Read info.yml to get the default hook name
         info_yml_path = os.path.join(os.path.dirname(__file__), "..", "..", "info.yml")
-        info = parse_yml_file(info_yml_path)
+        info = {}
+        with open(info_yml_path, "rt") as fh:
+            info = yaml.load(fh, Loader=yaml.FullLoader)
         default_hook_name = (
             info.get("configuration", {})
             .get("hook_pre_initialization", {})
@@ -505,7 +471,9 @@ def execute_pre_initialization_hook(data):
             "settings",
             "tk-desktop.yml",
         )
-        tk_desktop_config = parse_yml_file(tk_desktop_yml_path)
+        tk_desktop_config = {}
+        with open(tk_desktop_yml_path, "rt") as fh:
+            tk_desktop_config = yaml.load(fh, Loader=yaml.FullLoader)
         hook_path = (
             tk_desktop_config.get("settings.tk-desktop.project", {})
             .get("hooks", {})
