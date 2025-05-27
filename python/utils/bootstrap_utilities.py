@@ -526,8 +526,7 @@ def execute_pre_initialization_hook(data):
         if not hook_path:
             message = "No custom pre-initialization hook specified. Using the default pre-initialization hook."
             logger_via_proxy(
-                data,
-                message + (f" {hook_error_message}" if hook_error_message else "")
+                data, message + (f" {hook_error_message}" if hook_error_message else "")
             )
             hook_path = os.path.join(
                 os.path.dirname(__file__), "..", "..", "hooks", "pre_initialization.py"
