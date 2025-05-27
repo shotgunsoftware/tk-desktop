@@ -25,7 +25,6 @@ import logging
 import os
 import pprint
 import sys
-import time
 import traceback
 
 
@@ -411,9 +410,6 @@ def logger_via_proxy(data, message):
         sys.path.insert(0, data["core_python_path"])
     import sgtk
 
-    # Introduce a brief delay to ensure the RPC server is ready to accept another request,
-    # avoiding potential race conditions when calling logger_via_proxy in rapid succession
-    time.sleep(0.5)
     proxy = _create_proxy(data)
     handler = ProxyLoggingHandler(proxy)
     sgtk.LogManager().initialize_custom_handler(handler)
@@ -517,20 +513,21 @@ def execute_pre_initialization_hook(data):
         )
 
         # Step 3: Fallback to the default hook if no custom hook is defined
+        hook_error_message = None
         if hook_path and not os.path.exists(hook_path):
-            message = (
+            hook_error_message = (
                 f"Custom pre-initialization hook specified is set to '{hook_path}',"
                 " but the file does not exist. "
-                "Falling back to the default pre-initialization hook. pipiree"
+                "Falling back to the default pre-initialization hook."
             )
-            logger_via_proxy(data, message)
             hook_path = None
 
         # Step 4: Verify the hook exists
         if not hook_path:
+            message = "No custom pre-initialization hook specified. Using the default pre-initialization hook."
             logger_via_proxy(
                 data,
-                "No custom pre-initialization hook specified. Using the default pre-initialization hook.",
+                message + (f" {hook_error_message}" if hook_error_message else "")
             )
             hook_path = os.path.join(
                 os.path.dirname(__file__), "..", "..", "hooks", "pre_initialization.py"

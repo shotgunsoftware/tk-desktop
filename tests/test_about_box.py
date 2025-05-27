@@ -65,9 +65,9 @@ def test_3rd_party_links(licence_file_links):
     Check all found urls are valid and can accessed.
     """
     max_retries = 5
-    retry_delay = 1
     error_message = ""
     for url in licence_file_links:
+        retry_delay = 1
         for _ in range(max_retries):
             try:
                 r = request.Request(
