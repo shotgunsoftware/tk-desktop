@@ -463,7 +463,7 @@ def execute_pre_initialization_hook(data):
         )
 
         # Step 2: Read tk-desktop.yml to check for a custom hook
-        config_path =  data.get("config_path")
+        config_path = data.get("config_path")
         tk_desktop_yml_path = os.path.join(
             config_path,
             "config",
