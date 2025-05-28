@@ -463,8 +463,9 @@ def execute_pre_initialization_hook(data):
         )
 
         # Step 2: Read tk-desktop.yml to check for a custom hook
+        config_path =  data.get("config_path")
         tk_desktop_yml_path = os.path.join(
-            data.get("config_path"),
+            config_path,
             "config",
             "env",
             "includes",
@@ -479,6 +480,9 @@ def execute_pre_initialization_hook(data):
             .get("hooks", {})
             .get(default_hook_name)
         )
+        if hook_path.startswith("{config}"):
+            hooks_folder = os.path.join(config_path, "config", "hooks")
+            hook_path = os.path.normpath(hook_path.replace("{config}", hooks_folder))
 
         # Step 3: Fallback to the default hook if no custom hook is defined
         hook_error_message = None
