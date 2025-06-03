@@ -478,7 +478,7 @@ def execute_pre_initialization_hook(data):
         hook_path = (
             tk_desktop_config.get("settings.tk-desktop.project", {})
             .get("hooks", {})
-            .get(default_hook_name)
+            .get(default_hook_name, "")
         )
         if hook_path.startswith("{config}"):
             hooks_folder = os.path.join(config_path, "config", "hooks")
