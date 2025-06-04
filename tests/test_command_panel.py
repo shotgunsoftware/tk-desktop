@@ -84,7 +84,7 @@ def test_sections_sorted(show_recents, commands):
     view = CommandPanel(
         sgtk.platform.qt.QtGui.QScrollArea(),
         Settings(
-            {PROJECT_KEY: {"command 0": {"timestamp": datetime.datetime.utcnow()}}}
+            {PROJECT_KEY: {"command 0": {"timestamp": datetime.datetime.now(datetime.timezone.utc)}}}
         ),
     )
     view.configure(PROJECT, groups, show_recents=show_recents)
@@ -126,7 +126,7 @@ def test_clear_deletes_all_but_stretcher():
     view = CommandPanel(
         sgtk.platform.qt.QtGui.QScrollArea(),
         Settings(
-            {PROJECT_KEY: {"maya_2020": {"timestamp": datetime.datetime.utcnow()}}}
+            {PROJECT_KEY: {"maya_2020": {"timestamp": datetime.datetime.now(datetime.timezone.utc)}}}
         ),
     )
     view.configure(PROJECT, ["Creative Tools", "Editorial"], show_recents=True)

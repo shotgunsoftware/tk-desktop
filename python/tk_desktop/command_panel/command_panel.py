@@ -8,7 +8,7 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from datetime import datetime
+from datetime import datetime, timezone
 from sgtk.platform.qt import QtGui, QtCore
 
 from .shared import MAX_RECENTS
@@ -185,7 +185,7 @@ class CommandPanel(QtGui.QWidget):
             return
 
         command_name = str(command_name)
-        self._recents[command_name] = {"timestamp": datetime.utcnow()}
+        self._recents[command_name] = {"timestamp": datetime.now(timezone.utc)}
         self._store_recents()
         self._refresh_recent_list(command_name)
         self._restrict_recent_buttons(self._get_optimal_width())
