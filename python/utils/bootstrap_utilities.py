@@ -82,7 +82,7 @@ def _create_proxy(data):
     # Connect to the main desktop process so we can send updates to it.
     # We're not guaranteed if the py or pyc file will be passed back to us
     # from the desktop due to write permissions on the folder.
-    
+
     spec = importlib.util.spec_from_file_location("rpc", data["rpc_lib_path"])
     if spec is None or spec.loader is None:
         raise ImportError(
