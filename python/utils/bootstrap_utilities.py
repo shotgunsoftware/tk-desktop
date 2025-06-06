@@ -446,66 +446,12 @@ def execute_pre_initialization_hook(data):
     """
 
     try:
-        if data["core_python_path"] not in sys.path:
-            sys.path.insert(0, data["core_python_path"])
-
-        from tank_vendor import yaml
-
-        # Step 1: Read info.yml to get the default hook name
-        info_yml_path = os.path.join(os.path.dirname(__file__), "..", "..", "info.yml")
-        info = {}
-        with open(info_yml_path, "rt") as fh:
-            info = yaml.load(fh, Loader=yaml.FullLoader)
-        default_hook_name = (
-            info.get("configuration", {})
-            .get("hook_pre_initialization", {})
-            .get("default_value", "")
-        )
-
-        # Step 2: Read tk-desktop.yml to check for a custom hook
-        config_path = data.get("config_path")
-        tk_desktop_yml_path = os.path.join(
-            config_path,
-            "config",
-            "env",
-            "includes",
-            "settings",
-            "tk-desktop.yml",
-        )
-        tk_desktop_config = {}
-        with open(tk_desktop_yml_path, "rt") as fh:
-            tk_desktop_config = yaml.load(fh, Loader=yaml.FullLoader)
-        hook_path = (
-            tk_desktop_config.get("settings.tk-desktop.project", {})
-            .get("hooks", {})
-            .get(default_hook_name, "")
-        )
-        if hook_path.startswith("{config}"):
-            hooks_folder = os.path.join(config_path, "config", "hooks")
-            hook_path = os.path.normpath(hook_path.replace("{config}", hooks_folder))
-
-        # Step 3: Fallback to the default hook if no custom hook is defined
-        hook_error_message = None
-        if hook_path and not os.path.exists(hook_path):
-            hook_error_message = (
-                f"Custom pre-initialization hook specified is set to '{hook_path}',"
-                " but the file does not exist. "
-                "Falling back to the default pre-initialization hook."
-            )
-            hook_path = None
-
-        # Step 4: Verify the hook exists
+        hook_path = data.get("hook_pre_initialization")
         if not hook_path:
-            message = "No custom pre-initialization hook specified. Using the default pre-initialization hook."
-            logger_via_proxy(
-                data, message + (f" {hook_error_message}" if hook_error_message else "")
-            )
-            hook_path = os.path.join(
-                os.path.dirname(__file__), "..", "..", "hooks", "pre_initialization.py"
-            )
+            return
 
-        # Step 5: Dynamically load and execute the hook
-        spec = importlib.util.spec_from_file_location(default_hook_name, hook_path)
+        # Dynamically load and execute the hook
+        spec = importlib.util.spec_from_file_location("pre_initialization", hook_path)
         hook_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(hook_module)
 

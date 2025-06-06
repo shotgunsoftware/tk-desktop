@@ -1568,7 +1568,6 @@ class DesktopWindow(SystrayWindow):
             # serialize the info needed to bootstrap the project python
             desktop_data = {
                 "core_python_path": core_python,
-                "config_path": config_path,
                 # Every settings that were used for discovering the pipeline configuration must be
                 # passed down to the next process so it can launch the same pipeline.
                 "manager_settings": toolkit_manager.extract_settings(),
@@ -1586,6 +1585,34 @@ class DesktopWindow(SystrayWindow):
                     "proxy_auth": engine.site_comm.server_authkey,
                 },
             }
+
+            ##################
+            # TODO FIXME - Resolve hook here!!
+            log.info("COUCOU JULIEN FROM desktop_window")
+
+            # self.parent is the engine instanmce
+            hook_name = engine.get_setting("hook_pre_initialization")
+            log.info(f"  hook_name: {hook_name}") # we don't get the settings put in config here .... :( FIXME
+
+            # CALLING THIS does not work :( .... I don't undetstand why)
+            # resolved_hook_paths = engine.__resolve_hook_expression("hook_pre_initialization", hook_name)
+            # log.info(f"  resolved_hook_paths: {resolved_hook_paths}")
+
+            hook_path = None
+            # TODO resolve self and other stuff....
+            if hook_name.startswith("{config}"):
+                hooks_folder = os.path.join(config_path, "hooks")
+                hook_path = os.path.normpath(hook_name.replace("{config}", hooks_folder))
+
+            log.info(f"  hook_path: {hook_path}")
+
+            if not hook_path or not os.path.exists(hook_path):
+                log.info("unable to find hook on disk")
+            else:
+                desktop_data["hook_pre_initialization"] = hook_path
+
+            #######################
+
             (_, pickle_data_file) = tempfile.mkstemp(suffix=".pkl")
             with open(pickle_data_file, "wb") as pickle_data_file_handle:
                 sgtk.util.pickle.dump(desktop_data, pickle_data_file_handle)
