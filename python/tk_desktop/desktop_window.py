@@ -1586,32 +1586,7 @@ class DesktopWindow(SystrayWindow):
                 },
             }
 
-            ##################
-            # TODO FIXME - Resolve hook here!!
-            log.info("COUCOU JULIEN FROM desktop_window")
-
-            # self.parent is the engine instanmce
-            hook_name = engine.get_setting("hook_pre_initialization")
-            log.info(f"  hook_name: {hook_name}") # we don't get the settings put in config here .... :( FIXME
-
-            # CALLING THIS does not work :( .... I don't undetstand why)
-            # resolved_hook_paths = engine.__resolve_hook_expression("hook_pre_initialization", hook_name)
-            # log.info(f"  resolved_hook_paths: {resolved_hook_paths}")
-
-            hook_path = None
-            # TODO resolve self and other stuff....
-            if hook_name.startswith("{config}"):
-                hooks_folder = os.path.join(config_path, "hooks")
-                hook_path = os.path.normpath(hook_name.replace("{config}", hooks_folder))
-
-            log.info(f"  hook_path: {hook_path}")
-
-            if not hook_path or not os.path.exists(hook_path):
-                log.info("unable to find hook on disk")
-            else:
-                desktop_data["hook_pre_initialization"] = hook_path
-
-            #######################
+            self._provision_hook_pre_initialization(desktop_data, config_path, engine)
 
             (_, pickle_data_file) = tempfile.mkstemp(suffix=".pkl")
             with open(pickle_data_file, "wb") as pickle_data_file_handle:
@@ -1664,6 +1639,27 @@ class DesktopWindow(SystrayWindow):
         finally:
             if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:
                 del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
+
+    def _provision_hook_pre_initialization(self, desktop_data, config_path, engine):
+        hook_name = engine.get_setting("hook_pre_initialization")
+
+        # FIXME unable to to call engine.__resolve_hook_path
+
+        try:
+            hook_path = os.path.normpath(hook_name.format(
+                config=os.path.join(config_path, "hooks"),
+                self=os.path.join(engine.disk_location, "hooks")
+            ))
+        except KeyError:
+            log.debug(f"Unable to resolve hook path: {hook_name}")
+            return False
+
+        if not os.path.exists(hook_path):
+            log.error(f"No such file {hook_path}")
+            return False
+
+        desktop_data["hook_pre_initialization"] = hook_path
+        return True
 
     def _launch_failed(self, message):
         """
