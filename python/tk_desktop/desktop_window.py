@@ -1652,14 +1652,13 @@ class DesktopWindow(SystrayWindow):
             ))
         except KeyError:
             log.debug(f"Unable to resolve hook path: {hook_name}")
-            return False
+            return
 
         if not os.path.exists(hook_path):
             log.error(f"No such file {hook_path}")
-            return False
+            return
 
         desktop_data["hook_pre_initialization"] = hook_path
-        return True
 
     def _launch_failed(self, message):
         """
