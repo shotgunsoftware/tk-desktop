@@ -321,7 +321,9 @@ class SgProjectModel(ShotgunModel):
         # Update the data in the model
         item = self.item_from_entity("Project", project["id"])
         # set to unix seconds rather than datetime to be compatible with Shotgun model
-        utc_now_epoch = time.mktime(datetime.datetime.utcnow().utctimetuple())
+        utc_now_epoch = time.mktime(
+            datetime.datetime.now(datetime.timezone.utc).utctimetuple()
+        )
         project["last_accessed_by_current_user"] = utc_now_epoch
         item.setData(project, ShotgunModel.SG_DATA_ROLE)
 
