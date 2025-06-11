@@ -432,15 +432,8 @@ def execute_pre_initialization_hook(data):
     the function falls back to dynamically loading the default hook located in the
     'hooks' directory of the project.
 
-    The function follows these steps:
-    1. Reads the `info.yml` file to retrieve the default hook name for pre-initialization.
-    2. Reads the `tk-desktop.yml` file from the advanced configuration to check if a
-       custom hook is defined for the project.
-    3. Resolves the path to the custom hook if defined, or falls back to the default hook.
-    4. Dynamically loads the hook module and executes its `PreInitialization.execute` method.
-
     :param data: A dictionary containing configuration and runtime details, including:
-                 - `config_path`: The root path of the advanced configuration.
+                 - `hook_pre_initialization`: The path of the configuration pipeline.
                  - `proxy_data`: Proxy connection details for logging.
                  - `rpc_lib_path`: Path to the RPC library for communication.
     """
