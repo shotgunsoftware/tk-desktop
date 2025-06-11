@@ -18,13 +18,14 @@ As such, the site-level engine has control over how the project-level tk-desktop
 engine is bootstrapped and finalized.
 """
 
+import imp
+import importlib.util
+import inspect
+import logging
 import os
+import pprint
 import sys
 import traceback
-import imp
-import logging
-import inspect
-import pprint
 
 
 class ProxyLoggingHandler(logging.Handler):
@@ -391,3 +392,71 @@ def handle_error(data, proxy=None):
             proxy.close()
         except Exception:
             pass
+
+
+def logger_via_proxy(data, message):
+    """
+    Sends a log message to tk-desktop via the RPC proxy.
+
+    This function uses the RPC proxy to send log messages to the main tk-desktop process.
+    It is particularly useful for logging messages before the engine is fully initialized
+    or when direct access to the tk-desktop logging system is not available.
+
+    :param data: A dictionary containing proxy connection details, including the path
+                 to the RPC library and proxy authentication information.
+    :param message: The log message to send to tk-desktop.
+    """
+    if data["core_python_path"] not in sys.path:
+        sys.path.insert(0, data["core_python_path"])
+    import sgtk
+
+    proxy = _create_proxy(data)
+    handler = ProxyLoggingHandler(proxy)
+    sgtk.LogManager().initialize_custom_handler(handler)
+    logger = sgtk.LogManager.get_logger(__file__)
+    logger.error(message)
+    proxy.close()
+
+
+def execute_pre_initialization_hook(data):
+    """
+    Executes the 'hook_pre_initialization' hook.
+
+    This function dynamically loads and executes the 'hook_pre_initialization' hook,
+    which is responsible for performing early initialization tasks before the engine
+    is fully initialized. These tasks may include importing necessary libraries,
+    setting environment variables, or preparing the environment to ensure compatibility
+    with PySide6 and other dependencies.
+
+    If a custom hook is not defined in the advanced configuration (`tk-desktop.yml`),
+    the function falls back to dynamically loading the default hook located in the
+    'hooks' directory of the project.
+
+    :param data: A dictionary containing configuration and runtime details, including:
+                 - `hook_pre_initialization`: The path of the configuration pipeline.
+                 - `proxy_data`: Proxy connection details for logging.
+                 - `rpc_lib_path`: Path to the RPC library for communication.
+    """
+
+    try:
+        hook_path = data.get("hook_pre_initialization")
+        if not hook_path:
+            return
+
+        # Dynamically load and execute the hook
+        spec = importlib.util.spec_from_file_location("pre_initialization", hook_path)
+        hook_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(hook_module)
+
+        # Execute the `execute` method of the `PreInitialization` class
+        hook_class = getattr(hook_module, "PreInitialization", None)
+        if hook_class is None or not hasattr(hook_class, "execute"):
+            raise AttributeError(
+                f"The 'PreInitialization' class or its 'execute' method is missing in the hook: {hook_path}"
+            )
+        hook_class.execute()
+    except Exception as e:
+        logger_via_proxy(
+            data, f"An error occurred while executing the pre-initialization hook: {e}"
+        )
+        raise

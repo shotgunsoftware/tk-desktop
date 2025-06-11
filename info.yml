@@ -137,7 +137,13 @@ configuration:
                      be loaded in the new interpreter and used to start up the
                      engine."
 
-
+    hook_pre_initialization:
+        type: hook
+        default_value: pre_initialization
+        description: "This hook is called before the engine is initialized. It is
+                     passed the engine instance and the environment configuration
+                     object. This hook can be used to modify the environment
+                     configuration before it is used to initialize the engine."
 
 # the Shotgun fields that this engine needs in order to operate correctly
 requires_shotgun_fields:

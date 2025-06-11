@@ -1585,6 +1585,9 @@ class DesktopWindow(SystrayWindow):
                     "proxy_auth": engine.site_comm.server_authkey,
                 },
             }
+
+            self._provision_hook_pre_initialization(desktop_data, config_path, engine)
+
             (_, pickle_data_file) = tempfile.mkstemp(suffix=".pkl")
             with open(pickle_data_file, "wb") as pickle_data_file_handle:
                 sgtk.util.pickle.dump(desktop_data, pickle_data_file_handle)
@@ -1636,6 +1639,27 @@ class DesktopWindow(SystrayWindow):
         finally:
             if "SHOTGUN_DESKTOP_CURRENT_USER" in os.environ:
                 del os.environ["SHOTGUN_DESKTOP_CURRENT_USER"]
+
+    def _provision_hook_pre_initialization(self, desktop_data, config_path, engine):
+        hook_name = engine.get_setting("hook_pre_initialization")
+
+        # FIXME unable to to call engine.__resolve_hook_path
+
+        try:
+            hook_path = os.path.normpath(hook_name.format(
+                config=os.path.join(config_path, "hooks"),
+                self=os.path.join(engine.disk_location, "hooks")
+            ))
+        except KeyError:
+            log.debug(f"Unable to resolve hook path: {hook_name}")
+            return
+
+        if not os.path.exists(hook_path):
+            log.error(f"No such file {hook_path}")
+            return
+
+        log.debug(f'Provision hook_pre_initialization to "{hook_path}"')
+        desktop_data["hook_pre_initialization"] = hook_path
 
     def _launch_failed(self, message):
         """
