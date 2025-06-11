@@ -1658,6 +1658,7 @@ class DesktopWindow(SystrayWindow):
             log.error(f"No such file {hook_path}")
             return
 
+        log.debug(f'Provision hook_pre_initialization to "{hook_path}"')
         desktop_data["hook_pre_initialization"] = hook_path
 
     def _launch_failed(self, message):
