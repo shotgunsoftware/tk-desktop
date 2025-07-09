@@ -1646,10 +1646,12 @@ class DesktopWindow(SystrayWindow):
         # FIXME unable to to call engine.__resolve_hook_path
 
         try:
-            hook_path = os.path.normpath(hook_name.format(
-                config=os.path.join(config_path, "hooks"),
-                self=os.path.join(engine.disk_location, "hooks")
-            ))
+            hook_path = os.path.normpath(
+                hook_name.format(
+                    config=os.path.join(config_path, "hooks"),
+                    self=os.path.join(engine.disk_location, "hooks"),
+                )
+            )
         except KeyError:
             log.debug(f"Unable to resolve hook path: {hook_name}")
             return
