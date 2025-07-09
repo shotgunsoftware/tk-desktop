@@ -87,7 +87,7 @@ def test_sections_sorted(show_recents, commands):
             {
                 PROJECT_KEY: {
                     "command 0": {
-                        "timestamp": datetime.datetime.now(datetime.timezone.utc)
+                        "timestamp": datetime.datetime.now()
                     }
                 }
             }
@@ -135,7 +135,7 @@ def test_clear_deletes_all_but_stretcher():
             {
                 PROJECT_KEY: {
                     "maya_2020": {
-                        "timestamp": datetime.datetime.now(datetime.timezone.utc)
+                        "timestamp": datetime.datetime.now()
                     }
                 }
             }
