@@ -185,7 +185,7 @@ class CommandPanel(QtGui.QWidget):
             return
 
         command_name = str(command_name)
-        self._recents[command_name] = {"timestamp": datetime.now(timezone.utc)}
+        self._recents[command_name] = {"timestamp": datetime.now()}
         self._store_recents()
         self._refresh_recent_list(command_name)
         self._restrict_recent_buttons(self._get_optimal_width())
