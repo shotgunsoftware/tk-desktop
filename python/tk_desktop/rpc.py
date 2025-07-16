@@ -29,11 +29,6 @@ from multiprocessing.context import AuthenticationError
 
 from tank.util import pickle as tk_pickle, is_windows
 
-try:
-    from tank_vendor import sgutils
-except ImportError:
-    from tank_vendor import six as sgutils
-
 if is_windows():
     # This is not ideal. We're importing a private Python module.
     # However, if we didn't and instead relied on pywin32 then we would
@@ -214,8 +209,13 @@ class RPCServerThread(threading.Thread):
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
+        self.authkey = (
+            self.authkey.encode("utf-8")
+            if isinstance(self.authkey, str)
+            else self.authkey
+        )
         self.server = multiprocessing.connection.Listener(
-            address=None, family=family, authkey=sgutils.ensure_binary(self.authkey)
+            address=None, family=family, authkey=self.authkey
         )
         # grab the name of the pipe
         self.pipe = self.server.address
