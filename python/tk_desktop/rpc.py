@@ -209,11 +209,8 @@ class RPCServerThread(threading.Thread):
             family = "AF_PIPE"
         else:
             family = "AF_UNIX"
-        self.authkey = (
-            self.authkey.encode("utf-8")
-            if isinstance(self.authkey, str)
-            else self.authkey
-        )
+        if isinstance(self.authkey, str):
+            self.authkey = self.authkey.encode("utf-8")
         self.server = multiprocessing.connection.Listener(
             address=None, family=family, authkey=self.authkey
         )
