@@ -418,7 +418,11 @@ class RPCProxy(object):
         logger.debug("client connecting to to %s", pipe)
         self._connection = SafePickleConnection(
             multiprocessing.connection.Client(
-                address=pipe, family=family, authkey=sgutils.ensure_binary(authkey)
+                address=pipe,
+                family=family,
+                authkey=(
+                    authkey.encode("utf-8") if isinstance(authkey, str) else authkey
+                ),
             )
         )
         logger.debug("client connected to %s", pipe)
