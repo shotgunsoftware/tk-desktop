@@ -18,7 +18,6 @@ import pprint
 import inspect
 import re
 from collections import OrderedDict
-from distutils.version import LooseVersion
 
 
 from tank.platform.qt import QtCore, QtGui
@@ -1773,8 +1772,7 @@ class DesktopWindow(SystrayWindow):
 
         versions = OrderedDict()
         versions["App"] = engine.app_version
-        if engine.app_version >= LooseVersion("v1.6.0"):
-            versions["Python"] = "{}.{}.{}".format(*sys.version_info[0:3])
+        versions["Python"] = "{}.{}.{}".format(*sys.version_info[0:3])
 
         if engine.startup_version:
             versions["Startup"] = engine.startup_version
