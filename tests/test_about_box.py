@@ -83,6 +83,14 @@ def test_3rd_party_links(licence_file_links):
                 error_message = str(e)
         else:
             # If all retries fail, raise an exception
+            if "403: Forbidden" in error_message:
+                pytest.skip(
+                    "Failed to open {0}, error: {1}. This is likely due to GitHub "
+                    "blocking the request. Please check the URL in a web browser.".format(
+                        url, error_message
+                    )
+                )
+
             raise pytest.fail(
                 "Failed to open {0}, error: {1}".format(url, error_message)
             )

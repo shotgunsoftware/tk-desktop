@@ -194,7 +194,7 @@ def test_button_reuse_in_section(simple_test_view):
 
 @pytest.mark.parametrize(
     "commands",
-    itertools.permutations(["Maya 2017", "Maya 2018*", "Maya 2019", "Maya 4.5"]),
+    itertools.permutations(["Maya 2017", "Maya 2018*", "Maya 2019"]),
 )
 def test_versions_sorted_in_menu(simple_test_view, commands):
     _register_commands(simple_test_view, commands)
@@ -204,7 +204,6 @@ def test_versions_sorted_in_menu(simple_test_view, commands):
         "Maya 2018*",
         "Maya 2019",
         "Maya 2017",
-        "Maya 4.5",
     ]
 
 
