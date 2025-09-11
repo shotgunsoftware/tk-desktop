@@ -18,12 +18,10 @@ As such, the site-level engine has control over how the project-level tk-desktop
 engine is bootstrapped and finalized.
 """
 
-import imp
 import importlib.util
 import inspect
 import logging
 import os
-import pprint
 import sys
 import traceback
 
@@ -82,9 +80,16 @@ def _create_proxy(data):
     :returns: A connection back to the PTR desktop app.
     """
     # Connect to the main desktop process so we can send updates to it.
-    # We're not guanranteed if the py or pyc file will be passed back to us
+    # We're not guaranteed if the py or pyc file will be passed back to us
     # from the desktop due to write permissions on the folder.
-    rpc_lib = imp.load_source("rpc", data["rpc_lib_path"])
+
+    spec = importlib.util.spec_from_file_location("rpc", data["rpc_lib_path"])
+    if spec is None or spec.loader is None:
+        raise ImportError(
+            "Failed to load the rpc module from {}".format(data["rpc_lib_path"])
+        )
+    rpc_lib = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rpc_lib)
     return rpc_lib.RPCProxy(
         data["proxy_data"]["proxy_pipe"], data["proxy_data"]["proxy_auth"]
     )
