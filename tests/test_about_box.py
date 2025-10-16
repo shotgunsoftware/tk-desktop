@@ -65,35 +65,44 @@ def test_3rd_party_links(licence_file_links):
     Check all found urls are valid and can accessed.
     """
     max_retries = 5
-    error_message = ""
+    
     for url in licence_file_links:
         retry_delay = 1
-        for _ in range(max_retries):
+        last_error = None
+        
+        for attempt in range(max_retries):
             try:
                 r = request.Request(
                     url,
-                    headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
+                    headers={
+                        "Accept-Language": "en", 
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                    },
                 )
-
-                contents = request.urlopen(r).read()
+                
+                contents = request.urlopen(r, timeout=10).read()
+                # Success - break out of retry loop
                 break
+                
             except Exception as e:
-                time.sleep(retry_delay)
-                retry_delay *= 2
+                last_error = e
                 error_message = str(e)
-        else:
-            # If all retries fail, raise an exception
-            if "403: Forbidden" in error_message:
-                pytest.skip(
-                    "Failed to open {0}, error: {1}. This is likely due to GitHub "
-                    "blocking the request. Please check the URL in a web browser.".format(
-                        url, error_message
+                
+                # If it's a 403, it's likely not going to resolve with retries
+                if "403" in error_message or "Forbidden" in error_message:
+                    pytest.skip(
+                        f"Failed to open {url}, error: {error_message}. "
+                        "This is likely due to the site blocking automated requests. "
+                        "Please check the URL manually in a web browser."
                     )
-                )
-
-            raise pytest.fail(
-                "Failed to open {0}, error: {1}".format(url, error_message)
-            )
+                
+                # For other errors, retry with exponential backoff
+                if attempt < max_retries - 1:  # Don't sleep on last attempt
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+        else:
+            # All retries exhausted
+            raise pytest.fail(f"Failed to open {url} after {max_retries} attempts, error: {last_error}")
 
 
 @pytest.mark.parametrize(
