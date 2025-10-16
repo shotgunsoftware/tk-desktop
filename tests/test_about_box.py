@@ -64,10 +64,10 @@ def test_3rd_party_links(licence_file_links):
     """
     Check all found urls are valid and can accessed.
     """
-    max_retries = 5
+    max_retries = 8
     
     for url in licence_file_links:
-        retry_delay = 1
+        retry_delay = 2
         last_error = None
         
         for attempt in range(max_retries):
@@ -80,7 +80,7 @@ def test_3rd_party_links(licence_file_links):
                     },
                 )
                 
-                contents = request.urlopen(r, timeout=10).read()
+                contents = request.urlopen(r, timeout=20).read()
                 # Success - break out of retry loop
                 break
                 
@@ -90,16 +90,21 @@ def test_3rd_party_links(licence_file_links):
                 
                 # If it's a 403, it's likely not going to resolve with retries
                 if "403" in error_message or "Forbidden" in error_message:
-                    pytest.skip(
-                        f"Failed to open {url}, error: {error_message}. "
-                        "This is likely due to the site blocking automated requests. "
-                        "Please check the URL manually in a web browser."
-                    )
+                    if attempt < 3:  # Give it 3 attempts before skipping
+                        time.sleep(retry_delay)
+                        retry_delay = min(retry_delay * 2, 30)  # Cap at 30 seconds
+                        continue
+                    else:
+                        pytest.skip(
+                            f"Failed to open {url}, error: {error_message}. "
+                            "This is likely due to the site blocking automated requests. "
+                            "Please check the URL manually in a web browser."
+                        )
                 
                 # For other errors, retry with exponential backoff
                 if attempt < max_retries - 1:  # Don't sleep on last attempt
                     time.sleep(retry_delay)
-                    retry_delay *= 2
+                    retry_delay *= min(retry_delay * 2, 30)
         else:
             # All retries exhausted
             raise pytest.fail(f"Failed to open {url} after {max_retries} attempts, error: {last_error}")
