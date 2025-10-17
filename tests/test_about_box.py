@@ -80,7 +80,7 @@ def test_3rd_party_links(licence_file_links):
                     },
                 )
                 
-                contents = request.urlopen(r, timeout=20).read()
+                contents = request.urlopen(r, timeout=80).read()
                 # Success - break out of retry loop
                 break
                 
