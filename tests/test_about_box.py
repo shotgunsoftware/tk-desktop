@@ -61,15 +61,23 @@ def licence_file_links(license_file):
 
 
 def test_3rd_party_links(licence_file_links):
-    print("licence_file_links:", licence_file_links)
     """
     Check all found urls are valid and can accessed.
     """
     max_retries = 8
+    failed_urls = []
+    skipped_urls = []
+    
+    # Use pytest warnings - always shown
+    pytest.warns(UserWarning, match=".*")  # Enable warnings
+    
+    import warnings
+    warnings.warn(f"Testing {len(licence_file_links)} URLs")
 
     for url in licence_file_links:
         retry_delay = 2
         last_error = None
+        url_succeeded = False
 
         for attempt in range(max_retries):
             try:
@@ -81,37 +89,43 @@ def test_3rd_party_links(licence_file_links):
                     },
                 )
 
-                contents = request.urlopen(r, timeout=120).read()
-                # Success - break out of retry loop
+                contents = request.urlopen(r, timeout=30).read()
+                url_succeeded = True
+                warnings.warn(f"SUCCESS: {url}")
                 break
 
             except Exception as e:
                 last_error = e
                 error_message = str(e)
 
-                # If it's a 403, it's likely not going to resolve with retries
                 if "403" in error_message or "Forbidden" in error_message:
-                    if attempt < 3:  # Give it 3 attempts before skipping
-                        time.sleep(retry_delay)
-                        retry_delay = min(retry_delay * 2, 30)  # Cap at 30 seconds
-                        continue
-                    else:
-                        pytest.skip(
-                            f"Failed to open {url}, error: {error_message}. "
-                            "This is likely due to the site blocking automated requests. "
-                            "Please check the URL manually in a web browser."
-                        )
+                    skipped_urls.append({
+                        'url': url,
+                        'error': error_message
+                    })
+                    warnings.warn(f"SKIPPED (403): {url}")
+                    url_succeeded = True
+                    break
 
-                # For other errors, retry with exponential backoff
-                if attempt < max_retries - 1:  # Don't sleep on last attempt
+                if attempt < max_retries - 1:
                     time.sleep(retry_delay)
-                    retry_delay *= min(retry_delay * 2, 30)
-        else:
-            # All retries exhausted
-            raise pytest.fail(
-                f"Failed to open {url} after {max_retries} attempts, error: {last_error}"
-            )
-
+                    retry_delay = min(retry_delay * 2, 30)
+        
+        if not url_succeeded:
+            failed_urls.append({
+                'url': url,
+                'error': str(last_error)
+            })
+            warnings.warn(f"FAILED: {url} - {last_error}")
+    
+    if skipped_urls:
+        warnings.warn(f"{len(skipped_urls)} URLs skipped due to 403 errors")
+    
+    if failed_urls:
+        error_msg = f"\n{len(failed_urls)} URL(s) failed after {max_retries} retries:\n"
+        for item in failed_urls:
+            error_msg += f"  - {item['url']}\n    Error: {item['error']}\n"
+        pytest.fail(error_msg)
 
 @pytest.mark.parametrize(
     "expected_url",
