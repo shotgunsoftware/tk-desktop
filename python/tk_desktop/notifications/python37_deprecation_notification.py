@@ -63,10 +63,10 @@ class Python37DeprecationNotification(Notification):
 
         return f"""
             March 2026 - Breaking Changes for <b>Python 3.7</b>
-            {add_fptr1}. 
+            {add_fptr1}.
 
             You must update to <b>Python 3.11</b>{add_fptr2}&mdash;or other
-            supported versions&mdash;before April 1, 2026 to avoid disruption.
+            supported versions&mdash;before April 2026 to avoid disruption.
 
             Read more <a href="{url}">here</a>.
         """
