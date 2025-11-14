@@ -62,8 +62,7 @@ class Python37DeprecationNotification(Notification):
             add_fptr2 = " and <b>FPT Desktop v2.1.0</b>"
 
         return f"""
-            March 2026 - Breaking Changes for <b>Python 3.7</b>
-            {add_fptr1}.
+            April 2026 - Breaking Changes for <b>Python 3.7</b>{add_fptr1}.
 
             You must update to <b>Python 3.11</b>{add_fptr2}&mdash;or other
             supported versions&mdash;before April 2026 to avoid disruption.
