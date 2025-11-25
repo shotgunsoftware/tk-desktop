@@ -23,7 +23,7 @@ class Python37DeprecationNotification(Notification):
     Notification for Python 3.7 deprecation.
     """
 
-    _DEPRECATION_ID = "deprecation-notification-python37"
+    _DEPRECATION_ID = "python37-breaking-changes"
 
     @classmethod
     def create(cls, banner_settings: typing.Dict, engine):
@@ -41,14 +41,8 @@ class Python37DeprecationNotification(Notification):
 
         logger.debug("Python 3.7 deprecation banner available")
 
-        include_sgd = not cls.is_app_version_newer(engine)
-        if include_sgd:
-            logger.debug("Python 3.7 banner will include SGD 1.7 information")
-        else:
-            logger.debug("Python 3.7 banner will hide SGD 1.7 information")
-
         return Python37DeprecationNotification(
-            include_sgd=include_sgd,
+            include_sgd=not cls.is_app_version_newer(engine),
         )
 
     def __init__(self, include_sgd=True):
@@ -60,19 +54,18 @@ class Python37DeprecationNotification(Notification):
         Message to display.
         """
 
-        url = "https://community.shotgridsoftware.com/t/important-notice-for-end-of-february-2025-end-of-support-for-shotgrid-desktop-1-7-and-for-python-3-7-in-fptr-toolkit"
+        url = "https://community.shotgridsoftware.com/t/20515"
 
         add_fptr1, add_fptr2 = ("", "")
         if self.include_sgd:
-            add_fptr1 = "<b>ShotGrid Desktop 1.7</b> and"
-            add_fptr2 = "and <b>FPTR desktop 1.8</b>+"
+            add_fptr1 = " and <b>ShotGrid Desktop 1.7</b>"
+            add_fptr2 = " and <b>FPT Desktop v2.1.0</b>"
 
         return f"""
-            On <b>Feb 28th, 2025</b> Autodesk stops supporting {add_fptr1}
-            <b>Python 3.7</b> in FPTR Toolkit.
+            April 2026 - Breaking Changes for <b>Python 3.7</b>{add_fptr1}.
 
-            Update to <b>Python 3.9</b>+ {add_fptr2} before this date to avoid
-            disruption.
+            You must update to <b>Python 3.11</b>{add_fptr2}&mdash;or other
+            supported versions&mdash;before April 2026 to avoid disruption.
 
             Read more <a href="{url}">here</a>.
         """
