@@ -678,7 +678,7 @@ class DesktopWindow(SystrayWindow):
             # On macOS the app icon is already visible on the pop-up
             # message, do not show it a second time.
             if sgtk.util.is_macos():
-                icon = self.systray.NoIcon
+                icon = QtGui.QSystemTrayIcon.NoIcon
             else:
                 icon = self._app_icon
             self.systray.showMessage(
