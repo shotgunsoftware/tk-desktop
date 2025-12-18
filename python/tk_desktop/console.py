@@ -68,8 +68,15 @@ class Console(QtGui.QDialog):
         self.setWindowIcon(QtGui.QIcon(":/tk-desktop/default_systray_icon.png"))
 
         self.__logs = QtGui.QPlainTextEdit()
-        layout = QtGui.QHBoxLayout()
+        self.__find = QtGui.QLineEdit()
+        self.__find_label = QtGui.QLabel()
+        layout = QtGui.QVBoxLayout()
+        find_layout = QtGui.QHBoxLayout()
         layout.addWidget(self.__logs)
+        layout.addLayout(find_layout)
+        find_layout.addStretch()
+        find_layout.addWidget(self.__find)
+        find_layout.addWidget(self.__find_label)
         self.setLayout(layout)
 
         # configure the text widget
@@ -80,7 +87,17 @@ class Console(QtGui.QDialog):
             self.on_logs_context_menu_request
         )
         self.__logs.setStyleSheet("QPlainTextEdit:focus { border: none; }")
-
+        # configure the find area
+        self.__find.setPlaceholderText("Find")
+        self.__find_label.setText("No Results")
+        self.__find_label.setFixedWidth(60)
+        self.__find.returnPressed.connect(self.find)
+        self.__pattern = ""
+        self.__match_index = 0
+        self.__matches = []
+        # set shortcut
+        find_shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+F"), self)
+        find_shortcut.activated.connect(self.focus_find)
         # load up previous size
         self._settings_manager = settings.UserSettings(sgtk.platform.current_bundle())
         pos = self._settings_manager.retrieve(
@@ -107,6 +124,9 @@ class Console(QtGui.QDialog):
         clear_action.triggered.connect(self.clear)
         close_action = menu.addAction("Close")
         close_action.triggered.connect(self.close)
+        find_action = menu.addAction("Find")
+        find_action.setShortcut("Ctrl+F")
+        find_action.triggered.connect(self.focus_find)
 
         menu.exec_(self.__logs.mapToGlobal(point))
 
@@ -117,12 +137,106 @@ class Console(QtGui.QDialog):
         cursor.movePosition(QtGui.QTextCursor.StartOfLine)
         self.__logs.setTextCursor(cursor)
         self.__logs.ensureCursorVisible()
+        # reset search after logs changed
+        self.__pattern = ""
 
         if force_show:
             self.show_and_raise()
 
     def clear(self):
         self.__logs.setPlainText("")
+
+    def focus_find(self):
+        self.__find.setFocus()
+        self.__find.selectAll()
+
+    def find(self):
+        pattern = self.__find.text()
+        # do nothing if pattern is empty
+        if not pattern:
+            self.__find_label.setText("No Results")
+            return
+        logs = self.__logs.toPlainText()
+        # try to find all matches again if pattern changed
+        if pattern != self.__pattern:
+            self.clear_highlight()
+            self.__match_index = 0
+            self.__matches = self.find_all(pattern, logs)
+            self.__pattern = pattern
+        self.find_in_matches(self.__matches)
+
+    def find_in_matches(self, matches):
+        # total number of matches
+        match_count = len(matches)
+        if match_count == 0:
+            self.__find_label.setText("No Results")
+            return
+        # highlight pattern forward
+        if self.__match_index < len(self.__matches):
+            start, matched_length = self.__matches[self.__match_index]
+            self.__find_label.setText(
+                "{} of {}".format(self.__match_index + 1, match_count)
+            )
+            self.highlight_one(
+                start,
+                matched_length
+            )
+            self.__match_index += 1
+        else:
+            # search reaches end, reset match index and cursor
+            # and search again
+            self.__match_index = 0
+            self.__logs.moveCursor(QtGui.QTextCursor.End)
+            self.find_in_matches(matches)
+
+    def find_all(self, pattern, logs):
+        highlight_format = QtGui.QTextCharFormat()
+        highlight_format.setBackground(
+            QtGui.QBrush(QtGui.QColor(80, 80, 80))
+        )
+        regex = QtCore.QRegExp(pattern, QtCore.Qt.CaseInsensitive)
+        matches = []
+        pos = 0
+        index = regex.indexIn(logs, pos)
+        count = 0
+        while (index != -1):
+            count += 1
+            matched_length = regex.matchedLength()
+            # append start index and length of last matched string
+            # length could be different
+            matches.append((index, matched_length))
+            # select the matched text and apply the desired format
+            self.highlight_one(index, matched_length, highlight_format)
+            # Move to the next match
+            pos = index + matched_length
+            index = regex.indexIn(logs, pos)
+        return matches
+
+    def highlight_one(self, start, length, highlight_format=None):
+        cursor = self.__logs.textCursor()
+        # set the position to the beginning of the last match
+        cursor.setPosition(start)
+        # select one match
+        cursor.movePosition(
+            QtGui.QTextCursor.Right,
+            QtGui.QTextCursor.KeepAnchor,
+            length
+        )
+        if highlight_format:
+            cursor.mergeCharFormat(highlight_format)
+        # set this new cursor as logs' cursor
+        self.__logs.setTextCursor(cursor)
+
+    def clear_highlight(self):
+        original_format = QtGui.QTextCharFormat()
+        original_format.setBackground(
+            QtGui.QBrush(QtGui.QColor(0, 0, 0), QtCore.Qt.NoBrush)
+        )
+        cursor = self.__logs.textCursor()
+        cursor.select(QtGui.QTextCursor.Document)
+        cursor.mergeCharFormat(original_format)
+        cursor.clearSelection()
+        self.__logs.setTextCursor(cursor)
 
     def show_and_raise(self):
         self.show()
