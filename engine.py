@@ -242,10 +242,6 @@ class DesktopEngine(Engine):
             DialogBase = base["dialog_base"]
             QtWrapper = base["wrapper"]
 
-            # tell QT to interpret C strings as utf-8
-            utf8 = QtCore.QTextCodec.codecForName("utf-8")
-            QtCore.QTextCodec.setCodecForCStrings(utf8)
-
             # a simple dialog proxy that pushes the window forward
             class ProxyDialog(DialogBase):
 
