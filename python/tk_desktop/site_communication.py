@@ -61,7 +61,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         else:
             logger.debug("Proxy was signaled that we are disconnecting.")
 
-    def _proxy_log(self, level, msg, args):
+    def _proxy_log(self, level, msg, *args):
         """
         Outputs messages from the proxy into the application's logs.
 
@@ -70,7 +70,12 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         :param args: Arguments to log.
         """
         try:
-            logger.log(level, "[PROXY] %s" % msg, *args)
+            # Format first so logger.exception can use it
+            msg = "[PROXY] {0}".format(msg)
+            logger.log(level, msg, *args)
         except Exception:
-            logger.exception("Unexpected error when logging proxy message:")
-            raise
+            message = (
+                "Unexpected error when logging proxy message: "
+                "level:%r msg:%r args:%r"
+            )
+            logger.exception(message, level, msg, args)
