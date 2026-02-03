@@ -77,7 +77,7 @@ def parse_args():
         "--project_id", help="id of the project we are modifying the config of"
     )
 
-    (opts, args) = parser.parse_args()
+    opts, args = parser.parse_args()
 
     if opts.core_python_path is None:
         raise ValueError("required parameter 'core_python_path' not set")

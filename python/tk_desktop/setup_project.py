@@ -18,7 +18,6 @@ from .ui import setup_project
 import sgtk
 from tank_vendor.shotgun_authentication import ShotgunAuthenticator
 
-
 adminui = sgtk.platform.import_framework("tk-framework-adminui", "setup_project")
 
 

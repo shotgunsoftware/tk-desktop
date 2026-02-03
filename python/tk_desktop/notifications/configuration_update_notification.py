@@ -47,7 +47,7 @@ class ConfigurationUpdateNotification(Notification):
             logger.debug("Configuration has no descriptor.")
             return
 
-        (_, url) = descriptor.changelog
+        _, url = descriptor.changelog
 
         # Or no documentation url for it.
         if not url:

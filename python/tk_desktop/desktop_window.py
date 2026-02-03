@@ -240,7 +240,7 @@ class DesktopWindow(SystrayWindow):
         self._current_user_id = user["id"]
         thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
-            (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
+            _, thumbnail_file = tempfile.mkstemp(suffix=".jpg")
             try:
                 shotgun.download_url(connection, thumbnail_url, thumbnail_file)
                 pixmap = QtGui.QPixmap(thumbnail_file)
@@ -880,8 +880,7 @@ class DesktopWindow(SystrayWindow):
             # self.ui.project_button.show()
             self.ui.search_button.setIcon(self._search_magnifier_icon)
             self.ui.search_button.setToolTip("Search Projects")
-            self.ui.search_button.setStyleSheet(
-                """
+            self.ui.search_button.setStyleSheet("""
                 QPushButton {
                     border-image: url(:/tk-desktop/search_light.png);
                 }
@@ -889,8 +888,7 @@ class DesktopWindow(SystrayWindow):
                 QPushButton:hover {
                     border-image: url(:/tk-desktop/search_blue.png);
                 }
-            """
-            )
+            """)
             self.ui.search_frame.setProperty("collapsed", True)
 
         self.ui.search_frame.style().unpolish(self.ui.search_frame)
@@ -1017,7 +1015,7 @@ class DesktopWindow(SystrayWindow):
         # Update user thumbnail
         thumbnail_url = current_user.get("image")
         if thumbnail_url is not None:
-            (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
+            _, thumbnail_file = tempfile.mkstemp(suffix=".jpg")
             try:
                 shotgun.download_url(connection, thumbnail_url, thumbnail_file)
                 pixmap = QtGui.QPixmap(thumbnail_file)
@@ -1729,7 +1727,7 @@ class DesktopWindow(SystrayWindow):
 
             self._provision_hook_pre_initialization(desktop_data, config_path, engine)
 
-            (_, pickle_data_file) = tempfile.mkstemp(suffix=".pkl")
+            _, pickle_data_file = tempfile.mkstemp(suffix=".pkl")
             with open(pickle_data_file, "wb") as pickle_data_file_handle:
                 sgtk.util.pickle.dump(desktop_data, pickle_data_file_handle)
 
