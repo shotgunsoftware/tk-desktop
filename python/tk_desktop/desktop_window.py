@@ -255,9 +255,13 @@ class DesktopWindow(SystrayWindow):
                     pass
 
         # populate user menu
+        # Store user info actions as instance attributes so they can be updated
+        # when the authenticated user changes (e.g., after session expiry and re-auth)
         self.user_menu = QtGui.QMenu(self)
-        name_action = self.user_menu.addAction(current_user["name"])
-        url_action = self.user_menu.addAction(connection.base_url.split("://")[1])
+        self._user_name_action = self.user_menu.addAction(current_user["name"])
+        self._user_url_action = self.user_menu.addAction(
+            connection.base_url.split("://")[1]
+        )
         self.user_menu.addSeparator()
         advanced_menu = self.user_menu.addMenu("Advanced")
 
@@ -296,8 +300,8 @@ class DesktopWindow(SystrayWindow):
         # any pipeline configurations registered in FPTR.
         self.ui.actionAdvanced_Project_Setup.setVisible(False)
 
-        name_action.triggered.connect(self.open_site_in_browser)
-        url_action.triggered.connect(self.open_site_in_browser)
+        self._user_name_action.triggered.connect(self.open_site_in_browser)
+        self._user_url_action.triggered.connect(self.open_site_in_browser)
         about_action.triggered.connect(self.handle_about)
 
         QtGui.QApplication.instance().aboutToQuit.connect(self._about_to_quit)
@@ -955,6 +959,135 @@ class DesktopWindow(SystrayWindow):
         self._logout_current_user()
         self._restart_desktop()
 
+    def on_user_changed(self):
+        """
+        Called when the authenticated user has changed (e.g., after session expiry
+        and re-authentication with a different account).
+
+        This method updates the UI to reflect the new user's information and refreshes
+        the project list to show only projects the new user has access to.
+
+        This is a security-critical method - it ensures that when a different user
+        re-authenticates, they don't see the previous user's data.
+        """
+        log.info("User changed - refreshing user info and project list.")
+
+        try:
+            # Refresh the user info displayed in the UI (name, thumbnail)
+            self._refresh_user_info()
+
+            # Refresh the project model to show correct projects for the new user
+            # Use hard_refresh to clear the cache and reload from the server
+            self._refresh_project_model_for_new_user()
+
+            log.info("User info and project list refreshed successfully.")
+        except Exception:
+            log.exception("Error refreshing UI after user change.")
+
+    def _refresh_user_info(self):
+        """
+        Refreshes the user info displayed in the UI menu.
+
+        This method updates:
+        - The user's name in the menu
+        - The user's thumbnail/avatar
+        - The cached user ID
+
+        Called when the authenticated user changes after session expiry.
+        """
+        engine = sgtk.platform.current_engine()
+        connection = engine.get_current_user().create_sg_connection()
+
+        user = engine.get_current_login()
+        current_user = connection.find_one(
+            "HumanUser", [["id", "is", user["id"]]], ["image", "name"]
+        )
+
+        # Update cached user ID
+        self._current_user_id = user["id"]
+
+        # Update user name in menu
+        if hasattr(self, "_user_name_action") and self._user_name_action:
+            self._user_name_action.setText(current_user["name"])
+
+        # Update site URL in menu (in case it changed)
+        if hasattr(self, "_user_url_action") and self._user_url_action:
+            self._user_url_action.setText(connection.base_url.split("://")[1])
+
+        # Update user thumbnail
+        thumbnail_url = current_user.get("image")
+        if thumbnail_url is not None:
+            (_, thumbnail_file) = tempfile.mkstemp(suffix=".jpg")
+            try:
+                shotgun.download_url(connection, thumbnail_url, thumbnail_file)
+                pixmap = QtGui.QPixmap(thumbnail_file)
+                self.ui.user_button.setIcon(QtGui.QIcon(pixmap))
+            except Exception:
+                # if it fails for any reason, that's alright
+                pass
+            finally:
+                try:
+                    os.remove(thumbnail_file)
+                except Exception:
+                    pass
+
+        log.debug(
+            "User info refreshed: user_id=%s, name=%s",
+            self._current_user_id,
+            current_user["name"],
+        )
+
+    def _refresh_project_model_for_new_user(self):
+        """
+        Refreshes the project model after a user change.
+
+        This ensures that the project list shows only projects the new user
+        has access to, with correct user-specific data (favorites, last accessed times).
+        """
+        if self._project_model is not None:
+            # Hard refresh clears the cache and reloads from the server
+            # This is necessary because the model contains user-specific fields
+            # like current_user_favorite and last_accessed_by_current_user
+            self._project_model.hard_refresh()
+            log.debug("Project model refreshed for new user.")
+
+    def _validate_current_user(self):
+        """
+        Validates that the cached user matches the current authenticated user.
+
+        This method is called proactively (e.g., when project data is refreshed) to
+        detect cases where a different user re-authenticated after session expiry.
+        If a user mismatch is detected, it refreshes the user info in the UI.
+
+        This is important for security - ensures the UI always shows the correct
+        user's information after re-authentication.
+        """
+        try:
+            engine = sgtk.platform.current_engine()
+            current_login = engine.get_current_login()
+
+            if current_login is None:
+                return
+
+            # Check if the cached user ID matches the current authenticated user
+            if (
+                hasattr(self, "_current_user_id")
+                and self._current_user_id is not None
+                and current_login.get("id") != self._current_user_id
+            ):
+                log.info(
+                    "User mismatch detected: cached user_id=%s, current user_id=%s. "
+                    "Refreshing user info.",
+                    self._current_user_id,
+                    current_login.get("id"),
+                )
+                # Only refresh user info (not projects - they were just refreshed)
+                self._refresh_user_info()
+
+        except Exception:
+            # Don't let validation errors break the UI
+            log.exception("Error validating current user.")
+
     def _restart_desktop(self):
         """
         Restarts the Flow Production Tracking desktop application.
@@ -1110,6 +1243,11 @@ class DesktopWindow(SystrayWindow):
         self._project_proxy.invalidate()
         self._project_proxy.sort(0)
 
+        # After project data is refreshed, validate that the current user
+        # matches our cached user. This catches cases where a different user
+        # re-authenticated after session expiry.
+        self._validate_current_user()
+
     def _on_back_to_projects_clicked(self):
         """
         Invoked when the user leaves a project.
@@ -1131,6 +1269,10 @@ class DesktopWindow(SystrayWindow):
         self._project_proxy.sort(0)
 
         self.slide_view(self.ui.project_browser_page, "left")
+
+        # Validate user identity when returning to projects view
+        # This catches user changes after session expiry
+        self._validate_current_user()
 
         # remember that we are back at the browser
         self.current_project = None
