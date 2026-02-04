@@ -326,77 +326,80 @@ class TestDesktopWindowIntegration:
         3. User B re-authenticates
         4. Desktop UI should update to show User B's info and projects
         """
-        with patch("sgtk.platform.current_engine") as mock_engine:
-            # Setup initial state - User A is logged in
-            mock_engine.return_value.get_current_login.return_value = {
-                "id": 123,
-                "login": "usera@example.com",
-            }
-
-            mock_connection_a = Mock()
-            mock_connection_a.base_url = "https://example.shotgrid.autodesk.com"
-            mock_connection_a.find_one.return_value = {
-                "id": 123,
-                "name": "User A",
-                "image": None,
-            }
-
-            mock_user_a = Mock()
-            mock_user_a.create_sg_connection.return_value = mock_connection_a
-            mock_engine.return_value.get_current_user.return_value = mock_user_a
-
-            window = Mock()
-            window._current_user_id = 123
-            window._user_name_action = Mock()
-            window._user_url_action = Mock()
-            window._project_model = Mock()
-            window.ui = Mock()
-            window.ui.user_button = Mock()
-
-            # Import the actual methods
+        # Mock framework imports before importing DesktopWindow
+        with patch("sgtk.platform.import_framework") as mock_import_fw:
+            mock_import_fw.return_value = Mock()
             from tk_desktop.desktop_window import DesktopWindow
 
-            window._refresh_user_info = DesktopWindow._refresh_user_info.__get__(
-                window, type(window)
-            )
-            window._refresh_project_model_for_new_user = (
-                DesktopWindow._refresh_project_model_for_new_user.__get__(
+            with patch("sgtk.platform.current_engine") as mock_engine:
+                # Setup initial state - User A is logged in
+                mock_engine.return_value.get_current_login.return_value = {
+                    "id": 123,
+                    "login": "usera@example.com",
+                }
+
+                mock_connection_a = Mock()
+                mock_connection_a.base_url = "https://example.shotgrid.autodesk.com"
+                mock_connection_a.find_one.return_value = {
+                    "id": 123,
+                    "name": "User A",
+                    "image": None,
+                }
+
+                mock_user_a = Mock()
+                mock_user_a.create_sg_connection.return_value = mock_connection_a
+                mock_engine.return_value.get_current_user.return_value = mock_user_a
+
+                window = Mock()
+                window._current_user_id = 123
+                window._user_name_action = Mock()
+                window._user_url_action = Mock()
+                window._project_model = Mock()
+                window.ui = Mock()
+                window.ui.user_button = Mock()
+
+                # Bind the actual methods
+                window._refresh_user_info = DesktopWindow._refresh_user_info.__get__(
                     window, type(window)
                 )
-            )
-            window.on_user_changed = DesktopWindow.on_user_changed.__get__(
-                window, type(window)
-            )
+                window._refresh_project_model_for_new_user = (
+                    DesktopWindow._refresh_project_model_for_new_user.__get__(
+                        window, type(window)
+                    )
+                )
+                window.on_user_changed = DesktopWindow.on_user_changed.__get__(
+                    window, type(window)
+                )
 
-            # Simulate User B re-authenticating
-            mock_engine.return_value.get_current_login.return_value = {
-                "id": 456,
-                "login": "userb@example.com",
-            }
+                # Simulate User B re-authenticating
+                mock_engine.return_value.get_current_login.return_value = {
+                    "id": 456,
+                    "login": "userb@example.com",
+                }
 
-            mock_connection_b = Mock()
-            mock_connection_b.base_url = "https://example.shotgrid.autodesk.com"
-            mock_connection_b.find_one.return_value = {
-                "id": 456,
-                "name": "User B",
-                "image": None,
-            }
+                mock_connection_b = Mock()
+                mock_connection_b.base_url = "https://example.shotgrid.autodesk.com"
+                mock_connection_b.find_one.return_value = {
+                    "id": 456,
+                    "name": "User B",
+                    "image": None,
+                }
 
-            mock_user_b = Mock()
-            mock_user_b.create_sg_connection.return_value = mock_connection_b
-            mock_engine.return_value.get_current_user.return_value = mock_user_b
+                mock_user_b = Mock()
+                mock_user_b.create_sg_connection.return_value = mock_connection_b
+                mock_engine.return_value.get_current_user.return_value = mock_user_b
 
-            # Call on_user_changed() which should refresh everything
-            window.on_user_changed()
+                # Call on_user_changed() which should refresh everything
+                window.on_user_changed()
 
-            # Verify User B's name is now displayed
-            window._user_name_action.setText.assert_called_with("User B")
+                # Verify User B's name is now displayed
+                window._user_name_action.setText.assert_called_with("User B")
 
-            # Verify cached user ID was updated to User B
-            assert window._current_user_id == 456
+                # Verify cached user ID was updated to User B
+                assert window._current_user_id == 456
 
-            # Verify project model was refreshed
-            window._project_model.hard_refresh.assert_called_once()
+                # Verify project model was refreshed
+                window._project_model.hard_refresh.assert_called_once()
 
 
 if __name__ == "__main__":
