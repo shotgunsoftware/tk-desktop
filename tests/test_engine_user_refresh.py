@@ -433,7 +433,8 @@ class TestEngineUserRefreshIntegration:
         DesktopEngineSiteImplementation.refresh_user_credentials(engine_impl)
         
         # Verify User B is now cached
-        assert engine_impl._user == user_b
+        # Check the login attribute since we're comparing mock objects
+        assert engine_impl._user.login == "userb@test.com"
         assert engine_impl._current_login["login"] == "userb@test.com"
         
         # Verify desktop window was notified

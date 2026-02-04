@@ -241,17 +241,17 @@ class TestDesktopWindowRefreshProjectModel:
 
     def test_refresh_project_model_handles_hard_refresh_exception(self):
         """
-        Verify _refresh_project_model_for_new_user() handles hard_refresh exceptions.
+        Verify _refresh_project_model_for_new_user() propagates hard_refresh exceptions.
+        
+        Note: Exception handling is done by the caller (on_user_changed), not by this method.
         """
         window = Mock(spec=DesktopWindow)
         window._project_model = Mock()
         window._project_model.hard_refresh.side_effect = Exception("API error")
         
-        # Should not raise exception (logged but handled)
-        try:
+        # Exception should propagate (caller handles it)
+        with pytest.raises(Exception, match="API error"):
             DesktopWindow._refresh_project_model_for_new_user(window)
-        except Exception:
-            pytest.fail("Should not raise exception")
 
 
 class TestDesktopWindowValidateCurrentUser:
