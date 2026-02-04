@@ -22,3 +22,24 @@ tk_desktop_path = os.path.abspath(
     )
 )
 sys.path.insert(0, tk_desktop_path)
+
+# Mock framework imports before any modules are loaded to prevent
+# TankCurrentModuleNotFoundError during test imports
+try:
+    import sgtk.platform
+    from unittest.mock import Mock
+
+    _mock_framework = Mock()
+    _original_get_framework = sgtk.platform.get_framework
+    _original_import_framework = sgtk.platform.import_framework
+
+    def _mock_get_framework(*args, **kwargs):
+        return _mock_framework
+
+    def _mock_import_framework(*args, **kwargs):
+        return _mock_framework
+
+    sgtk.platform.get_framework = _mock_get_framework
+    sgtk.platform.import_framework = _mock_import_framework
+except ImportError:
+    pass
