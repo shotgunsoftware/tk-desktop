@@ -436,8 +436,12 @@ class TestEngineUserRefreshIntegration:
             "login": "userb@test.com"
         }
         
+        # Bind the actual methods to the mock instance so they execute properly
+        engine_impl.refresh_user_credentials = lambda: DesktopEngineSiteImplementation.refresh_user_credentials(engine_impl)
+        engine_impl._check_and_update_current_user = lambda prev=None: DesktopEngineSiteImplementation._check_and_update_current_user(engine_impl, prev)
+        
         # Call refresh_user_credentials (simulating credential refresh)
-        DesktopEngineSiteImplementation.refresh_user_credentials(engine_impl)
+        engine_impl.refresh_user_credentials()
         
         # Verify User B is now cached
         # Check the login attribute since we're comparing mock objects
