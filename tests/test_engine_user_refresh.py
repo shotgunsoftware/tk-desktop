@@ -15,7 +15,6 @@ These tests verify the security fix at the engine level that detects when
 a different user re-authenticates and notifies the UI to refresh.
 """
 
-import pytest
 from unittest.mock import Mock, MagicMock, patch
 import sys
 import os
@@ -399,57 +398,57 @@ class TestEngineCheckAndUpdateCurrentUser:
 class TestEngineUserRefreshIntegration:
     """Integration tests for the complete credential refresh flow."""
 
-    # @patch('tk_desktop.desktop_engine_site_implementation.ShotgunAuthenticator')
-    # @patch('tk_desktop.desktop_engine_site_implementation.sgtk')
-    # def test_complete_user_change_flow(self, mock_sgtk, mock_auth):
-    #     """
-    #     Test the complete flow: User A session expires, User B re-authenticates,
-    #     engine detects change and notifies desktop window.
-    #     """
+    @patch('tk_desktop.desktop_engine_site_implementation.ShotgunAuthenticator')
+    @patch('tk_desktop.desktop_engine_site_implementation.sgtk')
+    def test_complete_user_change_flow(self, mock_sgtk, mock_auth):
+        """
+        Test the complete flow: User A session expires, User B re-authenticates,
+        engine detects change and notifies desktop window.
+        """
         
-    #     # Setup: User A is logged in
-    #     engine_impl = Mock()
-    #     engine_impl._current_login = {"id": 123, "login": "usera@test.com"}
-    #     user_a = Mock()
-    #     user_a.login = "usera@test.com"
-    #     engine_impl._user = user_a
-    #     engine_impl._engine = Mock()
-    #     engine_impl._engine.sgtk = Mock()
-    #     engine_impl._engine.sgtk.shotgun = Mock()
-    #     engine_impl.desktop_window = Mock()
+        # Setup: User A is logged in
+        engine_impl = Mock()
+        engine_impl._current_login = {"id": 123, "login": "usera@test.com"}
+        user_a = Mock()
+        user_a.login = "usera@test.com"
+        engine_impl._user = user_a
+        engine_impl._engine = Mock()
+        engine_impl._engine.sgtk = Mock()
+        engine_impl._engine.sgtk.shotgun = Mock()
+        engine_impl.desktop_window = Mock()
         
-    #     # User B re-authenticates
-    #     user_b = Mock()
-    #     user_b.login = "userb@test.com"
+        # User B re-authenticates
+        user_b = Mock()
+        user_b.login = "userb@test.com"
         
-    #     # Mock CoreDefaultsManager
-    #     mock_core_defaults = Mock()
-    #     mock_sgtk.util.CoreDefaultsManager.return_value = mock_core_defaults
+        # Mock CoreDefaultsManager
+        mock_core_defaults = Mock()
+        mock_sgtk.util.CoreDefaultsManager.return_value = mock_core_defaults
         
-    #     # Mock the authenticator to return user_b when get_default_user is called
-    #     mock_authenticator_instance = Mock()
-    #     mock_authenticator_instance.get_default_user.return_value = user_b
-    #     mock_auth.return_value = mock_authenticator_instance
+        # Mock the authenticator to return user_b when get_default_user is called
+        mock_authenticator_instance = Mock()
+        mock_authenticator_instance.get_default_user.return_value = user_b
+        mock_auth.return_value = mock_authenticator_instance
         
-    #     engine_impl._engine.sgtk.shotgun.find_one.return_value = {
-    #         "id": 456,
-    #         "login": "userb@test.com"
-    #     }
+        engine_impl._engine.sgtk.shotgun.find_one.return_value = {
+            "id": 456,
+            "login": "userb@test.com"
+        }
         
-    #     # Bind the actual methods to the mock instance so they execute properly
-    #     engine_impl.refresh_user_credentials = lambda: DesktopEngineSiteImplementation.refresh_user_credentials(engine_impl)
-    #     engine_impl._check_and_update_current_user = lambda prev=None: DesktopEngineSiteImplementation._check_and_update_current_user(engine_impl, prev)
+        # Bind the actual methods to the mock instance so they execute properly
+        engine_impl.refresh_user_credentials = lambda: DesktopEngineSiteImplementation.refresh_user_credentials(engine_impl)
+        engine_impl._check_and_update_current_user = lambda prev=None: DesktopEngineSiteImplementation._check_and_update_current_user(engine_impl, prev)
         
-    #     # Call refresh_user_credentials (simulating credential refresh)
-    #     engine_impl.refresh_user_credentials()
+        # Call refresh_user_credentials (simulating credential refresh)
+        engine_impl.refresh_user_credentials()
         
-    #     # Verify User B is now cached
-    #     # Check the login attribute since we're comparing mock objects
-    #     assert engine_impl._user.login == "userb@test.com"
-    #     assert engine_impl._current_login["login"] == "userb@test.com"
+        # Verify User B is now cached
+        # Check the login attribute since we're comparing mock objects
+        assert engine_impl._user.login == "userb@test.com"
+        assert engine_impl._current_login["login"] == "userb@test.com"
         
-    #     # Verify desktop window was notified
-    #     engine_impl.desktop_window.on_user_changed.assert_called_once()
+        # Verify desktop window was notified
+        engine_impl.desktop_window.on_user_changed.assert_called_once()
 
     @patch('tk_desktop.desktop_engine_site_implementation.ShotgunAuthenticator')
     @patch('tk_desktop.desktop_engine_site_implementation.sgtk')
@@ -478,7 +477,3 @@ class TestEngineUserRefreshIntegration:
         
         # Verify desktop window was NOT notified (no user change)
         engine_impl.desktop_window.on_user_changed.assert_not_called()
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
