@@ -19,6 +19,22 @@ import pytest
 from unittest.mock import Mock, MagicMock, patch, call
 import tempfile
 import os
+import sys
+
+# Ensure the tk_desktop module path is available
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
+
+# Mock sgtk.platform.import_framework before importing tk_desktop modules
+# This prevents TankCurrentModuleNotFoundError during module import
+with patch('sgtk.platform.import_framework') as mock_import_framework:
+    # Create mock framework modules
+    mock_shotgun_model = MagicMock()
+    mock_shotgun_model.ShotgunModel = MagicMock
+    
+    mock_import_framework.return_value = mock_shotgun_model
+    
+    # Now it's safe to import tk_desktop modules
+    from tk_desktop.desktop_window import DesktopWindow
 
 
 class TestDesktopWindowOnUserChanged:
@@ -30,8 +46,6 @@ class TestDesktopWindowOnUserChanged:
         Verify on_user_changed() calls both _refresh_user_info and
         _refresh_project_model_for_new_user.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         # Create a mock window
         window = Mock(spec=DesktopWindow)
         window._refresh_user_info = Mock()
@@ -49,8 +63,6 @@ class TestDesktopWindowOnUserChanged:
         """
         Verify on_user_changed() handles exceptions from _refresh_user_info gracefully.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         window = Mock(spec=DesktopWindow)
         window._refresh_user_info = Mock(side_effect=Exception("Connection error"))
         window._refresh_project_model_for_new_user = Mock()
@@ -63,8 +75,6 @@ class TestDesktopWindowOnUserChanged:
         """
         Verify on_user_changed() handles exceptions from project refresh gracefully.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         window = Mock(spec=DesktopWindow)
         window._refresh_user_info = Mock()
         window._refresh_project_model_for_new_user = Mock(
@@ -83,8 +93,6 @@ class TestDesktopWindowRefreshUserInfo:
         """
         Verify _refresh_user_info() updates user ID, name, URL, and thumbnail.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         # Setup mock engine and connections
         mock_user = Mock()
         mock_connection = Mock()
@@ -130,8 +138,6 @@ class TestDesktopWindowRefreshUserInfo:
         """
         Verify _refresh_user_info() downloads and sets user thumbnail when available.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         # Setup mock with thumbnail URL
         mock_user = Mock()
         mock_connection = Mock()
@@ -178,8 +184,6 @@ class TestDesktopWindowRefreshUserInfo:
         """
         Verify _refresh_user_info() handles thumbnail download failures gracefully.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         mock_user = Mock()
         mock_connection = Mock()
         mock_connection.base_url = "https://test.shotgrid.autodesk.com"
@@ -216,8 +220,6 @@ class TestDesktopWindowRefreshProjectModel:
         """
         Verify _refresh_project_model_for_new_user() calls hard_refresh on model.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         window = Mock(spec=DesktopWindow)
         window._project_model = Mock()
         
@@ -229,8 +231,6 @@ class TestDesktopWindowRefreshProjectModel:
         """
         Verify _refresh_project_model_for_new_user() handles None model gracefully.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         window = Mock(spec=DesktopWindow)
         window._project_model = None
         
@@ -241,8 +241,6 @@ class TestDesktopWindowRefreshProjectModel:
         """
         Verify _refresh_project_model_for_new_user() handles hard_refresh exceptions.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         window = Mock(spec=DesktopWindow)
         window._project_model = Mock()
         window._project_model.hard_refresh.side_effect = Exception("API error")
@@ -262,8 +260,6 @@ class TestDesktopWindowValidateCurrentUser:
         """
         Verify _validate_current_user() detects user mismatch and calls _refresh_user_info.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         # Setup: cached user is 123, but current is 456
         mock_engine.return_value.get_current_login.return_value = {
             "id": 456,
@@ -284,8 +280,6 @@ class TestDesktopWindowValidateCurrentUser:
         """
         Verify _validate_current_user() doesn't refresh when users match.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         # Setup: cached and current user match
         mock_engine.return_value.get_current_login.return_value = {
             "id": 123,
@@ -306,8 +300,6 @@ class TestDesktopWindowValidateCurrentUser:
         """
         Verify _validate_current_user() handles None login gracefully.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         mock_engine.return_value.get_current_login.return_value = None
         
         window = Mock(spec=DesktopWindow)
@@ -323,8 +315,6 @@ class TestDesktopWindowValidateCurrentUser:
         """
         Verify _validate_current_user() handles exceptions without crashing.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         mock_engine.return_value.get_current_login.side_effect = Exception("API error")
         
         window = Mock(spec=DesktopWindow)
@@ -339,8 +329,6 @@ class TestDesktopWindowValidateCurrentUser:
         """
         Verify _validate_current_user() handles None cached user ID.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         mock_engine.return_value.get_current_login.return_value = {
             "id": 456,
             "login": "user@test.com"
@@ -362,8 +350,6 @@ class TestDesktopWindowHandleProjectDataChanged:
         """
         Verify _handle_project_data_changed() calls _validate_current_user.
         """
-        from tk_desktop.desktop_window import DesktopWindow
-        
         mock_engine.return_value.get_current_login.return_value = {
             "id": 123,
             "login": "user@test.com"

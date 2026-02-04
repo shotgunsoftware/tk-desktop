@@ -17,6 +17,20 @@ a different user re-authenticates and notifies the UI to refresh.
 
 import pytest
 from unittest.mock import Mock, MagicMock, patch
+import sys
+import os
+
+# Ensure the tk_desktop module path is available
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
+
+# Mock sgtk.platform.import_framework before importing tk_desktop modules
+# This prevents TankCurrentModuleNotFoundError during module import
+with patch('sgtk.platform.import_framework') as mock_import_framework:
+    # Create mock framework modules
+    mock_import_framework.return_value = MagicMock()
+    
+    # Now it's safe to import tk_desktop modules
+    from tk_desktop.desktop_engine_site_implementation import DesktopEngineSiteImplementation
 
 
 class TestEngineRefreshUserCredentials:
@@ -28,10 +42,6 @@ class TestEngineRefreshUserCredentials:
         """
         Verify refresh_user_credentials() captures previous login before refreshing.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
-        
         # Setup mock engine implementation
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "usera@test.com"}
@@ -65,9 +75,6 @@ class TestEngineRefreshUserCredentials:
         """
         Verify refresh_user_credentials() calls refresh_credentials on the user.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "user@test.com"}
@@ -88,9 +95,6 @@ class TestEngineRefreshUserCredentials:
         """
         Verify _check_and_update_current_user is called after credential refresh.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "user@test.com"}
@@ -117,9 +121,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() detects when a different user logs in.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         # Setup: User A was logged in
         engine_impl = Mock()
@@ -156,9 +157,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() updates cached user information.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "usera@test.com"}
@@ -191,9 +189,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() notifies desktop window on user change.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "usera@test.com"}
@@ -226,9 +221,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() returns False when user hasn't changed.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "user@test.com"}
@@ -259,9 +251,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() handles missing desktop_window gracefully.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "usera@test.com"}
@@ -295,9 +284,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() handles None authenticated user.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "user@test.com"}
@@ -321,9 +307,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() handles exceptions gracefully.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "user@test.com"}
@@ -347,9 +330,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() handles first-time check (no previous_login).
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "user@test.com"}
@@ -386,9 +366,6 @@ class TestEngineCheckAndUpdateCurrentUser:
         """
         Verify _check_and_update_current_user() logs when user changes.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         engine_impl = Mock()
         engine_impl._current_login = {"id": 123, "login": "usera@test.com"}
@@ -427,9 +404,6 @@ class TestEngineUserRefreshIntegration:
         Test the complete flow: User A session expires, User B re-authenticates,
         engine detects change and notifies desktop window.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         # Setup: User A is logged in
         engine_impl = Mock()
@@ -469,9 +443,6 @@ class TestEngineUserRefreshIntegration:
         """
         Test that when the same user re-authenticates, desktop window is NOT notified.
         """
-        from tk_desktop.desktop_engine_site_implementation import (
-            DesktopEngineSiteImplementation
-        )
         
         # Setup: User A is logged in
         engine_impl = Mock()
