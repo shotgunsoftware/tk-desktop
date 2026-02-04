@@ -623,7 +623,7 @@ class DisplayNameTemplate(string.Template):
         # do a substitution where we build a regular expression with a group
         # for each dollar var we match, substitute in a group named after
         # the variable that will match any non-whitespace characters
-        default_kwargs = KeyedDefaultDict(lambda k: "(?P<%s>\S+)" % k)
+        default_kwargs = KeyedDefaultDict(lambda k: r"(?P<%s>\S+)" % k)
         self.match_re = re.compile(self.safe_substitute(default_kwargs))
 
     def match(self, match_string):

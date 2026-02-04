@@ -24,14 +24,16 @@ import sys
 # Ensure the tk_desktop module path is available
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 
-# Mock sgtk.platform.import_framework before importing tk_desktop modules
+# Mock sgtk.platform methods before importing tk_desktop modules
 # This prevents TankCurrentModuleNotFoundError during module import
-with patch('sgtk.platform.import_framework') as mock_import_framework:
+with patch('sgtk.platform.import_framework') as mock_import_framework, \
+     patch('sgtk.platform.get_framework') as mock_get_framework:
     # Create mock framework modules
     mock_shotgun_model = MagicMock()
     mock_shotgun_model.ShotgunModel = MagicMock
     
     mock_import_framework.return_value = mock_shotgun_model
+    mock_get_framework.return_value = MagicMock()
     
     # Now it's safe to import tk_desktop modules
     from tk_desktop.desktop_window import DesktopWindow
