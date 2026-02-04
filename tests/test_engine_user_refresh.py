@@ -421,8 +421,15 @@ class TestEngineUserRefreshIntegration:
         # User B re-authenticates
         user_b = Mock()
         user_b.login = "userb@test.com"
-        mock_sgtk.util.CoreDefaultsManager = Mock
-        mock_auth.return_value.get_default_user.return_value = user_b
+        
+        # Mock CoreDefaultsManager
+        mock_core_defaults = Mock()
+        mock_sgtk.util.CoreDefaultsManager.return_value = mock_core_defaults
+        
+        # Mock the authenticator to return user_b when get_default_user is called
+        mock_authenticator_instance = Mock()
+        mock_authenticator_instance.get_default_user.return_value = user_b
+        mock_auth.return_value = mock_authenticator_instance
         
         engine_impl._engine.sgtk.shotgun.find_one.return_value = {
             "id": 456,
