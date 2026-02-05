@@ -555,18 +555,18 @@ class DesktopEngineSiteImplementation(object):
         :param previous_login: The login of the previously authenticated user, or None.
         :returns: True if the user changed, False otherwise.
         """
+        # Get the current authenticated user from the authenticator
+        human_user = ShotgunAuthenticator(
+            sgtk.util.CoreDefaultsManager(mask_script_user=True)
+        ).get_default_user()
+
+        if human_user is None:
+            logger.warning("No authenticated user found after credential refresh.")
+            return False
+
+        current_login = human_user.login
+
         try:
-            # Get the current authenticated user from the authenticator
-            human_user = ShotgunAuthenticator(
-                sgtk.util.CoreDefaultsManager(mask_script_user=True)
-            ).get_default_user()
-
-            if human_user is None:
-                logger.warning("No authenticated user found after credential refresh.")
-                return False
-
-            current_login = human_user.login
-
             # Check if the user has changed
             if previous_login is not None and current_login != previous_login:
                 logger.info(
@@ -595,8 +595,11 @@ class DesktopEngineSiteImplementation(object):
                         "HumanUser", [["login", "is", current_login]], ["id", "login"]
                     )
 
-        except Exception:
-            logger.exception("Error checking for user change after credential refresh.")
+        except Exception as e:
+            # Catches general shotgun_api3 exceptions
+            logger.exception(
+                f"Error checking for user change after credential refresh. ERROR: {e}"
+            )
 
         return False
 
