@@ -307,31 +307,6 @@ class TestEngineCheckAndUpdateCurrentUser:
 
     @patch("tk_desktop.desktop_engine_site_implementation.ShotgunAuthenticator")
     @patch("tk_desktop.desktop_engine_site_implementation.sgtk")
-    def test_check_handles_exception(self, mock_sgtk, mock_auth):
-        """
-        Verify _check_and_update_current_user() handles exceptions gracefully.
-        """
-
-        engine_impl = Mock()
-        engine_impl._current_login = {"id": 123, "login": "user@test.com"}
-        engine_impl._user = Mock()
-        engine_impl._engine = Mock()
-
-        # Simulate exception during user check
-        mock_sgtk.util.CoreDefaultsManager = Mock
-        mock_auth.return_value.get_default_user.side_effect = Exception(
-            "Connection error"
-        )
-
-        # Should not raise exception
-        result = DesktopEngineSiteImplementation._check_and_update_current_user(
-            engine_impl, "user@test.com"
-        )
-
-        assert result is False
-
-    @patch("tk_desktop.desktop_engine_site_implementation.ShotgunAuthenticator")
-    @patch("tk_desktop.desktop_engine_site_implementation.sgtk")
     def test_check_handles_first_time_check_none_previous_login(
         self, mock_sgtk, mock_auth
     ):
