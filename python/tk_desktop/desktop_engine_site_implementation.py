@@ -529,10 +529,79 @@ class DesktopEngineSiteImplementation(object):
 
     def refresh_user_credentials(self):
         """
-        Refreshes the human user credentials, potentially prompting for a password, only is
+        Refreshes the human user credentials, potentially prompting for a password, only if
         the desktop project engine is using login based authentication.
+
+        If a different user authenticates during the credential refresh, this method will
+        update the cached user information and notify the desktop window to refresh its UI.
         """
+        previous_login = (
+            self._current_login.get("login") if self._current_login else None
+        )
+
         self._user.refresh_credentials()
+
+        # After credential refresh, check if the user has changed
+        # This can happen when a session expires and a different user re-authenticates
+        self._check_and_update_current_user(previous_login)
+
+    def _check_and_update_current_user(self, previous_login=None):
+        """
+        Checks if the current authenticated user has changed and updates cached user info.
+
+        This is important for security - when a session expires and a different user
+        re-authenticates, we must update all cached user information and refresh the UI.
+
+        :param previous_login: The login of the previously authenticated user, or None.
+        :returns: True if the user changed, False otherwise.
+        """
+        # Get the current authenticated user from the authenticator
+        human_user = ShotgunAuthenticator(
+            sgtk.util.CoreDefaultsManager(mask_script_user=True)
+        ).get_default_user()
+
+        if human_user is None:
+            logger.warning("No authenticated user found after credential refresh.")
+            return False
+
+        current_login = human_user.login
+
+        try:
+            # Check if the user has changed
+            if previous_login is not None and current_login != previous_login:
+                logger.info(
+                    "User changed from '%s' to '%s' after re-authentication.",
+                    previous_login,
+                    current_login,
+                )
+
+                # Update cached user information
+                self._user = human_user
+                self._current_login = self._engine.sgtk.shotgun.find_one(
+                    "HumanUser", [["login", "is", current_login]], ["id", "login"]
+                )
+
+                # Notify the desktop window to refresh user info and projects
+                if hasattr(self, "desktop_window") and self.desktop_window is not None:
+                    self.desktop_window.on_user_changed()
+
+                return True
+            elif previous_login is None:
+                # First time check or no previous user - just update the cached info
+                # to ensure it's in sync with the authenticated user
+                if self._user is None or self._user.login != current_login:
+                    self._user = human_user
+                    self._current_login = self._engine.sgtk.shotgun.find_one(
+                        "HumanUser", [["login", "is", current_login]], ["id", "login"]
+                    )
+
+        except Exception as e:
+            # Catches general shotgun_api3 exceptions
+            logger.exception(
+                f"Error checking for user change after credential refresh. ERROR: {e}"
+            )
+
+        return False
 
 
 class KeyedDefaultDict(collections.defaultdict):
@@ -557,7 +626,7 @@ class DisplayNameTemplate(string.Template):
         # do a substitution where we build a regular expression with a group
         # for each dollar var we match, substitute in a group named after
         # the variable that will match any non-whitespace characters
-        default_kwargs = KeyedDefaultDict(lambda k: "(?P<%s>\S+)" % k)
+        default_kwargs = KeyedDefaultDict(lambda k: r"(?P<%s>\S+)" % k)
         self.match_re = re.compile(self.safe_substitute(default_kwargs))
 
     def match(self, match_string):

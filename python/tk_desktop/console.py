@@ -16,7 +16,6 @@ from sgtk.platform.qt import QtCore
 
 from .ui import resources_rc  # noqa
 
-
 settings = sgtk.platform.import_framework("tk-framework-shotgunutils", "settings")
 
 

@@ -97,23 +97,18 @@ class ThumbWidget(QtGui.QWidget):
                 highlight_col.green(),
                 highlight_col.blue(),
             )
-            self.ui.widget_frame.setStyleSheet(
-                """
+            self.ui.widget_frame.setStyleSheet("""
                 #widget_frame {
                     border: 1px solid %s;
                     background-color: %s;
                 }
-            """
-                % (border, background)
-            )
+            """ % (border, background))
         else:
-            self.ui.widget_frame.setStyleSheet(
-                """
+            self.ui.widget_frame.setStyleSheet("""
                 #widget_frame {
                     border: 1px solid transparent;
                 }
-            """
-            )
+            """)
 
         # force a refresh of the stylesheet
         self.ui.widget_frame.style().unpolish(self.ui.widget_frame)

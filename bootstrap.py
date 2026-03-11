@@ -29,7 +29,7 @@ def main():
     utilities = None
     try:
         sys.path.append(os.path.dirname(opts.utilities))
-        (module_name, _) = os.path.splitext(os.path.basename((opts.utilities)))
+        module_name, _ = os.path.splitext(os.path.basename((opts.utilities)))
         utilities = __import__(module_name)
 
         # load up the pickle file with the data payload
@@ -74,7 +74,7 @@ def parse_args():
         "--utilities",
         help="path to the python module that defines startup utilities",
     )
-    (opts, args) = parser.parse_args()
+    opts, args = parser.parse_args()
 
     if opts.data is None:
         print("Data not specified")

@@ -12,7 +12,6 @@ import sgtk
 from sgtk.platform.qt import QtCore, QtGui
 from .ui.banner_widget import Ui_BannerWidget
 
-
 logger = sgtk.platform.get_logger(__name__)
 
 

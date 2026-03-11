@@ -31,14 +31,12 @@ class SectionHeader(QtGui.QPushButton):
         self.setCheckable(True)
         self.setChecked(True)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.setStyleSheet(
-            """
+        self.setStyleSheet("""
             text-align: left;
             font-size: 14px;
             background-color: transparent;
             border: none;
-        """
-        )
+        """)
 
     def is_expanded(self):
         """
