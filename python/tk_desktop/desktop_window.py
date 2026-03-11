@@ -1913,6 +1913,7 @@ class DesktopWindow(SystrayWindow):
         versions = OrderedDict()
         versions["App"] = engine.app_version
         versions["Python"] = "{}.{}.{}".format(*sys.version_info[0:3])
+        versions["Qt/PySide6"] = QtCore.__version__
 
         if engine.startup_version:
             versions["Startup"] = engine.startup_version

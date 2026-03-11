@@ -109,6 +109,6 @@ class Ui_AboutScreen(object):
         self.icon.setText("")
         self.header.setText(QCoreApplication.translate("AboutScreen", u"<b><big>Flow Production Tracking</big></b>", None))
         self.body.setText(QCoreApplication.translate("AboutScreen", u"Body", None))
-        self.copyright.setText(QCoreApplication.translate("AboutScreen", u"Copyright \u00a92024 Autodesk. All rights reserved.", None))
+        self.copyright.setText(QCoreApplication.translate("AboutScreen", u"Copyright \u00a92026 Autodesk. All rights reserved.", None))
         self.licensesButton.setText(QCoreApplication.translate("AboutScreen", u"Licenses...", None))
     # retranslateUi
