@@ -277,7 +277,7 @@ class RPCServerThread(threading.Thread):
             else:
                 # can use select on osx and linux
                 try:
-                    (rd, _, _) = select.select(
+                    rd, _, _ = select.select(
                         [self.server._listener._socket], [], [], self.LISTEN_TIMEOUT
                     )
                     ready = len(rd) > 0
@@ -317,7 +317,7 @@ class RPCServerThread(threading.Thread):
 
                     # data coming over the connection is a tuple of
                     # (name, args, kwargs)
-                    (respond, func_name, args, kwargs) = pickle.loads(connection.recv())
+                    respond, func_name, args, kwargs = pickle.loads(connection.recv())
                     logger.debug(
                         "server calling '%s(%s, %s)'" % (func_name, args, kwargs)
                     )

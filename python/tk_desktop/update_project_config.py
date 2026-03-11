@@ -104,7 +104,7 @@ class UpdateProjectConfig(QtGui.QWidget):
                 stdin=subprocess.PIPE,
                 startupinfo=startupinfo,
             )
-            (stdout, stderr) = python_process.communicate()
+            stdout, stderr = python_process.communicate()
         finally:
             # make sure the wait screen gets hidden
             wait.hide()

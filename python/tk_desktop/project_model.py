@@ -139,7 +139,7 @@ class SgProjectModelProxy(QtGui.QSortFilterProxyModel):
             ratios = []
             matcher = FuzzyMatcher(self.search_text.lower())
             for project in projects:
-                (ratio, highlighted) = matcher.score(project["name"], highlighter)
+                ratio, highlighted = matcher.score(project["name"], highlighter)
                 if ratio:
                     ratios.append((ratio, project))
                     project["__item"].setData(
