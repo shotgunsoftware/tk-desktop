@@ -15,18 +15,24 @@ import sgtk
 logger = sgtk.platform.get_logger(__name__)
 
 use_mocked_osutils = True
-# The osutils extension modules from the PTR desktop app's private repo.
 if sys.platform == "darwin":
-    # On macOS, the osutils are required to make the app move to the foreground
-    # or background in certain cases.
+    # On macOS, osutils is required to control foreground/background app state.
+    # osutils is a private macOS C extension built by the FPT Desktop team.
+    # SGD >= 3.0.0 installs the .so into Python's lib-dynload directory, so a
+    # plain absolute import works automatically via the normal import machinery.
+    # SGD < 3.0.0 shipped the .so committed directly to the darwin_python3/
+    # package directory, so the fallback relative import handles those bundles.
     try:
-        # This library does not link against qt, so the names are not suffixed
-        # with the qt version.
-        from .darwin_python3 import osutils
+        import osutils
 
         use_mocked_osutils = False
-    except Exception as e:
-        logger.warning("Could not load osutils: %s", e, exc_info=True)
+    except ImportError:
+        try:
+            from .darwin_python3 import osutils
+
+            use_mocked_osutils = False
+        except Exception as e:
+            logger.warning("Could not load osutils: %s", e, exc_info=True)
 
 if use_mocked_osutils:
 
