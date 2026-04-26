@@ -1920,13 +1920,14 @@ class DesktopWindow(SystrayWindow):
         versions["Engine"] = engine.version
         versions["Core"] = engine.sgtk.version
 
-        if engine.sgtk.configuration_descriptor:
-            # Certain versions of core don't like configuration's without an
-            # info.yml, so tolerate it.
+        descriptor = self._current_pipeline_descriptor or engine.sgtk.configuration_descriptor
+
+        if descriptor:
+            # Use the selected project config first.
+            # Keep the About dialog working even if info.yml metadata cannot be read.
+
             try:
-                versions[engine.sgtk.configuration_descriptor.display_name] = (
-                    engine.sgtk.configuration_descriptor.version
-                )
+                versions[descriptor.display_name] = descriptor.version
             except Exception:
                 pass
 
