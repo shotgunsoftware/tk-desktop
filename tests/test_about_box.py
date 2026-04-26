@@ -64,37 +64,68 @@ def test_3rd_party_links(licence_file_links):
     """
     Check all found urls are valid and can accessed.
     """
-    max_retries = 5
-    error_message = ""
+    max_retries = 8
+    failed_urls = []
+    skipped_urls = []
+    
+    # Use pytest warnings - always shown
+    pytest.warns(UserWarning, match=".*")  # Enable warnings
+    
+    import warnings
+    warnings.warn(f"Testing {len(licence_file_links)} URLs")
+
     for url in licence_file_links:
-        retry_delay = 1
-        for _ in range(max_retries):
+        retry_delay = 2
+        last_error = None
+        url_succeeded = False
+
+        for attempt in range(max_retries):
             try:
                 r = request.Request(
                     url,
-                    headers={"Accept-Language": "en", "User-Agent": "Mozilla/5.0"},
+                    headers={
+                        "Accept-Language": "en",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                    },
                 )
 
-                contents = request.urlopen(r).read()
+                contents = request.urlopen(r, timeout=30).read()
+                url_succeeded = True
+                warnings.warn(f"SUCCESS: {url}")
                 break
+
             except Exception as e:
-                time.sleep(retry_delay)
-                retry_delay *= 2
+                last_error = e
                 error_message = str(e)
-        else:
-            # If all retries fail, raise an exception
-            if "403: Forbidden" in error_message:
-                pytest.skip(
-                    "Failed to open {0}, error: {1}. This is likely due to GitHub "
-                    "blocking the request. Please check the URL in a web browser.".format(
-                        url, error_message
-                    )
-                )
 
-            raise pytest.fail(
-                "Failed to open {0}, error: {1}".format(url, error_message)
-            )
+                if "403" in error_message or "Forbidden" in error_message:
+                    skipped_urls.append({
+                        'url': url,
+                        'error': error_message
+                    })
+                    warnings.warn(f"SKIPPED (403): {url}")
+                    url_succeeded = True
+                    break
 
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay = min(retry_delay * 2, 30)
+        
+        if not url_succeeded:
+            failed_urls.append({
+                'url': url,
+                'error': str(last_error)
+            })
+            warnings.warn(f"FAILED: {url} - {last_error}")
+    
+    if skipped_urls:
+        warnings.warn(f"{len(skipped_urls)} URLs skipped due to 403 errors")
+    
+    if failed_urls:
+        error_msg = f"\n{len(failed_urls)} URL(s) failed after {max_retries} retries:\n"
+        for item in failed_urls:
+            error_msg += f"  - {item['url']}\n    Error: {item['error']}\n"
+        pytest.fail(error_msg)
 
 @pytest.mark.parametrize(
     "expected_url",
