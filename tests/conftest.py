@@ -43,7 +43,13 @@ sys.path.insert(
 #    (SiteCommunication inherits from it at class-definition time).
 #  • QtCore.Signal must return a callable mock so .emit() can be used.
 
-if "sgtk" not in sys.modules:
+try:
+    import sgtk as _sgtk_check  # noqa: F401
+    _sgtk_available = True
+except ImportError:
+    _sgtk_available = False
+
+if not _sgtk_available:
     _log_manager = MagicMock()
     _log_manager.get_logger.return_value = MagicMock()
 
