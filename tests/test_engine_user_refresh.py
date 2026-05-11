@@ -561,7 +561,7 @@ class TestProxyLifecycle:
     def test_subprocess_initiated_reload_clears_ui_via_proxy_created(self):
         """
         When reload is initiated by the subprocess (destroy_app_proxy path),
-        proxy_closing is never emitted — only proxy_created fires.  Verify that
+        proxy_closing is never emitted — only proxy_created fires. Verify that
         clear_app_uis is still called in that scenario, covering the original
         duplication bug.
         """
