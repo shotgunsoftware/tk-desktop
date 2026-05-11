@@ -1179,17 +1179,11 @@ class DesktopWindow(SystrayWindow):
         return self.windowFlags() & QtCore.Qt.WindowStaysOnTopHint
 
     def set_on_top(self, value):
-        flags = self.windowFlags()
         visible = self.isVisible()
 
-        if value:
-            self.setWindowFlags(flags | QtCore.Qt.WindowStaysOnTopHint)
-            self.ui.actionKeep_on_Top.setChecked(True)
-            self._save_setting("on_top", True, site_specific=False)
-        else:
-            self.setWindowFlags(flags & ~QtCore.Qt.WindowStaysOnTopHint)
-            self.ui.actionKeep_on_Top.setChecked(False)
-            self._save_setting("on_top", False, site_specific=False)
+        self.setWindowFlag(QtCore.Qt.WindowStaysOnTopHint, value)
+        self.ui.actionKeep_on_Top.setChecked(value)
+        self._save_setting("on_top", value, site_specific=False)
 
         if visible:
             self.show()
