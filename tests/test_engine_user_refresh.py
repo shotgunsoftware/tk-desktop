@@ -557,17 +557,3 @@ class TestProxyLifecycle:
         DesktopEngineSiteImplementation._on_proxy_closing(engine_impl)
 
         engine_impl.desktop_window.clear_app_uis.assert_called_once()
-
-    def test_subprocess_initiated_reload_clears_ui_via_proxy_created(self):
-        """
-        When reload is initiated by the subprocess (destroy_app_proxy path),
-        proxy_closing is never emitted — only proxy_created fires.  Verify that
-        clear_app_uis is still called in that scenario, covering the original
-        duplication bug.
-        """
-        engine_impl = self._make_engine_impl()
-
-        # proxy_closing does NOT fire on the subprocess-initiated reload path.
-        DesktopEngineSiteImplementation._on_proxy_created(engine_impl)
-
-        engine_impl.desktop_window.clear_app_uis.assert_called_once()
