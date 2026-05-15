@@ -13,7 +13,9 @@
 #
 [run]
 source=.
-omit=tests/*
+omit=
+    tests/*
+    python/tk_desktop/desktop_window.py
 
 [report]
 exclude_lines =
