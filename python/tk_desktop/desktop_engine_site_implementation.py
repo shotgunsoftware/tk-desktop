@@ -237,9 +237,12 @@ class DesktopEngineSiteImplementation(object):
         """
         Invoked when background process has created proxy
         """
-        # Clears the project menu so the previous engine's actions
-        # are removed before adding new one
-        self.desktop_window.clear_actions_from_project_menu()
+        # Clear the full app UI before the new engine registers its commands.
+        # When the project subprocess initiates its own shutdown (e.g. "Reload and
+        # Restart"), it calls destroy_app_proxy which only closes the RPC proxy
+        # without emitting proxy_closing - so _on_proxy_closing / clear_app_uis
+        # never runs.
+        self.desktop_window.clear_app_uis()
 
     def set_groups(self, groups, show_recents=True):
         self.desktop_window.set_groups(groups, show_recents)

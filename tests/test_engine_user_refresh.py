@@ -465,3 +465,95 @@ class TestEngineUserRefreshIntegration:
 
         # Verify desktop window was NOT notified (no user change)
         engine_impl.desktop_window.on_user_changed.assert_not_called()
+
+
+class TestProxyLifecycle:
+    """
+    Tests for the proxy connection lifecycle handlers.
+
+    Covers the "Reload and Restart" duplication bug fix: when the project
+    subprocess initiates its own shutdown it calls destroy_app_proxy, which
+    only closes the RPC socket without emitting proxy_closing.  As a result
+    _on_proxy_closing / clear_app_uis never ran on that path, so the launcher
+    retained stale buttons that were then duplicated when the new engine
+    re-registered its commands.
+
+    The fix makes _on_proxy_created call clear_app_uis(), matching the
+    behaviour of _on_proxy_closing and ensuring the panel is always wiped
+    before new commands arrive regardless of which side initiated the shutdown.
+    """
+
+    def _make_engine_impl(self):
+        engine_impl = Mock()
+        engine_impl.desktop_window = Mock()
+        engine_impl._collapse_rules = []
+        return engine_impl
+
+    def test_on_proxy_created_clears_full_app_ui(self):
+        """
+        _on_proxy_created must call clear_app_uis() so the CommandPanel is
+        wiped before the incoming engine registers its commands.
+        """
+        engine_impl = self._make_engine_impl()
+
+        DesktopEngineSiteImplementation._on_proxy_created(engine_impl)
+
+        engine_impl.desktop_window.clear_app_uis.assert_called_once()
+
+    def test_on_proxy_created_does_not_call_clear_actions_only(self):
+        """
+        The old implementation called clear_actions_from_project_menu() instead
+        of clear_app_uis(). Verify the narrower call is no longer made directly:
+        clear_app_uis already resets the menu via _project_menu.reset(), so a
+        separate call to clear_actions_from_project_menu would be redundant and
+        signals the regression has been re-introduced.
+        """
+        engine_impl = self._make_engine_impl()
+
+        DesktopEngineSiteImplementation._on_proxy_created(engine_impl)
+
+        engine_impl.desktop_window.clear_actions_from_project_menu.assert_not_called()
+
+    def test_on_proxy_created_clears_ui_before_command_registration(self):
+        """
+        Simulate the reload sequence: proxy_created fires, then the new engine
+        registers a command via trigger_register_command.  clear_app_uis must
+        be called before add_project_command so no stale buttons survive.
+        """
+        engine_impl = self._make_engine_impl()
+        call_order = []
+
+        engine_impl.desktop_window.clear_app_uis.side_effect = (
+            lambda: call_order.append("clear_app_uis")
+        )
+        engine_impl.desktop_window.add_project_command.side_effect = (
+            lambda *a, **kw: call_order.append("add_project_command")
+        )
+
+        DesktopEngineSiteImplementation._on_proxy_created(engine_impl)
+
+        with patch(
+            "tk_desktop.desktop_engine_site_implementation.os.path.exists",
+            return_value=False,
+        ):
+            DesktopEngineSiteImplementation.trigger_register_command(
+                engine_impl,
+                name="Maya 2025",
+                properties={"type": "default", "title": "Maya 2025"},
+                groups=["Studio"],
+            )
+
+        assert call_order.index("clear_app_uis") < call_order.index(
+            "add_project_command"
+        ), "clear_app_uis must run before add_project_command on reload"
+
+    def test_on_proxy_closing_clears_full_app_ui(self):
+        """
+        _on_proxy_closing must still call clear_app_uis() — existing behaviour
+        must not have been broken by the fix.
+        """
+        engine_impl = self._make_engine_impl()
+
+        DesktopEngineSiteImplementation._on_proxy_closing(engine_impl)
+
+        engine_impl.desktop_window.clear_app_uis.assert_called_once()
