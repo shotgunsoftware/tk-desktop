@@ -15,6 +15,16 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class FlowDesktopFileCollector(HookBaseClass):
+    """
+    Collector that operates on the Flow Production Tracking Desktop publish
+    workflow. Should inherit from the basic collector hook in the
+    ``tk-multi-publish2`` app. The collector setting for this hook should look
+    something like this::
+
+        collector: "{self}/collector.py:{engine}/tk-multi-publish2/flowam/collector.py"
+
+    """
+
     def process_file(self, settings, parent_item, path):
         """
         Analyzes the given file or folder and creates publish items.

@@ -17,6 +17,17 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 
 class DesktopFlowPublishPlugin(HookBaseClass):
+    """
+    Plugin for publishing files from Flow Production Tracking Desktop to
+    Flow Asset Management. This hook relies on functionality found in the
+    Flow AM base publish hook in the ``tk-multi-publish2`` app and should
+    inherit from it in the configuration. The hook setting for this plugin
+    should look something like this::
+
+        hook: "{self}/publish_file.py:{self}/flowam/publish_to_flow.py:{engine}/tk-multi-publish2/flowam/publish_to_flow.py"
+
+    """
+
     def accept(self, settings, item):
         """
         We tell the publisher to skip publishing Maya files
