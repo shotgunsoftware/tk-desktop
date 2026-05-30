@@ -81,6 +81,11 @@ class DesktopFlowPublishPlugin(HookBaseClass):
         return True
 
     def _get_generic_inputs(self, item) -> dict:
+        """
+        Build the SG entity inputs required by the Flow AM SDK for generic
+        asset creation. Called by ``_create_new_asset`` to populate
+        ``CreateGenericInputs``.
+        """
         sg_flow_am_id = sgtk.platform.current_engine().context.project["sg_flow_am_id"]
         entity = item.context.entity or item.context.project
         entity_type = entity["type"]
@@ -101,8 +106,13 @@ class DesktopFlowPublishPlugin(HookBaseClass):
             source_path=item.get_property("path"),
         )
 
-    def _publish_revision(self, item, flow_args, revision_id):
-        """Publish new revision of existing generic asset."""
+    def _publish_revision(self, item, flow_args: dict, revision_id: str):
+        """
+        Publish a new revision of an existing generic asset via the Flow AM SDK.
+        Called by ``_publish_to_flow`` when a revision ID is present on the
+        parent item, indicating we are updating an existing asset rather than
+        creating a new one.
+        """
         self.logger.info(
             f"Publishing new revision of existing generic asset (revision_id: {revision_id})"
         )
@@ -135,8 +145,13 @@ class DesktopFlowPublishPlugin(HookBaseClass):
         )
         return pub_info
 
-    def _create_new_asset(self, item, flow_args):
-        """Create new generic asset."""
+    def _create_new_asset(self, item, flow_args: dict):
+        """
+        Create a new generic asset via the Flow AM SDK. Called by
+        ``_publish_to_flow`` when no revision ID is present on the parent
+        item, indicating this is a first-time publish rather than a revision.
+        Delegates SG entity resolution to ``_get_generic_inputs``.
+        """
         self.logger.info("Creating new generic asset")
 
         create_args = self._get_generic_inputs(item)
@@ -167,7 +182,13 @@ class DesktopFlowPublishPlugin(HookBaseClass):
         )
         return pub_info
 
-    def _publish_to_flow(self, settings, item):
+    def _publish_to_flow(self, item):
+        """
+        Implements ``FlowPublishPlugin._publish_to_flow`` (defined in
+        ``tk-multi-publish2/hooks/flowam/publish_to_flow.py``) for the desktop
+        context. Delegates to ``_publish_revision`` or ``_create_new_asset``
+        depending on whether a revision ID is present on the parent item.
+        """
         flow_args = self._get_flow_args(item)
 
         # Read from parent item - revision_id applies to entire publish session
