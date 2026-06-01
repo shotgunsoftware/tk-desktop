@@ -18,48 +18,136 @@ HookBaseClass = sgtk.get_hook_baseclass()
 
 class DesktopFlowPublishPlugin(HookBaseClass):
     """
-    Plugin for publishing files from Flow Production Tracking Desktop to
-    Flow Asset Management. This hook relies on functionality found in the
-    Flow AM base publish hook in the ``tk-multi-publish2`` app and should
-    inherit from it in the configuration. The hook setting for this plugin
-    should look something like this::
+    Self-contained desktop publish plugin for Flow Asset Management integration.
 
-        hook: "{self}/publish_file.py:{self}/flowam/publish_to_flow.py:{engine}/tk-multi-publish2/flowam/publish_to_flow.py"
+    Subclasses ``publish_file.py`` directly via the hook chain::
 
+        hook: "{self}/publish_file.py:{engine}/tk-multi-publish2/flowam/publish_to_flow.py"
+
+    Handles the full desktop publish workflow: framework loading, project
+    validation, revision validation, and publishing via
+    ``create_generic_workfile`` (new asset) or ``publish_generic_revision``
+    (existing asset) in the Flow AM SDK.
+
+    The DCC counterpart lives in
+    ``tk-multi-publish2/hooks/flowam/publish_to_flow.py``
+    (``DccFlowPublishPlugin``). Shared logic (properties, ``publish``,
+    ``finalize``, ``get_publish_user``) is duplicated between the two so
+    each plugin can evolve independently across separate release cycles.
+    When updating shared logic, apply the change to both files.
     """
+
+    def __init__(self, *args, **kwargs):
+        """Initialize the plugin."""
+        super().__init__(*args, **kwargs)
+        self.flow_module = None
+        self.sg_flow_am_id = None
+
+    ############################################################################
+    # standard publish plugin properties
+
+    @property
+    def icon(self):
+        return os.path.join(self.disk_location, "icons", "flow.png")
+
+    @property
+    def name(self):
+        return "Publish to Flow AM"
+
+    @property
+    def description(self):
+        return """
+        Publishes the file to Flow Production Tracking and Asset Manager. A <b>Publish</b> entry
+        will be created in Flow Production Tracking which will include a reference
+        to the file's current path on disk. Other users will be able to access the
+        published file via the <b><a href='%s'>Loader</a></b> so long as they have
+        access to the file's location on disk.
+
+        <h3>Overwriting an existing publish</h3>
+        A file can be published multiple times however only the most recent
+        publish will be available to other users. Warnings will be provided
+        during validation if there are previous publishes.
+        """
+
+    @property
+    def item_filters(self):
+        """
+        List of item types that this plugin is interested in.
+
+        Only items matching entries in this list will be presented to the
+        accept() method. Strings can contain glob patters such as *, for example
+        ["maya.*", "file.maya"]
+        """
+        return ["file.*"]
+
+    ############################################################################
+    # standard publish plugin methods
 
     def accept(self, settings, item):
         """
-        We tell the publisher to skip publishing Maya files
-        by checking the file extension of the item being published.
-        These files won't be displayed in the UI.
+        Method called by the publisher to determine if an item is of any
+        interest to this plugin. Only items matching the filters defined via the
+        item_filters property will be presented to this method.
 
-        PS: This can be also defined in `publish_to_flow.py`.
+        Maya files (.ma/.mb) are rejected - Maya dependencies are not tracked
+        in Flow AM from the desktop context.
         """
         path = item.get_property("path")
         if path is None:
             raise AttributeError("'PublishData' object has no attribute 'path'")
 
-        # Get the extension of the file
         ext = os.path.splitext(path)[-1].lower()
         if ext in [".ma", ".mb"]:
             self.logger.warning("Maya dependencies will not be tracked in Flow AM.")
             return {"accepted": False}
 
-        return super().accept(settings, item)
+        # log the accepted file and display a button to reveal it in the fs
+        self.logger.info(
+            "File publisher plugin accepted: %s" % (path,),
+            extra={"action_show_folder": {"path": path}},
+        )
+
+        return {"accepted": True}
 
     def validate(self, settings, item):
         """
-        Desktop-specific validation for publishing to Flow AM.
-        Does not require a draft - supports both new asset creation and revision publishing.
+        Validates project configuration, AM project ID, and (if present)
+        revision asset type. Combines base project validation with desktop-
+        specific revision validation - no super() call needed.
         """
-        if not super().validate(settings, item):
+        # FlowAM framework import
+        # TODO: We have an issue on FPTR desktop where the `adsk` cannot be found
+        flow_am_fw = self.load_framework("tk-framework-flowam_v1.x.x")
+        self.flow_module = flow_am_fw.import_module("flow")
+
+        publisher = self.parent
+
+        # Get the project's sg_flow_am_id
+        sg_flow_project_id = sgtk.platform.current_engine().context.project["id"]
+        project = publisher.shotgun.find_one(
+            "Project", [["id", "is", sg_flow_project_id]], ["sg_flow_am_id"]
+        )
+        self.sg_flow_am_id = project.get("sg_flow_am_id")
+        if not self.sg_flow_am_id:
+            self.logger.error(
+                "Project {} has no sg_flow_am_id set. "
+                "Please set the sg_flow_am_id field on the project.".format(
+                    project["name"]
+                )
+            )
             return False
 
-        # Desktop publishing uses self.flow_module set by parent class
+        self.logger.info("Validating AM Project ID")
         am = self.flow_module.asset_management
+        project_valid, project_err = am.validate_project(self.sg_flow_am_id)
+        if not project_valid:
+            self.logger.error(
+                f"No Flow project associated with current SG project: {project_err}"
+            )
+            return False
 
-        # Read from parent item - revision_id applies to entire publish session
+        # Desktop publishing: validate revision asset type if publishing to
+        # an existing asset (revision_id present on parent item)
         revision_id = None
         if item.parent:
             revision_id = item.parent.properties.get("am_revision_id")
@@ -78,7 +166,94 @@ class DesktopFlowPublishPlugin(HookBaseClass):
                     },
                 )
                 return False
+
         return True
+
+    def publish(self, settings, item):
+        """Publish the item to Flow AM."""
+        try:
+            pub_info = self._publish_to_flow(item)
+
+            # Check if user cancelled (child process return None)
+            if pub_info is None:
+                raise self.parent.base_hooks.PublishCancelledException(
+                    "User cancelled the publish to Flow AM."
+                )
+            self.logger.info("Publish to Flow AM successful")
+
+            # Store publish info for downstream plugins (e.g., alembic derivative)
+            item.properties["am_publish_info"] = pub_info
+            item.properties["entity"] = item.context.entity or item.context.project
+            item.properties["task"] = item.context.task
+
+            self.logger.info("Publish registered!")
+            self.logger.debug(
+                "Flow AM Publish info...",
+                extra={
+                    "action_show_more_info": {
+                        "label": "Flow AM Publish Info",
+                        "tooltip": "Show the complete Flow AM Publish info",
+                        "text": "<pre>%s</pre>" % (pprint.pformat(pub_info.__dict__),),
+                    }
+                },
+            )
+        except self.parent.base_hooks.PublishCancelledException:
+            # Re-raise cancellation exception without logging as error
+            # The dialog will handle this and show "Publish Cancelled"
+            raise
+        except Exception as e:
+            self.logger.error(
+                "Failed to publish to Flow AM",
+                extra={
+                    "action_show_more_info": {
+                        "label": "Error Details",
+                        "text": "<pre>" f"{e}\n" "</pre>",
+                    }
+                },
+            )
+            raise
+
+    def finalize(self, settings, item):
+        pass
+
+    def get_publish_user(self, settings, item):
+        """
+        Get the user that will be associated with this publish.
+
+        If publish_user is not defined as a ``property`` or ``local_property``,
+        this method will return ``None``.
+
+        :param settings: This plugin instance's configured settings
+        :param item: The item to determine the publish template for
+
+        :return: A user entity dictionary or ``None`` if not defined.
+        """
+        return item.context.user
+
+    ############################################################################
+    # protected methods
+
+    def _publish_to_flow(self, item):
+        """
+        Delegates to ``_publish_revision`` or ``_create_new_asset`` depending
+        on whether a revision ID is present on the parent item.
+        """
+        flow_args = dict(
+            comment=item.description or "",
+            thumbnail_path=item.get_thumbnail_as_path(),
+        )
+
+        # Read from parent item - revision_id applies to entire publish session
+        revision_id = None
+        if item.parent:
+            revision_id = item.parent.properties.get("am_revision_id")
+
+        if revision_id:
+            pub_info = self._publish_revision(item, flow_args, revision_id)
+        else:
+            pub_info = self._create_new_asset(item, flow_args)
+
+        return pub_info
 
     def _get_generic_inputs(self, item) -> dict:
         """
@@ -98,11 +273,11 @@ class DesktopFlowPublishPlugin(HookBaseClass):
         sg_task_name = item.context.task["name"] if entity_type != "Project" else None
 
         return dict(
-            sg_entity_type=sg_entity_type,
+            am_project_id=sg_flow_am_id,
             sg_entity_name=sg_entity_name,
+            sg_entity_type=sg_entity_type,
             sg_pipeline_step=sg_pipeline_step,
             sg_task_name=sg_task_name,
-            am_project_id=sg_flow_am_id,
             source_path=item.get_property("path"),
         )
 
@@ -138,8 +313,8 @@ class DesktopFlowPublishPlugin(HookBaseClass):
             },
         )
 
-        # Note: If this fails, the exception propagates to the parent publish() method
-        # which handles error logging.
+        # Note: If this fails, the exception propagates to publish() which
+        # handles error logging.
         pub_info = self.flow_module.asset_management.publish_generic_revision(
             publish_inputs,
         )
@@ -157,8 +332,8 @@ class DesktopFlowPublishPlugin(HookBaseClass):
         create_args = self._get_generic_inputs(item)
         create_args.update(
             {
-                "thumbnail_path": flow_args.get("thumbnail_path", ""),
                 "comment": flow_args.get("comment", ""),
+                "thumbnail_path": flow_args.get("thumbnail_path", ""),
             }
         )
         create_inputs = self.flow_module.asset_management.CreateGenericInputs(
@@ -175,32 +350,9 @@ class DesktopFlowPublishPlugin(HookBaseClass):
             },
         )
 
-        # Note: If this fails, the exception propagates to the parent publish() method
-        # which handles error logging.
+        # Note: If this fails, the exception propagates to publish() which
+        # handles error logging.
         pub_info = self.flow_module.asset_management.create_generic_workfile(
             create_inputs,
         )
-        return pub_info
-
-    def _publish_to_flow(self, item):
-        """
-        Implements ``FlowPublishPlugin._publish_to_flow`` (defined in
-        ``tk-multi-publish2/hooks/flowam/publish_to_flow.py``) for the desktop
-        context. Delegates to ``_publish_revision`` or ``_create_new_asset``
-        depending on whether a revision ID is present on the parent item.
-        """
-        flow_args = self._get_flow_args(item)
-
-        # Read from parent item - revision_id applies to entire publish session
-        revision_id = None
-        if item.parent:
-            revision_id = item.parent.properties.get("am_revision_id")
-
-        # If revision_id is present, we are publishing a new revision of an existing asset, otherwise we are creating a new asset
-        if revision_id:
-            pub_info = self._publish_revision(item, flow_args, revision_id)
-        else:
-            pub_info = self._create_new_asset(item, flow_args)
-
-        # Return framework data
         return pub_info
