@@ -69,17 +69,6 @@ class DesktopFlowPublishPlugin(HookBaseClass):
         during validation if there are previous publishes.
         """
 
-    @property
-    def item_filters(self):
-        """
-        List of item types that this plugin is interested in.
-
-        Only items matching entries in this list will be presented to the
-        accept() method. Strings can contain glob patters such as *, for example
-        ["maya.*", "file.maya"]
-        """
-        return ["file.*"]
-
     ############################################################################
     # standard publish plugin methods
 
@@ -214,6 +203,8 @@ class DesktopFlowPublishPlugin(HookBaseClass):
             raise
 
     def finalize(self, settings, item):
+        # Override base class no-op: Flow AM publishes do not produce
+        # sg_publish_data, so the base finalize (which reads it) would fail.
         pass
 
     def get_publish_user(self, settings, item):
