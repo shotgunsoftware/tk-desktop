@@ -59,7 +59,12 @@ class LaunchPython(Hook):
         # will be shared with the child process and it prevent restarting the server
         # after the process closes.
         # Solution was found here: http://stackoverflow.com/a/13593715
-        subprocess.Popen(args, startupinfo=startupinfo, close_fds=True)
+        process = subprocess.Popen(args, startupinfo=startupinfo, close_fds=True)
+
+        # Keep track of the bootstrap process so it can be terminated when the
+        # desktop app disconnects from the project or quits.
+        if hasattr(self.parent, "site_comm"):
+            self.parent.site_comm.set_bootstrap_process(process)
 
     def path_to_bootstrap(self):
         """

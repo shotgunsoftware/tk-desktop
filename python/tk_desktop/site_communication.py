@@ -13,6 +13,7 @@ Implements communication channels between the desktop app and the background pro
 """
 
 from sgtk.platform.qt import QtCore
+from .bootstrap_process import terminate_process
 from .communication_base import CommunicationBase
 
 from sgtk import LogManager
@@ -31,6 +32,31 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
     def __init__(self):
         CommunicationBase.__init__(self)
         QtCore.QObject.__init__(self)
+        self._bootstrap_process = None
+
+    def set_bootstrap_process(self, process):
+        """
+        Registers the bootstrap subprocess and terminates any previous one.
+
+        :param process: A :class:`subprocess.Popen` instance for the bootstrap process.
+        """
+        self._terminate_bootstrap_process()
+        self._bootstrap_process = process
+
+    def _terminate_bootstrap_process(self):
+        """
+        Terminates the bootstrap subprocess if one is still running.
+        """
+        process = self._bootstrap_process
+        self._bootstrap_process = None
+        terminate_process(process)
+
+    def shut_down(self):
+        """
+        Disconnects from the project proxy and terminates the bootstrap subprocess.
+        """
+        CommunicationBase.shut_down(self)
+        self._terminate_bootstrap_process()
 
     def _create_proxy(self, pipe, authkey):
         """
