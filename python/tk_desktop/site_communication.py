@@ -64,7 +64,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         - ``desktop_window.__launch_app_proxy_for_project``: before switching to a new project
         - ``desktop_engine_site_implementation.destroy_engine``: engine teardown
         """
-        CommunicationBase.shut_down(self)
+        super().shut_down()
         self._terminate_bootstrap_process()
 
     def _create_proxy(self, pipe, authkey):
