@@ -41,18 +41,26 @@ def terminate_process(
     logger.debug("Terminating bootstrap process (pid %s)...", process.pid)
     try:
         process.terminate()
-    except Exception as exc:
+    except OSError as exc:
         logger.warning("Error terminating bootstrap process: %s", exc)
+
+    try:
+        process.wait(timeout=timeout)
         return
+    except subprocess.TimeoutExpired:
+        logger.warning(
+            "Bootstrap process (pid %s) did not exit after terminate(), killing...",
+            process.pid,
+        )
+
+    try:
+        process.kill()
+    except OSError as exc:
+        logger.warning("Error killing bootstrap process: %s", exc)
 
     try:
         process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
         logger.warning(
-            "Bootstrap process (pid %s) did not exit, killing...", process.pid
+            "Bootstrap process (pid %s) did not exit after kill().", process.pid
         )
-        try:
-            process.kill()
-            process.wait(timeout=timeout)
-        except Exception as exc:
-            logger.warning("Error killing bootstrap process: %s", exc)
