@@ -8,16 +8,24 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+import os
 import subprocess
 import sys
-import os
-from unittest.mock import Mock, MagicMock, patch
+import unittest.mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "python"))
 
-with patch.dict(
+with unittest.mock.patch.dict(
     "sys.modules",
-    {"sgtk": MagicMock(LogManager=MagicMock(get_logger=MagicMock(return_value=Mock())))},
+    {
+        "sgtk": unittest.mock.MagicMock(
+            LogManager=unittest.mock.MagicMock(
+                get_logger=unittest.mock.MagicMock(
+                    return_value=unittest.mock.Mock()
+                )
+            )
+        )
+    },
 ):
     from tk_desktop.bootstrap_process import terminate_process
 
@@ -27,7 +35,7 @@ class TestTerminateProcess:
         terminate_process(None)
 
     def test_does_nothing_when_process_already_exited(self):
-        process = Mock()
+        process = unittest.mock.Mock()
         process.poll.return_value = 0
 
         terminate_process(process)
@@ -36,7 +44,7 @@ class TestTerminateProcess:
         process.kill.assert_not_called()
 
     def test_terminates_running_process(self):
-        process = Mock()
+        process = unittest.mock.Mock()
         process.poll.return_value = None
         process.pid = 1234
         process.wait.return_value = 0
@@ -48,7 +56,7 @@ class TestTerminateProcess:
         process.kill.assert_not_called()
 
     def test_kills_process_when_terminate_times_out(self):
-        process = Mock()
+        process = unittest.mock.Mock()
         process.poll.return_value = None
         process.pid = 1234
         process.wait.side_effect = [subprocess.TimeoutExpired("cmd", 5), 0]
