@@ -12,6 +12,8 @@
 Implements communication channels between the desktop app and the background process.
 """
 
+import subprocess
+
 from sgtk.platform.qt import QtCore
 from .bootstrap_process import terminate_process
 from .communication_base import CommunicationBase
@@ -34,7 +36,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         QtCore.QObject.__init__(self)
         self._bootstrap_process = None
 
-    def set_bootstrap_process(self, process):
+    def set_bootstrap_process(self, process: subprocess.Popen) -> None:
         """
         Registers the bootstrap subprocess and terminates any previous one.
 
@@ -43,7 +45,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         self._terminate_bootstrap_process()
         self._bootstrap_process = process
 
-    def _terminate_bootstrap_process(self):
+    def _terminate_bootstrap_process(self) -> None:
         """
         Terminates the bootstrap subprocess if one is still running.
         """
@@ -51,9 +53,16 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         self._bootstrap_process = None
         terminate_process(process)
 
-    def shut_down(self):
+    def shut_down(self) -> None:
         """
-        Disconnects from the project proxy and terminates the bootstrap subprocess.
+        Overrides :meth:`CommunicationBase.shut_down` to also terminate the
+        bootstrap subprocess after disconnecting from the RPC proxy.
+
+        Called from the following locations:
+        - ``desktop_window._about_to_quit``: user quits Desktop via menu / Alt+F4
+        - ``desktop_window._on_back_to_projects_clicked``: user returns to the project browser
+        - ``desktop_window.__launch_app_proxy_for_project``: before switching to a new project
+        - ``desktop_engine_site_implementation.destroy_engine``: engine teardown
         """
         CommunicationBase.shut_down(self)
         self._terminate_bootstrap_process()
