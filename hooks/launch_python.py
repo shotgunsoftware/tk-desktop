@@ -63,8 +63,10 @@ class LaunchPython(Hook):
 
         # Keep track of the bootstrap process so it can be terminated when the
         # desktop app disconnects from the project or quits.
-        if hasattr(self.parent, "site_comm"):
+        try:
             self.parent.site_comm.set_bootstrap_process(process)
+        except AttributeError:
+            pass
 
     def path_to_bootstrap(self):
         """
