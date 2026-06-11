@@ -13,15 +13,19 @@ Helpers for managing the project bootstrap subprocess launched by tk-desktop.
 """
 
 import subprocess
+from typing import Optional
 
 from sgtk import LogManager
 
 logger = LogManager.get_logger(__name__)
 
-DEFAULT_TERMINATION_TIMEOUT = 5
+DEFAULT_TERMINATION_TIMEOUT: int = 5
 
 
-def terminate_process(process, timeout=DEFAULT_TERMINATION_TIMEOUT):
+def terminate_process(
+    process: Optional[subprocess.Popen],
+    timeout: int = DEFAULT_TERMINATION_TIMEOUT,
+) -> None:
     """
     Terminates a subprocess if it is still running.
 
