@@ -20,9 +20,7 @@ with unittest.mock.patch.dict(
     {
         "sgtk": unittest.mock.MagicMock(
             LogManager=unittest.mock.MagicMock(
-                get_logger=unittest.mock.MagicMock(
-                    return_value=unittest.mock.Mock()
-                )
+                get_logger=unittest.mock.MagicMock(return_value=unittest.mock.Mock())
             )
         )
     },
