@@ -14,26 +14,26 @@ Implements communication channels between the desktop app and the background pro
 
 import subprocess
 
-from sgtk.platform.qt import QtCore
-from .bootstrap_process import terminate_process
-from .communication_base import CommunicationBase
+import sgtk
+from . import bootstrap_process
+from . import communication_base
 
-from sgtk import LogManager
-
-logger = LogManager.get_logger(__name__)
+logger = sgtk.LogManager.get_logger(__name__)
 
 
-class SiteCommunication(QtCore.QObject, CommunicationBase):
+class SiteCommunication(
+    sgtk.platform.qt.QtCore.QObject, communication_base.CommunicationBase
+):
     """
     Communication channel for the site engine to the project engine.
     """
 
-    proxy_closing = QtCore.Signal()
-    proxy_created = QtCore.Signal()
+    proxy_closing = sgtk.platform.qt.QtCore.Signal()
+    proxy_created = sgtk.platform.qt.QtCore.Signal()
 
     def __init__(self):
-        CommunicationBase.__init__(self)
-        QtCore.QObject.__init__(self)
+        communication_base.CommunicationBase.__init__(self)
+        sgtk.platform.qt.QtCore.QObject.__init__(self)
         self._bootstrap_process = None
 
     def set_bootstrap_process(self, process: subprocess.Popen) -> None:
@@ -51,7 +51,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         """
         process = self._bootstrap_process
         self._bootstrap_process = None
-        terminate_process(process)
+        bootstrap_process.terminate_process(process)
 
     def shut_down(self) -> None:
         """
@@ -71,7 +71,7 @@ class SiteCommunication(QtCore.QObject, CommunicationBase):
         """
         Connects to the other process's RPC server.
         """
-        CommunicationBase._create_proxy(self, pipe, authkey)
+        communication_base.CommunicationBase._create_proxy(self, pipe, authkey)
         self.proxy_created.emit()
 
     def start_server(self):

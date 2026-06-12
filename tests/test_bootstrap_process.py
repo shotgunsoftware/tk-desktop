@@ -25,7 +25,9 @@ with unittest.mock.patch.dict(
         )
     },
 ):
-    from tk_desktop.bootstrap_process import terminate_process
+    import tk_desktop.bootstrap_process
+
+terminate_process = tk_desktop.bootstrap_process.terminate_process
 
 
 class TestTerminateProcess:

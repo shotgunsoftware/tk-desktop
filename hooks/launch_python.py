@@ -17,10 +17,9 @@ import sys
 import subprocess
 
 import tank
-from tank import Hook
 
 
-class LaunchPython(Hook):
+class LaunchPython(tank.Hook):
     def execute(self, project_python, pickle_data_path, utilities_module_path):
         """
         Launch the python process that will start the project specific tk-desktop

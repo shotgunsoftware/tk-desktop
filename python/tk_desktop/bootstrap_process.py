@@ -13,17 +13,17 @@ Helpers for managing the project bootstrap subprocess launched by tk-desktop.
 """
 
 import subprocess  # nosec B404
-from typing import Optional
+import typing
 
-from sgtk import LogManager
+import sgtk
 
-logger = LogManager.get_logger(__name__)
+logger = sgtk.LogManager.get_logger(__name__)
 
 DEFAULT_TERMINATION_TIMEOUT: int = 5
 
 
 def terminate_process(
-    process: Optional[subprocess.Popen],
+    process: typing.Optional[subprocess.Popen],
     timeout: int = DEFAULT_TERMINATION_TIMEOUT,
 ) -> None:
     """
