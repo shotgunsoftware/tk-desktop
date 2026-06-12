@@ -12,7 +12,7 @@
 Helpers for managing the project bootstrap subprocess launched by tk-desktop.
 """
 
-import subprocess
+import subprocess  # nosec B404
 from typing import Optional
 
 from sgtk import LogManager
