@@ -64,7 +64,7 @@ class SiteCommunication(
         - ``desktop_window.__launch_app_proxy_for_project``: before switching to a new project
         - ``desktop_engine_site_implementation.destroy_engine``: engine teardown
         """
-        super().shut_down()
+        CommunicationBase.shut_down(self)
         self._terminate_bootstrap_process()
 
     def _create_proxy(self, pipe, authkey):
