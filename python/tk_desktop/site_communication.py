@@ -12,31 +12,66 @@
 Implements communication channels between the desktop app and the background process.
 """
 
-from sgtk.platform.qt import QtCore
-from .communication_base import CommunicationBase
+import subprocess
 
-from sgtk import LogManager
+import sgtk
+from . import bootstrap_process
+from . import communication_base
 
-logger = LogManager.get_logger(__name__)
+logger = sgtk.LogManager.get_logger(__name__)
 
 
-class SiteCommunication(QtCore.QObject, CommunicationBase):
+class SiteCommunication(
+    sgtk.platform.qt.QtCore.QObject, communication_base.CommunicationBase
+):
     """
     Communication channel for the site engine to the project engine.
     """
 
-    proxy_closing = QtCore.Signal()
-    proxy_created = QtCore.Signal()
+    proxy_closing = sgtk.platform.qt.QtCore.Signal()
+    proxy_created = sgtk.platform.qt.QtCore.Signal()
 
     def __init__(self):
-        CommunicationBase.__init__(self)
-        QtCore.QObject.__init__(self)
+        communication_base.CommunicationBase.__init__(self)
+        sgtk.platform.qt.QtCore.QObject.__init__(self)
+        self._bootstrap_process = None
+
+    def set_bootstrap_process(self, process: subprocess.Popen) -> None:
+        """
+        Registers the bootstrap subprocess and terminates any previous one.
+
+        :param process: A :class:`subprocess.Popen` instance for the bootstrap process.
+        """
+        self._terminate_bootstrap_process()
+        self._bootstrap_process = process
+
+    def _terminate_bootstrap_process(self) -> None:
+        """
+        Terminates the bootstrap subprocess if one is still running.
+        """
+        process = self._bootstrap_process
+        self._bootstrap_process = None
+        bootstrap_process.terminate_process(process)
+
+    def shut_down(self) -> None:
+        """
+        Overrides :meth:`CommunicationBase.shut_down` to also terminate the
+        bootstrap subprocess after disconnecting from the RPC proxy.
+
+        Called from the following locations:
+        - ``desktop_window._about_to_quit``: user quits Desktop via menu / Alt+F4
+        - ``desktop_window._on_back_to_projects_clicked``: user returns to the project browser
+        - ``desktop_window.__launch_app_proxy_for_project``: before switching to a new project
+        - ``desktop_engine_site_implementation.destroy_engine``: engine teardown
+        """
+        CommunicationBase.shut_down(self)
+        self._terminate_bootstrap_process()
 
     def _create_proxy(self, pipe, authkey):
         """
         Connects to the other process's RPC server.
         """
-        CommunicationBase._create_proxy(self, pipe, authkey)
+        communication_base.CommunicationBase._create_proxy(self, pipe, authkey)
         self.proxy_created.emit()
 
     def start_server(self):
