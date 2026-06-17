@@ -150,6 +150,15 @@ class DesktopEngine(Engine):
         if hasattr(self.__impl, "post_app_init"):
             self.__impl.post_app_init()
 
+        # Instantiate FlowHost if current context is configured with Flow
+        if self.context.flow_project_id:
+            self.logger.info("Instantiating Flow host as DesktopHost...")
+            host_mod = self.import_module("flowam.host")
+            # NOTE: For tk-desktop, for some reason trying to instantiate
+            #       a DesktopHost object fails. We will use the class instead
+            #       of an object, which will provide the same functionality.
+            self._flow_host = host_mod.DesktopHost
+
     def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
         """
         Shows the panel in the desktop engine, if supported by the current
