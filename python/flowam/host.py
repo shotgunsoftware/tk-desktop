@@ -13,6 +13,7 @@
 from __future__ import annotations  # needed for python 3.9 support
 
 import os
+import pyperclip
 
 import sgtk
 from tank import LogManager
@@ -24,12 +25,6 @@ from tank_vendor.flow_integration_sdk.utils import trace
 class DesktopHost(FlowHost):
     """Toolkit Desktop implementation of FlowHost interface.
     This is a collection of required capabilities to support Flow AM integration.
-
-    NOTE: For some reason trying to instantiate this class from the
-          tk-desktop-engine causes issues. So DesktopHost will be used
-          as a class and not an object, and all functions will be class methods.
-          This is ok because we do not need to use the sgtk context object
-          in this implementation.
     """
 
     logger = LogManager.get_logger("DesktopHost")
@@ -39,21 +34,24 @@ class DesktopHost(FlowHost):
     #: Supports all file types
     FILE_TYPES = ["*"]
 
-    @classmethod
+    def __init__(self, context):
+
+        self.logger.info("Doing DesktopHost initialization...")
+
+        super().__init__(context)
+
     @trace
-    def current_file(cls) -> str:
+    def current_file(self) -> str:
         # Not applicable for desktop application
         return ""
 
-    @classmethod
     @trace
-    def new_scene(cls, force: bool = True) -> bool:
+    def new_scene(self, force: bool = True) -> bool:
         # Not applicable for desktop application
         return True
 
-    @classmethod
     @trace
-    def open_file(cls, file_path: str) -> bool:
+    def open_file(self, file_path: str) -> bool:
         """Open given file path. In Desktop context, this means opening
         the containing folder of file in file explorer.
 
@@ -69,10 +67,9 @@ class DesktopHost(FlowHost):
         # Open the file explorer
         return open_explorer(dir_path)
 
-    @classmethod
     @trace
     def dialog(
-        cls,
+        self,
         title: str,
         msg: str,
         buttons: list[str] | None = None,
@@ -109,7 +106,7 @@ class DesktopHost(FlowHost):
             raise ValueError(f"Provided cancel action {cancel} is out of range.")
 
         # Create qt message box
-        parent = cls._get_dialog_parent()
+        parent = self._get_dialog_parent()
         dialog = qtg.QMessageBox(parent)
         dialog.setWindowTitle(title)
         dialog.setText(msg)
@@ -146,10 +143,9 @@ class DesktopHost(FlowHost):
         #       return the actual button object that was clicked.
         return push_buttons.index(dialog.clickedButton())
 
-    @classmethod
     @trace
     def file_dialog(
-        cls,
+        self,
         title: str,
         starting_dir: str = "",
         folder_mode: bool = False,
@@ -174,7 +170,7 @@ class DesktopHost(FlowHost):
         """
         from tank.platform.qt import QtGui as qtg
 
-        parent = cls._get_dialog_parent()
+        parent = self._get_dialog_parent()
 
         if folder_mode:
             # Select single directory
@@ -210,8 +206,7 @@ class DesktopHost(FlowHost):
             return [str(result)]
         return []
 
-    @classmethod
-    def _get_dialog_parent(cls):
+    def _get_dialog_parent(self):
         """
         Return the parent widget for dialogs in DesktopHost.
         Currently returns None as there is no specific parent.
@@ -225,3 +220,16 @@ class DesktopHost(FlowHost):
             return engine._get_dialog_parent()
 
         return None
+
+    def copy_to_clipboard(self, text: str) -> bool:
+        """Copy given text to clipboard of relevant application.
+        Default implementation copies to system clipboard.
+
+        Args:
+            text: Text to be copied.
+
+        Returns:
+            True on success.
+        """
+        pyperclip.copy(text)
+        return True
