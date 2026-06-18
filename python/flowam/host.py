@@ -13,7 +13,6 @@
 from __future__ import annotations  # needed for python 3.9 support
 
 import os
-import pyperclip
 
 import sgtk
 from tank import LogManager
@@ -221,9 +220,9 @@ class DesktopHost(FlowHost):
 
         return None
 
+    @trace
     def copy_to_clipboard(self, text: str) -> bool:
-        """Copy given text to clipboard of relevant application.
-        Default implementation copies to system clipboard.
+        """Copy given text to clipboard of QT application.
 
         Args:
             text: Text to be copied.
@@ -231,5 +230,16 @@ class DesktopHost(FlowHost):
         Returns:
             True on success.
         """
-        pyperclip.copy(text)
+        from tank.platform.qt import QtGui as qtg
+
+        app = qtg.QApplication.instance()
+        if app is None:
+            # NOTE: Desktop always has a running QApplication so the None
+            #       guard is just a safety net, not a real code path.
+            msg = "Copy to clipboard failed. "
+            msg += "No QApplication instance available for clipboard access."
+            self.logger.error(msg)
+            return False
+
+        app.clipboard().setText(text)
         return True
