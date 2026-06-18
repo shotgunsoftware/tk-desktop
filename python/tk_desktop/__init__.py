@@ -8,6 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from . import flowam  # noqa
+
 
 def get_engine_implementation(implementation_type):
     if implementation_type == "site":
