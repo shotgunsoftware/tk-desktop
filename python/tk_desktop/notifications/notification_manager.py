@@ -12,8 +12,6 @@ from .desktop_notification import DesktopNotification
 from .configuration_update_notification import ConfigurationUpdateNotification
 from .first_launch_notification import FirstLaunchNotification
 from .startup_update_notification import StartupUpdateNotification
-from .python37_deprecation_notification import Python37DeprecationNotification
-
 import sgtk
 
 logger = sgtk.platform.get_logger(__name__)
@@ -71,11 +69,6 @@ class NotificationsManager(object):
         other_notifs = [
             startup_update_notif,
             desktop_notif,
-            # CentOS 7 deprecation notif
-            Python37DeprecationNotification.create(
-                banner_settings,
-                self._engine,
-            ),
         ]
 
         # If both descriptors are set and they have the same uri, we only want one notification.
