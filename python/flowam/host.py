@@ -42,7 +42,7 @@ class DesktopHost(FlowHost):
     @trace
     def current_file(self) -> str:
         # Not applicable for desktop application
-        return ""
+        return ""  
 
     @trace
     def new_scene(self, force: bool = True) -> bool:
