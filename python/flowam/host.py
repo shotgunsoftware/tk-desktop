@@ -91,7 +91,7 @@ class DesktopHost(FlowHost):
         Returns:
             The index of the button selected by user. Value of -1 indicates dismissed dialog.
         """
-        from tank.platform.qt import QtGui as qtg
+        from tank.platform.qt import QtGui
 
         if not buttons:
             # Minimally provide a generic confirmation button
@@ -106,12 +106,12 @@ class DesktopHost(FlowHost):
 
         # Create qt message box
         parent = self._get_dialog_parent()
-        dialog = qtg.QMessageBox(parent)
+        dialog = QtGui.QMessageBox(parent)
         dialog.setWindowTitle(title)
         dialog.setText(msg)
 
         # Create qt push buttons
-        push_buttons = [qtg.QPushButton(btn_text) for btn_text in buttons]
+        push_buttons = [QtGui.QPushButton(btn_text) for btn_text in buttons]
 
         # NOTE: The order of addition here does not control the order
         #       of display unfortunately - rather that is determined by
@@ -121,7 +121,7 @@ class DesktopHost(FlowHost):
         for i, btn in enumerate(push_buttons):
             # NOTE: Using a hack here to assign each button a unique int
             #       value using available button roles (there are 9)
-            dialog.addButton(btn, qtg.QMessageBox.ButtonRole(i))
+            dialog.addButton(btn, QtGui.QMessageBox.ButtonRole(i))
 
         # Set default action
         default_button = push_buttons[default]
@@ -157,8 +157,8 @@ class DesktopHost(FlowHost):
             title: Title of dialog.
             starting_dir: Starting location of dialog.
             folder_mode: If True, dialog will browse folders instead of files.
-            file_filter: Extension of file type to filter for.
-                         Applicable only when browsing files.
+            file_type: Extension of file type to filter for.
+                       Applicable only when browsing files.
             multi_select: If True, allow multiple selection of files.
                           Applicable only when browsing files.
 
@@ -167,13 +167,13 @@ class DesktopHost(FlowHost):
             If multi_select = False, the return value will be a list of size 1.
             If user cancels, list will be empty.
         """
-        from tank.platform.qt import QtGui as qtg
+        from tank.platform.qt import QtGui
 
         parent = self._get_dialog_parent()
 
         if folder_mode:
             # Select single directory
-            result = qtg.QFileDialog.getExistingDirectory(
+            result = QtGui.QFileDialog.getExistingDirectory(
                 parent=parent,
                 caption=title,
                 dir=starting_dir,
@@ -186,7 +186,7 @@ class DesktopHost(FlowHost):
 
         if multi_select:
             # Select multiple files
-            result, _ = qtg.QFileDialog.getOpenFileNames(
+            result, _ = QtGui.QFileDialog.getOpenFileNames(
                 parent=parent,
                 caption=title,
                 dir=starting_dir,
@@ -195,7 +195,7 @@ class DesktopHost(FlowHost):
             return [str(path) for path in result]
 
         # Select single file
-        result, _ = qtg.QFileDialog.getOpenFileName(
+        result, _ = QtGui.QFileDialog.getOpenFileName(
             parent=parent,
             caption=title,
             dir=starting_dir,
@@ -230,9 +230,9 @@ class DesktopHost(FlowHost):
         Returns:
             True on success.
         """
-        from tank.platform.qt import QtGui as qtg
+        from tank.platform.qt import QtGui
 
-        app = qtg.QApplication.instance()
+        app = QtGui.QApplication.instance()
         if app is None:
             # NOTE: Desktop always has a running QApplication so the None
             #       guard is just a safety net, not a real code path.
