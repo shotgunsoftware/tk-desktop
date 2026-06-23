@@ -212,7 +212,7 @@ class DesktopHost(FlowHost):
         If in the future a main application window is defined, this method can be updated to return that window.
 
         Returns:
-            The parent widget or None.
+            The parent QWidget or None.
         """
         engine = sgtk.platform.current_engine()
         if engine is not None:
