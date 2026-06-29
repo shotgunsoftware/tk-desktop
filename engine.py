@@ -151,7 +151,7 @@ class DesktopEngine(Engine):
             self.__impl.post_app_init()
 
         # Instantiate FlowHost if current context is configured with Flow
-        if self.context.flow_project_id:
+        if hasattr(self.context, "flow_project_id") and self.context.flow_project_id:
             self.logger.info("Instantiating Flow host as DesktopHost...")
             host_mod = self.import_module("flowam.host")
             self._flow_host = host_mod.DesktopHost(self.context)
