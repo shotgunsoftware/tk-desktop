@@ -150,6 +150,12 @@ class DesktopEngine(Engine):
         if hasattr(self.__impl, "post_app_init"):
             self.__impl.post_app_init()
 
+        # Instantiate FlowHost if current context is configured with Flow
+        if hasattr(self.context, "flow_project_id") and self.context.flow_project_id:
+            self.logger.info("Instantiating Flow host as DesktopHost...")
+            host_mod = self.import_module("flowam.host")
+            self._flow_host = host_mod.DesktopHost(self.context)
+
     def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
         """
         Shows the panel in the desktop engine, if supported by the current
