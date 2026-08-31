@@ -489,7 +489,7 @@ class TestProxyLifecycle:
         engine_impl._collapse_rules = []
         return engine_impl
 
-    def test_on_proxy_created_clears_full_app_ui(self):
+    def test_on_proxy_created_clears_app_commands(self):
         """
         _on_proxy_created must call clear_app_commands() so the CommandPanel is
         wiped before the incoming engine registers its commands.
