@@ -478,9 +478,9 @@ class TestProxyLifecycle:
     retained stale buttons that were then duplicated when the new engine
     re-registered its commands.
 
-    The fix makes _on_proxy_created call clear_app_uis(), matching the
-    behaviour of _on_proxy_closing and ensuring the panel is always wiped
-    before new commands arrive regardless of which side initiated the shutdown.
+    The fix makes _on_proxy_created call clear_app_commands(), which clears
+    the CommandPanel and app-level menu actions while preserving pipeline
+    configuration entries (unlike clear_app_uis which calls reset()).
     """
 
     def _make_engine_impl(self):
@@ -491,22 +491,19 @@ class TestProxyLifecycle:
 
     def test_on_proxy_created_clears_full_app_ui(self):
         """
-        _on_proxy_created must call clear_app_uis() so the CommandPanel is
+        _on_proxy_created must call clear_app_commands() so the CommandPanel is
         wiped before the incoming engine registers its commands.
         """
         engine_impl = self._make_engine_impl()
 
         DesktopEngineSiteImplementation._on_proxy_created(engine_impl)
 
-        engine_impl.desktop_window.clear_app_uis.assert_called_once()
+        engine_impl.desktop_window.clear_app_commands.assert_called_once()
 
     def test_on_proxy_created_does_not_call_clear_actions_only(self):
         """
-        The old implementation called clear_actions_from_project_menu() instead
-        of clear_app_uis(). Verify the narrower call is no longer made directly:
-        clear_app_uis already resets the menu via _project_menu.reset(), so a
-        separate call to clear_actions_from_project_menu would be redundant and
-        signals the regression has been re-introduced.
+        The old pre-SG-42329 implementation called clear_actions_from_project_menu()
+        directly without clearing the CommandPanel. Verify that narrow path is gone.
         """
         engine_impl = self._make_engine_impl()
 
@@ -517,14 +514,14 @@ class TestProxyLifecycle:
     def test_on_proxy_created_clears_ui_before_command_registration(self):
         """
         Simulate the reload sequence: proxy_created fires, then the new engine
-        registers a command via trigger_register_command.  clear_app_uis must
-        be called before add_project_command so no stale buttons survive.
+        registers a command via trigger_register_command.  clear_app_commands
+        must be called before add_project_command so no stale buttons survive.
         """
         engine_impl = self._make_engine_impl()
         call_order = []
 
-        engine_impl.desktop_window.clear_app_uis.side_effect = (
-            lambda: call_order.append("clear_app_uis")
+        engine_impl.desktop_window.clear_app_commands.side_effect = (
+            lambda: call_order.append("clear_app_commands")
         )
         engine_impl.desktop_window.add_project_command.side_effect = (
             lambda *a, **kw: call_order.append("add_project_command")
@@ -543,9 +540,9 @@ class TestProxyLifecycle:
                 groups=["Studio"],
             )
 
-        assert call_order.index("clear_app_uis") < call_order.index(
+        assert call_order.index("clear_app_commands") < call_order.index(
             "add_project_command"
-        ), "clear_app_uis must run before add_project_command on reload"
+        ), "clear_app_commands must run before add_project_command on reload"
 
     def test_on_proxy_closing_clears_full_app_ui(self):
         """
