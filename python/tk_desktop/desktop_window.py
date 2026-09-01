@@ -1291,6 +1291,16 @@ class DesktopWindow(SystrayWindow):
         )
         self.project_overlay.hide()
 
+    def clear_app_commands(self):
+        """Like clear_app_uis() but uses clear_actions() so pipeline configs survive."""
+        self._command_panel.clear()
+        self.setup_project_widget.hide()
+        self.update_project_config_widget.hide()
+        self.setup_new_os_widget.hide()
+        self.install_apps_widget.hide()
+        self.project_overlay.hide()
+        self._project_menu.clear_actions()
+
     def clear_app_uis(self):
         # empty the project commands
         self._command_panel.clear()
