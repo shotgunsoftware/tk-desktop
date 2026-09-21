@@ -1920,7 +1920,9 @@ class DesktopWindow(SystrayWindow):
         versions["Engine"] = engine.version
         versions["Core"] = engine.sgtk.version
 
-        descriptor = self._current_pipeline_descriptor or engine.sgtk.configuration_descriptor
+        descriptor = (
+            self._current_pipeline_descriptor or engine.sgtk.configuration_descriptor
+        )
 
         if descriptor:
             # Use the selected project config first.
