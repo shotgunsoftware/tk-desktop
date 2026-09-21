@@ -381,17 +381,9 @@ class DesktopEngineSiteImplementation(object):
             splash.set_message("Building UI")
 
         # setup the global look and feel
+        # Note: _initialize_dark_look_and_feel() calls _ensure_core_fonts_loaded()
+        # which loads Open Sans from tk-core, so no separate font loading is needed.
         self._engine._initialize_dark_look_and_feel()
-
-        # load custom font
-        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Bold.ttf")
-        QtGui.QFontDatabase.addApplicationFont(
-            ":/tk-desktop/fonts/OpenSans-Regular.ttf"
-        )
-        QtGui.QFontDatabase.addApplicationFont(
-            ":/tk-desktop/fonts/OpenSans-CondLight.ttf"
-        )
-        QtGui.QFontDatabase.addApplicationFont(":/tk-desktop/fonts/OpenSans-Light.ttf")
 
         # merge in app specific look and feel
         css_file = os.path.join(self._engine.disk_location, "style.qss")
