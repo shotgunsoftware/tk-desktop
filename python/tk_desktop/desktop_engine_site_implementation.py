@@ -280,6 +280,11 @@ class DesktopEngineSiteImplementation(object):
             action = QtGui.QAction(self.desktop_window)
             if icon is not None:
                 action.setIcon(icon)
+                # On macOS, Qt sets AA_DontShowIconsInMenus to True by default,
+                # which suppresses icons in all QMenu items. Override this per
+                # action so icons remain visible regardless of the host
+                # application's attribute setting (changed in FPTR Desktop v3.0).
+                action.setIconVisibleInMenu(True)
             if command_tooltip is not None:
                 action.setToolTip(command_tooltip)
             action.setText(title)
