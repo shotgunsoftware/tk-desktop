@@ -11,6 +11,7 @@
 from .desktop_notification import DesktopNotification
 from .configuration_update_notification import ConfigurationUpdateNotification
 from .first_launch_notification import FirstLaunchNotification
+from .python39_deprecation_notification import Python39DeprecationNotification
 from .startup_update_notification import StartupUpdateNotification
 import sgtk
 
@@ -24,8 +25,7 @@ class NotificationsManager(object):
 
     _BANNERS = "banners"
     NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH = [
-        # Add here the notification classes that need to be included at first
-        # launch
+        Python39DeprecationNotification,
     ]
 
     def __init__(self, user_settings, site_descriptor, project_descriptor, engine):
@@ -69,6 +69,10 @@ class NotificationsManager(object):
         other_notifs = [
             startup_update_notif,
             desktop_notif,
+            Python39DeprecationNotification.create(
+                banner_settings,
+                self._engine,
+            ),
         ]
 
         # If both descriptors are set and they have the same uri, we only want one notification.
