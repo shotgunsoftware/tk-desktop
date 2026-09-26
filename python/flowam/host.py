@@ -33,11 +33,11 @@ class DesktopHost(FlowHost):
     #: Supports all file types
     FILE_TYPES = ["*"]
 
-    def __init__(self, context):
+    def __init__(self):
 
         self.logger.info("Doing DesktopHost initialization...")
 
-        super().__init__(context)
+        super().__init__()
 
     @trace
     def current_file(self) -> str:
