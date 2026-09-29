@@ -25,6 +25,8 @@ class NotificationsManager(object):
 
     _BANNERS = "banners"
     NOTIFS_TO_BE_INCLUDED_IN_FIRST_LAUNCH = [
+        # Add here the notification classes that need to be included at first
+        # launch
         Python39DeprecationNotification,
     ]
 
