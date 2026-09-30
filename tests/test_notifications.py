@@ -8,6 +8,8 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from unittest import mock
+
 from tank_test.tank_test_base import TankTestBase, SealedMock
 from tank_test.tank_test_base import setUpModule  # noqa
 
@@ -42,7 +44,9 @@ class TestNotifications(TankTestBase):
 
         # Mocks the parts of the engine required by the notification system.
         self._mock_engine = SealedMock(
-            startup_descriptor=None, get_setting=self._get_setting_mock
+            app_version="v1.8.0",
+            startup_descriptor=None,
+            get_setting=self._get_setting_mock,
         )
 
         # Create the manager.
@@ -189,6 +193,64 @@ class TestNotifications(TankTestBase):
 
         # Now there should be no more current notifications.
         self.assertListEqual(self._notification_manager.get_notifications(), [])
+
+    def test_python39_banner_on_desktop_18(self):
+        """
+        Desktop 1.8 users get the banner, including the Desktop information.
+        """
+        notif = notifications.Python39DeprecationNotification.create(
+            {}, self._mock_engine
+        )
+        self._test_properties([notif])
+        self.assertTrue(notif.include_sgd)
+        self.assertIn("ShotGrid Desktop 1.8", notif.message)
+        self.assertIn("March 15, 2028", notif.message)
+
+    @mock.patch.object(
+        notifications.Python39DeprecationNotification,
+        "is_python_deprecated",
+        return_value=True,
+    )
+    def test_python39_banner_on_python39(self, _):
+        """
+        Python 3.9 users on a newer Desktop get the banner, without the Desktop
+        information.
+        """
+        self._mock_engine.app_version = "v3.0.0"
+        notif = notifications.Python39DeprecationNotification.create(
+            {}, self._mock_engine
+        )
+        self.assertFalse(notif.include_sgd)
+        self.assertNotIn("ShotGrid Desktop 1.8", notif.message)
+
+    @mock.patch.object(
+        notifications.Python39DeprecationNotification,
+        "is_python_deprecated",
+        return_value=False,
+    )
+    def test_python39_banner_not_needed(self, _):
+        """
+        Users on a newer Desktop and a newer Python do not get the banner.
+        """
+        self._mock_engine.app_version = "v3.0.0"
+        self.assertIsNone(
+            notifications.Python39DeprecationNotification.create({}, self._mock_engine)
+        )
+
+    def test_python39_banner_dismissed(self):
+        """
+        A dismissed banner does not come back.
+        """
+        banner_settings = {}
+        notif = notifications.Python39DeprecationNotification.create(
+            banner_settings, self._mock_engine
+        )
+        notif._dismiss(banner_settings)
+        self.assertIsNone(
+            notifications.Python39DeprecationNotification.create(
+                banner_settings, self._mock_engine
+            )
+        )
 
     def _test_properties(self, notifications):
         """
