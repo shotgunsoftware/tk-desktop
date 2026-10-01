@@ -154,7 +154,7 @@ class DesktopEngine(Engine):
         if hasattr(self.context, "flow_project_id") and self.context.flow_project_id:
             self.logger.info("Instantiating Flow host as DesktopHost...")
             host_mod = self.import_module("flowam.host")
-            self._flow_host = host_mod.DesktopHost(self.context)
+            self._flow_host = host_mod.DesktopHost()
 
     def show_panel(self, panel_id, title, bundle, widget_class, *args, **kwargs):
         """
