@@ -1922,7 +1922,20 @@ class DesktopWindow(SystrayWindow):
             versions["Startup"] = engine.startup_version
 
         versions["Engine"] = engine.version
-        versions["Core"] = engine.sgtk.version
+        core_version = engine.sgtk.version
+        if core_version == "HEAD":
+            # A dev core is copied into the config at bootstrap, so its info.yml
+            # only says HEAD. The config's core descriptor still points at the
+            # original location and can report a more meaningful version.
+            try:
+                core_descriptor = (
+                    engine.sgtk.configuration_descriptor.resolve_core_descriptor()
+                )
+                if core_descriptor and core_descriptor.version != "Undefined":
+                    core_version = core_descriptor.version
+            except Exception:
+                pass
+        versions["Core"] = core_version
 
         descriptor = (
             self._current_pipeline_descriptor or engine.sgtk.configuration_descriptor
