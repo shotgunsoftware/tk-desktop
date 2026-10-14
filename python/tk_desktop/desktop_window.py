@@ -1931,8 +1931,11 @@ class DesktopWindow(SystrayWindow):
                 core_descriptor = (
                     engine.sgtk.configuration_descriptor.resolve_core_descriptor()
                 )
-                if core_descriptor and core_descriptor.version != "Undefined":
-                    core_version = core_descriptor.version
+                if core_descriptor:
+                    # Read it once: for a dev core, each access runs git.
+                    descriptor_version = core_descriptor.version
+                    if descriptor_version != "Undefined":
+                        core_version = descriptor_version
             except Exception:
                 pass
         versions["Core"] = core_version
